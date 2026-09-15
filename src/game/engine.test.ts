@@ -9,6 +9,7 @@ import {
 import type { HoltoChessGameState } from "./types";
 
 function fillHuman(state: HoltoChessGameState): HoltoChessGameState {
+  if (state.players[0]!.eliminated) return state;
   const target = BALANCE.handLimits[state.round];
   while (state.players[0]!.ownedCardIds.length < target) {
     const id = state.players[0]!.shopCardIds[0];
@@ -59,15 +60,46 @@ describe("Holto Chess engine", () => {
     expect(state.phase).toBe("GAME_RESULT"); expect(finalStandings(state)).toHaveLength(4);
   });
 
-  it("never reuses primary boards in R2 or R4 secondary showdowns", () => {
+  it("creates independent R2 match universes and excludes unselected owned cards", () => {
     let state = playRound(createGame(404)); state = startNextRound(leaveRoundResult(state));
     state = fillHuman(state); state = prepareShowdown(state);
     for (const id of state.players[0]!.ownedCardIds.slice(0, 2)) state = toggleSelectedCard(state, "p1", id);
     state = confirmSelection(state); state = resolvePrimary(state);
-    const primarySignatures = new Set(state.communityBoards.map((board) => board.map((card) => card.id).join("-")));
+    expect(state.roundResults).toHaveLength(4);
+    for (const match of state.roundResults) {
+      expect(match.runoutCount).toBe(2);
+      expect(new Set(match.boards.slice(0, 2).flat().map((card) => card.id)).size).toBe(10);
+      const owned = match.playerIds.flatMap((id) => state.players.find((player) => player.id === id)!.ownedCardIds);
+      expect(match.boards.flat().some((card) => owned.includes(card.id))).toBe(false);
+    }
+    expect(state.roundResults[0]!.boards[0]).not.toBe(state.roundResults[1]!.boards[0]);
+  });
+
+  it("does not mutate ownership ledger while generating boards", () => {
+    let state = fillHuman(createGame(505)); state = prepareShowdown(state);
+    const before = state.ownershipCardPool.map(({ card, state: poolState, ownerPlayerId, reservedPlayerId }) => [card.id, poolState, ownerPlayerId, reservedPlayerId]);
+    state = resolvePrimary(state);
+    const after = state.ownershipCardPool.map(({ card, state: poolState, ownerPlayerId, reservedPlayerId }) => [card.id, poolState, ownerPlayerId, reservedPlayerId]);
+    expect(after).toEqual(before);
+  });
+
+  it("uses separate boards for R4 winner and loser three-way encounters", () => {
+    let state = createGame(606);
+    for (let round = 1; round <= 3; round += 1) {
+      state = playRound(state); state = leaveRoundResult(state);
+      if (state.phase === "AUGMENT") state = chooseAugment(state, "p1", state.augmentChoices[0]!.id);
+      state = startNextRound(state);
+    }
+    state = fillHuman(state); state = prepareShowdown(state); state = resolvePrimary(state);
+    expect(state.roundResults).toHaveLength(3);
+    expect(state.roundResults.every((match) => match.playerIds.length === 2 && match.boards.length >= 1)).toBe(true);
     state = resolveSecondary(beginSecondary(state));
-    const allSignatures = state.communityBoards.map((board) => board.map((card) => card.id).join("-"));
-    expect(new Set(allSignatures).size).toBe(allSignatures.length);
-    expect(allSignatures.slice(primarySignatures.size).every((signature) => !primarySignatures.has(signature))).toBe(true);
+    const [winnerEncounter, loserEncounter] = state.roundResults;
+    expect(winnerEncounter?.playerIds).toHaveLength(3); expect(loserEncounter?.playerIds).toHaveLength(3);
+    expect(winnerEncounter?.boards[0]).not.toBe(loserEncounter?.boards[0]);
+    for (const match of state.roundResults) {
+      const owned = match.playerIds.flatMap((id) => state.players.find((player) => player.id === id)!.ownedCardIds);
+      expect(match.boards.flat().some((card) => owned.includes(card.id))).toBe(false);
+    }
   });
 });

@@ -1,8 +1,9 @@
-import { sampleVirtualBoard, shuffle, type Card } from "../core/poker/cards";
+import { shuffle, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice } from "./config";
+import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import type { Augment, HoltoChessGameState, MatchResult, PlayerShowdown, PlayerState, Round } from "./types";
 
 function nextRandom(state: HoltoChessGameState): number {
@@ -72,8 +73,8 @@ export function createGame(seed = Date.now()): HoltoChessGameState {
     points: 0, winStreak: 0, loseStreak: 0, eliminated: false,
   }));
   const state: HoltoChessGameState = {
-    round: 1, phase: "SHOP", players, ownershipCardPool: createOwnershipPool(), communityBoards: [], matches: [],
-    winnerGroup: [], loserGroup: [], roundResults: [], augmentChoices: [], seed, logSequence: 0, logs: [],
+    round: 1, phase: "SHOP", players, ownershipCardPool: createOwnershipPool(), matches: [],
+    winnerGroup: [], loserGroup: [], roundResults: [], augmentChoices: [], encounterSequence: 0, seed, logSequence: 0, logs: [],
   };
   for (const player of players) giveRandomOwnedCard(state, player);
   for (const player of players) reserveShopCards(state, player);
@@ -151,8 +152,8 @@ function aiPrepare(state: HoltoChessGameState): void {
 export function prepareShowdown(source: HoltoChessGameState): HoltoChessGameState {
   const state = structuredClone(source); aiPrepare(state);
   const human = playerById(state, "p1");
-  if (human.ownedCardIds.length < BALANCE.handLimits[state.round]) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
-  if (state.round === 2 && human.selectedCardIds.length !== 2) { state.phase = "DECK_SELECT"; return state; }
+  if (!human.eliminated && human.ownedCardIds.length < BALANCE.handLimits[state.round]) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
+  if (!human.eliminated && state.round === 2 && human.selectedCardIds.length !== 2) { state.phase = "DECK_SELECT"; return state; }
   state.phase = "SHOWDOWN_PRIMARY"; log(state, `R${state.round} 쇼다운 준비 완료`); assertPoolIntegrity(state); return state;
 }
 
@@ -170,15 +171,37 @@ function handFor(state: HoltoChessGameState, playerId: string, board: Card[]): H
   return findBestFive([...owned, ...board]);
 }
 
-function uniqueBoard(state: HoltoChessGameState): Card[] {
-  let board: Card[]; let signature: string;
-  do { board = sampleVirtualBoard(() => nextRandom(state)); signature = board.map((card) => card.id).join("-"); }
-  while (state.communityBoards.some((old) => old.map((card) => card.id).join("-") === signature));
-  state.communityBoards.push(board); return board;
+function encounterBoards(
+  state: HoltoChessGameState,
+  participantIds: readonly string[],
+  boardCount: number,
+): Card[][] {
+  const participantOwnedCards = participantIds.flatMap((playerId) =>
+    cardsFor(state, playerById(state, playerId).ownedCardIds),
+  );
+  const deck = createShowdownDeck(participantOwnedCards, () => nextRandom(state));
+  return drawCommunityBoards(deck, boardCount);
 }
 
-function resolveParticipants(state: HoltoChessGameState, playerIds: string[], boards: Card[][], stage: MatchResult["stage"]): MatchResult {
-  const boardRankings = boards.map((board) => rankPlayers(playerIds.map((playerId) => ({ playerId, hand: handFor(state, playerId, board) }))));
+function resolveParticipants(
+  state: HoltoChessGameState,
+  playerIds: string[],
+  boardCount: number,
+  stage: MatchResult["stage"],
+  requireSingleWinner = true,
+): MatchResult {
+  const boards = encounterBoards(state, playerIds, boardCount);
+  const evaluationBoards = boards.length ? boards : [[]];
+  const boardRankings = evaluationBoards.map((board) => rankPlayers(playerIds.map((playerId) => ({ playerId, hand: handFor(state, playerId, board) }))));
+  const resultsForBoard = (ids: string[], board: Card[]): PlayerShowdown[] => {
+    const ranking = rankPlayers(ids.map((playerId) => ({ playerId, hand: handFor(state, playerId, board) })));
+    return ids.map((playerId) => {
+      const hand = handFor(state, playerId, board);
+      return { playerId, hand, place: ranking.findIndex((group) => group.includes(playerId)) + 1, usedCardIds: hand.bestFive.map((card) => card.id) };
+    });
+  };
+  const boardResults = evaluationBoards.map((board) => resultsForBoard(playerIds, board));
+  const boardWinnerIds = boardRankings.map((ranking) => [...ranking[0]!]);
   let winnerIds: string[];
   let suddenDeathCount = 0;
   if (boards.length === 2 && playerIds.length === 2) {
@@ -187,18 +210,17 @@ function resolveParticipants(state: HoltoChessGameState, playerIds: string[], bo
     const [a, b] = playerIds; const delta = wins.get(a)! - wins.get(b)!;
     winnerIds = delta > 0 ? [a] : delta < 0 ? [b] : [];
   } else winnerIds = boardRankings[0]![0]!;
-  while (winnerIds.length !== 1) {
+  while (requireSingleWinner && winnerIds.length !== 1) {
     const tied = winnerIds.length ? winnerIds : playerIds;
-    const sudden = uniqueBoard(state); boards.push(sudden); suddenDeathCount += 1;
-    winnerIds = rankPlayers(tied.map((playerId) => ({ playerId, hand: handFor(state, playerId, sudden) })))[0]!;
+    const sudden = encounterBoards(state, tied, 1)[0]!;
+    boards.push(sudden); suddenDeathCount += 1;
+    const suddenRanking = rankPlayers(tied.map((playerId) => ({ playerId, hand: handFor(state, playerId, sudden) })));
+    winnerIds = suddenRanking[0]!;
+    boardResults.push(resultsForBoard(tied, sudden));
+    boardWinnerIds.push([...winnerIds]);
   }
-  const displayBoard = boards.at(-1)!;
-  const ranking = rankPlayers(playerIds.map((playerId) => ({ playerId, hand: handFor(state, playerId, displayBoard) })));
-  const results: PlayerShowdown[] = playerIds.map((playerId) => {
-    const hand = handFor(state, playerId, displayBoard);
-    return { playerId, hand, place: ranking.findIndex((group) => group.includes(playerId)) + 1, usedCardIds: hand.bestFive.map((card) => card.id) };
-  });
-  return { id: `${state.round}-${stage}-${playerIds.join("-")}-${state.communityBoards.length}`, stage, playerIds, winnerIds, boards, results, suddenDeathCount };
+  const results = boardCount === 0 ? boardResults[0]! : boardResults[Math.max(0, boardCount - 1)]!;
+  return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, runoutCount: boardCount, results, suddenDeathCount };
 }
 
 function rewardMatch(state: HoltoChessGameState, match: MatchResult, pointValue: number, awardPoint = true): void {
@@ -219,10 +241,9 @@ export function resolvePrimary(source: HoltoChessGameState): HoltoChessGameState
   if (state.phase !== "SHOWDOWN_PRIMARY") throw new Error("1차 쇼다운 단계가 아닙니다.");
   const alive = shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
   const boardCount = state.round === 2 ? 2 : state.round === 5 ? 0 : 1;
-  const globalBoards = Array.from({ length: boardCount }, () => uniqueBoard(state));
   const matches = state.round === 5
-    ? [resolveParticipants(state, alive, [[]], "final")]
-    : pair(alive).map((ids) => resolveParticipants(state, ids, [...globalBoards], "primary"));
+    ? [resolveParticipants(state, alive, 0, "final", false)]
+    : pair(alive).map((ids) => resolveParticipants(state, ids, boardCount, "primary"));
   state.matches.push(...matches); state.roundResults = matches;
   if (state.round === 1) matches.forEach((match) => rewardMatch(state, match, BALANCE.points.r1Win));
   if (state.round === 2) matches.forEach((match) => rewardMatch(state, match, BALANCE.points.r2PrimaryWin));
@@ -247,13 +268,12 @@ function eliminate(state: HoltoChessGameState, ids: string[]): void {
 
 export function resolveSecondary(source: HoltoChessGameState): HoltoChessGameState {
   const state = structuredClone(source); if (state.phase !== "SHOWDOWN_SECONDARY") throw new Error("2차 쇼다운 단계가 아닙니다.");
-  const boards = state.round === 2 ? [uniqueBoard(state), uniqueBoard(state)] : [uniqueBoard(state)];
   const winnerMatches = state.round === 2
-    ? pair(state.winnerGroup).map((ids) => resolveParticipants(state, ids, [...boards], "secondary"))
-    : [resolveParticipants(state, state.winnerGroup, [...boards], "secondary")];
+    ? pair(state.winnerGroup).map((ids) => resolveParticipants(state, ids, 2, "secondary"))
+    : [resolveParticipants(state, state.winnerGroup, 1, "secondary")];
   const loserMatches = state.round === 2
-    ? pair(state.loserGroup).map((ids) => resolveParticipants(state, ids, [...boards], "secondary"))
-    : [resolveParticipants(state, state.loserGroup, [...boards], "secondary")];
+    ? pair(state.loserGroup).map((ids) => resolveParticipants(state, ids, 2, "secondary"))
+    : [resolveParticipants(state, state.loserGroup, 1, "secondary")];
   winnerMatches.forEach((match) => rewardMatch(state, match, state.round === 2 ? BALANCE.points.r2WinnerBracketWin : BALANCE.points.r4WinnerGroupFirst));
   loserMatches.forEach((match) => rewardMatch(state, match, 0, false));
   eliminate(state, loserMatches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id))));
@@ -268,7 +288,16 @@ function choicesFor(state: HoltoChessGameState): Augment[] {
 
 export function leaveRoundResult(source: HoltoChessGameState): HoltoChessGameState {
   const state = structuredClone(source); if (state.phase !== "ROUND_RESULT") throw new Error("라운드 결과 단계가 아닙니다.");
-  if (state.round === 2 || state.round === 4) { state.phase = "AUGMENT"; state.augmentChoices = choicesFor(state); log(state, `${state.round === 2 ? "첫 번째" : "두 번째"} 증강 선택`); }
+  if (state.round === 2 || state.round === 4) {
+    const human = playerById(state, "p1");
+    if (human.eliminated) {
+      for (const survivor of state.players.filter((player) => !player.eliminated)) applyAugment(survivor, choicesFor(state)[0]!);
+      state.phase = "NEXT_ROUND";
+      log(state, "관전 모드 · 생존자 증강 선택 완료");
+    } else {
+      state.phase = "AUGMENT"; state.augmentChoices = choicesFor(state); log(state, `${state.round === 2 ? "첫 번째" : "두 번째"} 증강 선택`);
+    }
+  }
   else state.phase = "NEXT_ROUND";
   return state;
 }
@@ -284,7 +313,7 @@ export function chooseAugment(source: HoltoChessGameState, playerId: string, aug
 
 export function startNextRound(source: HoltoChessGameState): HoltoChessGameState {
   const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= 5) throw new Error("다음 라운드로 진행할 수 없습니다.");
-  state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.communityBoards = []; state.roundResults = []; state.winnerGroup = []; state.loserGroup = []; state.augmentChoices = [];
+  state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = []; state.augmentChoices = [];
   for (const player of state.players.filter((item) => !item.eliminated)) {
     player.stackBB += BALANCE.roundIncomeBB; player.purchasesThisRound = 0; player.selectedCardIds = [];
     if (!player.shopLocked) releaseShop(state, player); reserveShopCards(state, player);

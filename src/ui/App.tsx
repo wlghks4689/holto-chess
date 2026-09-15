@@ -10,8 +10,8 @@ import type { HoltoChessGameState, MatchResult, Phase } from "../game/types";
 import { CardView } from "./CardView";
 
 const ROUND_COPY = {
-  1: { title: "TWO HAND", rule: "홀 2 + 글로벌 보드 5 · Hold’em", cap: 2 },
-  2: { title: "RUN IT TWICE", rule: "3장 중 2장 선택 · 두 글로벌 보드", cap: 3 },
+  1: { title: "TWO HAND", rule: "홀 2 + 매치별 보드 5 · Hold’em", cap: 2 },
+  2: { title: "RUN IT TWICE", rule: "3장 중 2장 선택 · 매치별 두 보드", cap: 3 },
   3: { title: "OMAHA", rule: "홀 정확히 2 + 보드 정확히 3", cap: 4 },
   4: { title: "BEST FIVE", rule: "홀 5 + 보드 5 중 자유 BEST 5", cap: 5 },
   5: { title: "THE LAST HAND", rule: "커뮤니티 보드 없이 보유 7장", cap: 7 },
@@ -65,12 +65,15 @@ function SelectPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s:
 
 function MatchCard({ state, match }: { state: HoltoChessGameState; match: MatchResult }) {
   const winnerNames = match.winnerIds.map((id) => state.players.find((p) => p.id === id)!.name).join(", ");
-  const displayBoard = match.boards.at(-1) ?? [];
-  const winnerUsed = new Set(match.results.filter((result) => match.winnerIds.includes(result.playerId)).flatMap((result) => result.usedCardIds));
   return <article className="match-card">
     <header><span>{match.stage === "primary" ? "PRIMARY" : match.stage === "secondary" ? "SECONDARY" : "FINAL"}</span><b>♔ {winnerNames}</b>{match.suddenDeathCount ? <em>SD ×{match.suddenDeathCount}</em> : null}</header>
-    {displayBoard.length ? <div className="board"><small>GLOBAL BOARD {match.boards.length > 1 ? `· ${match.boards.length} RUNS` : ""}</small><div className="card-row centered">{displayBoard.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div></div> : <div className="no-board">NO COMMUNITY · THE LAST HAND</div>}
-    <div className={`combatants ${match.playerIds.length > 2 ? "multi" : ""}`}>{match.results.sort((a, b) => a.place - b.place).map((result) => {
+    {match.boards.length ? <div className={`boards ${match.boards.length > 1 ? "multi-board" : ""}`}>{match.boards.map((board, boardIndex) => {
+      const winners = match.boardWinnerIds[boardIndex] ?? [];
+      const winnerUsed = new Set((match.boardResults[boardIndex] ?? []).filter((result) => winners.includes(result.playerId)).flatMap((result) => result.usedCardIds));
+      const label = boardIndex < match.runoutCount ? (match.runoutCount > 1 ? `BOARD ${boardIndex + 1}` : "COMMUNITY BOARD") : `SUDDEN DEATH ${boardIndex - match.runoutCount + 1}`;
+      return <div className={`board ${boardIndex >= match.runoutCount ? "sudden-board" : ""}`} key={`${match.id}-board-${boardIndex}`}><small>{label} · {winners.map((id) => state.players.find((player) => player.id === id)?.name).join(" / ")}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div></div>;
+    })}</div> : <div className="no-board">NO COMMUNITY · THE LAST HAND</div>}
+    <div className={`combatants ${match.playerIds.length > 2 ? "multi" : ""}`}>{[...match.results].sort((a, b) => a.place - b.place).map((result) => {
       const player = state.players.find((p) => p.id === result.playerId)!; const winner = match.winnerIds.includes(player.id); const shownIds = state.round === 2 ? player.selectedCardIds : player.ownedCardIds;
       return <div key={player.id} className={`combatant ${winner ? "winner" : ""}`}><div className="combatant-title"><span>{winner ? "♔" : `#${result.place}`}</span><b>{player.name}</b><em>{result.hand.displayName}</em></div><div className="card-row mini">{shownIds.map((id) => <CardView key={id} card={getCard(state, id)} compact glow={winner && result.usedCardIds.includes(id)} dimmed={!result.usedCardIds.includes(id)} />)}</div></div>;
     })}</div>
@@ -78,7 +81,7 @@ function MatchCard({ state, match }: { state: HoltoChessGameState; match: MatchR
 }
 
 function ShowdownPanel({ state }: { state: HoltoChessGameState }) {
-  if (!state.roundResults.length) return <section className="arena-empty panel"><span className="arena-mark">♞</span><h2>쇼다운 준비 완료</h2><p>모든 플레이어의 덱이 잠겼습니다. 글로벌 보드는 소유 카드풀과 별개로 생성됩니다.</p></section>;
+  if (!state.roundResults.length) return <section className="arena-empty panel"><span className="arena-mark">♞</span><h2>쇼다운 준비 완료</h2><p>각 매치는 참가자가 소유한 모든 카드를 제외한 독립 Showdown Deck으로 진행됩니다.</p></section>;
   return <section className="matches">{state.roundResults.map((match) => <MatchCard state={state} match={match} key={match.id} />)}</section>;
 }
 
@@ -97,7 +100,7 @@ function ActionBar({ state, act, reset }: { state: HoltoChessGameState; act: (fn
   if (state.phase === "DECK_SELECT") { label = `선택 확정 (${me.selectedCardIds.length}/2)`; fn = confirmSelection; }
   if (state.phase === "SHOWDOWN_PRIMARY") { label = state.round === 5 ? "The Last Hand 공개" : "1차 쇼다운 공개"; fn = resolvePrimary; }
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
-  if (state.phase === "SHOWDOWN_SECONDARY") { label = "새 글로벌 보드 공개"; fn = resolveSecondary; }
+  if (state.phase === "SHOWDOWN_SECONDARY") { label = "새 매치 보드 공개"; fn = resolveSecondary; }
   if (state.phase === "ROUND_RESULT") { label = state.round === 2 || state.round === 4 ? "증강 드래프트" : "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} 상점으로`; fn = startNextRound; }
   return <div className="action-bar"><div><small>NEXT ACTION</small><b>{fn ? label : "게임 종료"}</b></div>{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== 2}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
@@ -111,11 +114,11 @@ export function App() {
   return <main>
     <nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>POKER AUTOBATTLER · PROTOTYPE 01</small></div></a><div className="round-progress">{progress.map((n) => <span key={n} className={`${n === state.round ? "active" : ""} ${n < state.round ? "done" : ""}`}><i>{n < state.round ? "✓" : n}</i><small>R{n}</small></span>)}</div><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">
-      <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1><p>{round.rule}</p></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "GLOBAL BOARD"}</span></div></header>
+      <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1><p>{round.rule}</p></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>
       <PoolMeter state={state} />
       <PlayerStrip state={state} />
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
-      {state.phase === "SHOP" ? <ShopPanel state={state} act={act} /> : null}
+      {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} /> : null}
       {state.phase === "AUGMENT" ? <AugmentPanel state={state} act={act} /> : null}

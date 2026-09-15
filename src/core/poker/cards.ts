@@ -32,7 +32,3 @@ export function shuffle<T>(items: readonly T[], rng: () => number = Math.random)
   }
   return result;
 }
-
-export function sampleVirtualBoard(rng: () => number = Math.random): Card[] {
-  return shuffle(makeDeck(), rng).slice(0, 5);
-}

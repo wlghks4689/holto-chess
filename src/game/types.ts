@@ -34,7 +34,18 @@ export type PlayerState = {
 };
 
 export type PlayerShowdown = { playerId: string; hand: HandValue; place: number; usedCardIds: string[] };
-export type MatchResult = { id: string; stage: "primary" | "secondary" | "final"; playerIds: string[]; winnerIds: string[]; boards: Card[][]; results: PlayerShowdown[]; suddenDeathCount: number };
+export type MatchResult = {
+  id: string;
+  stage: "primary" | "secondary" | "final";
+  playerIds: string[];
+  winnerIds: string[];
+  boards: Card[][];
+  boardResults: PlayerShowdown[][];
+  boardWinnerIds: string[][];
+  runoutCount: number;
+  results: PlayerShowdown[];
+  suddenDeathCount: number;
+};
 
 export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };
 
@@ -43,12 +54,12 @@ export type HoltoChessGameState = {
   phase: Phase;
   players: PlayerState[];
   ownershipCardPool: PoolCard[];
-  communityBoards: Card[][];
   matches: MatchResult[];
   winnerGroup: string[];
   loserGroup: string[];
   roundResults: MatchResult[];
   augmentChoices: Augment[];
+  encounterSequence: number;
   seed: number;
   logSequence: number;
   logs: GameLog[];
