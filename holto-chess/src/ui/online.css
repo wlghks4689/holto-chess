@@ -1,0 +1,7 @@
+.mode-switch{display:flex;gap:8px;justify-content:center;padding:10px;background:#06150e}
+.room-panel{padding:22px;margin-bottom:24px}.room-panel p{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.room-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.room-controls label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#91aa9e}
+.room-controls input{background:#06150e;border:1px solid #315044;border-radius:6px;padding:12px;color:#e7f5ed;font:600 16px monospace;max-width:180px}
+.room-error{border:1px solid #9a4740;color:#ffc4bf;padding:14px;border-radius:8px}
+.action-bar p{font-size:11px;color:#91aa9e}.secondary:disabled,.augment-grid button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:620px){.room-panel{padding:16px}.survivors b{font-size:12px}.action-bar{flex-wrap:wrap}.room-controls .primary{min-width:130px}.mode-switch .secondary{font-size:10px}}

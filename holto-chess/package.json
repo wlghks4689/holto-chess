@@ -1,0 +1,42 @@
+{
+  "name": "holto-chess",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:local": "vite --config vite.local.config.ts",
+    "cf-typegen": "wrangler types",
+    "build": "npm run cf-typegen && tsc -b && tsc -p tsconfig.worker.json && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "overrides": {
+    "sharp": "^0.35.4"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.54.10",
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@eslint/js": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-plugin-react-hooks": "latest",
+    "eslint-plugin-react-refresh": "latest",
+    "globals": "latest",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "latest",
+    "wrangler": "4.132.0"
+  }
+}
