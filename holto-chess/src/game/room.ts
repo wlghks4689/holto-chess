@@ -92,7 +92,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
         room.game = sellCard(room.game, playerId, action.cardId); break;
       }
       case "REROLL": room.game = rerollShop(room.game, playerId); break;
-      case "LOCK_SHOP": room.game = toggleShopLock(room.game, playerId); break;
+      case "LOCK_SHOP": room.game = toggleShopLock(room.game, playerId, action.cardId); break;
       case "SELECT_CARDS":
         if (room.game.round !== 2 || action.cardIds.length !== 2 || new Set(action.cardIds).size !== 2 || action.cardIds.some((id) => !me.ownedCardIds.includes(id))) throw new Error("보유 카드 2장을 선택하세요.");
         me.selectedCardIds = [...action.cardIds]; break;

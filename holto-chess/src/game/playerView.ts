@@ -10,7 +10,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   if (!humanIds(room).includes(viewerPlayerId)) throw new Error("Unknown viewer");
   const g = room.game;
   const me = g.players.find((p) => p.id === viewerPlayerId)!;
-  const revealed = (r: PlayerShowdown): RevealedHand => ({ playerId: r.playerId, place: r.place, displayName: r.hand.displayName, usedCardIds: [...r.usedCardIds] });
+  const revealed = (r: PlayerShowdown): RevealedHand => ({ playerId: r.playerId, place: r.place, category: r.hand.category, kickers: [...r.hand.kickers], displayName: r.hand.displayName, usedCardIds: [...r.usedCardIds] });
   const visible = room.status === "PLAYING" && ["GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "GAME_RESULT"].includes(g.phase);
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
@@ -23,7 +23,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       shopCards: me.shopCardIds.map((id) => ({ card: getCard(g, id), price: getCardPrice(g, me.id, id) })),
       selectedCardIds: [...me.selectedCardIds], augments: me.augments.map(publicAugment),
       augmentChoices: (room.augmentChoices[me.id] ?? []).map(publicAugment),
-      handLimit: BALANCE.handLimits[g.round], shopSize: me.shopSize, shopLocked: me.shopLocked,
+      handLimit: BALANCE.handLimits[g.round], shopSize: me.shopSize, shopLocked: false, lockedShopCardIds: [...(me.lockedShopCardIds ?? [])],
       purchases: me.purchasesThisRound, purchaseLimit: BALANCE.maxPurchasesPerRound,
       rerollCost: Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0)),
       sellPercent: me.augments.some((a) => a.id === "sell_bonus") ? 80 : 60,
@@ -33,7 +33,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     matches: visible ? g.roundResults.filter((m) => m.playerIds.includes(me.id)).map((m) => ({
       id: m.id, stage: m.stage, participantIds: [...m.playerIds], winnerIds: [...m.winnerIds],
       boards: m.boards.map((b) => b.map((c) => ({ ...c }))), boardWinnerIds: m.boardWinnerIds.map((ids) => [...ids]),
-      boardResults: m.boardResults.map((results) => results.map(revealed)), runoutCount: m.runoutCount, suddenDeathCount: m.suddenDeathCount,
+      results: m.results.map(revealed), boardResults: m.boardResults.map((results) => results.map(revealed)), runoutCount: m.runoutCount, suddenDeathCount: m.suddenDeathCount,
       revealedCards: Object.fromEntries(m.playerIds.map((id) => [id, (m.revealedCardIds[id] ?? []).map((cardId) => getCard(g, cardId))])),
     })) : [],
     standings: g.phase === "GAME_RESULT" ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, total: s.total, displayName: s.hand?.displayName ?? "" })) : [],

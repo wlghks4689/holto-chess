@@ -43,10 +43,11 @@ function giveRandomOwnedCard(state: HoltoChessGameState, player: PlayerState): v
 
 function releaseShop(state: HoltoChessGameState, player: PlayerState): void {
   for (const id of player.shopCardIds) {
+    if (player.lockedShopCardIds?.includes(id)) continue;
     const entry = state.ownershipCardPool.find((item) => item.card.id === id)!;
     entry.state = "AVAILABLE"; delete entry.reservedPlayerId;
   }
-  player.shopCardIds = [];
+  player.shopCardIds = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id));
 }
 
 function playerById(state: HoltoChessGameState, id: string): PlayerState {
@@ -96,6 +97,7 @@ export function buyCard(source: HoltoChessGameState, playerId: string, cardId: s
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
   player.stackBB -= price; player.purchasesThisRound += 1;
   player.shopCardIds = player.shopCardIds.filter((id) => id !== cardId); player.ownedCardIds.push(cardId);
+  player.lockedShopCardIds = (player.lockedShopCardIds ?? []).filter((id) => id !== cardId);
   entry.state = "OWNED"; entry.ownerPlayerId = player.id; delete entry.reservedPlayerId;
   log(state, `${player.name} · ${entry.card.id} 구매 −${price}BB`, "economy");
   assertPoolIntegrity(state); return state;
@@ -122,10 +124,19 @@ export function rerollShop(source: HoltoChessGameState, playerId: string): Holto
   assertPoolIntegrity(state); return state;
 }
 
-export function toggleShopLock(source: HoltoChessGameState, playerId: string): HoltoChessGameState {
+export function toggleShopLock(source: HoltoChessGameState, playerId: string, cardId: string): HoltoChessGameState {
   const state = structuredClone(source); const player = playerById(state, playerId);
-  if (state.phase !== "SHOP") throw new Error("상점 단계에서만 잠글 수 있습니다.");
-  player.shopLocked = !player.shopLocked; log(state, `상점 잠금 ${player.shopLocked ? "ON" : "OFF"}`); return state;
+  const entry = state.ownershipCardPool.find((e) => e.card.id === cardId);
+  if (state.phase !== "SHOP" || player.eliminated || !player.shopCardIds.includes(cardId) || entry?.state !== "RESERVED_IN_SHOP" || entry.reservedPlayerId !== playerId) throw new Error("내 상점 카드만 잠글 수 있습니다.");
+  const locked = player.lockedShopCardIds ?? [];
+  if (locked.includes(cardId)) player.lockedShopCardIds = locked.filter((id) => id !== cardId);
+  else {
+    if (player.stackBB < BALANCE.cardLockCostBB) throw new Error("카드 잠금에 3BB가 필요합니다.");
+    player.stackBB -= BALANCE.cardLockCostBB;
+    player.lockedShopCardIds = [...locked, cardId];
+  }
+  log(state, `${player.name} · 카드 잠금 ${locked.includes(cardId) ? "해제" : "−3BB"}`, "economy");
+  assertPoolIntegrity(state); return state;
 }
 
 export function toggleSelectedCard(source: HoltoChessGameState, playerId: string, cardId: string): HoltoChessGameState {
@@ -325,7 +336,7 @@ export function startNextRound(source: HoltoChessGameState): HoltoChessGameState
   state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = []; state.augmentChoices = [];
   for (const player of state.players.filter((item) => !item.eliminated)) {
     player.stackBB += BALANCE.roundIncomeBB; player.purchasesThisRound = 0; player.selectedCardIds = [];
-    if (!player.shopLocked) releaseShop(state, player); reserveShopCards(state, player);
+    releaseShop(state, player); reserveShopCards(state, player);
   }
   log(state, `R${state.round} 시작 · 생존자 기본 수입 +${BALANCE.roundIncomeBB}BB`, "economy"); assertPoolIntegrity(state); return state;
 }

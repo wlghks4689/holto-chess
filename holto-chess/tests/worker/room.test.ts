@@ -65,13 +65,13 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(saved!.game.randomMode).toBe("secure");
     expect(saved!.sessions.every((s) => s.tokenHash !== a.token && s.tokenHash !== b.token)).toBe(true);
     await evictDurableObject(stub); // Actual constructor re-entry; sockets remain hibernated.
-    expect(await one.send({ type: "LOCK_SHOP" })).toMatchObject({ type: "ACK" });
+    expect(await one.send({ type: "LOCK_SHOP", cardId: one.view().me.shopCards[0].card.id })).toMatchObject({ type: "ACK" });
     expect(one.view().me.ownedCards).toEqual(purchased.me.ownedCards);
-    expect(one.view().me.shopLocked).toBe(true);
+    expect(one.view().me.lockedShopCardIds).toHaveLength(1);
     one.ws.close(1000);
     const reconnect = await connect(a);
     expect(reconnect.view().me.playerId).toBe(a.playerId);
-    expect(reconnect.view().me.stackBB).toBe(purchased.me.stackBB);
+    expect(reconnect.view().me.stackBB).toBe(purchased.me.stackBB - 3);
     expect(await reconnect.send({ type: "BUY_CARD", cardId: card.card.id }, requestId)).toMatchObject({ type: "ACK" });
     expect(reconnect.view().me.purchases).toBe(1);
     expect(separate.view().phase).toBe("LOBBY");

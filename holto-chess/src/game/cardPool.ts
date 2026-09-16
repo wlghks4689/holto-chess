@@ -30,4 +30,5 @@ export function releasePlayerCards(state: HoltoChessGameState, player: PlayerSta
     entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId;
   }
   player.ownedCardIds = []; player.shopCardIds = []; player.selectedCardIds = [];
+  player.lockedShopCardIds = [];
 }

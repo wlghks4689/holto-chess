@@ -1,4 +1,5 @@
 import type { Card } from "../core/poker/cards";
+import type { HandCategory } from "../core/poker/evaluate";
 import type { Augment, Phase, Round } from "../game/types";
 
 export type GameAction =
@@ -6,7 +7,7 @@ export type GameAction =
   | { type: "BUY_CARD"; cardId: string }
   | { type: "SELL_CARD"; cardId: string }
   | { type: "REROLL" }
-  | { type: "LOCK_SHOP" }
+  | { type: "LOCK_SHOP"; cardId: string }
   | { type: "SELECT_CARDS"; cardIds: string[] }
   | { type: "SELECT_AUGMENT"; augmentId: string }
   | { type: "END_SHOP_PHASE" };
@@ -15,10 +16,10 @@ export type ClientMessage =
   | (GameAction & { requestId: string; turnKey: string });
 
 export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; publicAugments: Augment[] };
-export type RevealedHand = { playerId: string; place: number; displayName: string; usedCardIds: string[] };
+export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type MatchView = {
   id: string; stage: string; participantIds: string[]; winnerIds: string[];
-  boards: Card[][]; boardWinnerIds: string[][]; boardResults: RevealedHand[][];
+  boards: Card[][]; boardWinnerIds: string[][]; boardResults: RevealedHand[][]; results: RevealedHand[];
   runoutCount: number; suddenDeathCount: number;
   revealedCards: Record<string, Card[]>;
 };
@@ -30,7 +31,7 @@ export type PlayerView = {
     playerId: string; stackBB: number; points: number; alive: boolean;
     ownedCards: Card[]; shopCards: { card: Card; price: number }[];
     selectedCardIds: string[]; augments: Augment[]; augmentChoices: Augment[];
-    handLimit: number; shopSize: number; shopLocked: boolean; purchases: number;
+    handLimit: number; shopSize: number; shopLocked: boolean; lockedShopCardIds: string[]; purchases: number;
     purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
   };
   players: PublicPlayer[];
@@ -57,13 +58,13 @@ export function parseClientMessage(raw: string): ClientMessage {
   }
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
-    READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: [],
+    READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
     SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [],
   };
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");
   const allowed = ["type", "requestId", "turnKey", ...fields[v.type]];
   if (Object.keys(v).some((k) => !allowed.includes(k))) throw new Error("허용되지 않은 필드입니다.");
-  if (["BUY_CARD", "SELL_CARD"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
+  if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
   if (v.type === "SELECT_AUGMENT" && !string("augmentId", /^[a-z_]{1,40}$/)) throw new Error("잘못된 증강입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 2 || new Set(v.cardIds).size !== 2 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 2장이 필요합니다.");
   return v as ClientMessage;

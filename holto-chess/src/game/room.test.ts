@@ -73,6 +73,13 @@ describe("server room authority and projections", () => {
         const v = createPlayerView(r, session.playerId);
         for (const m of v.matches) {
           expect(m.participantIds).toContain(session.playerId);
+          const source = r.game.roundResults.find((result) => result.id === m.id)!;
+          expect(m.results).toEqual(source.results.map((result) => ({
+            playerId: result.playerId, place: result.place,
+            category: result.hand.category, kickers: result.hand.kickers,
+            displayName: result.hand.displayName, usedCardIds: result.usedCardIds,
+          })));
+          for (const result of m.results) expect(new Set(result.usedCardIds).size).toBe(5);
           if (r.game.round === 2) {
             sawR2 = true;
             for (const cards of Object.values(m.revealedCards)) expect(cards).toHaveLength(2);

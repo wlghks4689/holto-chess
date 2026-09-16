@@ -25,6 +25,7 @@ export type PlayerState = {
   shopSize: number;
   purchasesThisRound: number;
   shopLocked: boolean;
+  lockedShopCardIds?: string[];
   augments: Augment[];
   points: number;
   winStreak: number;

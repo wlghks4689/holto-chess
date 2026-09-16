@@ -6,6 +6,7 @@ export const BALANCE = {
   baseShopSize: 3,
   maxShopSize: 5,
   rerollCostBB: 5,
+  cardLockCostBB: 3,
   roundIncomeBB: 30,
   winRewardBB: 20,
   winStreakStepBB: 5,
