@@ -68,10 +68,15 @@ describe("Holto Chess engine", () => {
     expect(state.roundResults).toHaveLength(4);
     for (const match of state.roundResults) {
       expect(match.runoutCount).toBe(2);
+      expect(match.results).toEqual(match.boardResults.at(-1));
       expect(new Set(match.boards.slice(0, 2).flat().map((card) => card.id)).size).toBe(10);
       const owned = match.playerIds.flatMap((id) => state.players.find((player) => player.id === id)!.ownedCardIds);
       expect(match.boards.flat().some((card) => owned.includes(card.id))).toBe(false);
     }
+    const sudden = state.roundResults.find((match) => match.suddenDeathCount > 0);
+    expect(sudden).toBeDefined();
+    expect(sudden!.results).toEqual(sudden!.boardResults.at(-1));
+    expect(sudden!.winnerIds).toEqual(sudden!.boardWinnerIds.at(-1));
     expect(state.roundResults[0]!.boards[0]).not.toBe(state.roundResults[1]!.boards[0]);
   });
 

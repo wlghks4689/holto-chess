@@ -85,7 +85,18 @@ describe("server room authority and projections", () => {
             for (const cards of Object.values(m.revealedCards)) expect(cards).toHaveLength(2);
             expect(new Set(m.boards.slice(0, 2).flat().map((c) => c.id)).size).toBe(10);
           }
-          if (r.game.round === 5) { sawR5 = true; expect(m.boards).toHaveLength(0); for (const c of Object.values(m.revealedCards)) expect(c).toHaveLength(5); }
+          for (const reward of m.rewards) {
+            expect(reward.afterBB - reward.beforeBB).toBe(reward.deltaBB);
+            expect(reward.afterPoints - reward.beforePoints).toBe(reward.deltaPoints);
+            expect(reward.afterPoints).toBe(r.game.players.find((p) => p.id === reward.playerId)!.points);
+          }
+          if (r.game.round === 5) {
+            sawR5 = true; expect(m.boards).toHaveLength(0); expect(m.participantIds).toHaveLength(4);
+            for (const id of m.participantIds) {
+              expect(m.revealedCards[id].map((card) => card.id)).toEqual(r.game.players.find((p) => p.id === id)!.ownedCardIds);
+              expect(m.revealedCards[id].length).toBeLessThanOrEqual(7);
+            }
+          }
         }
       }
     }
@@ -114,5 +125,15 @@ describe("server room authority and projections", () => {
     expect(() => act(dead, "p1", { type: "BUY_CARD", cardId: id })).toThrow();
     expect(() => act(base, "p1", { type: "SELL_CARD", cardId: base.game.players[1].ownedCardIds[0] })).toThrow();
     expect(() => act(base, "p1", { type: "END_SHOP_PHASE" })).toThrow();
+  });
+  it("prevents selling into an unrecoverable hand-size deadlock", () => {
+    let r = start();
+    const initial = r.game.players[0].ownedCardIds[0];
+    r = act(r, "p1", { type: "SELL_CARD", cardId: initial });
+    r = act(r, "p1", { type: "BUY_CARD", cardId: r.game.players[0].shopCardIds[0] });
+    r = act(r, "p1", { type: "BUY_CARD", cardId: r.game.players[0].shopCardIds[0] });
+    const before = structuredClone(r);
+    expect(() => act(r, "p1", { type: "SELL_CARD", cardId: r.game.players[0].ownedCardIds[0] })).toThrow("남은 구매 횟수");
+    expect(r).toEqual(before);
   });
 });

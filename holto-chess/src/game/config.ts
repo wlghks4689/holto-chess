@@ -1,5 +1,8 @@
 import type { HandCategory } from "../core/poker/evaluate";
 
+// Provisional balance. Shared poker places receive the same placement award (1, 1, 3, 4).
+export const FINAL_ROUND_PLACEMENT_POINTS: Readonly<Record<number, number>> = { 1: 6, 2: 4, 3: 2, 4: 0 };
+
 export const BALANCE = {
   playerCount: 8,
   startStackBB: 50,

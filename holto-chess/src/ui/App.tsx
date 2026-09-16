@@ -7,6 +7,9 @@ import {
   sellCard, startNextRound, toggleSelectedCard, toggleShopLock,
 } from "../game/engine";
 import type { HoltoChessGameState, MatchResult, Phase } from "../game/types";
+import { createMatchView } from "../game/matchView";
+import { canSellWithoutBlocking } from "../game/shopRules";
+import { CinematicGate } from "./ShowdownCinematic";
 import { ShopCard } from "./ShopCard";
 import { CardView } from "./CardView";
 import { ShowdownHand } from "./ShowdownHand";
@@ -45,12 +48,14 @@ function PlayerStrip({ state }: { state: HoltoChessGameState }) {
 
 function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
   const me = state.players[0]!; const cap = BALANCE.handLimits[state.round];
+  const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
+    purchaseLimit: BALANCE.maxPurchasesPerRound, handLimit: cap });
   return <section className="shop-layout">
     <div className="inventory panel">
       <header><div><span className="eyebrow">PRIVATE INVENTORY</span><h2>내 카드 <em>{me.ownedCardIds.length} / {cap}</em></h2></div><div className="stat-block"><small>사용 BB</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
-      <div className="card-row owned-row">{me.ownedCardIds.map((id) => <CardView key={id} card={getCard(state, id)} onClick={() => act((s) => sellCard(s, me.id, id))} footer="판매" />)}
+      <div className="card-row owned-row">{me.ownedCardIds.map((id) => <CardView key={id} card={getCard(state, id)} onClick={canSell ? () => act((s) => sellCard(s, me.id, id)) : undefined} footer={canSell ? "판매" : "판매 불가"} />)}
         {Array.from({ length: Math.max(0, cap - me.ownedCardIds.length) }, (_, i) => <div className="empty-card" key={i}><span>+</span><small>EMPTY</small></div>)}</div>
-      <p className="hint">카드를 누르면 기준가의 {me.augments.some((a) => a.id === "sell_bonus") ? "80" : "60"}%에 판매합니다. 판매 후에도 라운드 구매 횟수는 복구되지 않습니다.</p>
+      <p className="hint">{canSell ? `카드를 누르면 기준가의 ${me.augments.some((a) => a.id === "sell_bonus") ? "80" : "60"}%에 판매합니다. 판매 후에도 라운드 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p>
     </div>
     <div className="market panel">
       <header><div><span className="eyebrow">RESERVED FOR YOU</span><h2>카드 마켓 <em>{me.shopCardIds.length} / {me.shopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound}/{BALANCE.maxPurchasesPerRound}</span></header>
@@ -77,7 +82,7 @@ function MatchCard({ state, match, matchNumber }: { state: HoltoChessGameState; 
       return <div className={`board made-${madeTone((match.boardResults[boardIndex] ?? []).find((r) => winners.includes(r.playerId))?.hand.displayName ?? "")} ${boardIndex >= match.runoutCount ? "sudden-board" : ""}`} key={`${match.id}-board-${boardIndex}`}><small>{label} - MATCH {matchNumber}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div></div>;
     })}</div> : <div className="no-board">NO COMMUNITY · THE LAST HAND</div>}
     <div className={`combatants ${match.playerIds.length > 2 ? "multi" : ""}`}>{[...match.results].sort((a, b) => a.place - b.place).map((result) => {
-      const player = state.players.find((p) => p.id === result.playerId)!; const winner = match.winnerIds.includes(player.id); const shownIds = state.round === 2 ? player.selectedCardIds : player.ownedCardIds;
+      const player = state.players.find((p) => p.id === result.playerId)!; const winner = match.winnerIds.includes(player.id); const shownIds = match.revealedCardIds[player.id] ?? [];
       return <div key={player.id} className={`combatant ${winner ? "winner" : ""}`}><div className="combatant-title"><span>{winner ? "♔" : `#${result.place}`}</span><b>{player.name}</b></div><ShowdownHand cards={shownIds.map((id) => getCard(state, id))} usedCardIds={result.usedCardIds} winner={winner} displayName={result.hand.displayName} category={result.hand.category} kickers={result.hand.kickers} /></div>;
     })}</div>
   </article>;
@@ -111,10 +116,13 @@ function ActionBar({ state, act, reset }: { state: HoltoChessGameState; act: (fn
 
 export function App() {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
-  const act = (fn: (s: HoltoChessGameState) => HoltoChessGameState) => { try { setState(fn(state)); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
+  const [gameVersion, setGameVersion] = useState(0);
+  const act = (fn: (s: HoltoChessGameState) => HoltoChessGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
   const round = ROUND_COPY[state.round]; const alive = state.players.filter((player) => !player.eliminated).length;
   const progress = useMemo(() => Array.from({ length: 5 }, (_, index) => index + 1), []);
-  return <main>
+  const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
+  const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
+  return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name }))} viewerId="p1"><main>
     <nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>POKER AUTOBATTLER · PROTOTYPE 01</small></div></a><div className="round-progress">{progress.map((n) => <span key={n} className={`${n === state.round ? "active" : ""} ${n < state.round ? "done" : ""}`}><i>{n < state.round ? "✓" : n}</i><small>R{n}</small></span>)}</div><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">
       <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1><p>{round.rule}</p></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>
@@ -125,10 +133,10 @@ export function App() {
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} /> : null}
       {state.phase === "AUGMENT" ? <AugmentPanel state={state} act={act} /> : null}
-      {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다. 탈락자의 모든 소유·예약 카드는 공용 풀로 반환되었습니다.</p></section> : null}
+      {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다. 탈락자의 카드는 공용 풀로 반환됩니다.</p></section> : null}
       {state.phase === "GAME_RESULT" ? <FinalPanel state={state} /> : null}
-      <ActionBar state={state} act={act} reset={() => setState(createGame())} />
+      <ActionBar state={state} act={act} reset={() => { setGameVersion((value) => value + 1); setState(createGame()); }} />
       <section className="event-log"><header><span className="eyebrow">MATCH FEED</span><b>최근 이벤트</b></header>{state.logs.map((entry) => <p key={entry.id} className={entry.tone}><i>0{entry.id}</i>{entry.message}</p>)}</section>
     </div>
-  </main>;
+  </main></CinematicGate>;
 }

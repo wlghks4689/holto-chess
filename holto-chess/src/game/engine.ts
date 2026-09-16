@@ -2,8 +2,9 @@ import { shuffle, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
-import { BALANCE, cardPrice } from "./config";
+import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS } from "./config";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
+import { canSellWithoutBlocking } from "./shopRules";
 import type { Augment, HoltoChessGameState, MatchResult, PlayerShowdown, PlayerState, Round } from "./types";
 
 function nextRandom(state: HoltoChessGameState): number {
@@ -106,6 +107,10 @@ export function buyCard(source: HoltoChessGameState, playerId: string, cardId: s
 export function sellCard(source: HoltoChessGameState, playerId: string, cardId: string): HoltoChessGameState {
   const state = structuredClone(source); const player = playerById(state, playerId);
   if (state.phase !== "SHOP" || !player.ownedCardIds.includes(cardId)) throw new Error("판매할 수 없는 카드입니다.");
+  if (!canSellWithoutBlocking({ ownedCount: player.ownedCardIds.length, purchases: player.purchasesThisRound,
+    purchaseLimit: BALANCE.maxPurchasesPerRound, handLimit: BALANCE.handLimits[state.round] })) {
+    throw new Error("남은 구매 횟수로 필수 보유 카드를 채울 수 없어 판매할 수 없습니다.");
+  }
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
   const rate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
   const refund = Math.floor(cardPrice(entry.card.rank) * rate);
@@ -234,10 +239,12 @@ function resolveParticipants(
     boardResults.push(resultsForBoard(tied, sudden));
     boardWinnerIds.push([...winnerIds]);
   }
-  const results = boardCount === 0 ? boardResults[0]! : boardResults[Math.max(0, boardCount - 1)]!;
+  // The recap must describe the board that actually ended the encounter. In R2 a
+  // tied pair of runouts can append one or more sudden-death boards.
+  const results = boardResults[boardResults.length - 1]!;
   const revealedCardIds = Object.fromEntries(playerIds.map((id) => {
     const p = playerById(state, id);
-    const ids = state.round === 2 ? p.selectedCardIds : state.round === 5 ? results.find((r) => r.playerId === id)!.usedCardIds : p.ownedCardIds;
+    const ids = state.round === 2 ? p.selectedCardIds : p.ownedCardIds;
     return [id, [...ids]];
   }));
   return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, runoutCount: boardCount, results, suddenDeathCount, revealedCardIds };
@@ -256,6 +263,18 @@ function rewardMatch(state: HoltoChessGameState, match: MatchResult, pointValue:
 
 function pair(ids: string[]): string[][] { return Array.from({ length: Math.floor(ids.length / 2) }, (_, index) => ids.slice(index * 2, index * 2 + 2)); }
 
+/** Record actual engine mutations; the client never calculates awards or elimination. */
+function captureRewards(before: HoltoChessGameState, after: HoltoChessGameState, matches: MatchResult[]): void {
+  for (const match of matches) match.rewards = match.playerIds.map((playerId) => {
+    const previous = playerById(before, playerId); const current = playerById(after, playerId);
+    const outcome = after.round === 5 ? "FINAL" : current.eliminated ? "ELIMINATED"
+      : match.stage === "primary" && (after.round === 2 || after.round === 4)
+        ? match.winnerIds.includes(playerId) ? "WINNER_GROUP" : "LOSER_GROUP" : "SURVIVED";
+    return { playerId, beforeBB: previous.stackBB, afterBB: current.stackBB, deltaBB: current.stackBB - previous.stackBB,
+      beforePoints: previous.points, afterPoints: current.points, deltaPoints: current.points - previous.points, outcome };
+  });
+}
+
 export function resolvePrimary(source: HoltoChessGameState): HoltoChessGameState {
   const state = structuredClone(source);
   if (state.phase !== "SHOWDOWN_PRIMARY") throw new Error("1차 쇼다운 단계가 아닙니다.");
@@ -271,9 +290,13 @@ export function resolvePrimary(source: HoltoChessGameState): HoltoChessGameState
   if (state.round === 4) matches.forEach((match) => rewardMatch(state, match, BALANCE.points.r4PrimaryWin));
   state.winnerGroup = matches.flatMap((match) => match.winnerIds);
   state.loserGroup = matches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id)));
-  if (state.round === 5) { state.phase = "GAME_RESULT"; log(state, "The Last Hand · 최종 점수 집계 완료", "win"); }
+  if (state.round === 5) {
+    for (const result of matches[0]!.results) playerById(state, result.playerId).points += FINAL_ROUND_PLACEMENT_POINTS[result.place] ?? 0;
+    state.phase = "GAME_RESULT"; log(state, "The Last Hand · 최종 점수 집계 완료", "win");
+  }
   else if (state.round === 2 || state.round === 4) { state.phase = "GROUP_ASSIGNMENT"; log(state, `승자조 ${state.winnerGroup.length}명 · 패자조 ${state.loserGroup.length}명`); }
   else { state.phase = "ROUND_RESULT"; log(state, `R${state.round} 쇼다운 종료`, "win"); }
+  captureRewards(source, state, matches);
   return state;
 }
 
@@ -297,6 +320,9 @@ export function resolveSecondary(source: HoltoChessGameState): HoltoChessGameSta
   winnerMatches.forEach((match) => rewardMatch(state, match, state.round === 2 ? BALANCE.points.r2WinnerBracketWin : BALANCE.points.r4WinnerGroupFirst));
   loserMatches.forEach((match) => rewardMatch(state, match, 0, false));
   eliminate(state, loserMatches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id))));
+  winnerMatches.forEach((match) => { match.group = "winner"; });
+  loserMatches.forEach((match) => { match.group = "loser"; });
+  captureRewards(source, state, [...winnerMatches, ...loserMatches]);
   state.matches.push(...winnerMatches, ...loserMatches); state.roundResults = [...winnerMatches, ...loserMatches];
   state.phase = "ROUND_RESULT"; log(state, `R${state.round} 종료 · ${state.players.filter((player) => !player.eliminated).length}명 생존`, "win");
   assertPoolIntegrity(state); return state;
@@ -347,8 +373,8 @@ export function finalStandings(state: HoltoChessGameState) {
     const baseHandScore = final ? BALANCE.handScores[final.hand.category] : 0;
     const augmentBonus = (final?.hand.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0) + (player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
     const handScore = baseHandScore + augmentBonus; const stackScore = Math.floor(player.stackBB / BALANCE.stackScoreUnitBB);
-    return { playerId: player.id, points: player.points, handScore, stackScore, total: player.points + handScore + stackScore, hand: final?.hand };
-  }).sort((a, b) => b.total - a.total || (b.hand && a.hand ? compareHands(b.hand, a.hand) : 0));
+    return { playerId: player.id, points: player.points, handScore, stackScore, total: player.points + handScore + stackScore, hand: final?.hand, finalPlace: final?.place ?? Infinity };
+  }).sort((a, b) => b.total - a.total || a.finalPlace - b.finalPlace || (b.hand && a.hand ? compareHands(b.hand, a.hand) : 0));
 }
 
 export function getCard(state: HoltoChessGameState, id: string): Card { return state.ownershipCardPool.find((entry) => entry.card.id === id)!.card; }

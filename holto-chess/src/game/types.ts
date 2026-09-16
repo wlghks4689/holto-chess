@@ -35,6 +35,12 @@ export type PlayerState = {
 };
 
 export type PlayerShowdown = { playerId: string; hand: HandValue; place: number; usedCardIds: string[] };
+export type MatchReward = {
+  playerId: string;
+  beforeBB: number; afterBB: number; deltaBB: number;
+  beforePoints: number; afterPoints: number; deltaPoints: number;
+  outcome: "WINNER_GROUP" | "LOSER_GROUP" | "SURVIVED" | "ELIMINATED" | "FINAL";
+};
 export type MatchResult = {
   id: string;
   stage: "primary" | "secondary" | "final";
@@ -47,6 +53,9 @@ export type MatchResult = {
   results: PlayerShowdown[];
   suddenDeathCount: number;
   revealedCardIds: Record<string, string[]>;
+  // Optional for persisted v1 games created before cinematic snapshots existed.
+  rewards?: MatchReward[];
+  group?: "winner" | "loser";
 };
 
 export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };

@@ -1,6 +1,6 @@
 import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
-import type { Augment, Phase, Round } from "../game/types";
+import type { Augment, MatchReward, Phase, Round } from "../game/types";
 
 export type GameAction =
   | { type: "READY" }
@@ -19,6 +19,8 @@ export type PublicPlayer = { playerId: string; name: string; stackBB: number; po
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type MatchView = {
   id: string; stage: string; participantIds: string[]; winnerIds: string[];
+  round: Round; matchNumber: number; group?: "winner" | "loser";
+  rewards: MatchReward[];
   boards: Card[][]; boardWinnerIds: string[][]; boardResults: RevealedHand[][]; results: RevealedHand[];
   runoutCount: number; suddenDeathCount: number;
   revealedCards: Record<string, Card[]>;
@@ -36,7 +38,7 @@ export type PlayerView = {
   };
   players: PublicPlayer[];
   matches: MatchView[];
-  standings: { playerId: string; points: number; handScore: number; stackScore: number; total: number; displayName: string }[];
+  standings: { playerId: string; points: number; handScore: number; stackScore: number; total: number; displayName: string; finalPlace: number }[];
 };
 export type ServerMessage =
   | { type: "PLAYER_VIEW"; payload: PlayerView }
