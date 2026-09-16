@@ -4,6 +4,7 @@ import { CinematicGate } from "./ShowdownCinematic";
 import { ShopCard } from "./ShopCard";
 import { CardView } from "./CardView";
 import { ShowdownHand } from "./ShowdownHand";
+import { RunItTwiceResult, RunWinner } from "./RunItTwiceResult";
 import { madeTone } from "./madeTone";
 import { canSellWithoutBlocking } from "../game/shopRules";
 
@@ -25,12 +26,14 @@ function OnlineMatch({ match, view }: { match: MatchView; view: PlayerView }) {
     <div className={`boards ${match.boards.length > 1 ? "multi-board" : ""}`}>
       {match.boards.map((board, i) => {
         const used = new Set(match.boardResults[i]?.filter((r) => match.boardWinnerIds[i]?.includes(r.playerId)).flatMap((r) => r.usedCardIds));
-        return <div className={`board made-${madeTone(match.boardResults[i]?.find((r) => match.boardWinnerIds[i]?.includes(r.playerId))?.displayName ?? "")}`} key={i}><small>{i >= match.runoutCount ? `SUDDEN DEATH ${i - match.runoutCount + 1}` : match.runoutCount === 2 ? `BOARD ${i + 1}` : "COMMUNITY BOARD"} - MATCH {matchNumber}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={used.has(card.id)} dimmed={!used.has(card.id)} />)}</div>
+        return <div className={`board made-${madeTone(match.boardResults[i]?.find((r) => match.boardWinnerIds[i]?.includes(r.playerId))?.displayName ?? "")}`} key={i}><small>{i >= match.runoutCount ? `SUDDEN DEATH · #${i - match.runoutCount + 1}` : match.runoutCount === 2 ? `BOARD ${i + 1} · RUN ${i + 1}` : "COMMUNITY BOARD"} - MATCH {matchNumber}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={used.has(card.id)} dimmed={!used.has(card.id)} />)}</div>
+          {match.runoutCount === 2 && <RunWinner winners={(match.boardWinnerIds[i] ?? []).map(name)} />}
           {match.boardResults[i]?.map((r) => <p className="hint" key={r.playerId}>{name(r.playerId)} · #{r.place} · {r.displayName}</p>)}
         </div>;
       })}
     </div>
     {!match.boards.length && <div className="no-board">NO COMMUNITY · THE LAST HAND</div>}
+    <RunItTwiceResult match={match} players={match.participantIds} name={name} />
     <div className={`combatants ${match.participantIds.length > 2 ? "multi" : ""}`}>{match.participantIds.map((id) => {
       const result = match.results.find((r) => r.playerId === id);
       const winner = match.winnerIds.includes(id);
@@ -49,9 +52,10 @@ export function OnlineApp() {
   const [error, setError] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<GameAction["type"] | false>(false);
   const [connectionKey, setConnectionKey] = useState(0);
   const socket = useRef<WebSocket | null>(null);
+  const pendingRequest = useRef<{ id: string; type: string; revision?: number } | null>(null);
 
   useEffect(() => {
     if (!credential) return;
@@ -60,7 +64,7 @@ export function OnlineApp() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const connect = () => {
       if (disposed) return;
-      setStatus("Connecting");
+      setStatus("Connecting"); pendingRequest.current = null; setPending(false);
       const ws = new WebSocket(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/rooms/${credential.roomId}`);
       socket.current = ws;
       ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token }));
@@ -70,13 +74,16 @@ export function OnlineApp() {
         // Opt-in local diagnostics: exact received views, never session credentials.
         if (import.meta.env.DEV && new URLSearchParams(location.search).has("inspect") && message.type === "PLAYER_VIEW") console.debug("[Holto WS received]", JSON.stringify(message));
         if (message.type === "ROOM_JOINED") { setStatus("Connected"); attempts = 0; setError(""); }
-        if (message.type === "PLAYER_VIEW") setView(message.payload);
-        if (message.type === "ACK") setPending(false);
-        if (message.type === "ERROR") { setPending(false); setError(message.message); }
+        if (message.type === "PLAYER_VIEW") {
+          setView(message.payload);
+          if (pendingRequest.current?.revision !== undefined && message.payload.revision >= pendingRequest.current.revision) { pendingRequest.current = null; setPending(false); }
+        }
+        if (message.type === "ACK" && pendingRequest.current?.id === message.requestId) pendingRequest.current.revision = message.revision;
+        if (message.type === "ERROR") { if (!message.requestId || message.requestId === pendingRequest.current?.id) { pendingRequest.current = null; setPending(false); } setError(message.message); }
       };
       ws.onclose = (event) => {
         if (disposed) return;
-        setStatus("Disconnected"); setPending(false);
+        setStatus("Disconnected"); pendingRequest.current = null; setPending(false);
         if (event.code === 1008 || event.code === 4001 || attempts >= 5) return;
         timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 10000));
       };
@@ -98,11 +105,14 @@ export function OnlineApp() {
     finally { setBusy(false); }
   };
   const send = (action: GameAction) => {
-    if (!view || socket.current?.readyState !== WebSocket.OPEN || status !== "Connected" || pending) return;
-    setPending(true); setError("");
-    socket.current.send(JSON.stringify({ ...action, requestId: crypto.randomUUID(), turnKey: view.turnKey }));
+    if (!view || socket.current?.readyState !== WebSocket.OPEN || status !== "Connected" || pendingRequest.current) return;
+    const requestId = crypto.randomUUID();
+    pendingRequest.current = { id: requestId, type: action.type };
+    setPending(action.type); setError("");
+    try { socket.current.send(JSON.stringify({ ...action, requestId, turnKey: view.turnKey })); }
+    catch { pendingRequest.current = null; setPending(false); setError("전송하지 못했습니다. 재접속하세요."); }
   };
-  const disabled = status !== "Connected" || pending;
+  const disabled = status !== "Connected" || !!pending;
   const canSell = view ? canSellWithoutBlocking({ ownedCount: view.me.ownedCards.length, purchases: view.me.purchases,
     purchaseLimit: view.me.purchaseLimit, handLimit: view.me.handLimit }) : false;
   return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""}><main><nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>ONLINE · PROTOTYPE</small></div></a><div className="survivors"><small>CONNECTION</small><b>{status}</b></div></nav>
@@ -114,7 +124,7 @@ export function OnlineApp() {
         <header className="round-header"><div><span className="round-number">ROUND 0{view.round}</span><h1>{titles[view.round]}</h1></div><div className="phase-badge"><b>{phases[view.phase] ?? view.phase}</b></div></header>
         <div className="player-strip">{view.players.map((p) => <div className={`player-chip ${p.playerId === view.me.playerId ? "me" : ""} ${!p.alive ? "out" : ""}`} key={p.playerId}><span className="player-avatar">{p.playerId.slice(1)}</span><span><b>{p.name} {p.human ? "" : "AI"}</b><small>{p.alive ? `${p.stackBB}BB · ${p.points}P` : "OUT"} {p.ready ? "✓" : ""}</small></span></div>)}</div>
         {view.phase === "LOBBY" ? <section className="panel transition-panel"><h2>모두 준비하면 시작합니다</h2><p>최소 2명의 사용자와 각자의 준비 완료가 필요합니다.</p><button className="primary" disabled={disabled || view.players.find((p) => p.playerId === view.me.playerId)?.ready} onClick={() => send({ type: "READY" })}>READY · 준비 완료</button></section> : null}
-        {view.phase === "SHOP" && view.me.alive && <><section className="shop-layout"><div className="inventory panel"><header><h2>내 카드 <em>{view.me.ownedCards.length} / {view.me.handLimit}</em></h2><div className="stat-block"><strong>{view.me.stackBB}<i>BB</i></strong></div></header><div className="card-row owned-row">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} onClick={!disabled && !view.me.committed && canSell ? () => send({ type: "SELL_CARD", cardId: card.id }) : undefined} footer={canSell ? "판매" : "판매 불가"} />)}</div><p className="hint">{canSell ? `판매 환급 ${view.me.sellPercent}% · 판매 후 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p></div><div className="market panel"><header><h2>카드 마켓</h2><span className="purchase-count">구매 {view.me.purchases}/{view.me.purchaseLimit}</span></header><div className="card-row market-row">{view.me.shopCards.map(({ card, price }) => <ShopCard key={card.id} card={card} price={price} locked={view.me.lockedShopCardIds?.includes(card.id) ?? false} disabled={disabled || view.me.committed} onBuy={() => send({ type: "BUY_CARD", cardId: card.id })} onLock={() => send({ type: "LOCK_SHOP", cardId: card.id })} />)}</div><div className="market-actions"><button className="secondary" disabled={disabled || view.me.committed} onClick={() => send({ type: "REROLL" })}>리롤 {view.me.rerollCost}BB</button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div></div></section>
+        {view.phase === "SHOP" && view.me.alive && <><section className="shop-layout"><div className="inventory panel"><header><h2>내 카드 <em>{view.me.ownedCards.length} / {view.me.handLimit}</em></h2><div className="stat-block"><strong>{view.me.stackBB}<i>BB</i></strong></div></header><div className="card-row owned-row">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} onClick={!disabled && !view.me.committed && canSell ? () => send({ type: "SELL_CARD", cardId: card.id }) : undefined} footer={canSell ? "판매" : "판매 불가"} />)}</div><p className="hint">{canSell ? `판매 환급 ${view.me.sellPercent}% · 판매 후 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p></div><div className="market panel"><header><h2>카드 마켓</h2><span className="purchase-count">구매 {view.me.purchases}/{view.me.purchaseLimit}</span></header><div className="card-row market-row">{view.me.shopCards.map(({ card, price }) => <ShopCard key={card.id} card={card} price={price} locked={view.me.lockedShopCardIds?.includes(card.id) ?? false} disabled={disabled || view.me.committed} onBuy={() => send({ type: "BUY_CARD", cardId: card.id })} onLock={() => send({ type: "LOCK_SHOP", cardId: card.id })} />)}</div><div className="market-actions"><button className="secondary" disabled={disabled || view.me.committed || view.me.rerollsUsed >= view.me.rerollLimit || view.me.stackBB < view.me.rerollCost} onClick={() => send({ type: "REROLL" })}>{pending === "REROLL" ? "REFRESHING…" : `리롤 ${view.me.rerollCost}BB`} · {Math.max(0, view.me.rerollLimit - view.me.rerollsUsed)} / {view.me.rerollLimit}</button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div></div></section>
           {view.round === 2 && <Selection key={`${view.round}:${view.me.ownedCards.map((c) => c.id).join()}`} view={view} send={send} disabled={disabled || view.me.committed} />}
           <div className="action-bar"><p>{view.me.committed ? "다른 플레이어의 구성 확정을 기다립니다." : "구성을 확정하면 이번 상점에서는 더 행동할 수 없습니다."}</p><button className="primary" disabled={disabled || view.me.committed} onClick={() => send({ type: "END_SHOP_PHASE" })}>구성 확정</button></div></>}
         <section className="matches">{view.matches.map((m) => <OnlineMatch key={m.id} match={m} view={view} />)}</section>

@@ -24,12 +24,12 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     for (boardIndex = 0; boardIndex < match.boards.length; boardIndex++) {
       revealed = 0;
       if (boardIndex) add("TABLE_ENTER", 400);
-      revealed = 1; add("FLOP_1", 200);
-      revealed = 2; add("FLOP_2", 200);
-      revealed = 3; add("FLOP_3", 220); add("FLOP_PAUSE", 1000);
-      revealed = 4; add("TURN", 220); add("TURN_PAUSE", 1000);
+      revealed = 1; add("FLOP_1", 400);
+      revealed = 2; add("FLOP_2", 400);
+      revealed = 3; add("FLOP_3", 420); add("FLOP_PAUSE", 1000);
+      revealed = 4; add("TURN", 420); add("TURN_PAUSE", 1000);
       add("RIVER_SUSPENSE", 250);
-      revealed = 5; add("RIVER", 400); add("BEST5_WAIT", 800);
+      revealed = 5; add("RIVER", 600); add("BEST5_WAIT", 800);
       bestFive(); add("RUN_RESULT", 1000);
     }
     boardIndex = match.boards.length - 1;

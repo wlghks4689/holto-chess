@@ -17,11 +17,13 @@ export type ClientMessage =
 
 export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; publicAugments: Augment[] };
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
+export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
   id: string; stage: string; participantIds: string[]; winnerIds: string[];
   round: Round; matchNumber: number; group?: "winner" | "loser";
   rewards: MatchReward[];
   boards: Card[][]; boardWinnerIds: string[][]; boardResults: RevealedHand[][]; results: RevealedHand[];
+  streetSnapshots?: StreetSnapshotView[][];
   runoutCount: number; suddenDeathCount: number;
   revealedCards: Record<string, Card[]>;
 };
@@ -35,6 +37,7 @@ export type PlayerView = {
     selectedCardIds: string[]; augments: Augment[]; augmentChoices: Augment[];
     handLimit: number; shopSize: number; shopLocked: boolean; lockedShopCardIds: string[]; purchases: number;
     purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
+    rerollsUsed: number; rerollLimit: number;
   };
   players: PublicPlayer[];
   matches: MatchView[];

@@ -47,6 +47,19 @@ export function evaluateFive(cards: Card[]): HandValue {
   return value("HIGH_CARD", ranks, cards);
 }
 
+/** Current made hand before five cards exist. Used for pre-board street labels only. */
+export function evaluatePartial(cards: readonly Card[]): HandValue {
+  if (cards.length < 1 || cards.length > 4) throw new Error("Partial hand requires between one and four cards");
+  const ranks = cards.map((card) => card.rank).sort((a, b) => b - a);
+  const counts = [...ranks.reduce((map, rank) => map.set(rank, (map.get(rank) ?? 0) + 1), new Map<number, number>()).entries()]
+    .sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+  if (counts[0]?.[1] === 4) return value("QUADS", [counts[0][0]], [...cards]);
+  if (counts[0]?.[1] === 3) return value("TRIPS", [counts[0][0], ...ranks.filter((rank) => rank !== counts[0]![0])], [...cards]);
+  if (counts[0]?.[1] === 2 && counts[1]?.[1] === 2) return value("TWO_PAIR", [Math.max(counts[0][0], counts[1][0]), Math.min(counts[0][0], counts[1][0])], [...cards]);
+  if (counts[0]?.[1] === 2) return value("PAIR", [counts[0][0], ...ranks.filter((rank) => rank !== counts[0]![0])], [...cards]);
+  return value("HIGH_CARD", ranks, [...cards]);
+}
+
 /** Compares category and rank kickers only. Suits never break an exact poker tie. */
 export function compareHands(a: Pick<HandValue, "categoryRank" | "kickers">, b: Pick<HandValue, "categoryRank" | "kickers">): number {
   if (a.categoryRank !== b.categoryRank) return a.categoryRank - b.categoryRank;

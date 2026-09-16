@@ -4,6 +4,7 @@ import type { MatchView, RevealedHand } from "../shared/protocol";
 import { CardBack, CardView } from "./CardView";
 import { cinematicTimeline, frameAt, revealFlags } from "./cinematicTimeline";
 import { detailedHandLabel } from "./handLabel";
+import { RunItTwiceResult } from "./RunItTwiceResult";
 import { madeTone } from "./madeTone";
 import "./cinematic.css";
 
@@ -35,6 +36,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
   }, [speed, frame.phase]);
 
   const results = final ? match.results : match.boardResults[frame.boardIndex] ?? [];
+  const streetIndex = frame.revealed >= 5 ? 3 : frame.revealed >= 4 ? 2 : frame.revealed >= 3 ? 1 : 0;
+  const streetSnapshot = match.streetSnapshots?.[frame.boardIndex]?.[streetIndex];
+  const streetName = ["보드 오픈 전", "플랍", "턴", "리버"][streetIndex];
   const winners = flags.result || final ? match.winnerIds : match.boardWinnerIds[frame.boardIndex] ?? [];
   const focus = results.find((r) => r.playerId === focusId) ?? results.find((r) => winners.includes(r.playerId)) ?? results[0];
   const board = match.boards[frame.boardIndex] ?? [];
@@ -50,12 +54,14 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
   const labelFor = (id: string, result: RevealedHand) => detailedHandLabel(result.category, result.kickers, match.revealedCards[id] ?? [], result.usedCardIds);
   return <section className={`cinema ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${final ? "cinema-final" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
-    style={{ "--flip-duration": `${220 / speed}ms`, "--river-duration": `${400 / speed}ms`, "--suspense-duration": `${250 / speed}ms` } as CSSProperties}>
+    style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms` } as CSSProperties}>
     <header className="cinema-heading"><div><span className="eyebrow">ROUND {match.round} · MATCH {match.matchNumber}</span><h2>{title}</h2></div>
       <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div></header>
     <div className="cinema-seats">{ids.map((id, index) => {
       const result = results.find((r) => r.playerId === id);
+      const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);
+      const streetLabel = streetResult ? labelFor(id, streetResult) : undefined;
       const won = winners.includes(id);
       const cards = match.revealedCards[id] ?? [];
       const label = result ? labelFor(id, result) : undefined;
@@ -71,6 +77,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
           return <div className={visible ? "cinema-card-open" : "cinema-card-hidden"} key={`${card.id}-${visible}`}>
             {visible ? <CardView card={card} compact glow={flags.glow && used} dimmed={flags.holeDim && !used} /> : <CardBack compact />}</div>;
         })}</div>
+        {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made"><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {flags.glow && board.length > 0 && result && <button className="cinema-focus" aria-pressed={focus?.playerId === id} onClick={() => setFocusId(id)}>BEST 5 확인{match.round === 3 ? " · 홀 2 + 보드 3" : ""}</button>}
         {flags.reward && reward && <div className="cinema-reward"><b>{signed(reward.deltaBB)} BB · {signed(reward.deltaPoints)} POINT</b><small>BB {reward.beforeBB} → {reward.afterBB} · POINT {reward.beforePoints} → {reward.afterPoints}</small><em>{reward.outcome.replaceAll("_", " ")}</em></div>}
@@ -86,6 +93,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
       })}</div>
       {flags.glow && focus && <p className="hint">{name(focus.playerId)} · BEST 5{match.round === 3 ? " · 홀 2장 + 보드 3장" : ""}</p>}
     </div>}
+    {!intro && match.runoutCount === 2 && (flags.runResult || flags.result || frame.boardIndex > 0) && <RunItTwiceResult match={match} players={match.participantIds} name={name} completedBoards={flags.result ? match.boardWinnerIds.length : frame.boardIndex + (flags.runResult ? 1 : 0)} showFinal={flags.result} />}
     <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? "보상 지급 완료" : flags.result ? "MATCH RESULT" : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? "THE LAST HAND" : runLabel}
       {frame.phase === "COMPLETE" && <button className="primary" onClick={onComplete}>결과 확인 →</button>}</footer>
   </section>;

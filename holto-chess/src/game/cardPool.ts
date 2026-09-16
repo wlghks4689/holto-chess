@@ -10,7 +10,20 @@ export function assertPoolIntegrity(state: HoltoChessGameState): true {
   const ids = new Set(state.ownershipCardPool.map((entry) => entry.card.id));
   if (ids.size !== 52) throw new Error("Card pool contains duplicate card ids");
   const players = new Map(state.players.map((player) => [player.id, player]));
+  const assigned = new Set<string>();
+  for (const player of state.players) {
+    for (const [expected, cardIds] of [["OWNED", player.ownedCardIds], ["RESERVED_IN_SHOP", player.shopCardIds]] as const) {
+      for (const id of cardIds) {
+        const entry = state.ownershipCardPool.find((card) => card.card.id === id);
+        if (assigned.has(id)) throw new Error(`${id} assigned more than once`);
+        assigned.add(id);
+        if (!entry || entry.state !== expected || (expected === "OWNED" ? entry.ownerPlayerId : entry.reservedPlayerId) !== player.id) throw new Error(`${id} player ledger mismatch`);
+      }
+    }
+    if ((player.lockedShopCardIds ?? []).some((id) => !player.shopCardIds.includes(id))) throw new Error("Locked card is not reserved in shop");
+  }
   for (const entry of state.ownershipCardPool) {
+    if (!["AVAILABLE", "OWNED", "RESERVED_IN_SHOP"].includes(entry.state)) throw new Error("Unknown ledger state");
     if (entry.state === "AVAILABLE" && (entry.ownerPlayerId || entry.reservedPlayerId)) throw new Error(`${entry.card.id} has dangling ownership`);
     if (entry.state === "OWNED") {
       const owner = entry.ownerPlayerId && players.get(entry.ownerPlayerId);

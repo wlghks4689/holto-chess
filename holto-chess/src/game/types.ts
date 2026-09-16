@@ -24,6 +24,7 @@ export type PlayerState = {
   selectedCardIds: string[];
   shopSize: number;
   purchasesThisRound: number;
+  rerollsUsed?: number; // Missing only in older persisted snapshots; interpreted as zero.
   shopLocked: boolean;
   lockedShopCardIds?: string[];
   augments: Augment[];
@@ -35,6 +36,8 @@ export type PlayerState = {
 };
 
 export type PlayerShowdown = { playerId: string; hand: HandValue; place: number; usedCardIds: string[] };
+export type ShowdownStreet = "PRE_FLOP" | "FLOP" | "TURN" | "RIVER";
+export type StreetSnapshot = { street: ShowdownStreet; results: PlayerShowdown[] };
 export type MatchReward = {
   playerId: string;
   beforeBB: number; afterBB: number; deltaBB: number;
@@ -48,6 +51,7 @@ export type MatchResult = {
   winnerIds: string[];
   boards: Card[][];
   boardResults: PlayerShowdown[][];
+  streetSnapshots?: StreetSnapshot[][];
   boardWinnerIds: string[][];
   runoutCount: number;
   results: PlayerShowdown[];

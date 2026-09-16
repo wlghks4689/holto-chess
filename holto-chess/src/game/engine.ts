@@ -1,11 +1,11 @@
 import { shuffle, type Card } from "../core/poker/cards";
-import { compareHands, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
+import { compareHands, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS } from "./config";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
-import type { Augment, HoltoChessGameState, MatchResult, PlayerShowdown, PlayerState, Round } from "./types";
+import type { Augment, HoltoChessGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
 
 function nextRandom(state: HoltoChessGameState): number {
   if (state.randomMode === "secure") return crypto.getRandomValues(new Uint32Array(1))[0]! / 4294967296;
@@ -73,7 +73,7 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
   const players: PlayerState[] = Array.from({ length: BALANCE.playerCount }, (_, index) => ({
     id: `p${index + 1}`, name: index === 0 ? "나" : `Player ${index + 1}`,
     stackBB: BALANCE.startStackBB, ownedCardIds: [], shopCardIds: [], selectedCardIds: [],
-    shopSize: BALANCE.baseShopSize, purchasesThisRound: 0, shopLocked: false, augments: [],
+    shopSize: BALANCE.baseShopSize, purchasesThisRound: 0, rerollsUsed: 0, shopLocked: false, augments: [],
     points: 0, winStreak: 0, loseStreak: 0, eliminated: false,
   }));
   const state: HoltoChessGameState = {
@@ -124,7 +124,10 @@ export function rerollShop(source: HoltoChessGameState, playerId: string): Holto
   const state = structuredClone(source); const player = playerById(state, playerId);
   const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
+  if ((player.rerollsUsed ?? 0) >= BALANCE.maxRerollsPerRound) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
+  assertPoolIntegrity(state);
   releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
+  player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
   log(state, `${player.name} · 상점 리롤 −${cost}BB`, "economy");
   assertPoolIntegrity(state); return state;
 }
@@ -220,6 +223,7 @@ function resolveParticipants(
     });
   };
   const boardResults = evaluationBoards.map((board) => resultsForBoard(playerIds, board));
+  const streetSnapshots = boards.map((board) => streetSnapshotsFor(state, playerIds, board));
   const boardWinnerIds = boardRankings.map((ranking) => [...ranking[0]!]);
   let winnerIds: string[];
   let suddenDeathCount = 0;
@@ -237,6 +241,7 @@ function resolveParticipants(
     const suddenRanking = rankPlayers(tied.map((playerId) => ({ playerId, hand: handFor(state, playerId, sudden) })));
     winnerIds = suddenRanking[0]!;
     boardResults.push(resultsForBoard(tied, sudden));
+    streetSnapshots.push(streetSnapshotsFor(state, tied, sudden));
     boardWinnerIds.push([...winnerIds]);
   }
   // The recap must describe the board that actually ended the encounter. In R2 a
@@ -247,7 +252,7 @@ function resolveParticipants(
     const ids = state.round === 2 ? p.selectedCardIds : p.ownedCardIds;
     return [id, [...ids]];
   }));
-  return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, runoutCount: boardCount, results, suddenDeathCount, revealedCardIds };
+  return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, streetSnapshots, runoutCount: boardCount, results, suddenDeathCount, revealedCardIds };
 }
 
 function rewardMatch(state: HoltoChessGameState, match: MatchResult, pointValue: number, awardPoint = true): void {
@@ -272,6 +277,25 @@ function captureRewards(before: HoltoChessGameState, after: HoltoChessGameState,
         ? match.winnerIds.includes(playerId) ? "WINNER_GROUP" : "LOSER_GROUP" : "SURVIVED";
     return { playerId, beforeBB: previous.stackBB, afterBB: current.stackBB, deltaBB: current.stackBB - previous.stackBB,
       beforePoints: previous.points, afterPoints: current.points, deltaPoints: current.points - previous.points, outcome };
+  });
+}
+
+function streetHandFor(state: HoltoChessGameState, playerId: string, board: Card[]): HandValue {
+  const player = playerById(state, playerId);
+  const owned = cardsFor(state, state.round === 2 ? player.selectedCardIds : player.ownedCardIds);
+  if (state.round === 3 && board.length >= 3) return findBestOmaha(owned, board);
+  const candidates = [...owned, ...board];
+  return candidates.length >= 5 ? findBestFive(candidates) : evaluatePartial(candidates);
+}
+
+function streetSnapshotsFor(state: HoltoChessGameState, playerIds: string[], board: Card[]): StreetSnapshot[] {
+  const streets = [["PRE_FLOP", 0], ["FLOP", 3], ["TURN", 4], ["RIVER", 5]] as const;
+  return streets.map(([street, count]) => {
+    const visibleBoard = board.slice(0, count);
+    const hands = playerIds.map((playerId) => ({ playerId, hand: streetHandFor(state, playerId, visibleBoard) }));
+    const ranking = rankPlayers(hands);
+    return { street, results: hands.map(({ playerId, hand }) => ({ playerId, hand,
+      place: placeInRanking(ranking, playerId), usedCardIds: hand.bestFive.map((card) => card.id) })) };
   });
 }
 
@@ -361,7 +385,7 @@ export function startNextRound(source: HoltoChessGameState): HoltoChessGameState
   const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= 5) throw new Error("다음 라운드로 진행할 수 없습니다.");
   state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = []; state.augmentChoices = [];
   for (const player of state.players.filter((item) => !item.eliminated)) {
-    player.stackBB += BALANCE.roundIncomeBB; player.purchasesThisRound = 0; player.selectedCardIds = [];
+    player.stackBB += BALANCE.roundIncomeBB; player.purchasesThisRound = 0; player.rerollsUsed = 0; player.selectedCardIds = [];
     releaseShop(state, player); reserveShopCards(state, player);
   }
   log(state, `R${state.round} 시작 · 생존자 기본 수입 +${BALANCE.roundIncomeBB}BB`, "economy"); assertPoolIntegrity(state); return state;

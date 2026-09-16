@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck, type Card, type Rank, type Suit } from "./cards";
-import { compareHands, evaluateFive, findBestFive, findBestOmaha, placeInRanking, rankPlayers } from "./evaluate";
+import { compareHands, evaluateFive, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers } from "./evaluate";
 
 const c = (rank: Rank, suit: Suit): Card => ({ id: `${rank}${suit}`, rank, suit });
 
@@ -10,6 +10,12 @@ describe("poker core", () => {
   it("recognizes a wheel and royal flush", () => {
     expect(evaluateFive([c(14, "s"), c(2, "h"), c(3, "c"), c(4, "d"), c(5, "s")]).kickers).toEqual([5]);
     expect(evaluateFive([c(10, "h"), c(11, "h"), c(12, "h"), c(13, "h"), c(14, "h")]).displayName).toBe("로열 플러시");
+  });
+
+  it("labels current pre-board hands with fewer than five cards", () => {
+    expect(evaluatePartial([c(14, "s"), c(14, "h")])).toMatchObject({ category: "PAIR", kickers: [14] });
+    expect(evaluatePartial([c(13, "s"), c(13, "h"), c(2, "d"), c(2, "c")])).toMatchObject({ category: "TWO_PAIR", kickers: [13, 2] });
+    expect(evaluatePartial([c(14, "s"), c(11, "h")])).toMatchObject({ category: "HIGH_CARD", kickers: [14, 11] });
   });
 
   it("uses kickers to break equal categories", () => {

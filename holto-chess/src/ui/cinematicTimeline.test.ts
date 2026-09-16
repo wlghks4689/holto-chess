@@ -9,11 +9,11 @@ describe("showdown reveal timing", () => {
     const time = (phase: string) => timeline.find((frame) => frame.phase === phase)!.at;
     expect(frameAt(timeline, 1199).phase).toBe("VS_INTRO");
     expect(frameAt(timeline, 1200).revealed).toBe(0);
-    expect(time("FLOP_2") - time("FLOP_1")).toBe(200);
-    expect(time("FLOP_3") - time("FLOP_2")).toBe(200);
+    expect(time("FLOP_2") - time("FLOP_1")).toBe(400);
+    expect(time("FLOP_3") - time("FLOP_2")).toBe(400);
     expect(time("TURN") - time("FLOP_PAUSE")).toBe(1000);
     expect(time("RIVER_SUSPENSE") - time("TURN_PAUSE")).toBe(1000);
-    expect(time("BEST5_GLOW") - time("RIVER")).toBe(400 + 800);
+    expect(time("BEST5_GLOW") - time("RIVER")).toBe(600 + 800);
     for (const frame of timeline.filter((f) => f.at < time("BEST5_GLOW"))) {
       expect(revealFlags(frame.phase)).toMatchObject({ glow: false, profile: false, made: false, result: false, reward: false });
     }

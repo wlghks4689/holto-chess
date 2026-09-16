@@ -83,6 +83,18 @@ h1 { margin:0; font-size:clamp(42px, 7vw, 76px); line-height:.9; letter-spacing:
 .showdown-hand-name{width:100%;font-size:20px;line-height:1.2;color:#e7f5ed;text-align:center;overflow-wrap:anywhere}
 .showdown-hand-name span,.showdown-hand-name small{display:block}
 .showdown-hand-name small{margin-top:5px;color:#8fac9f;font:600 10px DM Mono;letter-spacing:.04em}
+.showdown-hand.uses-five-cards{display:flex;flex-direction:column;align-items:center;gap:8px}
+.showdown-hand.uses-five-cards .showdown-hand-name{width:auto;white-space:nowrap}
+.showdown-hand.uses-five-cards .showdown-hand-name span,.showdown-hand.uses-five-cards .showdown-hand-name small{display:inline}
+.showdown-hand.uses-five-cards .showdown-hand-name small{margin-left:8px}
+.run-winner{color:var(--mint);font-weight:800;margin:12px 0 0}
+.run-summary{padding:20px;border-top:1px solid var(--line);text-align:center;background:#0a1c14;color:#c8ded2}
+.run-results{display:flex;justify-content:center;gap:24px;margin:14px 0;flex-wrap:wrap}
+.run-results>div,.run-final{display:flex;flex-direction:column;gap:6px}
+.run-score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:16px;align-items:center;max-width:480px;margin:12px auto}
+.run-score span{overflow-wrap:anywhere}.run-score strong{font-size:28px;color:var(--mint)}
+.run-summary small{font-size:11px;color:#a0bbad}.run-sudden{margin:16px 0;padding:12px;border:1px solid #b99345;border-radius:8px}.run-sudden>b,.run-sudden>small{display:block}.run-sudden>b{color:#fbbf24}.run-sudden p{margin:8px 0 0}
+.run-final{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}.run-final strong{color:var(--mint);font-size:22px}
 .board,.showdown-hand{--made-color:#84f5b6}
 .made-straight{--made-color:#fbbf24}.made-flush{--made-color:#38bdf8}.made-full-house{--made-color:#a78bfa}.made-quads{--made-color:#fb7185}.made-straight-flush{--made-color:#c084fc}.made-royal{--made-color:#fde68a}
 .winner .showdown-hand-name{color:var(--made-color);text-shadow:0 0 14px color-mix(in srgb,var(--made-color) 55%,transparent)}

@@ -4,6 +4,7 @@ import type { HandCategory } from "../core/poker/evaluate";
 export const FINAL_ROUND_PLACEMENT_POINTS: Readonly<Record<number, number>> = { 1: 6, 2: 4, 3: 2, 4: 0 };
 
 export const BALANCE = {
+  maxRerollsPerRound: 2,
   playerCount: 8,
   startStackBB: 50,
   baseShopSize: 3,

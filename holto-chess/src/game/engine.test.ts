@@ -31,6 +31,14 @@ function playRound(state: HoltoChessGameState): HoltoChessGameState {
 }
 
 describe("Holto Chess engine", () => {
+  it("stores authoritative pre-flop, flop, turn and river hand snapshots", () => {
+    let state = fillHuman(createGame(100));
+    state = prepareShowdown(state); state = resolvePrimary(state);
+    const snapshots = state.roundResults[0]!.streetSnapshots![0]!;
+    expect(snapshots.map((snapshot) => snapshot.street)).toEqual(["PRE_FLOP", "FLOP", "TURN", "RIVER"]);
+    expect(snapshots.map((snapshot) => snapshot.results).every((results) => results.length === 2)).toBe(true);
+    expect(snapshots[3]!.results).toEqual(state.roundResults[0]!.boardResults[0]);
+  });
   it("reserves shops globally without duplicate cards", () => {
     const state = createGame(101);
     const ids = state.players.flatMap((player) => player.shopCardIds);

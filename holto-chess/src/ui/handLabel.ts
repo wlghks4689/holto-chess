@@ -21,7 +21,7 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
     case "TRIPS": return withKicker(`${rankToChar(made)} 트립스`, [second, ...rest].filter(Boolean));
     case "STRAIGHT": return { title: `${rankToChar(made)} 하이 스트레이트` };
     case "FLUSH": return withKicker(`${rankToChar(made)} 하이 플러시`, [second, ...rest].filter(Boolean));
-    case "FULL_HOUSE": return { title: `${rankToChar(made)} 풀하우스 · ${rankToChar(second)} 페어` };
+    case "FULL_HOUSE": return { title: `${rankToChar(made)} · ${rankToChar(second)} 풀하우스` };
     case "QUADS": return withKicker(`${rankToChar(made)} 포카드`, [second].filter(Boolean));
     case "STRAIGHT_FLUSH": return { title: made === 14 ? "로열 플러시" : `${rankToChar(made)} 하이 스트레이트 플러시` };
   }

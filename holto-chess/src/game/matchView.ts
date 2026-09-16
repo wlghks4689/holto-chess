@@ -14,6 +14,7 @@ export function createMatchView(game: HoltoChessGameState, match: MatchResult): 
     boards: match.boards.map((board) => board.map((card) => ({ ...card }))),
     boardWinnerIds: match.boardWinnerIds.map((ids) => [...ids]),
     results: match.results.map(revealedHand), boardResults: match.boardResults.map((results) => results.map(revealedHand)),
+    streetSnapshots: (match.streetSnapshots ?? []).map((snapshots) => snapshots.map((snapshot) => ({ street: snapshot.street, results: snapshot.results.map(revealedHand) }))),
     runoutCount: match.runoutCount, suddenDeathCount: match.suddenDeathCount,
     revealedCards: Object.fromEntries(match.playerIds.map((id) => [id, (match.revealedCardIds[id] ?? [])
       .map((cardId) => ({ ...game.ownershipCardPool.find((entry) => entry.card.id === cardId)!.card }))])),

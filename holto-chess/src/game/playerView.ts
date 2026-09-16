@@ -25,6 +25,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       augmentChoices: (room.augmentChoices[me.id] ?? []).map(publicAugment),
       handLimit: BALANCE.handLimits[g.round], shopSize: me.shopSize, shopLocked: false, lockedShopCardIds: [...(me.lockedShopCardIds ?? [])],
       purchases: me.purchasesThisRound, purchaseLimit: BALANCE.maxPurchasesPerRound,
+      rerollsUsed: me.rerollsUsed ?? 0, rerollLimit: BALANCE.maxRerollsPerRound,
       rerollCost: Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0)),
       sellPercent: me.augments.some((a) => a.id === "sell_bonus") ? 80 : 60,
       committed: room.endedShopIds.includes(me.id),

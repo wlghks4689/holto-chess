@@ -3,6 +3,7 @@ import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
 import type { GameAction, PlayerView, ServerMessage, SessionCredential } from "../../src/shared/protocol";
 import type { RoomSnapshot } from "../../src/game/room";
+import { assertPoolIntegrity } from "../../src/game/cardPool";
 
 const origin = "https://holto.test";
 const sockets: WebSocket[] = [];
@@ -39,6 +40,38 @@ async function connect(s: SessionCredential) {
   return { ws, messages, wait, view, send };
 }
 describe("GameRoom in the Cloudflare runtime", () => {
+  it("serializes concurrent rerolls, keeps locks, deduplicates retries and rejects a burst past the limit", async () => {
+    const a = await session(); const b = await session(a.roomId); const c = await session(a.roomId);
+    const clients = await Promise.all([connect(a), connect(b), connect(c)]);
+    for (const client of clients) await client.send({ type: "READY" });
+    await Promise.all(clients.map((client) => client.wait((m) => m.type === "PLAYER_VIEW" && m.payload.phase === "SHOP")));
+    const locked = clients[0].view().me.shopCards[0].card.id;
+    await clients[0].send({ type: "LOCK_SHOP", cardId: locked });
+    const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+    const saved = () => runInDurableObject(stub, (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1"));
+    const replies = await Promise.all(clients.map((client) => client.send({ type: "REROLL" })));
+    expect(replies.every((r) => r.type === "ACK")).toBe(true);
+    const first = (await saved())!;
+    expect(assertPoolIntegrity(first.game)).toBe(true);
+    for (const player of first.game.players.slice(0, 3)) expect(player.rerollsUsed).toBe(1);
+    const shopIds = first.game.players.flatMap((p) => p.shopCardIds);
+    expect(new Set(shopIds).size).toBe(shopIds.length);
+    expect(first.game.players[0].shopCardIds).toContain(locked);
+    const requestId = crypto.randomUUID();
+    const packet = JSON.stringify({ type: "REROLL", requestId, turnKey: clients[0].view().turnKey });
+    clients[0].ws.send(packet); clients[0].ws.send(packet);
+    await clients[0].wait((m) => m.type === "ACK" && m.requestId === requestId);
+    const burst = await Promise.all(Array.from({ length: 3 }, () => clients[0].send({ type: "REROLL" })));
+    expect(burst.every((r) => r.type === "ERROR")).toBe(true);
+    const after = (await saved())!;
+    expect(after.game.players[0].rerollsUsed).toBe(2);
+    expect(after.game.players[0].stackBB).toBe(37);
+    expect(after.revision).toBe(first.revision + 1);
+    expect(assertPoolIntegrity(after.game)).toBe(true);
+    await evictDurableObject(stub);
+    expect(await clients[0].send({ type: "REROLL" })).toMatchObject({ type: "ERROR" });
+    expect(await saved()).toEqual(after);
+  });
   it("isolates rooms and per-player payloads; rejects hostile purchases; persists, hibernates, reconnects and deduplicates", async () => {
     const a = await session(); const b = await session(a.roomId); const other = await session();
     const one = await connect(a); const two = await connect(b); const separate = await connect(other);

@@ -13,6 +13,7 @@ import { CinematicGate } from "./ShowdownCinematic";
 import { ShopCard } from "./ShopCard";
 import { CardView } from "./CardView";
 import { ShowdownHand } from "./ShowdownHand";
+import { RunItTwiceResult, RunWinner } from "./RunItTwiceResult";
 import { madeTone } from "./madeTone";
 
 const ROUND_COPY = {
@@ -61,7 +62,7 @@ function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: H
       <header><div><span className="eyebrow">RESERVED FOR YOU</span><h2>카드 마켓 <em>{me.shopCardIds.length} / {me.shopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound}/{BALANCE.maxPurchasesPerRound}</span></header>
       <div className="card-row market-row">{me.shopCardIds.map((id) => <ShopCard key={id} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
-      <div className="market-actions"><button className="secondary" onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b></button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div>
+      <div className="market-actions"><button className="secondary" disabled={(me.rerollsUsed ?? 0) >= BALANCE.maxRerollsPerRound || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {Math.max(0, BALANCE.maxRerollsPerRound - (me.rerollsUsed ?? 0))} / {BALANCE.maxRerollsPerRound}</button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div>
     </div>
   </section>;
 }
@@ -72,15 +73,17 @@ function SelectPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s:
 }
 
 function MatchCard({ state, match, matchNumber }: { state: HoltoChessGameState; match: MatchResult; matchNumber: number }) {
+  const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
   const winnerNames = match.winnerIds.map((id) => state.players.find((p) => p.id === id)!.name).join(", ");
   return <article className="match-card">
     <header><span>{match.stage === "primary" ? "PRIMARY" : match.stage === "secondary" ? "SECONDARY" : "FINAL"}</span><b>♔ {winnerNames}</b>{match.suddenDeathCount ? <em>SD ×{match.suddenDeathCount}</em> : null}</header>
     {match.boards.length ? <div className={`boards ${match.boards.length > 1 ? "multi-board" : ""}`}>{match.boards.map((board, boardIndex) => {
       const winners = match.boardWinnerIds[boardIndex] ?? [];
       const winnerUsed = new Set((match.boardResults[boardIndex] ?? []).filter((result) => winners.includes(result.playerId)).flatMap((result) => result.usedCardIds));
-      const label = boardIndex < match.runoutCount ? (match.runoutCount > 1 ? `BOARD ${boardIndex + 1}` : "COMMUNITY BOARD") : `SUDDEN DEATH ${boardIndex - match.runoutCount + 1}`;
-      return <div className={`board made-${madeTone((match.boardResults[boardIndex] ?? []).find((r) => winners.includes(r.playerId))?.hand.displayName ?? "")} ${boardIndex >= match.runoutCount ? "sudden-board" : ""}`} key={`${match.id}-board-${boardIndex}`}><small>{label} - MATCH {matchNumber}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div></div>;
+      const label = boardIndex < match.runoutCount ? (match.runoutCount > 1 ? `BOARD ${boardIndex + 1} · RUN ${boardIndex + 1}` : "COMMUNITY BOARD") : `SUDDEN DEATH · #${boardIndex - match.runoutCount + 1}`;
+      return <div className={`board made-${madeTone((match.boardResults[boardIndex] ?? []).find((r) => winners.includes(r.playerId))?.hand.displayName ?? "")} ${boardIndex >= match.runoutCount ? "sudden-board" : ""}`} key={`${match.id}-board-${boardIndex}`}><small>{label} - MATCH {matchNumber}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div>{match.runoutCount === 2 && <RunWinner winners={winners.map(name)} />}</div>;
     })}</div> : <div className="no-board">NO COMMUNITY · THE LAST HAND</div>}
+    <RunItTwiceResult match={match} players={match.playerIds} name={name} />
     <div className={`combatants ${match.playerIds.length > 2 ? "multi" : ""}`}>{[...match.results].sort((a, b) => a.place - b.place).map((result) => {
       const player = state.players.find((p) => p.id === result.playerId)!; const winner = match.winnerIds.includes(player.id); const shownIds = match.revealedCardIds[player.id] ?? [];
       return <div key={player.id} className={`combatant ${winner ? "winner" : ""}`}><div className="combatant-title"><span>{winner ? "♔" : `#${result.place}`}</span><b>{player.name}</b></div><ShowdownHand cards={shownIds.map((id) => getCard(state, id))} usedCardIds={result.usedCardIds} winner={winner} displayName={result.hand.displayName} category={result.hand.category} kickers={result.hand.kickers} /></div>;
