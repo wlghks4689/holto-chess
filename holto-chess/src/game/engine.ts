@@ -1,5 +1,5 @@
 import { shuffle, type Card } from "../core/poker/cards";
-import { compareHands, findBestFive, findBestOmaha, rankPlayers, type HandValue } from "../core/poker/evaluate";
+import { compareHands, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice } from "./config";
@@ -200,7 +200,7 @@ function resolveParticipants(
     const ranking = rankPlayers(ids.map((playerId) => ({ playerId, hand: handFor(state, playerId, board) })));
     return ids.map((playerId) => {
       const hand = handFor(state, playerId, board);
-      return { playerId, hand, place: ranking.findIndex((group) => group.includes(playerId)) + 1, usedCardIds: hand.bestFive.map((card) => card.id) };
+      return { playerId, hand, place: placeInRanking(ranking, playerId), usedCardIds: hand.bestFive.map((card) => card.id) };
     });
   };
   const boardResults = evaluationBoards.map((board) => resultsForBoard(playerIds, board));

@@ -47,6 +47,7 @@ export function evaluateFive(cards: Card[]): HandValue {
   return value("HIGH_CARD", ranks, cards);
 }
 
+/** Compares category and rank kickers only. Suits never break an exact poker tie. */
 export function compareHands(a: Pick<HandValue, "categoryRank" | "kickers">, b: Pick<HandValue, "categoryRank" | "kickers">): number {
   if (a.categoryRank !== b.categoryRank) return a.categoryRank - b.categoryRank;
   for (let i = 0; i < Math.max(a.kickers.length, b.kickers.length); i += 1) {
@@ -68,7 +69,7 @@ export function combinations<T>(items: readonly T[], choose: number): T[][] {
   return output;
 }
 
-/** Generalized 5–10 card BEST 5. Deterministic ties use card ids only for presentation. */
+/** Generalized 5–10 card BEST 5. Deterministic ties use card ids only to choose presentation cards, never player rank. */
 export function findBestFive(cards: readonly Card[]): HandValue {
   if (cards.length < 5 || cards.length > 10) throw new Error("BEST 5 requires between 5 and 10 cards");
   let best: HandValue | null = null;
@@ -100,4 +101,14 @@ export function rankPlayers(entries: { playerId: string; hand: HandValue }[]): s
     else groups.push([entry.playerId]);
   }
   return groups;
+}
+
+/** Competition ranking: a two-player tie for first makes the next place third. */
+export function placeInRanking(ranking: readonly string[][], playerId: string): number {
+  let playersAhead = 0;
+  for (const group of ranking) {
+    if (group.includes(playerId)) return playersAhead + 1;
+    playersAhead += group.length;
+  }
+  throw new Error(`Player ${playerId} is missing from ranking`);
 }
