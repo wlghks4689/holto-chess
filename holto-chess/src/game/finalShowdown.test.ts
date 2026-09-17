@@ -19,7 +19,7 @@ function finalFixture(hands: string[][]) {
 }
 
 describe("four-way last hand", () => {
-  it("publishes seven cards, highlights five, pays configured shared placements and keeps the ledger", () => {
+  it("publishes seven cards, highlights five, ICM-chops a tied first and keeps the ledger", () => {
     const before = finalFixture([
       ["As", "Ks", "Qs", "Js", "Ts", "2c", "3c"],
       ["Ah", "Kh", "Qh", "Jh", "Th", "4c", "5c"],
@@ -32,9 +32,11 @@ describe("four-way last hand", () => {
     expect(match.results.find((r) => r.playerId === "p3")!.place).toBe(3);
     for (const result of match.results) {
       expect(result.usedCardIds).toHaveLength(5);
-      expect(after.players.find((p) => p.id === result.playerId)!.points).toBe(FINAL_ROUND_PLACEMENT_POINTS[result.place]);
+      const expected = result.place === 1 ? 22.5 : FINAL_ROUND_PLACEMENT_POINTS[result.place];
+      expect(after.players.find((p) => p.id === result.playerId)!.points).toBe(expected);
       expect(match.rewards!.find((r) => r.playerId === result.playerId)!.deltaBB).toBe(0);
     }
+    expect(match.pointAwardDetails?.p1).toContain("ICM");
     for (const cards of Object.values(createMatchView(after, match).revealedCards)) expect(cards).toHaveLength(7);
     expect(after.ownershipCardPool).toEqual(before.ownershipCardPool);
     expect(() => resolvePrimary(after)).toThrow(); // no duplicate payout

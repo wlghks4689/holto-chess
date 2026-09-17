@@ -1,6 +1,6 @@
 import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
-import type { Augment, MatchReward, Phase, Round } from "../game/types";
+import type { Augment, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
 
 export type GameAction =
   | { type: "READY" }
@@ -20,11 +20,13 @@ export type RevealedHand = { playerId: string; place: number; category: HandCate
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
   id: string; stage: string; participantIds: string[]; winnerIds: string[];
-  round: Round; matchNumber: number; group?: "winner" | "loser";
+  round: Round; matchNumber: number; group?: "winner" | "loser"; gameNumber?: 1 | 2;
   rewards: MatchReward[];
   boards: Card[][]; boardWinnerIds: string[][]; boardResults: RevealedHand[][]; results: RevealedHand[];
   streetSnapshots?: StreetSnapshotView[][];
   runoutCount: number; suddenDeathCount: number;
+  tiebreakKind?: TiebreakKind; tiebreakStartIndex?: number; regulationWinnerIds?: string[];
+  pointAwards?: Record<string, number>; pointAwardDetails?: Record<string, string>;
   revealedCards: Record<string, Card[]>;
 };
 export type PlayerView = {
@@ -71,6 +73,6 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (Object.keys(v).some((k) => !allowed.includes(k))) throw new Error("허용되지 않은 필드입니다.");
   if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
   if (v.type === "SELECT_AUGMENT" && !string("augmentId", /^[a-z_]{1,40}$/)) throw new Error("잘못된 증강입니다.");
-  if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 2 || new Set(v.cardIds).size !== 2 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 2장이 필요합니다.");
+  if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 2장 또는 4장이 필요합니다.");
   return v as ClientMessage;
 }

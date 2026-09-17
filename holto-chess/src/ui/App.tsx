@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { assertPoolIntegrity } from "../game/cardPool";
-import { BALANCE } from "../game/config";
+import { BALANCE, purchaseLimitFor, rerollLimitFor } from "../game/config";
 import {
   beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, finalStandings, leaveRoundResult,
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
@@ -13,13 +13,15 @@ import { CinematicGate } from "./ShowdownCinematic";
 import { ShopCard } from "./ShopCard";
 import { CardView } from "./CardView";
 import { ShowdownHand } from "./ShowdownHand";
-import { RunItTwiceResult, RunWinner } from "./RunItTwiceResult";
+import { RunWinner } from "./RunItTwiceResult";
 import { madeTone } from "./madeTone";
+
+const displayPoints = (value: number) => Number(value.toFixed(2));
 
 const ROUND_COPY = {
   1: { title: "TWO HAND", rule: "홀 2 + 매치별 보드 5 · Hold’em", cap: 2 },
   2: { title: "RUN IT TWICE", rule: "3장 중 2장 선택 · 매치별 두 보드", cap: 3 },
-  3: { title: "OMAHA", rule: "홀 정확히 2 + 보드 정확히 3", cap: 4 },
+  3: { title: "OMAHA DOUBLE", rule: "4장을 2장씩 분할 · 독립 보드 2게임", cap: 4 },
   4: { title: "BEST FIVE", rule: "홀 5 + 보드 5 중 자유 BEST 5", cap: 5 },
   5: { title: "THE LAST HAND", rule: "커뮤니티 보드 없이 보유 7장", cap: 7 },
 } as const;
@@ -43,18 +45,24 @@ function PoolMeter({ state }: { state: HoltoChessGameState }) {
 function PlayerStrip({ state }: { state: HoltoChessGameState }) {
   const [open, setOpen] = useState(false);
   const me = state.players.find((player) => player.id === "p1") ?? state.players[0]!;
+  const rankedPlayers = [...state.players].sort((left, right) => {
+    if (left.eliminated !== right.eliminated) return left.eliminated ? 1 : -1;
+    if (left.eliminated && right.eliminated) return (right.eliminatedRound ?? 0) - (left.eliminatedRound ?? 0);
+    return right.stackBB - left.stackBB || right.points - left.points || left.name.localeCompare(right.name, "ko");
+  });
   return <section className={`player-scoreboard ${open ? "is-open" : ""}`}>
     <button className="player-score-summary" type="button" aria-expanded={open} aria-controls="player-score-drawer" onClick={() => setOpen((value) => !value)}>
       <span className="player-avatar">♔</span>
-      <span><b>{me.name}</b><small>{me.eliminated ? `R${me.eliminatedRound} OUT` : `${me.stackBB}BB · ${me.points}P`}</small></span>
+      <span><b>{me.name}</b><small>{me.eliminated ? `R${me.eliminatedRound} OUT` : `${me.stackBB}BB · ${displayPoints(me.points)}P`}</small></span>
       <em>{open ? "접기" : "전체 순위"}<i>{open ? "↑" : "↓"}</i></em>
     </button>
     <button className="player-score-backdrop" type="button" tabIndex={open ? 0 : -1} aria-label="플레이어 스코어 닫기" onClick={() => setOpen(false)} />
-    <div className="player-score-drawer" id="player-score-drawer">
-      <header><span>PLAYER SCORE</span><b>전체 스택과 포인트</b><button type="button" aria-label="닫기" onClick={() => setOpen(false)}>×</button></header>
-      <div className="player-strip">{state.players.map((player) => <div key={player.id} className={`player-chip ${player.id === "p1" ? "me" : ""} ${player.eliminated ? "out" : ""}`}>
-        <span className="player-avatar">{player.eliminated ? "×" : player.id === "p1" ? "♔" : player.id.slice(1)}</span>
-        <span><b>{player.name}</b><small>{player.eliminated ? `R${player.eliminatedRound} OUT` : `${player.stackBB}BB · ${player.points}P`}</small></span>
+    <div className="player-score-drawer" id="player-score-drawer" role="dialog" aria-modal="true" aria-label="CHIP COUNT 순위표">
+      <header><span>LIVE STANDINGS</span><b>CHIP COUNT</b><button type="button" aria-label="닫기" onClick={() => setOpen(false)}>×</button></header>
+      <div className="chip-count-list">{rankedPlayers.map((player, index) => <div key={player.id} className={`chip-count-row ${player.id === "p1" ? "me" : ""} ${player.eliminated ? "out" : ""}`}>
+        <span className="chip-count-rank">{String(index + 1).padStart(2, "0")}</span>
+        <strong>{player.name}</strong>
+        <span className="chip-count-stats"><b>{displayPoints(player.stackBB)} BB</b><i>승점 {displayPoints(player.points)}점</i></span>
       </div>)}</div>
     </div>
   </section>;
@@ -62,8 +70,9 @@ function PlayerStrip({ state }: { state: HoltoChessGameState }) {
 
 function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
   const me = state.players[0]!; const cap = BALANCE.handLimits[state.round];
+  const purchaseLimit = purchaseLimitFor(state.round); const rerollLimit = rerollLimitFor(state.round);
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
-    purchaseLimit: BALANCE.maxPurchasesPerRound, handLimit: cap });
+    purchaseLimit, handLimit: cap });
   return <section className="shop-layout">
     <div className="inventory panel">
       <header><div><span className="eyebrow">PRIVATE INVENTORY</span><h2>내 카드 <em>{me.ownedCardIds.length} / {cap}</em></h2></div><div className="stat-block"><small>사용 BB</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
@@ -72,34 +81,37 @@ function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: H
       <p className="hint">{canSell ? `카드를 누르면 기준가의 ${me.augments.some((a) => a.id === "sell_bonus") ? "80" : "60"}%에 판매합니다. 판매 후에도 라운드 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p>
     </div>
     <div className="market panel">
-      <header><div><span className="eyebrow">RESERVED FOR YOU</span><h2>카드 마켓 <em>{me.shopCardIds.length} / {me.shopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound}/{BALANCE.maxPurchasesPerRound}</span></header>
+      <header><div><span className="eyebrow">RESERVED FOR YOU</span><h2>카드 마켓 <em>{me.shopCardIds.length} / {me.shopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound}/{purchaseLimit}</span></header>
       <div className="card-row market-row">{me.shopCardIds.map((id) => <ShopCard key={id} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
-      <div className="market-actions"><button className="secondary" disabled={(me.rerollsUsed ?? 0) >= BALANCE.maxRerollsPerRound || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {Math.max(0, BALANCE.maxRerollsPerRound - (me.rerollsUsed ?? 0))} / {BALANCE.maxRerollsPerRound}</button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div>
+      <div className="market-actions"><button className="secondary" disabled={(me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {Math.max(0, rerollLimit - (me.rerollsUsed ?? 0))} / {rerollLimit}</button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div>
     </div>
   </section>;
 }
 
 function SelectPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
   const me = state.players[0]!;
-  return <section className="panel select-panel"><span className="eyebrow">ROUND 2 · LOADOUT</span><h2>Run It Twice에 사용할 2장을 선택하세요</h2><p>선택하지 않은 카드는 계속 소유합니다. 두 보드와 Sudden Death에서도 같은 홀카드를 사용합니다.</p><div className="card-row centered">{me.ownedCardIds.map((id) => <CardView key={id} card={getCard(state, id)} selected={me.selectedCardIds.includes(id)} onClick={() => act((s) => toggleSelectedCard(s, me.id, id))} footer={me.selectedCardIds.includes(id) ? "선택됨" : "선택"} />)}</div></section>;
+  const r3 = state.round === 3;
+  return <section className="panel select-panel"><span className="eyebrow">ROUND {state.round} · LOADOUT</span><h2>{r3 ? "Game 1과 Game 2에 사용할 카드를 순서대로 선택하세요" : "Run It Twice에 사용할 2장을 선택하세요"}</h2><p>{r3 ? "먼저 고른 2장은 Game 1, 다음 2장은 Game 2에 배정됩니다. 두 게임은 서로 다른 보드로 진행됩니다." : "선택하지 않은 카드는 계속 소유합니다. 두 보드와 Sudden Death에서도 같은 홀카드를 사용합니다."}</p><div className="card-row centered">{me.ownedCardIds.map((id) => { const index = me.selectedCardIds.indexOf(id); const footer = index < 0 ? "선택" : r3 ? index < 2 ? "GAME 1" : "GAME 2" : "선택됨"; return <CardView key={id} card={getCard(state, id)} selected={index >= 0} onClick={() => act((s) => toggleSelectedCard(s, me.id, id))} footer={footer} />; })}</div></section>;
 }
 
 function MatchCard({ state, match, matchNumber }: { state: HoltoChessGameState; match: MatchResult; matchNumber: number }) {
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
   const winnerNames = match.winnerIds.map((id) => state.players.find((p) => p.id === id)!.name).join(", ");
+  const stageLabel = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : match.stage === "final" ? "최종전" : match.group === "winner" ? "승자조" : match.group === "loser" ? "생존전" : match.stage === "secondary" ? "2차전" : "1차전";
+  const outcomeLabel = match.stage === "final" ? "최종 1위" : match.group === "loser" ? "생존" : "승리";
   return <article className="match-card">
-    <header><span>{match.stage === "primary" ? "PRIMARY" : match.stage === "secondary" ? "SECONDARY" : "FINAL"}</span><b>♔ {winnerNames}</b>{match.suddenDeathCount ? <em>SD ×{match.suddenDeathCount}</em> : null}</header>
+    <header><span>매치 {matchNumber} · {stageLabel}</span><b>♔ {winnerNames} {outcomeLabel}</b>{match.suddenDeathCount ? <em>타이브레이크 {match.suddenDeathCount}회</em> : null}</header>
     {match.boards.length ? <div className={`boards ${match.boards.length > 1 ? "multi-board" : ""}`}>{match.boards.map((board, boardIndex) => {
       const winners = match.boardWinnerIds[boardIndex] ?? [];
       const winnerUsed = new Set((match.boardResults[boardIndex] ?? []).filter((result) => winners.includes(result.playerId)).flatMap((result) => result.usedCardIds));
-      const label = boardIndex < match.runoutCount ? (match.runoutCount > 1 ? `BOARD ${boardIndex + 1} · RUN ${boardIndex + 1}` : "COMMUNITY BOARD") : `SUDDEN DEATH · #${boardIndex - match.runoutCount + 1}`;
-      return <div className={`board made-${madeTone((match.boardResults[boardIndex] ?? []).find((r) => winners.includes(r.playerId))?.hand.displayName ?? "")} ${boardIndex >= match.runoutCount ? "sudden-board" : ""}`} key={`${match.id}-board-${boardIndex}`}><small>{label} - MATCH {matchNumber}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div>{match.runoutCount === 2 && <RunWinner winners={winners.map(name)} />}</div>;
+      const label = boardIndex < match.runoutCount ? (match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : "보드") : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
+      return <div className={`board made-${madeTone((match.boardResults[boardIndex] ?? []).find((r) => winners.includes(r.playerId))?.hand.displayName ?? "")} ${boardIndex >= match.runoutCount ? "sudden-board" : ""}`} key={`${match.id}-board-${boardIndex}`}><small>{label}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div>{match.runoutCount === 2 && <RunWinner winners={winners.map(name)} />}</div>;
     })}</div> : <div className="no-board">NO COMMUNITY · THE LAST HAND</div>}
-    <RunItTwiceResult match={match} players={match.playerIds} name={name} />
     <div className={`combatants ${match.playerIds.length > 2 ? "multi" : ""}`}>{[...match.results].sort((a, b) => a.place - b.place).map((result) => {
       const player = state.players.find((p) => p.id === result.playerId)!; const winner = match.winnerIds.includes(player.id); const shownIds = match.revealedCardIds[player.id] ?? [];
-      return <div key={player.id} className={`combatant ${winner ? "winner" : ""}`}><div className="combatant-title"><span>{winner ? "♔" : `#${result.place}`}</span><b>{player.name}</b></div><ShowdownHand cards={shownIds.map((id) => getCard(state, id))} usedCardIds={result.usedCardIds} winner={winner} displayName={result.hand.displayName} category={result.hand.category} kickers={result.hand.kickers} /></div>;
+      const reward = match.rewards?.find((entry) => entry.playerId === player.id);
+      return <div key={player.id} className={`combatant ${winner ? "winner" : ""}`}><div className="combatant-title"><span>{winner ? "♔" : `#${result.place}`}</span><b>{player.name}</b>{reward && <em>{reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))}P</em>}</div>{reward?.detail?.includes("ICM") && <p className="combatant-detail">{reward.detail}</p>}<ShowdownHand cards={shownIds.map((id) => getCard(state, id))} usedCardIds={result.usedCardIds} winner={winner} displayName={result.hand.displayName} category={result.hand.category} kickers={result.hand.kickers} /></div>;
     })}</div>
   </article>;
 }
@@ -115,19 +127,21 @@ function AugmentPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s
 
 function FinalPanel({ state }: { state: HoltoChessGameState }) {
   const standings = finalStandings(state);
-  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋</p><div className="standings">{standings.map((row, index) => <div className={`standing ${index === 0 ? "champion" : ""}`} key={row.playerId}><strong>{index + 1}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b><small>{row.hand?.displayName}</small></span><span>{row.points}<small>승점</small></span><span>{row.handScore}<small>족보</small></span><span>{row.stackScore}<small>스택</small></span><em>{row.total} P</em></div>)}</div></section>;
+  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋</p><div className="standings">{standings.map((row, index) => <div className={`standing ${index === 0 ? "champion" : ""}`} key={row.playerId}><strong>{index + 1}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b><small>{row.hand?.displayName}</small></span><span>{displayPoints(row.points)}<small>승점</small></span><span>{row.handScore}<small>족보</small></span><span>{row.stackScore}<small>스택</small></span><em>{displayPoints(row.total)} P</em></div>)}</div></section>;
 }
 
 function ActionBar({ state, act, reset }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void; reset: () => void }) {
   const me = state.players[0]!; let label = "계속"; let fn: ((s: HoltoChessGameState) => HoltoChessGameState) | null = null;
   if (state.phase === "SHOP") { label = `구성 확정 · R${state.round} 쇼다운`; fn = prepareShowdown; }
-  if (state.phase === "DECK_SELECT") { label = `선택 확정 (${me.selectedCardIds.length}/2)`; fn = confirmSelection; }
+  if (state.phase === "DECK_SELECT") { const required = state.round === 3 ? 4 : 2; label = `선택 확정 (${me.selectedCardIds.length}/${required})`; fn = confirmSelection; }
   if (state.phase === "SHOWDOWN_PRIMARY") { label = state.round === 5 ? "The Last Hand 공개" : "1차 쇼다운 공개"; fn = resolvePrimary; }
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
   if (state.phase === "SHOWDOWN_SECONDARY") { label = "새 매치 보드 공개"; fn = resolveSecondary; }
   if (state.phase === "ROUND_RESULT") { label = state.round === 2 || state.round === 4 ? "증강 드래프트" : "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} 상점으로`; fn = startNextRound; }
-  return <div className="action-bar"><div><small>NEXT ACTION</small><b>{fn ? label : "게임 종료"}</b></div>{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== 2}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
+  const requiredSelection = state.round === 3 ? 4 : 2;
+  if (!fn && !me.eliminated) return null;
+  return <div className="action-bar"><div><small>NEXT ACTION</small><b>{fn ? label : "탈락"}</b></div>{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
 }
 
 export function App() {

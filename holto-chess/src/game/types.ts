@@ -43,7 +43,9 @@ export type MatchReward = {
   beforeBB: number; afterBB: number; deltaBB: number;
   beforePoints: number; afterPoints: number; deltaPoints: number;
   outcome: "WINNER_GROUP" | "LOSER_GROUP" | "SURVIVED" | "ELIMINATED" | "FINAL";
+  detail?: string;
 };
+export type TiebreakKind = "GROUP_DECIDER" | "WINNER_TIEBREAK" | "SURVIVAL_TIEBREAK";
 export type MatchResult = {
   id: string;
   stage: "primary" | "secondary" | "final";
@@ -56,10 +58,16 @@ export type MatchResult = {
   runoutCount: number;
   results: PlayerShowdown[];
   suddenDeathCount: number;
+  tiebreakKind?: TiebreakKind;
+  tiebreakStartIndex?: number;
+  regulationWinnerIds?: string[];
+  pointAwards?: Record<string, number>;
+  pointAwardDetails?: Record<string, string>;
   revealedCardIds: Record<string, string[]>;
   // Optional for persisted v1 games created before cinematic snapshots existed.
   rewards?: MatchReward[];
   group?: "winner" | "loser";
+  gameNumber?: 1 | 2;
 };
 
 export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };

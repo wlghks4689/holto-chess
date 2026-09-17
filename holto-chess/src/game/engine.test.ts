@@ -22,7 +22,8 @@ function fillHuman(state: HoltoChessGameState): HoltoChessGameState {
 function playRound(state: HoltoChessGameState): HoltoChessGameState {
   state = fillHuman(state); state = prepareShowdown(state);
   if (state.phase === "DECK_SELECT") {
-    for (const id of state.players[0]!.ownedCardIds.slice(0, 2)) state = toggleSelectedCard(state, "p1", id);
+    const required = state.round === 3 ? 4 : 2;
+    for (const id of state.players[0]!.ownedCardIds.slice(0, required)) state = toggleSelectedCard(state, "p1", id);
     state = confirmSelection(state);
   }
   state = resolvePrimary(state);
@@ -31,6 +32,11 @@ function playRound(state: HoltoChessGameState): HoltoChessGameState {
 }
 
 describe("Holto Chess engine", () => {
+  it("assigns a distinct readable nickname to every seat", () => {
+    const names = createGame(99).players.map((player) => player.name);
+    expect(new Set(names).size).toBe(8);
+    expect(names.slice(1).every((name) => !/^Player \d+$/.test(name))).toBe(true);
+  });
   it("stores authoritative pre-flop, flop, turn and river hand snapshots", () => {
     let state = fillHuman(createGame(100));
     state = prepareShowdown(state); state = resolvePrimary(state);
@@ -94,6 +100,69 @@ describe("Holto Chess engine", () => {
     state = resolvePrimary(state);
     const after = state.ownershipCardPool.map(({ card, state: poolState, ownerPlayerId, reservedPlayerId }) => [card.id, poolState, ownerPlayerId, reservedPlayerId]);
     expect(after).toEqual(before);
+  });
+
+  it("runs R3 as two independent Omaha games with disjoint two-card loadouts", () => {
+    let state = createGame(515); state.round = 3; state.phase = "SHOP";
+    for (const entry of state.ownershipCardPool) { entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId; }
+    state.players.forEach((player, playerIndex) => {
+      player.ownedCardIds = state.ownershipCardPool.slice(playerIndex * 4, playerIndex * 4 + 4).map((entry) => entry.card.id);
+      player.shopCardIds = []; player.selectedCardIds = []; player.purchasesThisRound = 0;
+      for (const id of player.ownedCardIds) { const entry = state.ownershipCardPool.find((candidate) => candidate.card.id === id)!; entry.state = "OWNED"; entry.ownerPlayerId = player.id; }
+    });
+    state = prepareShowdown(state);
+    expect(state.phase).toBe("DECK_SELECT");
+    for (const id of state.players[0]!.ownedCardIds) state = toggleSelectedCard(state, "p1", id);
+    state = resolvePrimary(confirmSelection(state));
+    expect(state.roundResults).toHaveLength(8);
+    for (let index = 0; index < state.roundResults.length; index += 2) {
+      const game1 = state.roundResults[index]!; const game2 = state.roundResults[index + 1]!;
+      expect([game1.gameNumber, game2.gameNumber]).toEqual([1, 2]);
+      expect(game1.playerIds).toEqual(game2.playerIds);
+      expect(game1.boards[0]).not.toBe(game2.boards[0]);
+      for (const match of [game1, game2]) {
+        expect(match.suddenDeathCount).toBe(0);
+        const owned = match.playerIds.flatMap((id) => state.players.find((player) => player.id === id)!.ownedCardIds);
+        expect(match.boards[0]!.some((card) => owned.includes(card.id))).toBe(false);
+        expect(Object.values(match.revealedCardIds).every((ids) => ids.length === 2)).toBe(true);
+        for (const reward of match.rewards!) expect(reward.deltaPoints).toBe(match.winnerIds.includes(reward.playerId) ? (match.winnerIds.length > 1 ? 2 : 5) : 0);
+      }
+      for (const playerId of game1.playerIds) {
+        const player = state.players.find((candidate) => candidate.id === playerId)!;
+        expect(new Set(player.selectedCardIds.slice(0, 2).filter((id) => player.selectedCardIds.slice(2).includes(id))).size).toBe(0);
+      }
+    }
+  });
+
+  it("applies the centralized point table through every engine round without tiebreak bonuses", () => {
+    let state = createGame(909);
+    for (let round = 1; round <= 4; round += 1) {
+      state = playRound(state);
+      const matches = state.matches.filter((match) => match.id.startsWith(`${round}-`));
+      for (const match of matches) {
+        const rewards = Object.fromEntries(match.rewards!.map((reward) => [reward.playerId, reward.deltaPoints]));
+        if (round === 1 || round === 3) {
+          const value = match.winnerIds.length > 1 ? (round === 1 ? 2 : 2) : (round === 1 ? 4 : 5);
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? value : 0));
+        } else if (round === 2 && match.stage === "primary") {
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? 6 : 0));
+        } else if (round === 2) {
+          const value = match.group === "winner" ? 3 : 2;
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? value : 0));
+        } else if (round === 4 && match.stage === "primary") {
+          const scoringWinners = match.regulationWinnerIds ?? match.winnerIds;
+          const value = match.regulationWinnerIds ? 5 : 10;
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(scoringWinners.includes(id) ? value : 0));
+        } else if (round === 4 && match.group === "winner") {
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? 5 : 0));
+        } else {
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(0));
+        }
+      }
+      state = leaveRoundResult(state);
+      if (state.phase === "AUGMENT") state = chooseAugment(state, "p1", state.augmentChoices[0]!.id);
+      state = startNextRound(state);
+    }
   });
 
   it("uses separate boards for R4 winner and loser three-way encounters", () => {

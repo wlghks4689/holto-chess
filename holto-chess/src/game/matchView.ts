@@ -10,16 +10,20 @@ export function revealedHand(result: PlayerShowdown): RevealedHand {
 export function createMatchView(game: HoltoChessGameState, match: MatchResult): MatchView {
   return {
     id: match.id, round: game.round, matchNumber: game.roundResults.findIndex((m) => m.id === match.id) + 1,
-    stage: match.stage, group: match.group, participantIds: [...match.playerIds], winnerIds: [...match.winnerIds],
+    stage: match.stage, group: match.group, gameNumber: match.gameNumber, participantIds: [...match.playerIds], winnerIds: [...match.winnerIds],
     boards: match.boards.map((board) => board.map((card) => ({ ...card }))),
     boardWinnerIds: match.boardWinnerIds.map((ids) => [...ids]),
     results: match.results.map(revealedHand), boardResults: match.boardResults.map((results) => results.map(revealedHand)),
     streetSnapshots: (match.streetSnapshots ?? []).map((snapshots) => snapshots.map((snapshot) => ({ street: snapshot.street, results: snapshot.results.map(revealedHand) }))),
     runoutCount: match.runoutCount, suddenDeathCount: match.suddenDeathCount,
+    tiebreakKind: match.tiebreakKind, tiebreakStartIndex: match.tiebreakStartIndex,
+    regulationWinnerIds: match.regulationWinnerIds ? [...match.regulationWinnerIds] : undefined,
+    pointAwards: match.pointAwards ? { ...match.pointAwards } : undefined,
+    pointAwardDetails: match.pointAwardDetails ? { ...match.pointAwardDetails } : undefined,
     revealedCards: Object.fromEntries(match.playerIds.map((id) => [id, (match.revealedCardIds[id] ?? [])
       .map((cardId) => ({ ...game.ownershipCardPool.find((entry) => entry.card.id === cardId)!.card }))])),
     rewards: (match.rewards ?? []).map((r) => ({ playerId: r.playerId,
       beforeBB: r.beforeBB, afterBB: r.afterBB, deltaBB: r.deltaBB,
-      beforePoints: r.beforePoints, afterPoints: r.afterPoints, deltaPoints: r.deltaPoints, outcome: r.outcome })),
+      beforePoints: r.beforePoints, afterPoints: r.afterPoints, deltaPoints: r.deltaPoints, outcome: r.outcome, detail: r.detail })),
   };
 }

@@ -19,4 +19,9 @@ describe("detailed showdown labels", () => {
     expect(detailedHandLabel("ROYAL_FLUSH", [14], [], []))
       .toEqual({ title: "로열 스트레이트 플러시" });
   });
+
+  it("spells out all five ranks for a full house instead of leaving an empty kicker line", () => {
+    expect(detailedHandLabel("FULL_HOUSE", [14, 2], [], []))
+      .toEqual({ title: "A · 2 풀하우스", kicker: "A-A-A-2-2" });
+  });
 });

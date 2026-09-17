@@ -15,7 +15,6 @@ export type RoomSnapshot = {
 };
 export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded"): RoomSnapshot {
   const game = createGame(seed, randomMode);
-  game.players.forEach((p, i) => { p.name = `Player ${i + 1}`; });
   return { schema: 1, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [], augmentChoices: {} };
 }
 export function turnKey(room: RoomSnapshot): string {
@@ -94,11 +93,13 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
       case "REROLL": room.game = rerollShop(room.game, playerId); break;
       case "LOCK_SHOP": room.game = toggleShopLock(room.game, playerId, action.cardId); break;
       case "SELECT_CARDS":
-        if (room.game.round !== 2 || action.cardIds.length !== 2 || new Set(action.cardIds).size !== 2 || action.cardIds.some((id) => !me.ownedCardIds.includes(id))) throw new Error("보유 카드 2장을 선택하세요.");
+        { const required = room.game.round === 2 ? 2 : room.game.round === 3 ? 4 : 0;
+        if (!required || action.cardIds.length !== required || new Set(action.cardIds).size !== required || action.cardIds.some((id) => !me.ownedCardIds.includes(id))) throw new Error(`보유 카드 ${required || 2}장을 선택하세요.`); }
         me.selectedCardIds = [...action.cardIds]; break;
       case "END_SHOP_PHASE":
         if (me.ownedCardIds.length !== BALANCE.handLimits[room.game.round]) throw new Error(`카드 ${BALANCE.handLimits[room.game.round]}장이 필요합니다.`);
         if (room.game.round === 2 && me.selectedCardIds.length !== 2) throw new Error("출전 카드 2장을 선택하세요.");
+        if (room.game.round === 3 && me.selectedCardIds.length !== 4) throw new Error("Game 1·2용 카드 4장을 나누세요.");
         room.endedShopIds.push(playerId);
         if (activeHumans(room).every((id) => room.endedShopIds.includes(id))) room.game = prepareShowdown(room.game, humanIds(room));
         break;

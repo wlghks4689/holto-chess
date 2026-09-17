@@ -60,7 +60,10 @@ describe("server room authority and projections", () => {
             r = act(r, s.playerId, { type: "BUY_CARD", cardId: v.me.shopCards[0].card.id });
             v = createPlayerView(r, s.playerId);
           }
-          if (r.game.round === 2) r = act(r, s.playerId, { type: "SELECT_CARDS", cardIds: v.me.ownedCards.slice(0, 2).map((c) => c.id) });
+          if (r.game.round === 2 || r.game.round === 3) {
+            const required = r.game.round === 3 ? 4 : 2;
+            r = act(r, s.playerId, { type: "SELECT_CARDS", cardIds: v.me.ownedCards.slice(0, required).map((c) => c.id) });
+          }
           r = act(r, s.playerId, { type: "END_SHOP_PHASE" });
         }
       } else if (r.game.phase === "AUGMENT") {
@@ -88,7 +91,9 @@ describe("server room authority and projections", () => {
           for (const reward of m.rewards) {
             expect(reward.afterBB - reward.beforeBB).toBe(reward.deltaBB);
             expect(reward.afterPoints - reward.beforePoints).toBe(reward.deltaPoints);
-            expect(reward.afterPoints).toBe(r.game.players.find((p) => p.id === reward.playerId)!.points);
+            const currentPoints = r.game.players.find((p) => p.id === reward.playerId)!.points;
+            if (r.game.round !== 3 || m.gameNumber === 2) expect(reward.afterPoints).toBe(currentPoints);
+            else expect(reward.afterPoints).toBeLessThanOrEqual(currentPoints);
           }
           if (r.game.round === 5) {
             sawR5 = true; expect(m.boards).toHaveLength(0); expect(m.participantIds).toHaveLength(4);

@@ -45,3 +45,10 @@ it("supports legacy snapshots with an absent counter", () => {
   delete state.players[0].rerollsUsed;
   expect(rerollShop(state, "p1").players[0].rerollsUsed).toBe(1);
 });
+
+it("allows three rerolls in R5 and rejects the fourth", () => {
+  let state = createGame(15); state.round = 5; state.players[0].stackBB = 100;
+  state = rerollShop(rerollShop(rerollShop(state, "p1"), "p1"), "p1");
+  expect(state.players[0].rerollsUsed).toBe(3);
+  expect(() => rerollShop(state, "p1")).toThrow(/횟수/);
+});

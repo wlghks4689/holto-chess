@@ -2,7 +2,8 @@ import { shuffle, type Card } from "../core/poker/cards";
 import { compareHands, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
-import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS } from "./config";
+import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, rerollLimitFor } from "./config";
+import { calculateIcm } from "./icm";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
 import type { Augment, HoltoChessGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
@@ -70,8 +71,9 @@ function discountedPrice(player: PlayerState, card: Card): number {
 
 export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = "seeded"): HoltoChessGameState {
   seed = (seed >>> 0) || 1;
+  const playerNames = ["나", "리버 폭스", "블러프 캣", "스페이드 울프", "턴 샤크", "클럽 레이븐", "다이아 바이퍼", "올인 베어"];
   const players: PlayerState[] = Array.from({ length: BALANCE.playerCount }, (_, index) => ({
-    id: `p${index + 1}`, name: index === 0 ? "나" : `Player ${index + 1}`,
+    id: `p${index + 1}`, name: playerNames[index]!,
     stackBB: BALANCE.startStackBB, ownedCardIds: [], shopCardIds: [], selectedCardIds: [],
     shopSize: BALANCE.baseShopSize, purchasesThisRound: 0, rerollsUsed: 0, shopLocked: false, augments: [],
     points: 0, winStreak: 0, loseStreak: 0, eliminated: false,
@@ -92,7 +94,7 @@ export function buyCard(source: HoltoChessGameState, playerId: string, cardId: s
   if (state.phase !== "SHOP" || player.eliminated) throw new Error("지금은 구매할 수 없습니다.");
   if (!player.shopCardIds.includes(cardId)) throw new Error("내 상점에 예약된 카드가 아닙니다.");
   if (player.ownedCardIds.length >= BALANCE.handLimits[state.round]) throw new Error("이번 라운드 보유 한도에 도달했습니다.");
-  if (player.purchasesThisRound >= BALANCE.maxPurchasesPerRound) throw new Error("이번 라운드 구매 횟수를 모두 사용했습니다.");
+  if (player.purchasesThisRound >= purchaseLimitFor(state.round)) throw new Error("이번 라운드 구매 횟수를 모두 사용했습니다.");
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
   const price = discountedPrice(player, entry.card);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
@@ -108,7 +110,7 @@ export function sellCard(source: HoltoChessGameState, playerId: string, cardId: 
   const state = structuredClone(source); const player = playerById(state, playerId);
   if (state.phase !== "SHOP" || !player.ownedCardIds.includes(cardId)) throw new Error("판매할 수 없는 카드입니다.");
   if (!canSellWithoutBlocking({ ownedCount: player.ownedCardIds.length, purchases: player.purchasesThisRound,
-    purchaseLimit: BALANCE.maxPurchasesPerRound, handLimit: BALANCE.handLimits[state.round] })) {
+    purchaseLimit: purchaseLimitFor(state.round), handLimit: BALANCE.handLimits[state.round] })) {
     throw new Error("남은 구매 횟수로 필수 보유 카드를 채울 수 없어 판매할 수 없습니다.");
   }
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
@@ -124,7 +126,7 @@ export function rerollShop(source: HoltoChessGameState, playerId: string): Holto
   const state = structuredClone(source); const player = playerById(state, playerId);
   const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
-  if ((player.rerollsUsed ?? 0) >= BALANCE.maxRerollsPerRound) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
+  if ((player.rerollsUsed ?? 0) >= rerollLimitFor(state.round)) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
   assertPoolIntegrity(state);
   releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
   player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
@@ -151,14 +153,14 @@ export function toggleSelectedCard(source: HoltoChessGameState, playerId: string
   const state = structuredClone(source); const player = playerById(state, playerId);
   if (!player.ownedCardIds.includes(cardId)) throw new Error("보유 카드만 선택할 수 있습니다.");
   if (player.selectedCardIds.includes(cardId)) player.selectedCardIds = player.selectedCardIds.filter((id) => id !== cardId);
-  else if (player.selectedCardIds.length < 2) player.selectedCardIds.push(cardId);
+  else if (player.selectedCardIds.length < (state.round === 3 ? 4 : 2)) player.selectedCardIds.push(cardId);
   return state;
 }
 
 function aiPrepare(state: HoltoChessGameState, humanIds: readonly string[] = ["p1"]): void {
   const limit = BALANCE.handLimits[state.round];
   for (const player of state.players.filter((item) => !item.eliminated && !humanIds.includes(item.id))) {
-    while (player.ownedCardIds.length < limit && player.purchasesThisRound < BALANCE.maxPurchasesPerRound) {
+    while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round)) {
       const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!).filter((entry) => discountedPrice(player, entry.card) <= player.stackBB)
         .sort((a, b) => b.card.rank - a.card.rank);
       if (!options.length) break;
@@ -167,6 +169,10 @@ function aiPrepare(state: HoltoChessGameState, humanIds: readonly string[] = ["p
       entry.state = "OWNED"; entry.ownerPlayerId = player.id; delete entry.reservedPlayerId;
     }
     if (state.round === 2) player.selectedCardIds = [...player.ownedCardIds].sort((a, b) => cardsFor(state, [b])[0]!.rank - cardsFor(state, [a])[0]!.rank).slice(0, 2);
+    if (state.round === 3) {
+      const ranked = [...player.ownedCardIds].sort((a, b) => cardsFor(state, [b])[0]!.rank - cardsFor(state, [a])[0]!.rank);
+      player.selectedCardIds = [ranked[0]!, ranked[3]!, ranked[1]!, ranked[2]!];
+    }
   }
 }
 
@@ -175,19 +181,22 @@ export function prepareShowdown(source: HoltoChessGameState, humanIds: readonly 
   const state = structuredClone(source); aiPrepare(state, humanIds);
   const humans = humanIds.map((id) => playerById(state, id)).filter((p) => !p.eliminated);
   if (humans.some((p) => p.ownedCardIds.length < BALANCE.handLimits[state.round])) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
-  if (state.round === 2 && humans.some((p) => p.selectedCardIds.length !== 2)) { state.phase = "DECK_SELECT"; return state; }
+  const requiredSelection = state.round === 2 ? 2 : state.round === 3 ? 4 : 0;
+  if (requiredSelection && humans.some((p) => p.selectedCardIds.length !== requiredSelection)) { state.phase = "DECK_SELECT"; return state; }
   state.phase = "SHOWDOWN_PRIMARY"; log(state, `R${state.round} 쇼다운 준비 완료`); assertPoolIntegrity(state); return state;
 }
 
 export function confirmSelection(source: HoltoChessGameState): HoltoChessGameState {
   const state = structuredClone(source); const human = playerById(state, "p1");
-  if (state.round !== 2 || human.selectedCardIds.length !== 2) throw new Error("R2에서 사용할 카드 2장을 선택하세요.");
-  state.phase = "SHOWDOWN_PRIMARY"; log(state, "R2 홀카드 2장을 확정했습니다."); return state;
+  const required = state.round === 2 ? 2 : state.round === 3 ? 4 : 0;
+  if (!required || human.selectedCardIds.length !== required) throw new Error(`R${state.round} 출전 카드를 올바르게 나누세요.`);
+  state.phase = "SHOWDOWN_PRIMARY"; log(state, state.round === 3 ? "R3 홀카드를 Game 1·2로 분할했습니다." : "R2 홀카드 2장을 확정했습니다."); return state;
 }
 
-function handFor(state: HoltoChessGameState, playerId: string, board: Card[]): HandValue {
+function handFor(state: HoltoChessGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
   const player = playerById(state, playerId);
-  const owned = cardsFor(state, state.round === 2 ? player.selectedCardIds : player.ownedCardIds);
+  const selected = state.round === 3 && gameNumber ? player.selectedCardIds.slice((gameNumber - 1) * 2, gameNumber * 2) : player.selectedCardIds;
+  const owned = cardsFor(state, state.round === 2 || state.round === 3 ? selected : player.ownedCardIds);
   if (state.round === 3) return findBestOmaha(owned, board);
   if (state.round === 5) return findBestFive(owned);
   return findBestFive([...owned, ...board]);
@@ -211,19 +220,22 @@ function resolveParticipants(
   boardCount: number,
   stage: MatchResult["stage"],
   requireSingleWinner = true,
+  tiebreakKind?: MatchResult["tiebreakKind"],
+  preserveRegulationTie = false,
+  gameNumber?: 1 | 2,
 ): MatchResult {
   const boards = encounterBoards(state, playerIds, boardCount);
   const evaluationBoards = boards.length ? boards : [[]];
-  const boardRankings = evaluationBoards.map((board) => rankPlayers(playerIds.map((playerId) => ({ playerId, hand: handFor(state, playerId, board) }))));
+  const boardRankings = evaluationBoards.map((board) => rankPlayers(playerIds.map((playerId) => ({ playerId, hand: handFor(state, playerId, board, gameNumber) }))));
   const resultsForBoard = (ids: string[], board: Card[]): PlayerShowdown[] => {
-    const ranking = rankPlayers(ids.map((playerId) => ({ playerId, hand: handFor(state, playerId, board) })));
+    const ranking = rankPlayers(ids.map((playerId) => ({ playerId, hand: handFor(state, playerId, board, gameNumber) })));
     return ids.map((playerId) => {
-      const hand = handFor(state, playerId, board);
+      const hand = handFor(state, playerId, board, gameNumber);
       return { playerId, hand, place: placeInRanking(ranking, playerId), usedCardIds: hand.bestFive.map((card) => card.id) };
     });
   };
   const boardResults = evaluationBoards.map((board) => resultsForBoard(playerIds, board));
-  const streetSnapshots = boards.map((board) => streetSnapshotsFor(state, playerIds, board));
+  const streetSnapshots = boards.map((board) => streetSnapshotsFor(state, playerIds, board, gameNumber));
   const boardWinnerIds = boardRankings.map((ranking) => [...ranking[0]!]);
   let winnerIds: string[];
   let suddenDeathCount = 0;
@@ -233,37 +245,90 @@ function resolveParticipants(
     const [a, b] = playerIds; const delta = wins.get(a)! - wins.get(b)!;
     winnerIds = delta > 0 ? [a] : delta < 0 ? [b] : [];
   } else winnerIds = boardRankings[0]![0]!;
+  const regulationWinnerIds = preserveRegulationTie && winnerIds.length > 1 ? [...winnerIds] : undefined;
+  const tiebreakStartIndex = boards.length;
   while (requireSingleWinner && winnerIds.length !== 1) {
     if (suddenDeathCount >= 256) throw new Error("쇼다운 계산 한도에 도달했습니다. 다시 시도하세요.");
     const tied = winnerIds.length ? winnerIds : playerIds;
-    const sudden = encounterBoards(state, tied, 1)[0]!;
+    // The fresh deck excludes every player in the original encounter, even
+    // when only the tied leaders continue in the decider.
+    const sudden = encounterBoards(state, playerIds, 1)[0]!;
     boards.push(sudden); suddenDeathCount += 1;
-    const suddenRanking = rankPlayers(tied.map((playerId) => ({ playerId, hand: handFor(state, playerId, sudden) })));
+    const suddenRanking = rankPlayers(tied.map((playerId) => ({ playerId, hand: handFor(state, playerId, sudden, gameNumber) })));
     winnerIds = suddenRanking[0]!;
     boardResults.push(resultsForBoard(tied, sudden));
-    streetSnapshots.push(streetSnapshotsFor(state, tied, sudden));
+    streetSnapshots.push(streetSnapshotsFor(state, tied, sudden, gameNumber));
     boardWinnerIds.push([...winnerIds]);
   }
-  // The recap must describe the board that actually ended the encounter. In R2 a
-  // tied pair of runouts can append one or more sudden-death boards.
-  const results = boardResults[boardResults.length - 1]!;
+  // R2 recaps the deciding board. R4 keeps every original participant in the
+  // summary while taking each tied leader's latest tiebreak hand.
+  let results = boardResults[boardResults.length - 1]!;
+  if (tiebreakKind && suddenDeathCount > 0) {
+    const regulation = boardResults[0]!;
+    const regulationLeaders = new Set(boardWinnerIds[0]!);
+    const latest = new Map<string, PlayerShowdown>();
+    for (const boardResult of boardResults) for (const result of boardResult) latest.set(result.playerId, result);
+    results = playerIds.map((playerId) => {
+      const result = latest.get(playerId) ?? regulation.find((entry) => entry.playerId === playerId)!;
+      const regulationPlace = regulation.find((entry) => entry.playerId === playerId)!.place;
+      return { ...result, place: winnerIds.includes(playerId) ? 1 : regulationLeaders.has(playerId) ? 2 : regulationPlace };
+    });
+  }
   const revealedCardIds = Object.fromEntries(playerIds.map((id) => {
     const p = playerById(state, id);
-    const ids = state.round === 2 ? p.selectedCardIds : p.ownedCardIds;
+    const ids = state.round === 2 ? p.selectedCardIds : state.round === 3 && gameNumber
+      ? p.selectedCardIds.slice((gameNumber - 1) * 2, gameNumber * 2) : p.ownedCardIds;
     return [id, [...ids]];
   }));
-  return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, streetSnapshots, runoutCount: boardCount, results, suddenDeathCount, revealedCardIds };
+  return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, streetSnapshots, runoutCount: boardCount, results, suddenDeathCount, revealedCardIds,
+    regulationWinnerIds, tiebreakKind: suddenDeathCount ? tiebreakKind : undefined,
+    tiebreakStartIndex: suddenDeathCount ? tiebreakStartIndex : undefined, gameNumber };
 }
 
-function rewardMatch(state: HoltoChessGameState, match: MatchResult, pointValue: number, awardPoint = true): void {
+function rewardMatch(state: HoltoChessGameState, match: MatchResult, pointValue: number, awardIds: readonly string[] = match.winnerIds): void {
+  match.pointAwards = Object.fromEntries(match.playerIds.map((id) => [id, awardIds.includes(id) ? pointValue : 0]));
+  match.pointAwardDetails = Object.fromEntries(match.playerIds.map((id) => {
+    const awarded = awardIds.includes(id);
+    const context = match.regulationWinnerIds ? "정규 결과 SPLIT" : match.group === "loser" ? "생존 결정" : match.group === "winner" ? "Winner Group" : "경기 결과";
+    return [id, `${context} · ${awarded ? "+" + pointValue : "+0"}P`];
+  }));
   for (const playerId of match.playerIds) {
-    const player = playerById(state, playerId); const won = match.winnerIds.includes(playerId);
+    const player = playerById(state, playerId); const won = awardIds.includes(playerId);
     if (won) {
       const bonus = player.augments.some((augment) => augment.id === "win_bonus") ? 5 : 0;
       player.stackBB += BALANCE.winRewardBB + player.winStreak * BALANCE.winStreakStepBB + bonus;
-      player.winStreak += 1; player.loseStreak = 0; if (awardPoint) player.points += pointValue;
+      player.winStreak += 1; player.loseStreak = 0; player.points += pointValue;
     } else { player.stackBB += player.loseStreak * BALANCE.loseStreakStepBB; player.loseStreak += 1; player.winStreak = 0; }
   }
+}
+
+function rewardMatchWithLedger(state: HoltoChessGameState, match: MatchResult, pointValue: number, awardIds: readonly string[] = match.winnerIds): void {
+  const before = structuredClone(state);
+  rewardMatch(state, match, pointValue, awardIds);
+  captureRewards(before, state, [match]);
+}
+
+function rewardFinalPlacements(state: HoltoChessGameState, match: MatchResult): void {
+  const first = match.results.filter((result) => result.place === 1);
+  const awards: Record<string, number> = {};
+  const details: Record<string, string> = {};
+  if (first.length > 1) {
+    const prizes = Array.from({ length: first.length }, (_, index) => FINAL_ROUND_PLACEMENT_POINTS[index + 1] ?? 0);
+    const allocations = calculateIcm(first.map(({ playerId }) => ({ playerId, stackBB: playerById(state, playerId).stackBB })), prizes);
+    for (const result of first) {
+      const allocation = allocations[result.playerId]!;
+      awards[result.playerId] = allocation;
+      details[result.playerId] = `공동 1위 · ${prizes.reduce((sum, prize) => sum + prize, 0)}P ICM 분배 · ${playerById(state, result.playerId).stackBB}BB → ${allocation.toFixed(2)}P`;
+    }
+  }
+  for (const result of match.results) {
+    const award = awards[result.playerId] ?? FINAL_ROUND_PLACEMENT_POINTS[result.place] ?? 0;
+    awards[result.playerId] = award;
+    details[result.playerId] ??= `${result.place}위 · +${award}P`;
+    playerById(state, result.playerId).points += award;
+  }
+  match.pointAwards = awards;
+  match.pointAwardDetails = details;
 }
 
 function pair(ids: string[]): string[][] { return Array.from({ length: Math.floor(ids.length / 2) }, (_, index) => ids.slice(index * 2, index * 2 + 2)); }
@@ -276,23 +341,25 @@ function captureRewards(before: HoltoChessGameState, after: HoltoChessGameState,
       : match.stage === "primary" && (after.round === 2 || after.round === 4)
         ? match.winnerIds.includes(playerId) ? "WINNER_GROUP" : "LOSER_GROUP" : "SURVIVED";
     return { playerId, beforeBB: previous.stackBB, afterBB: current.stackBB, deltaBB: current.stackBB - previous.stackBB,
-      beforePoints: previous.points, afterPoints: current.points, deltaPoints: current.points - previous.points, outcome };
+      beforePoints: previous.points, afterPoints: current.points, deltaPoints: current.points - previous.points, outcome,
+      detail: match.pointAwardDetails?.[playerId] };
   });
 }
 
-function streetHandFor(state: HoltoChessGameState, playerId: string, board: Card[]): HandValue {
+function streetHandFor(state: HoltoChessGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
   const player = playerById(state, playerId);
-  const owned = cardsFor(state, state.round === 2 ? player.selectedCardIds : player.ownedCardIds);
+  const selected = state.round === 3 && gameNumber ? player.selectedCardIds.slice((gameNumber - 1) * 2, gameNumber * 2) : player.selectedCardIds;
+  const owned = cardsFor(state, state.round === 2 || state.round === 3 ? selected : player.ownedCardIds);
   if (state.round === 3 && board.length >= 3) return findBestOmaha(owned, board);
   const candidates = [...owned, ...board];
   return candidates.length >= 5 ? findBestFive(candidates) : evaluatePartial(candidates);
 }
 
-function streetSnapshotsFor(state: HoltoChessGameState, playerIds: string[], board: Card[]): StreetSnapshot[] {
+function streetSnapshotsFor(state: HoltoChessGameState, playerIds: string[], board: Card[], gameNumber?: 1 | 2): StreetSnapshot[] {
   const streets = [["PRE_FLOP", 0], ["FLOP", 3], ["TURN", 4], ["RIVER", 5]] as const;
   return streets.map(([street, count]) => {
     const visibleBoard = board.slice(0, count);
-    const hands = playerIds.map((playerId) => ({ playerId, hand: streetHandFor(state, playerId, visibleBoard) }));
+    const hands = playerIds.map((playerId) => ({ playerId, hand: streetHandFor(state, playerId, visibleBoard, gameNumber) }));
     const ranking = rankPlayers(hands);
     return { street, results: hands.map(({ playerId, hand }) => ({ playerId, hand,
       place: placeInRanking(ranking, playerId), usedCardIds: hand.bestFive.map((card) => card.id) })) };
@@ -306,21 +373,29 @@ export function resolvePrimary(source: HoltoChessGameState): HoltoChessGameState
   const boardCount = state.round === 2 ? 2 : state.round === 5 ? 0 : 1;
   const matches = state.round === 5
     ? [resolveParticipants(state, alive, 0, "final", false)]
-    : pair(alive).map((ids) => resolveParticipants(state, ids, boardCount, "primary"));
+    : state.round === 3
+      ? pair(alive).flatMap((ids) => ([1, 2] as const).map((gameNumber) => resolveParticipants(state, ids, 1, "primary", false, undefined, false, gameNumber)))
+    : pair(alive).map((ids) => resolveParticipants(state, ids, boardCount, "primary",
+      state.round === 2 || state.round === 4,
+      state.round === 4 ? "GROUP_DECIDER" : undefined,
+      state.round === 4));
   state.matches.push(...matches); state.roundResults = matches;
-  if (state.round === 1) matches.forEach((match) => rewardMatch(state, match, BALANCE.points.r1Win));
-  if (state.round === 2) matches.forEach((match) => rewardMatch(state, match, BALANCE.points.r2PrimaryWin));
-  if (state.round === 3) matches.forEach((match) => rewardMatch(state, match, BALANCE.points.r3Win));
-  if (state.round === 4) matches.forEach((match) => rewardMatch(state, match, BALANCE.points.r4PrimaryWin));
+  if (state.round === 1) matches.forEach((match) => rewardMatchWithLedger(state, match, match.winnerIds.length > 1 ? BALANCE.points.r1.split : BALANCE.points.r1.win));
+  if (state.round === 2) matches.forEach((match) => rewardMatchWithLedger(state, match, BALANCE.points.r2Primary.win));
+  if (state.round === 3) matches.forEach((match) => rewardMatchWithLedger(state, match, match.winnerIds.length > 1 ? BALANCE.points.r3.gameSplit : BALANCE.points.r3.gameWin));
+  if (state.round === 4) matches.forEach((match) => {
+    const regulationWinners = match.regulationWinnerIds ?? match.winnerIds;
+    rewardMatchWithLedger(state, match, match.regulationWinnerIds ? BALANCE.points.r4Primary.split : BALANCE.points.r4Primary.win, regulationWinners);
+  });
   state.winnerGroup = matches.flatMap((match) => match.winnerIds);
   state.loserGroup = matches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id)));
   if (state.round === 5) {
-    for (const result of matches[0]!.results) playerById(state, result.playerId).points += FINAL_ROUND_PLACEMENT_POINTS[result.place] ?? 0;
+    rewardFinalPlacements(state, matches[0]!);
+    captureRewards(source, state, matches);
     state.phase = "GAME_RESULT"; log(state, "The Last Hand · 최종 점수 집계 완료", "win");
   }
   else if (state.round === 2 || state.round === 4) { state.phase = "GROUP_ASSIGNMENT"; log(state, `승자조 ${state.winnerGroup.length}명 · 패자조 ${state.loserGroup.length}명`); }
   else { state.phase = "ROUND_RESULT"; log(state, `R${state.round} 쇼다운 종료`, "win"); }
-  captureRewards(source, state, matches);
   return state;
 }
 
@@ -337,15 +412,15 @@ export function resolveSecondary(source: HoltoChessGameState): HoltoChessGameSta
   const state = structuredClone(source); if (state.phase !== "SHOWDOWN_SECONDARY") throw new Error("2차 쇼다운 단계가 아닙니다.");
   const winnerMatches = state.round === 2
     ? pair(state.winnerGroup).map((ids) => resolveParticipants(state, ids, 2, "secondary"))
-    : [resolveParticipants(state, state.winnerGroup, 1, "secondary")];
+    : [resolveParticipants(state, state.winnerGroup, 1, "secondary", true, "WINNER_TIEBREAK")];
   const loserMatches = state.round === 2
     ? pair(state.loserGroup).map((ids) => resolveParticipants(state, ids, 2, "secondary"))
-    : [resolveParticipants(state, state.loserGroup, 1, "secondary")];
-  winnerMatches.forEach((match) => rewardMatch(state, match, state.round === 2 ? BALANCE.points.r2WinnerBracketWin : BALANCE.points.r4WinnerGroupFirst));
-  loserMatches.forEach((match) => rewardMatch(state, match, 0, false));
-  eliminate(state, loserMatches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id))));
+    : [resolveParticipants(state, state.loserGroup, 1, "secondary", true, "SURVIVAL_TIEBREAK")];
   winnerMatches.forEach((match) => { match.group = "winner"; });
   loserMatches.forEach((match) => { match.group = "loser"; });
+  winnerMatches.forEach((match) => rewardMatch(state, match, state.round === 2 ? BALANCE.points.r2WinnerBracket.win : BALANCE.points.r4WinnerGroup.first));
+  loserMatches.forEach((match) => rewardMatch(state, match, state.round === 2 ? BALANCE.points.r2LoserBracket.survive : BALANCE.points.r4LoserGroup.survive));
+  eliminate(state, loserMatches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id))));
   captureRewards(source, state, [...winnerMatches, ...loserMatches]);
   state.matches.push(...winnerMatches, ...loserMatches); state.roundResults = [...winnerMatches, ...loserMatches];
   state.phase = "ROUND_RESULT"; log(state, `R${state.round} 종료 · ${state.players.filter((player) => !player.eliminated).length}명 생존`, "win");
