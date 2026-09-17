@@ -1,32 +1,17 @@
 {
-  "name": "holto-chess",
+  "name": "holto-chess-workspace",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "Delegating workspace root. The application lives in holto-chess/.",
   "scripts": {
+    "postinstall": "npm --prefix holto-chess install",
     "dev": "npm --prefix holto-chess run dev --",
     "build": "npm --prefix holto-chess run build",
+    "preview": "npm --prefix holto-chess run preview",
+    "deploy": "npm --prefix holto-chess run deploy",
     "test": "npm --prefix holto-chess test",
     "test:workers": "npm --prefix holto-chess run test:workers",
     "lint": "npm --prefix holto-chess run lint"
-  },
-  "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "typescript": "latest",
-    "vite": "latest"
-  },
-  "devDependencies": {
-    "@eslint/js": "latest",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "eslint": "latest",
-    "eslint-plugin-react-hooks": "latest",
-    "eslint-plugin-react-refresh": "latest",
-    "globals": "latest",
-    "typescript-eslint": "^8.70.0",
-    "vitest": "latest"
   }
 }
