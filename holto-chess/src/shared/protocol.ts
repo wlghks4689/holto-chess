@@ -13,7 +13,7 @@ export type GameAction =
   | { type: "END_SHOP_PHASE" }
   | { type: "LEAVE_ROOM" };
 export type ClientMessage =
-  | { type: "JOIN_ROOM"; token: string }
+  | { type: "JOIN_ROOM"; token: string; nickname?: string }
   | (GameAction & { requestId: string; turnKey: string });
 
 export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; departed: boolean; publicAugments: Augment[] };
@@ -71,8 +71,9 @@ export function parseClientMessage(raw: string): ClientMessage {
   const v = value as Record<string, unknown>;
   const string = (key: string, pattern: RegExp) => typeof v[key] === "string" && pattern.test(v[key] as string);
   if (v.type === "JOIN_ROOM") {
-    if (Object.keys(v).some((k) => !["type", "token"].includes(k)) || !string("token", /^[a-f0-9]{64}$/)) throw new Error("잘못된 세션입니다.");
-    return { type: "JOIN_ROOM", token: v.token as string };
+    if (Object.keys(v).some((k) => !["type", "token", "nickname"].includes(k)) || !string("token", /^[a-f0-9]{64}$/)) throw new Error("잘못된 세션입니다.");
+    if (v.nickname !== undefined && (typeof v.nickname !== "string" || !/^[\p{L}\p{N} _-]{1,16}$/u.test(v.nickname.trim()))) throw new Error("닉네임은 문자·숫자 1~16자로 입력하세요.");
+    return { type: "JOIN_ROOM", token: v.token as string, ...(typeof v.nickname === "string" ? { nickname: v.nickname.trim() } : {}) };
   }
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
@@ -83,7 +84,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   const allowed = ["type", "requestId", "turnKey", ...fields[v.type]];
   if (Object.keys(v).some((k) => !allowed.includes(k))) throw new Error("허용되지 않은 필드입니다.");
   if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
-  if (v.type === "SELECT_AUGMENT" && !string("augmentId", /^[a-z_]{1,40}$/)) throw new Error("잘못된 증강입니다.");
+  if (v.type === "SELECT_AUGMENT" && !string("augmentId", /^[a-z][a-z0-9_]{0,39}$/)) throw new Error("잘못된 증강입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 2장 또는 4장이 필요합니다.");
   return v as ClientMessage;
 }

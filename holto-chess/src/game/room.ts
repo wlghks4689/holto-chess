@@ -22,8 +22,9 @@ export type RoomSnapshot = {
  * How long a barrier waits before bots play the outstanding seats. The shop is
  * the only phase that asks for real decisions, so it gets the longer clock.
  */
-export const BARRIER_TIMEOUT_MS = { SHOP: 60_000, DEFAULT: 30_000 } as const;
+export const BARRIER_TIMEOUT_MS = { SHOP: 60_000, DEFAULT: 30_000, RESULTS: 180_000 } as const;
 export function barrierTimeoutMs(phase: string): number {
+  if (["ROUND_RESULT", "GROUP_ASSIGNMENT"].includes(phase)) return BARRIER_TIMEOUT_MS.RESULTS;
   return phase === "SHOP" ? BARRIER_TIMEOUT_MS.SHOP : BARRIER_TIMEOUT_MS.DEFAULT;
 }
 export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded"): RoomSnapshot {
@@ -185,6 +186,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
         break;
     }
   }
+  settleBarrier(room);
   refreshBarrier(room, now);
   assertPoolIntegrity(room.game);
   room.revision++;
@@ -217,6 +219,7 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
     room.readyIds = [...new Set([...room.readyIds, ...pending])];
     advanceReadyBarrier(room);
   }
+  settleBarrier(room);
   refreshBarrier(room, now);
   assertPoolIntegrity(room.game);
   room.revision++;

@@ -51,7 +51,7 @@ describe("barrier liveness", () => {
 
     let finished = bothDone;
     for (let step = 0; step < 40 && finished.game.phase !== "GAME_RESULT"; step++) {
-      finished = forceBarrier(finished, T0 + BARRIER_TIMEOUT_MS.SHOP * (step + 1)) ?? finished;
+      finished = forceBarrier(finished, barrierDeadline(finished) ?? T0) ?? finished;
       if (finished.game.phase === "GAME_RESULT") break;
     }
     expect(finished.game.phase).toBe("GAME_RESULT");
@@ -68,7 +68,9 @@ describe("barrier liveness", () => {
     expect(forceBarrier(room, T0 + BARRIER_TIMEOUT_MS.SHOP)).not.toBeNull();
   });
 
-  it("waits 60s in the shop and 30s everywhere else", () => {
+  it("reserves viewing time for results while retaining short ready barriers", () => {
+    expect(barrierTimeoutMs("ROUND_RESULT")).toBe(180_000);
+    expect(barrierTimeoutMs("GROUP_ASSIGNMENT")).toBe(180_000);
     const shop = started();
     expect(shop.game.phase).toBe("SHOP");
     expect(barrierTimeoutMs(shop.game.phase)).toBe(60_000);
@@ -106,7 +108,7 @@ describe("barrier liveness", () => {
     let room = started();
     const seen = new Set<string>();
     for (let step = 0; step < 40 && room.game.phase !== "GAME_RESULT"; step++) {
-      const next = forceBarrier(room, T0 + BARRIER_TIMEOUT_MS.SHOP * (step + 1));
+      const next = forceBarrier(room, barrierDeadline(room) ?? T0);
       if (!next) break;
       const key = `${turnKey(next)}|${next.revision}`;
       expect(seen.has(key)).toBe(false);
@@ -145,7 +147,7 @@ describe("leaving a room", () => {
     let room = started(2, 4242);
     // Drive to a round where elimination has happened.
     for (let guard = 0; guard < 40 && !room.game.players.some((p) => p.eliminated); guard++) {
-      const next = forceBarrier(room, T0 + BARRIER_TIMEOUT_MS.SHOP * (guard + 1));
+      const next = forceBarrier(room, barrierDeadline(room) ?? T0);
       if (!next) break;
       room = next;
     }
@@ -160,7 +162,7 @@ describe("leaving a room", () => {
     room = act(room, "p2", { type: "LEAVE_ROOM" });
     expect(pendingBarrierIds(room)).toEqual([]);
     for (let step = 0; step < 40 && room.game.phase !== "GAME_RESULT"; step++) {
-      const next = forceBarrier(room, T0 + BARRIER_TIMEOUT_MS.SHOP * (step + 1));
+      const next = forceBarrier(room, barrierDeadline(room) ?? T0);
       if (!next) break;
       room = next;
     }

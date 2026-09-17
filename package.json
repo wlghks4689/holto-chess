@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "npm --prefix holto-chess run dev --",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
-    "lint": "eslint ."
+    "build": "npm --prefix holto-chess run build",
+    "test": "npm --prefix holto-chess test",
+    "test:workers": "npm --prefix holto-chess run test:workers",
+    "lint": "npm --prefix holto-chess run lint"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

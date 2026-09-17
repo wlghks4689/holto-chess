@@ -16,6 +16,11 @@ function start(count = 2, seed = 303) {
   return r;
 }
 describe("server room authority and projections", () => {
+  it("accepts the R5 augment identifier and validates guest nicknames", () => {
+    expect(parseClientMessage(JSON.stringify({ type: "SELECT_AUGMENT", augmentId: "r5_hand_bonus", requestId: "test-request", turnKey: "4:AUGMENT" })).type).toBe("SELECT_AUGMENT");
+    expect(parseClientMessage(JSON.stringify({ type: "JOIN_ROOM", token: "a".repeat(64), nickname: "테스터 1" }))).toHaveProperty("nickname", "테스터 1");
+    expect(() => parseClientMessage(JSON.stringify({ type: "JOIN_ROOM", token: "a".repeat(64), nickname: "<script>" }))).toThrow();
+  });
   it("requires two humans, clears ready on joins, and never treats a human as AI", () => {
     let r = lobby(1);
     r = act(r, "p1", { type: "READY" }); expect(r.status).toBe("LOBBY");

@@ -59,6 +59,7 @@ export function OnlineApp() {
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState("");
   const [roomCode, setRoomCode] = useState("");
+  const [nickname, setNickname] = useState(() => localStorage.getItem("holto-nickname") ?? "플레이어");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<GameAction["type"] | false>(false);
   const [connectionKey, setConnectionKey] = useState(0);
@@ -89,7 +90,7 @@ export function OnlineApp() {
       setStatus("Connecting"); clearPending();
       const ws = new WebSocket(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/rooms/${credential.roomId}`);
       socket.current = ws;
-      ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token }));
+      ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: localStorage.getItem("holto-nickname") ?? "플레이어" }));
       ws.onmessage = (event) => {
         if (disposed) return;
         const message = JSON.parse(event.data) as ServerMessage;
@@ -106,7 +107,9 @@ export function OnlineApp() {
       ws.onclose = (event) => {
         if (disposed) return;
         setStatus("Disconnected"); clearPending();
-        if (event.code === 1008 || event.code === 4001 || attempts >= 5) return;
+        if (event.code === 4001) { setError("다른 탭에서 같은 좌석에 접속했습니다. 이 탭의 연결을 종료합니다."); return; }
+        if (event.code === 1008 || attempts >= 5) { setError("연결을 복구하지 못했습니다. 재접속하거나 세션을 지우고 새 방에 입장하세요."); return; }
+        setStatus("Reconnecting");
         timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 10000));
       };
       ws.onerror = () => { if (!disposed) setError("연결을 확인하고 재접속하세요."); };
@@ -116,6 +119,8 @@ export function OnlineApp() {
   }, [credential, connectionKey]);
 
   const join = async (create: boolean) => {
+    if (!/^[\p{L}\p{N} _-]{1,16}$/u.test(nickname.trim())) { setError("닉네임은 문자·숫자 1~16자로 입력하세요."); return; }
+    localStorage.setItem("holto-nickname", nickname.trim());
     setBusy(true); setError("");
     try {
       const response = await fetch(create ? "/api/rooms" : `/api/rooms/${roomCode.trim().toUpperCase()}/join`, { method: "POST" });
@@ -152,10 +157,11 @@ export function OnlineApp() {
     purchaseLimit: view.me.purchaseLimit, handLimit: view.me.handLimit }) : false;
   const guideKey = view ? `${view.gameId}:${view.round}` : null;
   const showGuide = view && view.phase !== "LOBBY" && dismissedGuide !== guideKey;
-  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""}><main>{showGuide ? <RoundGuide round={view.round} onClose={() => setDismissedGuide(guideKey)} /> : null}<nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>ONLINE · PROTOTYPE</small></div></a><div className="survivors"><small>CONNECTION</small><b>{status}</b></div></nav>
+  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""}><main className={view && view.phase !== "LOBBY" ? "game-arena" : ""}>{showGuide ? <RoundGuide round={view.round} onClose={() => setDismissedGuide(guideKey)} /> : null}<nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>ONLINE · PROTOTYPE</small></div></a><div className="survivors"><small>CONNECTION</small><b>{status}</b></div></nav>
     <div className="page-shell" id="top">
       <section className="panel room-panel"><h2>온라인 게임방</h2>{!credential ? <div className="room-controls"><button className="primary" disabled={busy} onClick={() => void join(true)}>Create Room</button><label>Room Code<input aria-label="Room Code" value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="AB12CD" /></label><button className="secondary" disabled={busy || !/^[A-Z2-9]{6}$/.test(roomCode.trim())} onClick={() => void join(false)}>Join Room</button></div> : <><p>Room ID: <strong data-testid="room-id">{credential.roomId}</strong> · Player ID: <strong data-testid="player-id">{credential.playerId}</strong> · Players {view?.humanCount ?? "…"} / 8</p><div className="room-controls"><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>재접속</button><button className="secondary" onClick={() => { localStorage.removeItem(SESSION_KEY); setCredential(null); setView(null); setStatus("Disconnected"); }}>세션 지우기</button></div></>}
         <p className="hint">실제 사용자 2~8명 · 시작 시 빈 좌석은 AI가 채웁니다. 같은 방 코드를 다른 탭이나 브라우저에 입력하세요. 재접속 정보는 이 브라우저에 저장되어 탭을 닫아도 같은 좌석으로 돌아옵니다.</p></section>
+      {!credential && <label className="panel">닉네임 <input aria-label="닉네임" maxLength={16} value={nickname} onChange={(e) => setNickname(e.target.value)} /></label>}
       {error && <p className="room-error" role="alert">{error}</p>}
       {view && <>
         <header className="round-header"><div><span className="round-number">ROUND 0{view.round}</span><h1>{titles[view.round]}</h1></div><div className="phase-badge"><b>{phases[view.phase] ?? view.phase}</b>{secondsLeft !== null && <small>{waitingOnMe ? `내 차례 · ${secondsLeft}초 후 자동 진행` : `대기 ${view.waitingOn.length}명 · ${secondsLeft}초`}</small>}</div></header>

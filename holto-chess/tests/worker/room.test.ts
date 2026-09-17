@@ -22,7 +22,7 @@ async function connect(s: SessionCredential) {
     for (;;) {
       const found = messages.find(predicate); if (found) return found;
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error(`Message timeout: ${JSON.stringify(messages.map((m) => m.type))}`)), 5000);
+        const timeout = setTimeout(() => reject(new Error(`Message timeout: ${JSON.stringify(messages.slice(-3))}`)), 5000);
         waiters.push(() => { clearTimeout(timeout); resolve(); });
       });
     }
@@ -40,6 +40,39 @@ async function connect(s: SessionCredential) {
   return { ws, messages, wait, view, send };
 }
 describe("GameRoom in the Cloudflare runtime", () => {
+  it("finishes R1–R5 over two sockets, including reconnect and identical final standings", async () => {
+    const a = await session(); const b = await session(a.roomId);
+    const clients = [await connect(a), await connect(b)];
+    for (const client of clients) await client.send({ type: "READY" });
+    for (let step = 0; step < 80; step++) {
+      const revision = Math.max(...clients.map((c) => c.view().revision));
+      await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
+      if (clients[0].view().phase === "GAME_RESULT") break;
+      const phase = clients[0].view().phase;
+      for (const client of clients) {
+        const view = client.view();
+        if (!view.me.alive) continue;
+        if (phase === "SHOP") {
+          while (client.view().me.ownedCards.length < client.view().me.handLimit) {
+            expect(await client.send({ type: "BUY_CARD", cardId: client.view().me.shopCards[0].card.id })).toMatchObject({ type: "ACK" });
+          }
+          if ([2, 3].includes(view.round)) await client.send({ type: "SELECT_CARDS", cardIds: client.view().me.ownedCards.slice(0, view.round === 2 ? 2 : 4).map((c) => c.id) });
+          await client.send({ type: "END_SHOP_PHASE" });
+        } else if (phase === "AUGMENT") {
+          await client.send({ type: "SELECT_AUGMENT", augmentId: view.me.augmentChoices[0].id });
+        } else await client.send({ type: "READY" });
+      }
+      if (step === 2) {
+        clients[0].ws.close(1000);
+        clients[0] = await connect(a);
+      }
+    }
+    const revision = Math.max(...clients.map((c) => c.view().revision));
+    await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
+    expect(clients[0].view().phase).toBe("GAME_RESULT");
+    expect(clients[1].view().standings).toEqual(clients[0].view().standings);
+    expect(clients[0].view().standings).toHaveLength(8);
+  }, 30_000);
   it("serializes concurrent rerolls, keeps locks, deduplicates retries and rejects a burst past the limit", async () => {
     const a = await session(); const b = await session(a.roomId); const c = await session(a.roomId);
     const clients = await Promise.all([connect(a), connect(b), connect(c)]);

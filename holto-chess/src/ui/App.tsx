@@ -157,7 +157,7 @@ export function App() {
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
   const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
   const guideKey = `${gameVersion}:${state.round}`;
-  return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name }))} viewerId="p1"><main>
+  return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name }))} viewerId="p1"><main className="game-arena">
     {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
     <nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>POKER AUTOBATTLER · PROTOTYPE 01</small></div></a><div className="round-progress">{progress.map((n) => <span key={n} className={`${n === state.round ? "active" : ""} ${n < state.round ? "done" : ""}`}><i>{n < state.round ? "✓" : n}</i><small>R{n}</small></span>)}</div><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">

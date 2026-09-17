@@ -3,8 +3,10 @@ import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier,
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 
-type Attachment = { roomId: string; playerId: string | null; joinedAt: number };
+type Attachment = { roomId: string; playerId: string | null; joinedAt: number; windowAt?: number; messages?: number };
 const SNAPSHOT_KEY = "snapshot:v1";
+const EXPIRY_KEY = "expiresAt";
+const ROOM_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const AUTH_TIMEOUT_MS = 15000;
 function randomSeed(): number { return crypto.getRandomValues(new Uint32Array(1))[0]! || 1; }
 function token(): string { return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""); }
@@ -13,11 +15,17 @@ async function hash(value: string): Promise<string> {
 }
 export class GameRoom extends DurableObject<Env> {
   private room: RoomSnapshot | undefined;
+  private expiresAt: number | undefined;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
       this.room = await ctx.storage.get<RoomSnapshot>(SNAPSHOT_KEY);
+      this.expiresAt = await ctx.storage.get<number>(EXPIRY_KEY);
+      if (this.room && !this.expiresAt) {
+        this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
+        await ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+      }
       if (this.room && this.room.schema !== 1) throw new Error("Unsupported room snapshot version");
     });
   }
@@ -34,6 +42,7 @@ export class GameRoom extends DurableObject<Env> {
    */
   private async rescheduleAlarm(): Promise<void> {
     const deadlines: number[] = [];
+    if (this.expiresAt) deadlines.push(this.expiresAt);
     for (const ws of this.ctx.getWebSockets()) {
       const a = ws.deserializeAttachment() as Attachment | null;
       if (a && !a.playerId) deadlines.push(a.joinedAt + AUTH_TIMEOUT_MS);
@@ -65,6 +74,9 @@ export class GameRoom extends DurableObject<Env> {
         const secret = token();
         const { room, playerId } = addSession(createRoom(roomId, randomSeed(), "secure"), await hash(secret));
         await this.commit(room);
+        this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
+        await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+        await this.rescheduleAlarm();
         return Response.json({ roomId, playerId, token: secret }, { status: 201, headers: { "Cache-Control": "no-store" } });
       });
     }
@@ -91,6 +103,13 @@ export class GameRoom extends DurableObject<Env> {
     await this.ctx.blockConcurrencyWhile(async () => {
       let requestId: string | undefined;
       try {
+        const rate = ws.deserializeAttachment() as Attachment | null;
+        if (!rate) return;
+        const now = Date.now();
+        if (!rate.windowAt || now - rate.windowAt >= 10_000) { rate.windowAt = now; rate.messages = 0; }
+        rate.messages = (rate.messages ?? 0) + 1;
+        ws.serializeAttachment(rate);
+        if (rate.messages > 100) { ws.close(1008, "Too many messages"); return; }
         if (typeof raw !== "string") throw new Error("텍스트 메시지만 지원합니다.");
         const message = parseClientMessage(raw);
         const attachment = ws.deserializeAttachment() as Attachment | null;
@@ -100,6 +119,12 @@ export class GameRoom extends DurableObject<Env> {
           const digest = await hash(message.token);
           const session = this.room.sessions.find((s) => s.tokenHash === digest);
           if (!session) { this.send(ws, { type: "ERROR", code: "UNAUTHORIZED", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
+          if (message.nickname && this.room.status === "LOBBY") {
+            const next = structuredClone(this.room);
+            next.game.players.find((p) => p.id === session.playerId)!.name = message.nickname;
+            next.revision++;
+            await this.commit(next);
+          }
           for (const old of this.ctx.getWebSockets()) {
             if (old !== ws && (old.deserializeAttachment() as Attachment | null)?.playerId === session.playerId) old.close(4001, "Session connected elsewhere");
           }
@@ -130,6 +155,14 @@ export class GameRoom extends DurableObject<Env> {
   async alarm(): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
       const now = Date.now();
+      if (this.expiresAt && now >= this.expiresAt) {
+        for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired after 24 hours");
+        await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY]);
+        this.room = undefined;
+        this.expiresAt = undefined;
+        await this.ctx.storage.deleteAlarm();
+        return;
+      }
       for (const ws of this.ctx.getWebSockets()) {
         const a = ws.deserializeAttachment() as Attachment | null;
         if (!a?.playerId && (!a || now - a.joinedAt >= AUTH_TIMEOUT_MS)) ws.close(1008, "Authentication timeout");
