@@ -12,6 +12,10 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   if (!humanIds(room).includes(viewerPlayerId)) throw new Error("Unknown viewer");
   const g = room.game;
   const me = g.players.find((p) => p.id === viewerPlayerId)!;
+  // The shop barrier is tracked by endedShopIds, every other barrier by readyIds.
+  // Without this the shop shows nobody as ready even once they have committed.
+  const readyInPhase = (playerId: string): boolean =>
+    room.status === "PLAYING" && g.phase === "SHOP" ? room.endedShopIds.includes(playerId) : room.readyIds.includes(playerId);
   const visible = room.status === "PLAYING" && ["GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "GAME_RESULT"].includes(g.phase);
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
@@ -32,7 +36,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       sellPercent: me.augments.some((a) => a.id === "sell_bonus") ? 80 : 60,
       committed: room.endedShopIds.includes(me.id),
     },
-    players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: room.readyIds.includes(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed, publicAugments: p.augments.map(publicAugment) })),
+    players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed, publicAugments: p.augments.map(publicAugment) })),
     matches: visible ? g.roundResults.filter((m) => m.playerIds.includes(me.id)).map((m) => createMatchView(g, m)) : [],
     roundSummary: visible ? createRoundSummary(g) : [],
     roundHistory: visible ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...createMatchView(g, m), matchNumber: index + 1 })) : [],

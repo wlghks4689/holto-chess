@@ -156,3 +156,9 @@ h1 { margin:0; font-size:clamp(38px, calc(7vw - 4px), 72px); line-height:.9; let
 .survivors .conn-connecting,.survivors .conn-reconnecting{color:#fbbf24}
 .survivors .conn-disconnected{color:#f87171}
 @media(max-width:639px){.nickname-field input{max-width:100%}.resume-list button{width:100%}}
+
+/* Shop ready bar: the count and the early-start rule sit next to the button. */
+.shop-ready-bar{align-items:center}
+.shop-ready-bar>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.shop-ready-bar small{font:500 10px DM Mono;letter-spacing:.04em;color:#779889}
+@media(max-width:639px){.shop-ready-bar{align-items:stretch}.shop-ready-bar button{width:100%}}

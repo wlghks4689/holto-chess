@@ -4,6 +4,8 @@
 
 ## 실행
 
+애플리케이션은 `holto-chess/`에 있습니다. 저장소 루트는 모든 스크립트를 그쪽으로 위임만 합니다.
+
 ```bash
 npm install
 npm run dev
@@ -13,8 +15,9 @@ npm run dev
 
 ```bash
 npm test
-npm run build
+npm run test:workers
 npm run lint
+npm run build
 ```
 
 ## 조작

@@ -5,6 +5,7 @@ import {
   forceBarrier, pendingBarrierIds, turnKey, type RoomSnapshot,
 } from "./room";
 import type { GameAction } from "../shared/protocol";
+import { createPlayerView } from "./playerView";
 
 const T0 = 1_000_000;
 function act(room: RoomSnapshot, id: string, action: GameAction, now = T0): RoomSnapshot {
@@ -167,5 +168,31 @@ describe("leaving a room", () => {
       room = next;
     }
     expect(room.game.phase).toBe("GAME_RESULT");
+  });
+});
+
+describe("shop ready barrier", () => {
+  it("starts the showdown as soon as everyone is ready, without waiting out the clock", () => {
+    let room = started(2);
+    expect(room.game.phase).toBe("SHOP");
+    // Far short of the 60s shop deadline.
+    const early = T0 + 1_000;
+    room = finishShop(room, "p1", early);
+    expect(room.game.phase).toBe("SHOP");
+    expect(forceBarrier(room, early)).toBeNull();
+
+    room = finishShop(room, "p2", early);
+    expect(room.game.phase).toBe("SHOWDOWN_PRIMARY");
+    expect(barrierDeadline(room)).toBe(early + BARRIER_TIMEOUT_MS.DEFAULT);
+  });
+
+  it("reports shop readiness per player so the count is visible to everyone", () => {
+    let room = started(2);
+    const readyFlags = (r: RoomSnapshot) => Object.fromEntries(
+      createPlayerView(r, "p1", ["p1", "p2"]).players.filter((p) => p.human).map((p) => [p.playerId, p.ready]));
+    expect(readyFlags(room)).toEqual({ p1: false, p2: false });
+    room = finishShop(room, "p1");
+    // The shop barrier uses endedShopIds, so the view must read that in this phase.
+    expect(readyFlags(room)).toEqual({ p1: true, p2: false });
   });
 });
