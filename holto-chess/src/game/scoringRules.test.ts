@@ -24,7 +24,7 @@ describe("central round point rules", () => {
   it("12. winner tiebreak has no independent point award", () => expect(ROUND_POINTS.r4WinnerGroup.tiebreakBonus).toBe(0));
   it("13. R4 loser-group survival is +0", () => expect(ROUND_POINTS.r4LoserGroup.survive).toBe(0));
   it("14. survival tiebreak has no independent point award", () => expect(ROUND_POINTS.r4LoserGroup.tiebreakBonus).toBe(0));
-  it("15. R5 placement ladder is 30 / 15 / 5 / 0", () => expect(FINAL_ROUND_PLACEMENT_POINTS).toEqual({ 1: 30, 2: 15, 3: 5, 4: 0 }));
+  it("15. R5 placement ladder is 20 / 12 / 5 / 3", () => expect(FINAL_ROUND_PLACEMENT_POINTS).toEqual({ 1: 20, 2: 12, 3: 5, 4: 3 }));
 });
 
 describe("R5 recursive ICM", () => {

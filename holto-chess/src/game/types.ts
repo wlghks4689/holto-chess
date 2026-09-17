@@ -33,6 +33,12 @@ export type PlayerState = {
   loseStreak: number;
   eliminated: boolean;
   eliminatedRound?: Round;
+  eliminationSnapshot?: {
+    round: Round;
+    stackBB: number;
+    points: number;
+    hand: HandValue;
+  };
 };
 
 export type PlayerShowdown = { playerId: string; hand: HandValue; place: number; usedCardIds: string[] };

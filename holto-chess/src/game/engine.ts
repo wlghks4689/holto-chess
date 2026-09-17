@@ -343,24 +343,28 @@ function rewardMatchWithLedger(state: HoltoChessGameState, match: MatchResult, p
 }
 
 function rewardFinalPlacements(state: HoltoChessGameState, match: MatchResult): void {
-  const first = match.results.filter((result) => result.place === 1);
   const awards: Record<string, number> = {};
   const details: Record<string, string> = {};
-  if (first.length > 1) {
-    const prizes = Array.from({ length: first.length }, (_, index) => FINAL_ROUND_PLACEMENT_POINTS[index + 1] ?? 0);
-    const allocations = calculateIcm(first.map(({ playerId }) => ({ playerId, stackBB: playerById(state, playerId).stackBB })), prizes);
-    for (const result of first) {
+  // Competition ranking can tie at any place, so every tied group — not just
+  // first — shares the prize slots it occupies. Otherwise the 50P ladder inflates.
+  const byPlace = new Map<number, PlayerShowdown[]>();
+  for (const result of match.results) byPlace.set(result.place, [...(byPlace.get(result.place) ?? []), result]);
+  for (const [place, group] of [...byPlace].sort(([a], [b]) => a - b)) {
+    const prizes = Array.from({ length: group.length }, (_, index) => FINAL_ROUND_PLACEMENT_POINTS[place + index] ?? 0);
+    if (group.length === 1) {
+      awards[group[0]!.playerId] = prizes[0]!;
+      details[group[0]!.playerId] = `${place}위 · +${prizes[0]}P`;
+      continue;
+    }
+    const total = prizes.reduce((sum, prize) => sum + prize, 0);
+    const allocations = calculateIcm(group.map(({ playerId }) => ({ playerId, stackBB: playerById(state, playerId).stackBB })), prizes);
+    for (const result of group) {
       const allocation = allocations[result.playerId]!;
       awards[result.playerId] = allocation;
-      details[result.playerId] = `공동 1위 · ${prizes.reduce((sum, prize) => sum + prize, 0)}P ICM 분배 · ${playerById(state, result.playerId).stackBB}BB → ${allocation.toFixed(2)}P`;
+      details[result.playerId] = `공동 ${place}위 · ${total}P ICM 분배 · ${playerById(state, result.playerId).stackBB}BB → ${allocation.toFixed(2)}P`;
     }
   }
-  for (const result of match.results) {
-    const award = awards[result.playerId] ?? FINAL_ROUND_PLACEMENT_POINTS[result.place] ?? 0;
-    awards[result.playerId] = award;
-    details[result.playerId] ??= `${result.place}위 · +${award}P`;
-    playerById(state, result.playerId).points += award;
-  }
+  for (const result of match.results) playerById(state, result.playerId).points += awards[result.playerId] ?? 0;
   match.pointAwards = awards;
   match.pointAwardDetails = details;
 }
@@ -439,7 +443,19 @@ export function beginSecondary(source: HoltoChessGameState): HoltoChessGameState
 }
 
 function eliminate(state: HoltoChessGameState, ids: string[]): void {
-  for (const id of ids) { const player = playerById(state, id); player.eliminated = true; player.eliminatedRound = state.round; releasePlayerCards(state, player); log(state, `${player.name} 탈락 · 점유 카드 전량 반환`, "danger"); }
+  for (const id of ids) {
+    const player = playerById(state, id);
+    const cards = cardsFor(state, player.ownedCardIds);
+    player.eliminationSnapshot = {
+      round: state.round,
+      stackBB: player.stackBB,
+      points: player.points,
+      hand: cards.length >= 5 ? findBestFive(cards) : evaluatePartial(cards),
+    };
+    player.eliminated = true; player.eliminatedRound = state.round;
+    releasePlayerCards(state, player);
+    log(state, `${player.name} 탈락 · R${state.round} 핸드·스택 기록 후 점유 카드 전량 반환`, "danger");
+  }
 }
 
 export function resolveSecondary(source: HoltoChessGameState): HoltoChessGameState {
@@ -507,13 +523,22 @@ export function startNextRound(source: HoltoChessGameState): HoltoChessGameState
 }
 
 export function finalStandings(state: HoltoChessGameState) {
-  return state.players.filter((player) => !player.eliminated).map((player) => {
+  const rankPoints = [8, 4, 2, 0, -1, -2, -4, -8] as const;
+  const rows = state.players.map((player) => {
     const final = state.roundResults[0]?.results.find((result) => result.playerId === player.id);
-    const baseHandScore = final ? BALANCE.handScores[final.hand.category] : 0;
-    const augmentBonus = (final?.hand.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0) + (player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
-    const handScore = baseHandScore + augmentBonus; const stackScore = Math.floor(player.stackBB / BALANCE.stackScoreUnitBB);
-    return { playerId: player.id, points: player.points, handScore, stackScore, total: player.points + handScore + stackScore, hand: final?.hand, finalPlace: final?.place ?? Infinity };
-  }).sort((a, b) => b.total - a.total || a.finalPlace - b.finalPlace || (b.hand && a.hand ? compareHands(b.hand, a.hand) : 0));
+    const hand = final?.hand ?? player.eliminationSnapshot?.hand;
+    const points = player.eliminationSnapshot?.points ?? player.points;
+    const stackBB = player.eliminationSnapshot?.stackBB ?? player.stackBB;
+    const baseHandScore = hand ? BALANCE.handScores[hand.category] : 0;
+    const augmentBonus = (hand?.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0)
+      + (hand && player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
+    const handScore = baseHandScore + augmentBonus; const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
+    return { playerId: player.id, points, handScore, stackScore, total: points + handScore + stackScore, hand,
+      finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
+  }).sort((a, b) => b.total - a.total || a.finalPlace - b.finalPlace
+    || (b.eliminatedRound ?? 6) - (a.eliminatedRound ?? 6)
+    || (b.hand && a.hand ? compareHands(b.hand, a.hand) : 0) || a.playerId.localeCompare(b.playerId));
+  return rows.map((row, index) => ({ ...row, placement: index + 1, rankPoints: rankPoints[index]! }));
 }
 
 export function getCard(state: HoltoChessGameState, id: string): Card { return state.ownershipCardPool.find((entry) => entry.card.id === id)!.card; }

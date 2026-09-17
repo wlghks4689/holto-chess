@@ -6,7 +6,8 @@ import type { Augment, PlayerState, Round } from "./types";
 type PricedCard = { card: Card; price: number };
 export type BotPlanScore = { equity: number; expectedHandScore: number; utility: number };
 
-const SAMPLES = 40;
+// Common-random 24-universe sampling keeps seven bots responsive while preserving stable candidate ordering.
+const SAMPLES = 24;
 
 function hash(value: string): number {
   let output = 2166136261;

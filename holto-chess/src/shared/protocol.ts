@@ -43,7 +43,7 @@ export type PlayerView = {
   };
   players: PublicPlayer[];
   matches: MatchView[];
-  standings: { playerId: string; points: number; handScore: number; stackScore: number; total: number; displayName: string; finalPlace: number }[];
+  standings: { playerId: string; points: number; handScore: number; stackScore: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round }[];
 };
 export type ServerMessage =
   | { type: "PLAYER_VIEW"; payload: PlayerView }

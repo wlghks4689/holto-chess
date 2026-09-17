@@ -98,7 +98,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const madeClass = flags.glow && result ? `cinema-made-fx ${won ? "cinema-leading" : "cinema-trailing"}` : "";
       return <div key={id} className={`cinema-seat ${flags.profile ? won ? "cinema-winner" : "cinema-loser" : ""} made-${tone} ${madeClass}`}>
-        {!multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
+        {intro && !multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
           {flags.result && <span className="cinema-victory">{final ? `${result?.place ?? "—"}위` : won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
           {flags.runResult && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
@@ -132,7 +132,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
           return <div className={`${visible ? "cinema-card-open" : "cinema-card-hidden"} ${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`} key={`${boardIndex}-${index}-${visible}`}>
             {visible ? <CardView card={card} compact glow={completed && used} dimmed={completed && !used} /> : <CardBack compact />}</div>;
         })}</div>
-        {completed && boardFocus && <p className="hint">{name(boardFocus.playerId)} · BEST 5{match.round === 3 ? " · 홀 2장 + 보드 3장" : ""}</p>}
       </div>;
     })}</div>}
     <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? "보상 지급 완료" : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? "THE LAST HAND" : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}

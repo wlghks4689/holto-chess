@@ -34,7 +34,7 @@
 .cinema-card-open.cinema-river{animation:cinema-river-impact var(--river-duration,.4s) ease-out both}
 .cinema-suspense{animation:cinema-suspense var(--suspense-duration,.25s) ease-in both}
 .cinema .made-straight{--made-color:#fbbf24}.cinema .made-flush{--made-color:#38bdf8}.cinema .made-full-house{--made-color:#a78bfa}.cinema .made-quads{--made-color:#fb7185}.cinema .made-straight-flush{--made-color:#c084fc}.cinema .made-royal{--made-color:#fde68a}
-.cinema .playing-card.glow{position:relative;z-index:1;transform:scale(1.04);filter:brightness(1.16) contrast(1.1) saturate(1.12);box-shadow:0 0 5px var(--made-color),0 0 19px color-mix(in srgb,var(--made-color) 55%,transparent);animation:none}
+.cinema .playing-card.glow{position:relative;z-index:2;transform:scale(1.025);filter:none;box-shadow:0 0 0 1px color-mix(in srgb,var(--made-color) 78%,white),0 0 14px color-mix(in srgb,var(--made-color) 58%,transparent);animation:none}
 .cinema .playing-card.dimmed{opacity:.4;filter:brightness(.72) saturate(.5)}
 .cinema-winner{border-color:var(--made-color);box-shadow:0 0 20px color-mix(in srgb,var(--made-color) 20%,transparent);background:#123023}
 .cinema-loser .cinema-profile{opacity:.65}
@@ -43,26 +43,46 @@
 .cinema-made{margin:18px 0 8px;color:var(--made-color);animation:cinema-seat-enter .24s ease-out both}
 .cinema-made strong{display:block;font-size:clamp(15px,2.2vw,22px);line-height:1.4;overflow-wrap:anywhere;text-shadow:0 0 12px color-mix(in srgb,var(--made-color) 45%,transparent)}
 .cinema-made small{display:block;font:500 10px DM Mono;color:#adc4b8;margin-top:5px}
-.cinema-made-fx{isolation:isolate;overflow:visible}
-.cinema-made-fx .cinema-hole-cards{position:relative;isolation:isolate;border-radius:12px}
+.cinema-made-fx{isolation:isolate;overflow:hidden;--fx-peak:.9}
+.cinema-made-fx>*{position:relative;z-index:1}
+.cinema-made-fx::before,.cinema-made-fx::after{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;opacity:0}
+.cinema-made-fx .cinema-hole-cards{position:relative;isolation:isolate;border-radius:12px;overflow:visible}
+.cinema-made-fx .cinema-hole-cards>*{position:relative;z-index:1}
+.cinema-made-fx .cinema-hole-cards::before{content:"";position:absolute;inset:-26px;z-index:-1;border-radius:28px;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,color-mix(in srgb,var(--made-color) 58%,transparent),transparent 68%)}
 .cinema-made-fx .cinema-made{animation:cinema-made-label-glow 1.45s ease-out 1 both}
-.cinema-leading{border-color:var(--made-color);background:color-mix(in srgb,var(--made-color) 13%,#0a1d15);animation:cinema-winner-panel-impact 1.2s cubic-bezier(.22,1,.36,1) 1 both}
-.cinema-trailing{background:#081710}.cinema-trailing .cinema-made{filter:saturate(.72);opacity:.78}.cinema-trailing .playing-card:not(.glow){opacity:.3}
-.cinema-made-fx.made-straight .cinema-hole-cards{animation:cinema-made-straight .9s ease-out 1}
-.cinema-made-fx.made-straight .cinema-hole-cards::after{content:"";position:absolute;inset:-4px;z-index:0;border-radius:13px;pointer-events:none;background:linear-gradient(105deg,transparent 38%,rgba(251,191,36,.22) 50%,transparent 62%);animation:cinema-made-scan .95s ease-out 1}
-.cinema-made-fx.made-flush .cinema-hole-cards{animation:cinema-made-flush-pulse 1.15s ease-in-out 1}
-.cinema-made-fx.made-flush .cinema-hole-cards::after{content:"";position:absolute;inset:-3px;z-index:0;border-radius:inherit;pointer-events:none;background:linear-gradient(110deg,transparent 0%,rgba(56,189,248,.28) 40%,rgba(14,165,233,.2) 52%,transparent 90%);background-size:220% 100%;animation:cinema-made-flush-sheen 1.25s linear 1;opacity:.88}
-.cinema-made-fx.made-full-house .cinema-hole-cards{animation:cinema-made-house 1.55s cubic-bezier(.34,1.15,.52,1) 1}
-.cinema-made-fx.made-full-house .cinema-hole-cards::after{content:"";position:absolute;inset:-6px;z-index:0;border-radius:16px;pointer-events:none;background:radial-gradient(closest-side,rgba(251,191,36,.35),rgba(167,139,250,.2) 45%,transparent 70%);animation:cinema-made-house-flash 1.55s ease-out 1}
-.cinema-made-fx.made-quads .cinema-hole-cards{animation:cinema-made-quads 1.05s cubic-bezier(.34,1.3,.64,1) 1}
-.cinema-made-fx.made-straight-flush .cinema-hole-cards{animation:cinema-made-sf 1.45s ease-in-out 1}
-.cinema-made-fx.made-royal .cinema-hole-cards{animation:cinema-made-royal 1.65s cubic-bezier(.22,1,.36,1) 1}
-.cinema .cinema-made-fx.made-straight .playing-card.glow{animation:cinema-card-glow-straight .85s ease-out 1 both}
-.cinema .cinema-made-fx.made-flush .playing-card.glow{animation:cinema-card-glow-flush 1.05s ease-out 1 both}
-.cinema .cinema-made-fx.made-full-house .playing-card.glow{animation:cinema-card-glow-house 1.2s ease-out 1 both}
-.cinema .cinema-made-fx.made-quads .playing-card.glow{animation:cinema-card-glow-quads 1.15s ease-out 1 both}
-.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{animation:cinema-card-glow-sf 1.45s ease-in-out 1 both}
-.cinema .cinema-made-fx.made-royal .playing-card.glow{animation:cinema-card-glow-royal 1.65s ease-out 1 both}
+.cinema-leading{--fx-peak:1;border-color:var(--made-color);background:color-mix(in srgb,var(--made-color) 13%,#0a1d15);animation:cinema-winner-panel-impact 1.2s cubic-bezier(.22,1,.36,1) 1 both}
+.cinema-trailing{--fx-peak:.28;background:#081710;border-color:color-mix(in srgb,var(--made-color) 38%,#365345)}.cinema-trailing .cinema-made{filter:saturate(.72);opacity:.78}.cinema-trailing .playing-card:not(.glow){opacity:.3}
+.cinema .cinema-trailing .playing-card.glow{animation:none!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--made-color) 42%,white),0 0 8px color-mix(in srgb,var(--made-color) 30%,transparent)}
+.cinema-made-fx.made-straight .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(251,191,36,.72),rgba(245,158,11,.28) 42%,transparent 72%);animation:cinema-made-backdrop-impact .95s ease-out 1}
+.cinema-made-fx.made-straight .cinema-hole-cards::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:18px;pointer-events:none;background:linear-gradient(105deg,transparent 34%,rgba(253,230,138,.62) 50%,transparent 66%);animation:cinema-made-scan 1.05s ease-out 1}
+.cinema-made-fx.made-flush .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(56,189,248,.76),rgba(14,165,233,.28) 44%,transparent 72%);animation:cinema-made-backdrop-pulse 1.25s ease-in-out 1}
+.cinema-made-fx.made-flush .cinema-hole-cards::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:18px;pointer-events:none;background:linear-gradient(110deg,transparent 0%,rgba(125,211,252,.5) 40%,rgba(14,165,233,.38) 52%,transparent 90%);background-size:220% 100%;animation:cinema-made-flush-sheen 1.3s linear 1;opacity:.9}
+.cinema-made-fx.made-full-house .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(216,180,254,.82),rgba(251,191,36,.38) 42%,transparent 72%);animation:cinema-made-backdrop-house 1.55s cubic-bezier(.34,1.15,.52,1) 1}
+.cinema-made-fx.made-full-house .cinema-hole-cards::after{content:"";position:absolute;inset:-18px;z-index:-1;border-radius:22px;pointer-events:none;background:conic-gradient(from 25deg,transparent,rgba(251,191,36,.58),rgba(167,139,250,.66),transparent 58%,rgba(216,180,254,.48),transparent);animation:cinema-made-backdrop-orbit 1.55s ease-out 1}
+.cinema-made-fx.made-quads .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(251,113,133,.88),rgba(190,24,93,.34) 45%,transparent 72%);animation:cinema-made-backdrop-impact 1.1s cubic-bezier(.34,1.3,.64,1) 1}
+.cinema-made-fx.made-straight-flush .cinema-hole-cards::before{background:conic-gradient(from 0deg,rgba(56,189,248,.66),rgba(244,114,182,.68),rgba(253,224,71,.62),rgba(192,132,252,.72),rgba(56,189,248,.66));animation:cinema-made-backdrop-orbit 1.55s ease-out 1}
+.cinema-made-fx.made-royal .cinema-hole-cards::before{inset:-34px;background:radial-gradient(ellipse at center,rgba(255,255,255,.9),rgba(253,224,71,.58) 28%,rgba(192,132,252,.3) 52%,transparent 74%);animation:cinema-made-backdrop-royal 1.7s cubic-bezier(.22,1,.36,1) 1}
+.cinema-made-fx .cinema-hole-cards::before,.cinema-made-fx .cinema-hole-cards::after{display:none!important}
+.cinema-made-fx.made-straight::before{background:radial-gradient(circle at 50% 42%,rgba(251,191,36,.48),rgba(245,158,11,.14) 46%,transparent 76%);animation:cinema-panel-bloom 1.05s ease-out 1}
+.cinema-made-fx.made-straight::after{background:linear-gradient(105deg,transparent 25%,rgba(253,230,138,.34) 47%,transparent 67%);background-size:220% 100%;animation:cinema-panel-sweep 1.05s ease-out 1}
+.cinema-made-fx.made-flush::before{background:radial-gradient(circle at 50% 42%,rgba(56,189,248,.55),rgba(14,165,233,.16) 48%,transparent 78%);animation:cinema-panel-bloom 1.25s ease-out 1}
+.cinema-made-fx.made-flush::after{background:linear-gradient(110deg,transparent 18%,rgba(125,211,252,.42) 46%,rgba(14,165,233,.22) 56%,transparent 78%);background-size:240% 100%;animation:cinema-panel-sweep 1.3s ease-out 1}
+.cinema-made-fx.cinema-leading.made-full-house{--fx-peak:.78}
+.cinema-made-fx.made-full-house::before{background:radial-gradient(circle at 50% 42%,rgba(192,132,252,.66),rgba(167,139,250,.25) 46%,transparent 76%);animation:cinema-panel-house 1.35s ease-out 1}
+.cinema-made-fx.made-full-house::after{inset:-35%;background:conic-gradient(from 25deg,transparent,rgba(216,180,254,.5),rgba(139,92,246,.4),transparent 56%,rgba(192,132,252,.42),transparent);animation:cinema-panel-orbit 1.45s ease-out 1}
+.cinema-made-fx.made-quads::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.5),rgba(251,113,133,.78) 18%,rgba(190,24,93,.3) 52%,transparent 80%);animation:cinema-panel-quads-burst 1.55s cubic-bezier(.22,1,.36,1) 1}
+.cinema-made-fx.made-quads::after{inset:-40%;background:conic-gradient(from 0deg,transparent 0 8%,rgba(251,113,133,.84) 15%,transparent 24% 38%,rgba(239,68,68,.7) 48%,transparent 58% 72%,rgba(190,24,93,.76) 82%,transparent 92%);animation:cinema-panel-quads-orbit 1.65s cubic-bezier(.2,.8,.25,1) 1}
+.cinema-made-fx.made-straight-flush::before{background:conic-gradient(from 0deg,rgba(56,189,248,.46),rgba(244,114,182,.54),rgba(253,224,71,.48),rgba(192,132,252,.58),rgba(56,189,248,.46));animation:cinema-panel-house 1.6s ease-out 1}
+.cinema-made-fx.made-straight-flush::after{inset:-38%;background:conic-gradient(from 15deg,transparent,rgba(34,211,238,.7),rgba(244,114,182,.66),transparent 46%,rgba(253,224,71,.62),rgba(192,132,252,.7),transparent);animation:cinema-panel-quads-orbit 1.8s ease-out 1}
+.cinema-made-fx.made-royal::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.88),rgba(253,224,71,.6) 22%,rgba(192,132,252,.25) 54%,transparent 82%);animation:cinema-panel-royal 1.8s ease-out 1}
+.cinema-made-fx.made-royal::after{inset:-40%;background:conic-gradient(from 20deg,transparent,rgba(255,255,255,.82),rgba(253,224,71,.78),transparent 42%,rgba(34,211,238,.62),rgba(192,132,252,.68),transparent);animation:cinema-panel-quads-orbit 2s ease-out 1}
+.cinema-made-fx.cinema-trailing{--fx-peak:.24}
+.cinema .cinema-made-fx.made-straight .playing-card.glow{animation:cinema-card-glow-straight .85s ease-out 1}
+.cinema .cinema-made-fx.made-flush .playing-card.glow{animation:cinema-card-glow-flush 1.05s ease-out 1}
+.cinema .cinema-made-fx.made-full-house .playing-card.glow{animation:cinema-card-glow-house 1.2s ease-out 1}
+.cinema .cinema-made-fx.made-quads .playing-card.glow{animation:cinema-card-glow-quads 1.15s ease-out 1}
+.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{animation:cinema-card-glow-sf 1.45s ease-in-out 1}
+.cinema .cinema-made-fx.made-royal .playing-card.glow{animation:cinema-card-glow-royal 1.65s ease-out 1}
 .cinema-street-made{margin:14px 0 4px;min-height:48px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
 .cinema-street-made small,.cinema-street-made strong,.cinema-street-made em{display:block;font-style:normal}
 .cinema-street-made small{color:#779889;font:500 9px DM Mono;letter-spacing:.08em;margin-bottom:4px}
@@ -82,6 +102,18 @@
 @keyframes cinema-suspense{to{transform:translateY(-5px);filter:brightness(1.25)}}
 @keyframes cinema-seat-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes cinema-hand-update{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cinema-panel-bloom{0%{opacity:0;filter:brightness(1)}34%{opacity:var(--fx-peak);filter:brightness(1.28)}68%{opacity:calc(var(--fx-peak) * .5);filter:brightness(1.08)}100%{opacity:0;filter:brightness(1)}}
+@keyframes cinema-panel-sweep{0%{opacity:0;background-position:110% 50%}28%{opacity:var(--fx-peak)}100%{opacity:0;background-position:-110% 50%}}
+@keyframes cinema-panel-house{0%{opacity:0;filter:brightness(1)}24%{opacity:var(--fx-peak);filter:brightness(1.18)}52%{opacity:calc(var(--fx-peak) * .52);filter:brightness(1.08)}76%{opacity:calc(var(--fx-peak) * .7);filter:brightness(1.12)}100%{opacity:0;filter:brightness(1)}}
+@keyframes cinema-panel-orbit{0%{opacity:0;transform:rotate(-24deg)}32%{opacity:var(--fx-peak)}100%{opacity:0;transform:rotate(170deg)}}
+@keyframes cinema-panel-quads-burst{0%{opacity:0;filter:brightness(1)}16%{opacity:var(--fx-peak);filter:brightness(1.5)}38%{opacity:calc(var(--fx-peak) * .46);filter:brightness(1.08)}58%{opacity:calc(var(--fx-peak) * .92);filter:brightness(1.38)}100%{opacity:0;filter:brightness(1)}}
+@keyframes cinema-panel-quads-orbit{0%{opacity:0;transform:rotate(-38deg)}22%{opacity:var(--fx-peak)}62%{opacity:calc(var(--fx-peak) * .72)}100%{opacity:0;transform:rotate(230deg)}}
+@keyframes cinema-panel-royal{0%{opacity:0;filter:brightness(1)}18%{opacity:var(--fx-peak);filter:brightness(1.75)}44%{opacity:calc(var(--fx-peak) * .5);filter:brightness(1.15)}66%{opacity:calc(var(--fx-peak) * .9);filter:brightness(1.5)}100%{opacity:0;filter:brightness(1)}}
+@keyframes cinema-made-backdrop-impact{0%{opacity:0;transform:scale(.65)}38%{opacity:1;transform:scale(1.12)}100%{opacity:0;transform:scale(1.35)}}
+@keyframes cinema-made-backdrop-pulse{0%{opacity:0;transform:scale(.72)}42%{opacity:.95;transform:scale(1.08)}72%{opacity:.58;transform:scale(1.18)}100%{opacity:0;transform:scale(1.3)}}
+@keyframes cinema-made-backdrop-house{0%{opacity:0;transform:scale(.62)}22%{opacity:1;transform:scale(1.08)}48%{opacity:.78;transform:scale(.96)}72%{opacity:.62;transform:scale(1.18)}100%{opacity:0;transform:scale(1.34)}}
+@keyframes cinema-made-backdrop-orbit{0%{opacity:0;transform:rotate(-35deg) scale(.68)}36%{opacity:.94;transform:rotate(20deg) scale(1.04)}100%{opacity:0;transform:rotate(210deg) scale(1.26)}}
+@keyframes cinema-made-backdrop-royal{0%{opacity:0;transform:scale(.5);filter:blur(14px)}28%{opacity:1;transform:scale(1.08);filter:blur(8px)}58%{opacity:.76;transform:scale(.96);filter:blur(11px)}100%{opacity:0;transform:scale(1.42);filter:blur(16px)}}
 @keyframes cinema-winner-panel-impact{0%{box-shadow:0 0 0 transparent;transform:scale(1)}38%{box-shadow:0 0 28px color-mix(in srgb,var(--made-color) 58%,transparent),inset 0 0 22px color-mix(in srgb,var(--made-color) 12%,transparent);transform:scale(1.018)}100%{box-shadow:0 0 22px color-mix(in srgb,var(--made-color) 28%,transparent);transform:scale(1)}}
 @keyframes cinema-made-label-glow{0%{opacity:.25;text-shadow:0 0 0 transparent;transform:scale(.92);filter:brightness(1)}40%{opacity:1;text-shadow:0 0 22px color-mix(in srgb,var(--made-color) 70%,transparent),0 0 10px rgba(255,255,255,.35);transform:scale(1.08);filter:brightness(1.2)}100%{opacity:1;text-shadow:0 0 16px color-mix(in srgb,var(--made-color) 52%,transparent);transform:scale(1.03);filter:brightness(1.08)}}
 @keyframes cinema-made-straight{0%{filter:brightness(1);transform:scale(1)}40%{filter:brightness(1.12);transform:scale(1.045)}100%{filter:brightness(1);transform:scale(1)}}
@@ -95,10 +127,10 @@
 @keyframes cinema-made-royal{0%{filter:brightness(1);transform:scale(.98);box-shadow:0 0 0 transparent}35%{filter:brightness(1.3);transform:scale(1.055);box-shadow:0 0 28px rgba(255,255,255,.8),0 0 55px rgba(253,224,71,.58),0 0 80px rgba(192,132,252,.35)}100%{filter:brightness(1.08);transform:scale(1);box-shadow:0 0 20px rgba(253,224,71,.45)}}
 @keyframes cinema-card-glow-straight{0%{box-shadow:0 0 6px rgba(251,191,36,.43),0 0 13px rgba(245,158,11,.19)}45%{box-shadow:0 0 13px rgba(251,191,36,.82),0 0 29px rgba(245,158,11,.41)}100%{box-shadow:0 0 10px rgba(251,191,36,.65),0 0 22px rgba(245,158,11,.3)}}
 @keyframes cinema-card-glow-flush{0%{box-shadow:0 0 8px rgba(56,189,248,.5),0 0 18px rgba(14,165,233,.24)}45%{box-shadow:0 0 17px rgba(56,189,248,.91),0 0 37px rgba(14,165,233,.53),0 0 46px rgba(125,211,252,.19)}100%{box-shadow:0 0 13px rgba(56,189,248,.74),0 0 31px rgba(14,165,233,.41)}}
-@keyframes cinema-card-glow-house{0%{box-shadow:0 0 9px rgba(192,132,252,.55),0 0 20px rgba(251,191,36,.22)}45%{box-shadow:0 0 20px rgba(192,132,252,.96),0 0 44px rgba(167,139,250,.6),0 0 57px rgba(251,191,36,.31)}100%{box-shadow:0 0 17px rgba(192,132,252,.82),0 0 37px rgba(167,139,250,.48),0 0 48px rgba(251,191,36,.24)}}
+@keyframes cinema-card-glow-house{0%{box-shadow:0 0 9px rgba(192,132,252,.55),0 0 20px rgba(139,92,246,.2)}45%{box-shadow:0 0 20px rgba(216,180,254,.96),0 0 44px rgba(167,139,250,.62),0 0 57px rgba(126,34,206,.28)}100%{box-shadow:0 0 15px rgba(192,132,252,.76),0 0 30px rgba(139,92,246,.4)}}
 @keyframes cinema-card-glow-quads{0%{box-shadow:0 0 10px rgba(251,113,133,.48)}45%{box-shadow:0 0 21px rgba(251,113,133,.96),0 0 45px rgba(239,68,68,.67),0 0 58px rgba(190,24,93,.34)}100%{box-shadow:0 0 19px rgba(251,113,133,.84),0 0 38px rgba(239,68,68,.52)}}
-@keyframes cinema-card-glow-sf{0%{filter:brightness(1.25) hue-rotate(0);box-shadow:0 0 15px #38bdf8}50%{filter:brightness(1.16) hue-rotate(160deg);box-shadow:0 0 28px #f472b6,0 0 52px rgba(192,132,252,.55)}100%{filter:brightness(1.08) hue-rotate(320deg);box-shadow:0 0 22px #c084fc}}
-@keyframes cinema-card-glow-royal{0%{filter:brightness(1.7);box-shadow:0 0 16px rgba(255,255,255,.95),0 0 34px rgba(253,224,71,.72)}45%{filter:brightness(1.12);box-shadow:0 0 27px rgba(255,255,255,.98),0 0 58px rgba(34,211,238,.68),0 0 88px rgba(253,224,71,.54)}100%{filter:brightness(1.04);box-shadow:0 0 22px rgba(255,255,255,.92),0 0 50px rgba(253,224,71,.7),0 0 76px rgba(192,132,252,.42)}}
+@keyframes cinema-card-glow-sf{0%{box-shadow:0 0 15px #38bdf8}50%{box-shadow:0 0 28px #f472b6,0 0 52px rgba(192,132,252,.55)}100%{box-shadow:0 0 18px #c084fc}}
+@keyframes cinema-card-glow-royal{0%{box-shadow:0 0 16px rgba(255,255,255,.95),0 0 34px rgba(253,224,71,.72)}45%{box-shadow:0 0 27px rgba(255,255,255,.98),0 0 58px rgba(34,211,238,.68),0 0 88px rgba(253,224,71,.54)}100%{box-shadow:0 0 18px rgba(255,255,255,.86),0 0 32px rgba(253,224,71,.58)}}
 @media(max-width:639px){
   .cinema{margin:12px 0;padding:14px 10px;border-radius:12px}
   .cinema-heading{align-items:flex-start;flex-direction:column;margin-bottom:20px}

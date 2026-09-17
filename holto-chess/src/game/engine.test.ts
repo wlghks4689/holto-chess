@@ -71,7 +71,13 @@ describe("Holto Chess engine", () => {
       if (state.phase === "AUGMENT") state = chooseAugment(state, "p1", state.augmentChoices[0]!.id);
       state = startNextRound(state);
     }
-    expect(state.phase).toBe("GAME_RESULT"); expect(finalStandings(state)).toHaveLength(4);
+    expect(state.phase).toBe("GAME_RESULT");
+    const standings = finalStandings(state);
+    expect(standings).toHaveLength(8);
+    expect(standings.map(({ placement, rankPoints }) => [placement, rankPoints])).toEqual([
+      [1, 8], [2, 4], [3, 2], [4, 0], [5, -1], [6, -2], [7, -4], [8, -8],
+    ]);
+    expect(state.players.filter((player) => player.eliminated).every((player) => player.eliminationSnapshot)).toBe(true);
   });
 
   it("creates independent R2 match universes and excludes unselected owned cards", () => {

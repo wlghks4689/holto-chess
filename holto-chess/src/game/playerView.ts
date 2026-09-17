@@ -32,7 +32,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     },
     players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: room.readyIds.includes(p.id), publicAugments: p.augments.map(publicAugment) })),
     matches: visible ? g.roundResults.filter((m) => m.playerIds.includes(me.id)).map((m) => createMatchView(g, m)) : [],
-    standings: g.phase === "GAME_RESULT" ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace })) : [],
+    standings: g.phase === "GAME_RESULT" ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound })) : [],
   };
   return structuredClone(view);
 }
