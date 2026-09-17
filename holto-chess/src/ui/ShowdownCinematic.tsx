@@ -95,7 +95,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
       const cards = match.revealedCards[id] ?? [];
       const label = result ? labelFor(id, result) : undefined;
       const reward = match.rewards.find((r) => r.playerId === id);
-      return <div key={id} className={`cinema-seat ${flags.profile ? won ? "cinema-winner" : "cinema-loser" : ""} made-${flags.glow && result ? madeTone(result.displayName) : "default"}`}>
+      const tone = flags.glow && result ? madeTone(result.displayName) : "default";
+      const madeClass = flags.glow && result ? `cinema-made-fx ${won ? "cinema-leading" : "cinema-trailing"}` : "";
+      return <div key={id} className={`cinema-seat ${flags.profile ? won ? "cinema-winner" : "cinema-loser" : ""} made-${tone} ${madeClass}`}>
         {!multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
           {flags.result && <span className="cinema-victory">{final ? `${result?.place ?? "—"}위` : won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}

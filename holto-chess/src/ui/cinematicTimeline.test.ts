@@ -24,6 +24,7 @@ describe("showdown reveal timing", () => {
     for (const frame of timeline.filter((f) => f.at < time("BEST5_GLOW"))) {
       expect(revealFlags(frame.phase)).toMatchObject({ glow: false, profile: false, made: false, result: false, reward: false });
     }
+    expect(revealFlags("BEST5_GLOW")).toMatchObject({ glow: true, made: true });
     expect(time("BEST5_GLOW")).toBeLessThan(time("MADE_HAND"));
     expect(time("RESULT")).toBeLessThan(time("REWARD"));
   });

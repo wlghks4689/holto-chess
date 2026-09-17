@@ -45,7 +45,7 @@ export function revealFlags(phase: CinematicPhase) {
   const order = ["BEST5_GLOW", "MADE_HAND", "RUN_RESULT", "RESULT", "REWARD", "COMPLETE"];
   const index = order.indexOf(phase);
   return { glow: index >= 0, holeDim: index >= 0, boardDim: index >= 0, profile: index >= 2,
-    made: index >= 1, runResult: phase === "RUN_RESULT", result: index >= 3, reward: index >= 4 };
+    made: index >= 0, runResult: phase === "RUN_RESULT", result: index >= 3, reward: index >= 4 };
 }
 
 /** Keeps the previous made hand visible while a newly opened street settles for 200ms. */
