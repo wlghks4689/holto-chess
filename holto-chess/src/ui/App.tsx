@@ -34,17 +34,30 @@ function PoolMeter({ state }: { state: HoltoChessGameState }) {
   const valid = (() => { try { return assertPoolIntegrity(state); } catch { return false; } })();
   return <div className="pool-meter">
     <span className={`integrity ${valid ? "ok" : "bad"}`}>{valid ? "✓ 52 UNIQUE" : "! POOL ERROR"}</span>
-    <span><i className="dot available" /> 가용 {counts.AVAILABLE}</span>
+    <span><i className="dot available" /> 남은 카드 {counts.AVAILABLE}</span>
     <span><i className="dot reserved" /> 예약 {counts.RESERVED_IN_SHOP}</span>
-    <span><i className="dot owned" /> 소유 {counts.OWNED}</span>
+    <span><i className="dot owned" /> 플레이어 소유 {counts.OWNED}</span>
   </div>;
 }
 
 function PlayerStrip({ state }: { state: HoltoChessGameState }) {
-  return <div className="player-strip">{state.players.map((player) => <div key={player.id} className={`player-chip ${player.id === "p1" ? "me" : ""} ${player.eliminated ? "out" : ""}`}>
-    <span className="player-avatar">{player.eliminated ? "×" : player.id === "p1" ? "♔" : player.id.slice(1)}</span>
-    <span><b>{player.name}</b><small>{player.eliminated ? `R${player.eliminatedRound} OUT` : `${player.stackBB}BB · ${player.points}P`}</small></span>
-  </div>)}</div>;
+  const [open, setOpen] = useState(false);
+  const me = state.players.find((player) => player.id === "p1") ?? state.players[0]!;
+  return <section className={`player-scoreboard ${open ? "is-open" : ""}`}>
+    <button className="player-score-summary" type="button" aria-expanded={open} aria-controls="player-score-drawer" onClick={() => setOpen((value) => !value)}>
+      <span className="player-avatar">♔</span>
+      <span><b>{me.name}</b><small>{me.eliminated ? `R${me.eliminatedRound} OUT` : `${me.stackBB}BB · ${me.points}P`}</small></span>
+      <em>{open ? "접기" : "전체 순위"}<i>{open ? "↑" : "↓"}</i></em>
+    </button>
+    <button className="player-score-backdrop" type="button" tabIndex={open ? 0 : -1} aria-label="플레이어 스코어 닫기" onClick={() => setOpen(false)} />
+    <div className="player-score-drawer" id="player-score-drawer">
+      <header><span>PLAYER SCORE</span><b>전체 스택과 포인트</b><button type="button" aria-label="닫기" onClick={() => setOpen(false)}>×</button></header>
+      <div className="player-strip">{state.players.map((player) => <div key={player.id} className={`player-chip ${player.id === "p1" ? "me" : ""} ${player.eliminated ? "out" : ""}`}>
+        <span className="player-avatar">{player.eliminated ? "×" : player.id === "p1" ? "♔" : player.id.slice(1)}</span>
+        <span><b>{player.name}</b><small>{player.eliminated ? `R${player.eliminatedRound} OUT` : `${player.stackBB}BB · ${player.points}P`}</small></span>
+      </div>)}</div>
+    </div>
+  </section>;
 }
 
 function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
