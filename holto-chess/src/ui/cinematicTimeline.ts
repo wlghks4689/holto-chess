@@ -1,12 +1,12 @@
 import type { MatchView } from "../shared/protocol";
 
-export type CinematicPhase = "VS_INTRO" | "TABLE_ENTER" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
+export type CinematicPhase = "VS_INTRO" | "TABLE_ENTER" | "PREFLOP_HAND" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
   | "TURN" | "TURN_SETTLE" | "TURN_HAND" | "RIVER_SUSPENSE" | "RIVER" | "RIVER_SETTLE" | "RIVER_HAND" | "BEST5_WAIT" | "FINAL_CARDS"
   | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "REWARD" | "COMPLETE";
 export type CinematicFrame = { at: number; phase: CinematicPhase; boardIndex: number; revealed: number; finalCards: number };
 
 /** Milliseconds at 1x. Reveal starts are separate from completed flips and pauses. */
-export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards">): CinematicFrame[] {
+export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards"> & { round?: number }): CinematicFrame[] {
   const frames: CinematicFrame[] = [];
   let at = 0; let boardIndex = 0; let revealed = 0; let finalCards = 0;
   const add = (phase: CinematicPhase, duration: number) => { frames.push({ at, phase, boardIndex, revealed, finalCards }); at += duration; };
@@ -14,7 +14,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     add("BEST5_GLOW", 500); add("MADE_HAND", 600);
   };
   add("VS_INTRO", 1200);
-  add("TABLE_ENTER", 400);
+  add("TABLE_ENTER", 400 );  if (match.round === 4 && match.boards.length) add("PREFLOP_HAND", 2000);
   if (!match.boards.length) {
     const count = Math.max(0, ...Object.values(match.revealedCards).map((cards) => cards.length));
     for (let i = 1; i <= count; i++) { finalCards = i; add("FINAL_CARDS", i === count ? 220 : 110); }

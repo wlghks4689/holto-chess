@@ -63,7 +63,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
   const results = final ? match.results : match.boardResults[frame.boardIndex] ?? [];
   const streetIndex = displayedStreetIndex(frame.phase);
   const streetSnapshot = match.streetSnapshots?.[frame.boardIndex]?.[streetIndex];
-  const streetName = ["보드 오픈 전", "플랍", "턴", "리버"][streetIndex];
+  const streetName = ["프리플랍", "플랍", "턴", "리버"][streetIndex];
   const winners = flags.result || final ? match.winnerIds : match.boardWinnerIds[frame.boardIndex] ?? [];
   const focus = results.find((r) => r.playerId === focusId) ?? results.find((r) => winners.includes(r.playerId)) ?? results[0];
   const board = match.boards[frame.boardIndex] ?? [];
@@ -114,7 +114,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
         {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {flags.glow && board.length > 0 && result && <button className="cinema-focus" aria-pressed={focus?.playerId === id} onClick={() => setFocusId(id)}>BEST 5 확인{match.round === 3 ? " · 홀 2 + 보드 3" : ""}</button>}
-        {flags.reward && reward && <div className="cinema-reward"><strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> 승점 {Number(reward.deltaPoints.toFixed(2))}점 획득</strong></div>}
+        {flags.reward && reward && <div className="cinema-reward"><strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> 승점 {Number(reward.deltaPoints.toFixed(2))}점 획득</strong>{reward.detail && <small>{reward.detail}</small>}</div>}
       </div>;
     })}</div>
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {

@@ -15,7 +15,7 @@ export function createRoundSummary(state: HoltoChessGameState): RoundSummaryRow[
     const wins = played.filter((match) => match.winnerIds.length === 1 && match.winnerIds.includes(player.id)).length;
     const draws = played.filter((match) => match.winnerIds.length > 1 && match.winnerIds.includes(player.id)).length;
     return [{ playerId: player.id, name: player.name, cards: cardIds.map((id) => ({ ...state.ownershipCardPool.find((entry) => entry.card.id === id)!.card })),
-      wins, draws, losses: played.length - wins - draws,
+      wins, draws, losses: played.length - wins - draws, eliminated: player.eliminated,
       points: played.reduce((sum, match) => sum + (match.rewards?.find((reward) => reward.playerId === player.id)?.deltaPoints ?? match.pointAwards?.[player.id] ?? 0), 0) }];
   }).sort((a, b) => b.points - a.points || b.wins - a.wins || b.draws - a.draws);
 }

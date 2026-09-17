@@ -33,7 +33,7 @@ export type MatchView = {
   pointAwards?: Record<string, number>; pointAwardDetails?: Record<string, string>;
   revealedCards: Record<string, Card[]>;
 };
-export type RoundSummaryRow = { playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number };
+export type RoundSummaryRow = { playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number; eliminated: boolean };
 export type PlayerView = {
   gameId: string; roomId: string; revision: number; turnKey: string;
   status: "LOBBY" | "PLAYING"; round: Round; phase: Phase | "LOBBY";

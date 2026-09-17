@@ -331,9 +331,11 @@ function rewardMatch(state: HoltoChessGameState, match: MatchResult, pointValue:
     const player = playerById(state, playerId); const won = awardIds.includes(playerId);
     if (won) {
       const bonus = player.augments.some((augment) => augment.id === "win_bonus") ? 5 : 0;
-      player.stackBB += BALANCE.winRewardBB + player.winStreak * BALANCE.winStreakStepBB + bonus;
+      const base = state.round === 1 ? 10 : BALANCE.winRewardBB; const streakBonus = state.round === 1 ? 0 : player.winStreak * BALANCE.winStreakStepBB;
+      player.stackBB += base + streakBonus + bonus;
+      match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연승 ${streakBonus}` : ""}${bonus ? ` + 증강 ${bonus}` : ""}`;
       player.winStreak += 1; player.loseStreak = 0; player.points += pointValue;
-    } else { player.stackBB += player.loseStreak * BALANCE.loseStreakStepBB; player.loseStreak += 1; player.winStreak = 0; }
+    } else { const base = state.round === 1 ? 15 : 0; const streakBonus = state.round === 1 ? player.loseStreak * 5 : player.loseStreak * BALANCE.loseStreakStepBB; player.stackBB += base + streakBonus; match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연패 ${streakBonus}` : ""}`; player.loseStreak += 1; player.winStreak = 0; }
   }
 }
 
