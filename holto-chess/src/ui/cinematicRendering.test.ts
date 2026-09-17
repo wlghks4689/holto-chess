@@ -16,6 +16,16 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("shows the Swiss matchday and pre-match record without leaking later points", () => {
+    const swiss: MatchView = { ...match, round: 1, matchday: 2, participantIds: ["p1", "p2"],
+      swissBefore: { p1: { wins: 1, draws: 0, losses: 0, score: 1 } },
+      swissAfter: { p1: { wins: 2, draws: 0, losses: 0, score: 2 } },
+      rewards: [{ playerId: "p1", beforeBB: 50, afterBB: 70, deltaBB: 20, beforePoints: 3, afterPoints: 6, deltaPoints: 3, outcome: "SURVIVED" }] };
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {} }));
+    expect(html).toContain("MATCH 2/3");
+    expect(html).toContain("1W 0D 0L · POINT 3");
+    expect(html).not.toContain("2W 0D 0L");
+  });
   it("shows all four final players with 28 card backs, without leaking the result", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {} }));
     expect(html.match(/aria-label="비공개 카드"/g)).toHaveLength(28);

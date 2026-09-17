@@ -7,8 +7,8 @@ import { createGame, finalStandings, resolvePrimary } from "./engine";
 const sum = (values: Record<string, number>) => Object.values(values).reduce((total, value) => total + value, 0);
 
 describe("central round point rules", () => {
-  it("1. R1 win is +4", () => expect(ROUND_POINTS.r1.win).toBe(4));
-  it("2. R1 split is +2 each", () => expect(ROUND_POINTS.r1.split).toBe(2));
+  it("1. R1 win is +3", () => expect(ROUND_POINTS.r1.win).toBe(3));
+  it("2. R1 split is +1 each", () => expect(ROUND_POINTS.r1.split).toBe(1));
   it("3. R2 primary winner is +6", () => expect(ROUND_POINTS.r2Primary.win).toBe(6));
   it("4. R2 sudden death carries no extra award", () => expect(ROUND_POINTS.r2Primary.suddenDeathBonus).toBe(0));
   it("5. R2 winner bracket is +3", () => expect(ROUND_POINTS.r2WinnerBracket.win).toBe(3));

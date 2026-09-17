@@ -5,6 +5,7 @@ import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./
 import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, rerollLimitFor } from "./config";
 import { bestBotSelection, pickBotAugment, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { calculateIcm } from "./icm";
+import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
 import type { Augment, HoltoChessGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
@@ -408,6 +409,33 @@ export function resolvePrimary(source: HoltoChessGameState): HoltoChessGameState
   const state = structuredClone(source);
   if (state.phase !== "SHOWDOWN_PRIMARY") throw new Error("1차 쇼다운 단계가 아닙니다.");
   const alive = shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
+  if (state.round === 1) {
+    const records = Object.fromEntries(alive.map((id) => [id, emptySwissRecord()]));
+    const history: string[][] = [];
+    const matches: MatchResult[] = [];
+    for (let day = 1; day <= 3; day++) {
+      const pairs = day === 1 ? pair(alive) : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
+      for (const ids of pairs) {
+        const match = resolveParticipants(state, ids, 1, "primary", false);
+        match.matchday = day;
+        match.swissBefore = Object.fromEntries(ids.map((id) => [id, { ...records[id]! }]));
+        const split = match.winnerIds.length > 1;
+        rewardMatchWithLedger(state, match, split ? BALANCE.points.r1.split : BALANCE.points.r1.win);
+        for (const id of ids) {
+          const record = records[id]!;
+          if (split) { record.draws++; record.score += 0.5; }
+          else if (match.winnerIds.includes(id)) { record.wins++; record.score++; }
+          else record.losses++;
+        }
+        match.swissAfter = Object.fromEntries(ids.map((id) => [id, { ...records[id]! }]));
+        history.push(ids); matches.push(match);
+      }
+    }
+    state.matches.push(...matches); state.roundResults = matches;
+    state.phase = "ROUND_RESULT";
+    log(state, "R1 스위스 3경기 종료 · 승리 3P / Split 1P · 전원 생존", "win");
+    return state;
+  }
   const boardCount = state.round === 2 ? 2 : state.round === 5 ? 0 : 1;
   const matches = state.round === 5
     ? [resolveParticipants(state, alive, 0, "final", false)]
@@ -418,7 +446,6 @@ export function resolvePrimary(source: HoltoChessGameState): HoltoChessGameState
       state.round === 4 ? "GROUP_DECIDER" : undefined,
       state.round === 4));
   state.matches.push(...matches); state.roundResults = matches;
-  if (state.round === 1) matches.forEach((match) => rewardMatchWithLedger(state, match, match.winnerIds.length > 1 ? BALANCE.points.r1.split : BALANCE.points.r1.win));
   if (state.round === 2) matches.forEach((match) => rewardMatchWithLedger(state, match, BALANCE.points.r2Primary.win));
   if (state.round === 3) matches.forEach((match) => rewardMatchWithLedger(state, match, match.winnerIds.length > 1 ? BALANCE.points.r3.gameSplit : BALANCE.points.r3.gameWin));
   if (state.round === 4) matches.forEach((match) => {
@@ -515,6 +542,10 @@ export function chooseAugment(source: HoltoChessGameState, playerId: string, aug
 export function startNextRound(source: HoltoChessGameState): HoltoChessGameState {
   const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= 5) throw new Error("다음 라운드로 진행할 수 없습니다.");
   state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = []; state.augmentChoices = [];
+  // Street snapshots exist only to drive the showdown cinematic for the round
+  // being played. Final scoring reads roundResults and eliminationSnapshot, never
+  // history, so past rounds drop the largest field in the persisted snapshot.
+  for (const match of state.matches) delete match.streetSnapshots;
   for (const player of state.players.filter((item) => !item.eliminated)) {
     player.stackBB += BALANCE.roundIncomeBB; player.purchasesThisRound = 0; player.rerollsUsed = 0; player.selectedCardIds = [];
     releaseShop(state, player); reserveShopCards(state, player);

@@ -15,6 +15,9 @@ import { CardView } from "./CardView";
 import { ShowdownHand } from "./ShowdownHand";
 import { RunWinner } from "./RunItTwiceResult";
 import { madeTone } from "./madeTone";
+import { RoundGuide } from "./RoundGuide";
+import { RoundResults } from "./RoundResults";
+import { createRoundSummary, roundMatches } from "../game/roundSummary";
 
 const displayPoints = (value: number) => Number(value.toFixed(2));
 
@@ -118,7 +121,7 @@ function MatchCard({ state, match, matchNumber }: { state: HoltoChessGameState; 
 
 function ShowdownPanel({ state }: { state: HoltoChessGameState }) {
   if (!state.roundResults.length) return <section className="arena-empty panel"><span className="arena-mark">♞</span><h2>쇼다운 준비 완료</h2><p>각 매치는 참가자가 소유한 모든 카드를 제외한 독립 Showdown Deck으로 진행됩니다.</p></section>;
-  return <section className="matches">{state.roundResults.map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</section>;
+  return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1">{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
 }
 
 function AugmentPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
@@ -147,15 +150,18 @@ function ActionBar({ state, act, reset }: { state: HoltoChessGameState; act: (fn
 export function App() {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
   const [gameVersion, setGameVersion] = useState(0);
+  const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
   const act = (fn: (s: HoltoChessGameState) => HoltoChessGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
   const round = ROUND_COPY[state.round]; const alive = state.players.filter((player) => !player.eliminated).length;
   const progress = useMemo(() => Array.from({ length: 5 }, (_, index) => index + 1), []);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
   const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
+  const guideKey = `${gameVersion}:${state.round}`;
   return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name }))} viewerId="p1"><main>
+    {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
     <nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>POKER AUTOBATTLER · PROTOTYPE 01</small></div></a><div className="round-progress">{progress.map((n) => <span key={n} className={`${n === state.round ? "active" : ""} ${n < state.round ? "done" : ""}`}><i>{n < state.round ? "✓" : n}</i><small>R{n}</small></span>)}</div><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">
-      <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1><p>{round.rule}</p></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>
+      <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>
       <PoolMeter state={state} />
       <PlayerStrip state={state} />
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}

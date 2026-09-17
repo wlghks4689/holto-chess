@@ -53,6 +53,9 @@ export type MatchReward = {
 };
 export type TiebreakKind = "GROUP_DECIDER" | "WINNER_TIEBREAK" | "SURVIVAL_TIEBREAK";
 export type MatchResult = {
+  matchday?: number;
+  swissBefore?: Record<string, import("./swiss").SwissRecord>;
+  swissAfter?: Record<string, import("./swiss").SwissRecord>;
   id: string;
   stage: "primary" | "secondary" | "final";
   playerIds: string[];

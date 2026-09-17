@@ -92,7 +92,7 @@ describe("server room authority and projections", () => {
             expect(reward.afterBB - reward.beforeBB).toBe(reward.deltaBB);
             expect(reward.afterPoints - reward.beforePoints).toBe(reward.deltaPoints);
             const currentPoints = r.game.players.find((p) => p.id === reward.playerId)!.points;
-            if (r.game.round !== 3 || m.gameNumber === 2) expect(reward.afterPoints).toBe(currentPoints);
+            if ((r.game.round !== 3 || m.gameNumber === 2) && (r.game.round !== 1 || m.matchday === 3)) expect(reward.afterPoints).toBe(currentPoints);
             else expect(reward.afterPoints).toBeLessThanOrEqual(currentPoints);
           }
           if (r.game.round === 5) {

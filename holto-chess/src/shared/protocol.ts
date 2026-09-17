@@ -10,15 +10,19 @@ export type GameAction =
   | { type: "LOCK_SHOP"; cardId: string }
   | { type: "SELECT_CARDS"; cardIds: string[] }
   | { type: "SELECT_AUGMENT"; augmentId: string }
-  | { type: "END_SHOP_PHASE" };
+  | { type: "END_SHOP_PHASE" }
+  | { type: "LEAVE_ROOM" };
 export type ClientMessage =
   | { type: "JOIN_ROOM"; token: string }
   | (GameAction & { requestId: string; turnKey: string });
 
-export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; publicAugments: Augment[] };
+export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; departed: boolean; publicAugments: Augment[] };
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
+  matchday?: number;
+  swissBefore?: Record<string, import("../game/swiss").SwissRecord>;
+  swissAfter?: Record<string, import("../game/swiss").SwissRecord>;
   id: string; stage: string; participantIds: string[]; winnerIds: string[];
   round: Round; matchNumber: number; group?: "winner" | "loser"; gameNumber?: 1 | 2;
   rewards: MatchReward[];
@@ -29,10 +33,15 @@ export type MatchView = {
   pointAwards?: Record<string, number>; pointAwardDetails?: Record<string, string>;
   revealedCards: Record<string, Card[]>;
 };
+export type RoundSummaryRow = { playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number };
 export type PlayerView = {
   gameId: string; roomId: string; revision: number; turnKey: string;
   status: "LOBBY" | "PLAYING"; round: Round; phase: Phase | "LOBBY";
   humanCount: number; capacity: number;
+  /** Epoch ms this phase auto-advances without the remaining players, if it is waiting. */
+  barrierEndsAt?: number;
+  /** Seats this phase is still waiting on. */
+  waitingOn: string[];
   me: {
     playerId: string; stackBB: number; points: number; alive: boolean;
     ownedCards: Card[]; shopCards: { card: Card; price: number }[];
@@ -43,6 +52,8 @@ export type PlayerView = {
   };
   players: PublicPlayer[];
   matches: MatchView[];
+  roundSummary?: RoundSummaryRow[];
+  roundHistory?: MatchView[];
   standings: { playerId: string; points: number; handScore: number; stackScore: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round }[];
 };
 export type ServerMessage =
@@ -66,7 +77,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
-    SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [],
+    SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [], LEAVE_ROOM: [],
   };
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");
   const allowed = ["type", "requestId", "turnKey", ...fields[v.type]];

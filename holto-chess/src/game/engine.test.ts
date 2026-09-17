@@ -148,7 +148,7 @@ describe("Holto Chess engine", () => {
       for (const match of matches) {
         const rewards = Object.fromEntries(match.rewards!.map((reward) => [reward.playerId, reward.deltaPoints]));
         if (round === 1 || round === 3) {
-          const value = match.winnerIds.length > 1 ? (round === 1 ? 2 : 2) : (round === 1 ? 4 : 5);
+          const value = match.winnerIds.length > 1 ? (round === 1 ? 1 : 2) : (round === 1 ? 3 : 5);
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? value : 0));
         } else if (round === 2 && match.stage === "primary") {
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? 6 : 0));

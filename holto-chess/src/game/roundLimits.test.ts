@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { purchaseLimitFor, rerollLimitFor } from "./config";
-import { buyCard, createGame } from "./engine";
+import { beginSecondary, buyCard, chooseAugment, createGame, finalStandings, leaveRoundResult, prepareShowdown, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
 import type { Round } from "./types";
 
 function buyThree(round: Round) {
@@ -29,5 +29,49 @@ describe("round-specific shop limits", () => {
 
   it("uses reroll limits 2/2/2/2/3", () => {
     expect(([1, 2, 3, 4, 5] as Round[]).map(rerollLimitFor)).toEqual([2, 2, 2, 2, 3]);
+  });
+});
+
+describe("persisted snapshot trimming", () => {
+  const score = (game: ReturnType<typeof createGame>) =>
+    finalStandings(game).map((row) => [row.playerId, row.placement, row.total, row.handScore, row.stackScore, row.rankPoints]);
+
+  it("keeps the played round's cinematic data and drops it once the next round starts", () => {
+    let game = createGame(4242);
+    let sawSnapshots = false;
+    for (let round = 1; round <= 5; round += 1) {
+      game = prepareShowdown(game, []);
+      game = resolvePrimary(game);
+      if (game.phase === "GROUP_ASSIGNMENT") { game = beginSecondary(game); game = resolveSecondary(game); }
+      // R5 has no community board, so it produces no street snapshots.
+      if (game.round < 5) {
+        expect(game.roundResults.every((match) => match.streetSnapshots)).toBe(true);
+        sawSnapshots = true;
+      }
+      if (round === 5) break;
+      game = leaveRoundResult(game);
+      if (game.phase === "AUGMENT") game = chooseAugment(game, "p1", game.augmentChoices[0]!.id);
+      game = startNextRound(game);
+      expect(game.matches.some((match) => match.streetSnapshots)).toBe(false);
+    }
+    expect(sawSnapshots).toBe(true);
+  });
+
+  it("final standings ignore street snapshots entirely", () => {
+    let game = createGame(9001);
+    for (let round = 1; round <= 5; round += 1) {
+      game = prepareShowdown(game, []);
+      game = resolvePrimary(game);
+      if (game.phase === "GROUP_ASSIGNMENT") { game = beginSecondary(game); game = resolveSecondary(game); }
+      if (round === 5) break;
+      game = leaveRoundResult(game);
+      if (game.phase === "AUGMENT") game = chooseAugment(game, "p1", game.augmentChoices[0]!.id);
+      game = startNextRound(game);
+    }
+    const withHistory = score(game);
+    // Strip every snapshot, including the final round's, and rescore.
+    const stripped = structuredClone(game);
+    for (const match of [...stripped.matches, ...stripped.roundResults]) delete match.streetSnapshots;
+    expect(score(stripped)).toEqual(withHistory);
   });
 });

@@ -83,7 +83,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
   return <section className={`cinema ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${final ? "cinema-final" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms` } as CSSProperties}>
-    <header className="cinema-heading"><div><span className="eyebrow">ROUND {match.round} · MATCH {match.matchNumber}</span><h2>{title}</h2></div>
+    <header className="cinema-heading"><div><span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : match.matchNumber}</span><h2>{title}</h2></div>
       <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div></header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
@@ -94,11 +94,14 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
       const won = winners.includes(id);
       const cards = match.revealedCards[id] ?? [];
       const label = result ? labelFor(id, result) : undefined;
+      const swiss = (flags.reward ? match.swissAfter : match.swissBefore)?.[id];
+      const ledger = match.rewards.find((reward) => reward.playerId === id);
       const reward = match.rewards.find((r) => r.playerId === id);
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const madeClass = flags.glow && result ? `cinema-made-fx ${won ? "cinema-leading" : "cinema-trailing"}` : "";
       return <div key={id} className={`cinema-seat ${flags.profile ? won ? "cinema-winner" : "cinema-loser" : ""} made-${tone} ${madeClass}`}>
         {intro && !multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
+        {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L · POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
           {flags.result && <span className="cinema-victory">{final ? `${result?.place ?? "—"}위` : won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
           {flags.runResult && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>

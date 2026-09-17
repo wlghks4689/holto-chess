@@ -5,7 +5,7 @@ export const FINAL_ROUND_PLACEMENT_POINTS: Readonly<Record<number, number>> = { 
 
 /** Every round-point award lives here so engine and UI never carry competing constants. */
 export const ROUND_POINTS = {
-  r1: { win: 4, split: 2 },
+  r1: { win: 3, split: 1 },
   r2Primary: { win: 6, suddenDeathBonus: 0 },
   r2WinnerBracket: { win: 3 },
   r2LoserBracket: { survive: 2 },

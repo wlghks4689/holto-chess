@@ -1,10 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
-import { addSession, applyRoomAction, createRoom, type RoomSnapshot } from "../src/game/room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, type RoomSnapshot } from "../src/game/room";
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 
 type Attachment = { roomId: string; playerId: string | null; joinedAt: number };
 const SNAPSHOT_KEY = "snapshot:v1";
+const AUTH_TIMEOUT_MS = 15000;
 function randomSeed(): number { return crypto.getRandomValues(new Uint32Array(1))[0]! || 1; }
 function token(): string { return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""); }
 async function hash(value: string): Promise<string> {
@@ -26,6 +27,21 @@ export class GameRoom extends DurableObject<Env> {
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
     catch { throw new Error("상태를 저장하지 못했습니다. 재접속 후 다시 시도하세요."); }
     this.room = next;
+  }
+  /**
+   * One alarm slot serves two deadlines: unauthenticated sockets and the barrier
+   * auto-advance. Always arm the nearer of the two.
+   */
+  private async rescheduleAlarm(): Promise<void> {
+    const deadlines: number[] = [];
+    for (const ws of this.ctx.getWebSockets()) {
+      const a = ws.deserializeAttachment() as Attachment | null;
+      if (a && !a.playerId) deadlines.push(a.joinedAt + AUTH_TIMEOUT_MS);
+    }
+    const barrier = this.room ? barrierDeadline(this.room) : undefined;
+    if (barrier !== undefined) deadlines.push(barrier);
+    if (!deadlines.length) { await this.ctx.storage.deleteAlarm(); return; }
+    await this.ctx.storage.setAlarm(Math.min(...deadlines));
   }
   private send(ws: WebSocket, message: ServerMessage): void {
     try { ws.send(JSON.stringify(message)); } catch { /* Closed sockets have no state authority. */ }
@@ -67,8 +83,8 @@ export class GameRoom extends DurableObject<Env> {
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ roomId, playerId: null, joinedAt: Date.now() } satisfies Attachment);
-    // An alarm, not a JS timer, bounds unauthenticated connections without preventing hibernation.
-    if (await this.ctx.storage.getAlarm() === null) await this.ctx.storage.setAlarm(Date.now() + 15000);
+    // Alarms, not JS timers, drive both deadlines without preventing hibernation.
+    await this.rescheduleAlarm();
     return new Response(null, { status: 101, webSocket: client });
   }
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
@@ -98,9 +114,10 @@ export class GameRoom extends DurableObject<Env> {
         const candidate = structuredClone(this.room);
         // Production draws use Workers crypto; seeded mode is reserved for local simulations/tests.
         candidate.game.randomMode = "secure";
-        const next = applyRoomAction(candidate, session.playerId, message, message.turnKey);
+        const next = applyRoomAction(candidate, session.playerId, message, message.turnKey, Date.now());
         next.sessions.find((s) => s.playerId === session.playerId)!.requests = [...session.requests, requestId].slice(-64);
         await this.commit(next);
+        await this.rescheduleAlarm();
         this.send(ws, { type: "ACK", requestId, revision: next.revision });
         this.broadcast();
       } catch (error) {
@@ -111,14 +128,19 @@ export class GameRoom extends DurableObject<Env> {
   webSocketClose(ws: WebSocket, code: number): void { ws.close(code === 1005 ? 1000 : code); this.broadcast(); }
   webSocketError(ws: WebSocket): void { ws.close(1011, "Connection error"); }
   async alarm(): Promise<void> {
-    let pending = false;
-    for (const ws of this.ctx.getWebSockets()) {
-      const a = ws.deserializeAttachment() as Attachment | null;
-      if (!a?.playerId) {
-        if (!a || Date.now() - a.joinedAt >= 15000) ws.close(1008, "Authentication timeout");
-        else pending = true;
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const now = Date.now();
+      for (const ws of this.ctx.getWebSockets()) {
+        const a = ws.deserializeAttachment() as Attachment | null;
+        if (!a?.playerId && (!a || now - a.joinedAt >= AUTH_TIMEOUT_MS)) ws.close(1008, "Authentication timeout");
       }
-    }
-    if (pending) await this.ctx.storage.setAlarm(Date.now() + 15000);
+      if (this.room) {
+        // Bots stand in for whoever the barrier is still waiting on, so one
+        // unresponsive player can never strand the rest of the room.
+        const forced = forceBarrier(this.room, now);
+        if (forced) { await this.commit(forced); this.broadcast(); }
+      }
+      await this.rescheduleAlarm();
+    });
   }
 }

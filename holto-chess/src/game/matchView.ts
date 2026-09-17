@@ -9,6 +9,8 @@ export function revealedHand(result: PlayerShowdown): RevealedHand {
 /** Public match allowlist, called only after the caller has checked visibility. */
 export function createMatchView(game: HoltoChessGameState, match: MatchResult): MatchView {
   return {
+    matchday: match.matchday, swissBefore: match.swissBefore ? structuredClone(match.swissBefore) : undefined,
+    swissAfter: match.swissAfter ? structuredClone(match.swissAfter) : undefined,
     id: match.id, round: game.round, matchNumber: game.roundResults.findIndex((m) => m.id === match.id) + 1,
     stage: match.stage, group: match.group, gameNumber: match.gameNumber, participantIds: [...match.playerIds], winnerIds: [...match.winnerIds],
     boards: match.boards.map((board) => board.map((card) => ({ ...card }))),

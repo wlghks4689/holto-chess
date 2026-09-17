@@ -1,9 +1,10 @@
 import { BALANCE, purchaseLimitFor, rerollLimitFor } from "./config";
 import { finalStandings, getCard, getCardPrice } from "./engine";
-import { humanIds, turnKey, type RoomSnapshot } from "./room";
+import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { PlayerView } from "../shared/protocol";
 import type { Augment } from "./types";
 import { createMatchView } from "./matchView";
+import { createRoundSummary, roundMatches } from "./roundSummary";
 
 function publicAugment(a: Augment): Augment { return { id: a.id, name: a.name, description: a.description, suit: a.suit, category: a.category }; }
 
@@ -17,6 +18,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     gameId: room.roomId, roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),
     status: room.status, round: g.round, phase: room.status === "LOBBY" ? "LOBBY" : g.phase,
     humanCount: room.sessions.length, capacity: 8,
+    barrierEndsAt: barrierDeadline(room), waitingOn: pendingBarrierIds(room),
     me: {
       playerId: me.id, stackBB: me.stackBB, points: me.points, alive: !me.eliminated,
       ownedCards: me.ownedCardIds.map((id) => getCard(g, id)),
@@ -30,8 +32,10 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       sellPercent: me.augments.some((a) => a.id === "sell_bonus") ? 80 : 60,
       committed: room.endedShopIds.includes(me.id),
     },
-    players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: room.readyIds.includes(p.id), publicAugments: p.augments.map(publicAugment) })),
+    players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: room.readyIds.includes(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed, publicAugments: p.augments.map(publicAugment) })),
     matches: visible ? g.roundResults.filter((m) => m.playerIds.includes(me.id)).map((m) => createMatchView(g, m)) : [],
+    roundSummary: visible ? createRoundSummary(g) : [],
+    roundHistory: visible ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...createMatchView(g, m), matchNumber: index + 1 })) : [],
     standings: g.phase === "GAME_RESULT" ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound })) : [],
   };
   return structuredClone(view);

@@ -6,7 +6,7 @@ import {
 } from "../../src/game/engine";
 import type { HoltoChessGameState, MatchResult, Round } from "../../src/game/types";
 import { assertSimulationInvariants } from "./invariants";
-import { assignPolicies, hasStrategyCandidate, orderedShop, selectR2Cards, shouldReroll } from "./policies";
+import { assignPolicies, hasStrategyCandidate, orderedShop, selectR2Cards, selectR3Cards, shouldReroll } from "./policies";
 import {
   emptyEconomy, emptyTournament, type EconomyCounter, type GameTrace, type PlayerTrace,
   type PolicyName, type PoolSnapshot, type RankCounter, type SimulationConfig,
@@ -101,6 +101,7 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
         current = state.players.find((entry) => entry.id === player.id)!;
       }
       if (round === 2) for (const id of selectR2Cards(state, current, policy)) { state = toggleSelectedCard(state, current.id, id); actionCount += 1; }
+      if (round === 3) for (const id of selectR3Cards(state, current, policy)) { state = toggleSelectedCard(state, current.id, id); actionCount += 1; }
       const sample = poolSnapshot(state); poolSnapshots.push(sample); if (sample.available === 0) availableZeroEvents += 1;
     }
     const activeIds = state.players.filter((player) => !player.eliminated).map((player) => player.id);
