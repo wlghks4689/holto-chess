@@ -45,7 +45,7 @@ describe("balance simulator", () => {
   it("detects duplicate ownership ledger corruption", () => {
     const state = createGame(42);
     state.players[1]!.ownedCardIds.push(state.players[0]!.ownedCardIds[0]!);
-    expect(() => assertSimulationInvariants(state)).toThrow(/more than one player/);
+    expect(() => assertSimulationInvariants(state)).toThrow(/more than one player|assigned more than once/);
   });
 
   it("generates parseable JSON and a Markdown report", async () => {

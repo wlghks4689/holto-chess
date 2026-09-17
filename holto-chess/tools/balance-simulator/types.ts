@@ -4,7 +4,7 @@ import type { Round } from "../../src/game/types";
 export const POLICY_NAMES = ["HIGH_RANK", "PAIR_BUILDER", "STRAIGHT_BUILDER", "FLUSH_BUILDER", "ECONOMY"] as const;
 export type PolicyName = (typeof POLICY_NAMES)[number];
 export type PolicyAssignment = "fixed" | "random";
-export type ReportHandCategory = HandCategory | "ROYAL_FLUSH";
+export type ReportHandCategory = HandCategory;
 
 export type SimulationConfig = {
   simulationCount: number;
@@ -58,6 +58,9 @@ export type PlayerTrace = {
   finalBB: number;
   finalRank: number;
   finalScore: number;
+  preR5Points: number;
+  r5PlacementPoints: number;
+  r5Place: number;
   roundPoints: number;
   handScore: number;
   stackScore: number;
@@ -143,9 +146,21 @@ export type SimulationResult = {
   policies: Record<PolicyName, PolicyReport>;
   score: {
     averageFinalScore: number;
+    averagePreR5Points: number;
+    averageR5PlacementPoints: number;
     averageRoundPoints: number;
     averageHandScore: number;
     averageStackScore: number;
+    roundVsHand: { roundPointsPercentage: number; handScorePercentage: number };
+    overallShare: { roundPointsPercentage: number; handScorePercentage: number; stackScorePercentage: number };
+    byR5Place: Record<string, {
+      entries: number;
+      averagePreR5Points: number;
+      averagePlacementPoints: number;
+      averageHandScore: number;
+      averageStackScore: number;
+      averageFinalScore: number;
+    }>;
   };
   depletion: {
     availableZeroEvents: number;

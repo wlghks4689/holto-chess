@@ -1,6 +1,7 @@
 import type { HandCategory } from "../core/poker/evaluate";
 
-// Provisional balance. Shared poker places receive the same placement award (1, 1, 3, 4).
+// R5 placement is intentionally linear: it keeps accumulated round points and final hand score near a 50:50 share.
+// Competition-ranking ties share the same award (for example places 1, 1, 3, 4).
 export const FINAL_ROUND_PLACEMENT_POINTS: Readonly<Record<number, number>> = { 1: 6, 2: 4, 3: 2, 4: 0 };
 
 export const BALANCE = {
@@ -21,7 +22,7 @@ export const BALANCE = {
   handLimits: { 1: 2, 2: 3, 3: 4, 4: 5, 5: 7 },
   rankPrices: { 14: 20, 13: 18, 12: 15, 11: 12, 10: 10, 9: 9, 8: 8, 7: 7, 6: 6, 5: 5, 4: 5, 3: 5, 2: 5 },
   points: { r1Win: 1, r2PrimaryWin: 1, r2WinnerBracketWin: 2, r3Win: 2, r4PrimaryWin: 2, r4WinnerGroupFirst: 3 },
-  handScores: { HIGH_CARD: 0, PAIR: 2, TWO_PAIR: 4, TRIPS: 7, STRAIGHT: 10, FLUSH: 12, FULL_HOUSE: 16, QUADS: 22, STRAIGHT_FLUSH: 30 } satisfies Record<HandCategory, number>,
+  handScores: { HIGH_CARD: 0, PAIR: 2, TWO_PAIR: 4, TRIPS: 7, STRAIGHT: 10, FLUSH: 12, FULL_HOUSE: 15, QUADS: 22, STRAIGHT_FLUSH: 32, ROYAL_FLUSH: 40 } satisfies Record<HandCategory, number>,
 } as const;
 
 export function cardPrice(rank: number): number {

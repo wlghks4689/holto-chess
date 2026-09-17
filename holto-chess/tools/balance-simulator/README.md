@@ -55,7 +55,7 @@ node tools/balance-simulator/run.mjs --games 100 --seed 9000 --assignment random
 - 경제: 구매·판매·리롤 수, 구매/리롤 지출, 종료 BB, 플레이어 슬롯별 및 라운드별 1인 평균
 - 카드: rank별 상점 등장, 구매, 구매율, 판매, 최종 보유
 - 카드풀: `AVAILABLE`, `RESERVED_IN_SHOP`, `OWNED`, 고갈과 상점 충전 실패
-- 족보: R1~R5 분포. Royal Flush는 엔진의 `STRAIGHT_FLUSH` 중 표시명이 Royal Flush인 결과를 분리
+- 족보: R1~R5 분포. `ROYAL_FLUSH`는 `STRAIGHT_FLUSH`와 분리된 엔진 카테고리로 집계
 - 토너먼트: R2/R4의 primary 승리, winner/loser bracket 결과, 탈락
 - 점수: R5 진출자의 Round Points, Hand Score, Stack Score와 Final Score
 - 정책: 참가 수, R5 진출률, 1위 비율, 평균 최종 순위, BB, 결승 진출자 평균 점수

@@ -58,7 +58,8 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
   const policies = assignPolicies(state.players.map((player) => player.id), config.policies, config.assignment, seed ^ 0x9e3779b9);
   const traces: Map<string, PlayerTrace> = new Map(state.players.map((player) => [player.id, {
     playerId: player.id, policy: policies[player.id]!, economy: emptyEconomy(), roundEconomy: roundEconomy(),
-    finalBB: 0, finalRank: 8, finalScore: 0, roundPoints: 0, handScore: 0, stackScore: 0,
+    finalBB: 0, finalRank: 8, finalScore: 0, preR5Points: 0, r5PlacementPoints: 0, r5Place: 0,
+    roundPoints: 0, handScore: 0, stackScore: 0,
     reachedR5: false, won: false, tournament: emptyTournament(),
   }]));
   const rankCounters = Object.fromEntries(Object.values(RANK_LABEL).map((rank) => [rank, { appearances: 0, purchases: 0, sales: 0, finalOwned: 0 } satisfies RankCounter]));
@@ -105,6 +106,9 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
     const activeIds = state.players.filter((player) => !player.eliminated).map((player) => player.id);
     state = prepareShowdown(state, activeIds); actionCount += 1;
     if (state.phase === "DECK_SELECT") { state = confirmSelection(state); actionCount += 1; }
+    const pointsBeforeR5 = round === 5
+      ? new Map(state.players.filter((player) => !player.eliminated).map((player) => [player.id, player.points]))
+      : null;
     state = resolvePrimary(state); actionCount += 1;
     const primary = state.roundResults;
     let secondary: MatchResult[] = [];
@@ -114,8 +118,17 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
     updateTournament(round, primary, secondary, traces);
     assertSimulationInvariants(state, expectedEnd[round]);
     const countedMatches = state.roundResults;
+    if (round === 5 && pointsBeforeR5) {
+      for (const result of countedMatches[0]!.results) {
+        const trace = traces.get(result.playerId)!;
+        const afterPoints = state.players.find((player) => player.id === result.playerId)!.points;
+        trace.preR5Points = pointsBeforeR5.get(result.playerId) ?? 0;
+        trace.r5PlacementPoints = afterPoints - trace.preR5Points;
+        trace.r5Place = result.place;
+      }
+    }
     for (const result of countedMatches.flatMap((match) => match.results)) {
-      const category = result.hand.displayName === "Royal Flush" ? "ROYAL_FLUSH" : result.hand.category;
+      const category = result.hand.category;
       handCounts[round][category] = (handCounts[round][category] ?? 0) + 1;
     }
     rounds.push({ round, entered, survived: expectedEnd[round], stacks: state.players.filter((player) => !player.eliminated).map((player) => player.stackBB) });

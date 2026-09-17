@@ -88,6 +88,22 @@ export function aggregateResults(config: SimulationConfig, games: GameTrace[], f
     }];
   }));
   const finalists = allPlayers.filter((player) => player.reachedR5);
+  const finalistRoundTotal = sum(finalists.map((player) => player.roundPoints));
+  const finalistHandTotal = sum(finalists.map((player) => player.handScore));
+  const finalistStackTotal = sum(finalists.map((player) => player.stackScore));
+  const roundAndHandTotal = finalistRoundTotal + finalistHandTotal;
+  const overallScoreTotal = roundAndHandTotal + finalistStackTotal;
+  const byR5Place = Object.fromEntries([1, 2, 3, 4].map((place) => {
+    const placed = finalists.filter((player) => player.r5Place === place);
+    return [String(place), {
+      entries: placed.length,
+      averagePreR5Points: roundToNumber(average(placed.map((player) => player.preR5Points))),
+      averagePlacementPoints: roundToNumber(average(placed.map((player) => player.r5PlacementPoints))),
+      averageHandScore: roundToNumber(average(placed.map((player) => player.handScore))),
+      averageStackScore: roundToNumber(average(placed.map((player) => player.stackScore))),
+      averageFinalScore: roundToNumber(average(placed.map((player) => player.finalScore))),
+    }];
+  }));
   return {
     config: { simulationCount: config.simulationCount, baseSeed: config.baseSeed, policies: config.policies, assignment: config.assignment, maxRerollsPerPlayerRound: config.maxRerollsPerPlayerRound },
     games: { requested: config.simulationCount, completed: games.length, failed: failures.length, averageActions: roundToNumber(average(games.map((game) => game.actionCount))) },
@@ -99,8 +115,21 @@ export function aggregateResults(config: SimulationConfig, games: GameTrace[], f
     },
     ranks, players, policies,
     score: {
-      averageFinalScore: roundToNumber(average(finalists.map((player) => player.finalScore))), averageRoundPoints: roundToNumber(average(finalists.map((player) => player.roundPoints))),
+      averageFinalScore: roundToNumber(average(finalists.map((player) => player.finalScore))),
+      averagePreR5Points: roundToNumber(average(finalists.map((player) => player.preR5Points))),
+      averageR5PlacementPoints: roundToNumber(average(finalists.map((player) => player.r5PlacementPoints))),
+      averageRoundPoints: roundToNumber(average(finalists.map((player) => player.roundPoints))),
       averageHandScore: roundToNumber(average(finalists.map((player) => player.handScore))), averageStackScore: roundToNumber(average(finalists.map((player) => player.stackScore))),
+      roundVsHand: {
+        roundPointsPercentage: roundToNumber(finalistRoundTotal / (roundAndHandTotal || 1) * 100),
+        handScorePercentage: roundToNumber(finalistHandTotal / (roundAndHandTotal || 1) * 100),
+      },
+      overallShare: {
+        roundPointsPercentage: roundToNumber(finalistRoundTotal / (overallScoreTotal || 1) * 100),
+        handScorePercentage: roundToNumber(finalistHandTotal / (overallScoreTotal || 1) * 100),
+        stackScorePercentage: roundToNumber(finalistStackTotal / (overallScoreTotal || 1) * 100),
+      },
+      byR5Place,
     },
     depletion: {
       availableZeroEvents: sum(games.map((game) => game.availableZeroEvents)), shopFillFailures: sum(games.flatMap((game) => game.poolSnapshots).map((snapshot) => snapshot.shopFillFailures)),

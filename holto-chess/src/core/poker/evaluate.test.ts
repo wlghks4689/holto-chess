@@ -9,7 +9,9 @@ describe("poker core", () => {
 
   it("recognizes a wheel and royal flush", () => {
     expect(evaluateFive([c(14, "s"), c(2, "h"), c(3, "c"), c(4, "d"), c(5, "s")]).kickers).toEqual([5]);
-    expect(evaluateFive([c(10, "h"), c(11, "h"), c(12, "h"), c(13, "h"), c(14, "h")]).displayName).toBe("로열 플러시");
+    expect(evaluateFive([c(10, "h"), c(11, "h"), c(12, "h"), c(13, "h"), c(14, "h")])).toMatchObject({
+      category: "ROYAL_FLUSH", categoryRank: 10, displayName: "로열 스트레이트 플러시",
+    });
   });
 
   it("labels current pre-board hands with fewer than five cards", () => {
@@ -32,8 +34,8 @@ describe("poker core", () => {
   it("enforces Omaha's exact two plus three rule", () => {
     const holes = [c(14, "s"), c(2, "s"), c(9, "d"), c(9, "c")];
     const board = [c(13, "s"), c(12, "s"), c(11, "s"), c(10, "s"), c(2, "d")];
-    expect(findBestFive([...holes, ...board]).category).toBe("STRAIGHT_FLUSH");
-    expect(findBestOmaha(holes, board).category).not.toBe("STRAIGHT_FLUSH");
+    expect(findBestFive([...holes, ...board]).category).toBe("ROYAL_FLUSH");
+    expect(findBestOmaha(holes, board).category).not.toBe("ROYAL_FLUSH");
   });
 });
 

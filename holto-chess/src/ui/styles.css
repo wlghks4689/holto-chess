@@ -119,4 +119,18 @@ h1 { margin:0; font-size:clamp(42px, 7vw, 76px); line-height:.9; letter-spacing:
 .combatant:not(.winner) .playing-card{opacity:.62;filter:brightness(.62) saturate(.55)}
 .combatant:not(.winner) .showdown-hand-name{color:#789188;opacity:.68;text-shadow:none}
 .made-straight-flush .playing-card.glow{box-shadow:-3px 0 12px #38bdf888,3px 0 12px #fb718588,0 0 20px #c084fc88}
+.board.made-straight-flush,.winner .showdown-hand.made-straight-flush,.board.made-royal,.winner .showdown-hand.made-royal{position:relative;isolation:isolate}
+.board.made-straight-flush::after,.winner .showdown-hand.made-straight-flush::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:12px;pointer-events:none;background:conic-gradient(from 0deg,#f8717188,#facc1588,#4ade8088,#22d3ee88,#60a5fa88,#c084fc88,#f472b688,#f8717188);filter:blur(13px);animation:holto-sf-orbit 1.75s cubic-bezier(.2,.8,.25,1) 1 both}
+.winner .showdown-hand.made-straight-flush .showdown-hand-name{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#22d3ee,#60a5fa,#c084fc,#f472b6);background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(125,211,252,.58))}
+.made-straight-flush .playing-card.glow{animation:holto-sf-card 1.8s linear 1}
+.board.made-royal{background:radial-gradient(circle at 50% 32%,rgba(255,255,255,.22),transparent 44%),radial-gradient(circle at 16% 72%,rgba(192,132,252,.18),transparent 38%),radial-gradient(circle at 84% 68%,rgba(34,211,238,.15),transparent 38%),linear-gradient(145deg,rgba(66,56,24,.78),rgba(15,23,42,.98))}
+.board.made-royal::before,.winner .showdown-hand.made-royal::before{content:"";position:absolute;inset:-8px;z-index:-1;border-radius:14px;pointer-events:none;background:conic-gradient(from 20deg,transparent 0deg,rgba(255,255,255,.72) 42deg,rgba(253,224,71,.62) 92deg,transparent 142deg,rgba(192,132,252,.58) 210deg,rgba(34,211,238,.52) 270deg,transparent 340deg);filter:blur(18px);animation:holto-royal-aura 1.9s ease-out 1 both}
+.board.made-royal::after,.winner .showdown-hand.made-royal::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,255,255,.54) 0%,rgba(253,224,71,.2) 34%,transparent 70%);animation:holto-royal-flash 1.45s ease-out 1}
+.winner .showdown-hand.made-royal .showdown-hand-name{color:#fffbeb;text-shadow:0 0 10px rgba(255,255,255,.92),0 0 28px rgba(253,224,71,.58)}
+.made-royal .playing-card.glow{animation:holto-royal-card 1.9s ease-out 1 both}
+@keyframes holto-sf-orbit{0%{opacity:0;transform:rotate(-30deg) scale(.85)}45%{opacity:.9}100%{opacity:.28;transform:rotate(210deg) scale(1.06)}}
+@keyframes holto-sf-card{0%{filter:brightness(1.35) hue-rotate(0deg);box-shadow:0 0 18px #f87171}50%{filter:brightness(1.15) hue-rotate(160deg);box-shadow:0 0 26px #22d3ee}100%{filter:brightness(1.08) hue-rotate(320deg);box-shadow:0 0 22px #c084fc}}
+@keyframes holto-royal-flash{0%{opacity:0;transform:scale(.72);filter:brightness(2)}35%{opacity:1}100%{opacity:0;transform:scale(1.3);filter:brightness(1)}}
+@keyframes holto-royal-aura{0%{opacity:0;transform:rotate(-10deg) scale(.78)}38%{opacity:.92;transform:rotate(5deg) scale(1.04)}100%{opacity:.38;transform:rotate(18deg) scale(1.12)}}
+@keyframes holto-royal-card{0%{filter:brightness(1.7);box-shadow:0 0 16px rgba(255,255,255,.95),0 0 34px rgba(253,224,71,.72),0 0 56px rgba(192,132,252,.42)}45%{filter:brightness(1.12);box-shadow:0 0 26px rgba(255,255,255,.98),0 0 58px rgba(34,211,238,.68),0 0 88px rgba(253,224,71,.54)}100%{filter:brightness(1.04);box-shadow:0 0 22px rgba(255,255,255,.92),0 0 50px rgba(253,224,71,.7),0 0 76px rgba(192,132,252,.42)}}
 @media(max-width:620px){.player-chip{min-width:155px}.showdown-hand{gap:14px}.showdown-hand-name{font-size:18px}}

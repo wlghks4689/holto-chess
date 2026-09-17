@@ -23,6 +23,7 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
     case "FLUSH": return withKicker(`${rankToChar(made)} 하이 플러시`, [second, ...rest].filter(Boolean));
     case "FULL_HOUSE": return { title: `${rankToChar(made)} · ${rankToChar(second)} 풀하우스` };
     case "QUADS": return withKicker(`${rankToChar(made)} 포카드`, [second].filter(Boolean));
-    case "STRAIGHT_FLUSH": return { title: made === 14 ? "로열 플러시" : `${rankToChar(made)} 하이 스트레이트 플러시` };
+    case "STRAIGHT_FLUSH": return { title: `${rankToChar(made)} 하이 스트레이트 플러시` };
+    case "ROYAL_FLUSH": return { title: "로열 스트레이트 플러시" };
   }
 }

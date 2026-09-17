@@ -14,4 +14,9 @@ describe("detailed showdown labels", () => {
     expect(detailedHandLabel("PAIR", [12, 14, 13, 9], [card("Ks", 13), card("9h", 9)], ["Ks", "9h"]))
       .toEqual({ title: "Q 원페어", kicker: "KICKER K, 9" });
   });
+
+  it("names a royal flush explicitly instead of A-high straight flush", () => {
+    expect(detailedHandLabel("ROYAL_FLUSH", [14], [], []))
+      .toEqual({ title: "로열 스트레이트 플러시" });
+  });
 });

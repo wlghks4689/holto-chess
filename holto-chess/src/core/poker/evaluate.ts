@@ -1,22 +1,21 @@
 import type { Card } from "./cards";
 
-export type HandCategory = "HIGH_CARD" | "PAIR" | "TWO_PAIR" | "TRIPS" | "STRAIGHT" | "FLUSH" | "FULL_HOUSE" | "QUADS" | "STRAIGHT_FLUSH";
+export type HandCategory = "HIGH_CARD" | "PAIR" | "TWO_PAIR" | "TRIPS" | "STRAIGHT" | "FLUSH" | "FULL_HOUSE" | "QUADS" | "STRAIGHT_FLUSH" | "ROYAL_FLUSH";
 export type HandValue = { category: HandCategory; categoryRank: number; kickers: number[]; bestFive: Card[]; displayName: string };
 
 const CATEGORY_RANK: Record<HandCategory, number> = {
   HIGH_CARD: 1, PAIR: 2, TWO_PAIR: 3, TRIPS: 4, STRAIGHT: 5,
-  FLUSH: 6, FULL_HOUSE: 7, QUADS: 8, STRAIGHT_FLUSH: 9,
+  FLUSH: 6, FULL_HOUSE: 7, QUADS: 8, STRAIGHT_FLUSH: 9, ROYAL_FLUSH: 10,
 };
 
 const CATEGORY_NAME: Record<HandCategory, string> = {
   HIGH_CARD: "하이카드", PAIR: "원페어", TWO_PAIR: "투페어", TRIPS: "트립스",
   STRAIGHT: "스트레이트", FLUSH: "플러시", FULL_HOUSE: "풀하우스",
-  QUADS: "포카드", STRAIGHT_FLUSH: "스트레이트 플러시",
+  QUADS: "포카드", STRAIGHT_FLUSH: "스트레이트 플러시", ROYAL_FLUSH: "로열 스트레이트 플러시",
 };
 
 function value(category: HandCategory, kickers: number[], cards: Card[]): HandValue {
-  const royal = category === "STRAIGHT_FLUSH" && kickers[0] === 14;
-  return { category, categoryRank: CATEGORY_RANK[category], kickers, bestFive: cards, displayName: royal ? "로열 플러시" : CATEGORY_NAME[category] };
+  return { category, categoryRank: CATEGORY_RANK[category], kickers, bestFive: cards, displayName: CATEGORY_NAME[category] };
 }
 
 /** Five-card evaluator derived from the verified holdem-game evaluator. */
@@ -32,7 +31,7 @@ export function evaluateFive(cards: Card[]): HandValue {
   for (let i = 0; !straightHigh && i <= unique.length - 5; i += 1) {
     if (unique[i]! - unique[i + 4]! === 4) straightHigh = unique[i]!;
   }
-  if (straightHigh && flush) return value("STRAIGHT_FLUSH", [straightHigh], cards);
+  if (straightHigh && flush) return value(straightHigh === 14 ? "ROYAL_FLUSH" : "STRAIGHT_FLUSH", [straightHigh], cards);
   if (counts[0]?.[1] === 4) return value("QUADS", [counts[0][0], counts[1]![0]], cards);
   if (counts[0]?.[1] === 3 && counts[1]?.[1] === 2) return value("FULL_HOUSE", [counts[0][0], counts[1][0]], cards);
   if (flush) return value("FLUSH", ranks, cards);

@@ -104,9 +104,19 @@ ${rows(tournamentRows)}
 ## Final score components (R5 finalists)
 
 - Average Final Score: ${n(result.score.averageFinalScore)}
+- Average pre-R5 Round Points: ${n(result.score.averagePreR5Points)}
+- Average R5 Placement Points: ${n(result.score.averageR5PlacementPoints)}
 - Average Round Points: ${n(result.score.averageRoundPoints)}
 - Average Hand Score: ${n(result.score.averageHandScore)}
 - Average Stack Score: ${n(result.score.averageStackScore)}
+- Round Points vs Hand Score: ${n(result.score.roundVsHand.roundPointsPercentage)}% / ${n(result.score.roundVsHand.handScorePercentage)}%
+- Overall share (Round / Hand / Stack): ${n(result.score.overallShare.roundPointsPercentage)}% / ${n(result.score.overallShare.handScorePercentage)}% / ${n(result.score.overallShare.stackScorePercentage)}%
+
+### Score by R5 poker place
+
+| R5 place | Entries | Pre-R5 points | Placement points | Hand score | Stack score | Final score |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+${rows(Object.entries(result.score.byR5Place).map(([place, value]) => [place, String(value.entries), n(value.averagePreR5Points), n(value.averagePlacementPoints), n(value.averageHandScore), n(value.averageStackScore), n(value.averageFinalScore)]))}
 
 Hand Score는 현재 게임 config의 임시값을 그대로 사용합니다.
 
