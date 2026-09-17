@@ -1,7 +1,8 @@
 import { applyAugment } from "./augments";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
-import { beginSecondary, buyCard, choicesFor, createGame, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
+import { beginSecondary, buyCard, choicesFor, createGame, getCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
+import { pickBotAugment } from "./botStrategy";
 import type { Augment, HoltoChessGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 
@@ -60,7 +61,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
             for (const p of room.game.players.filter((p) => !p.eliminated)) {
               const choices = choicesFor(room.game);
               if (humanIds(room).includes(p.id)) room.augmentChoices[p.id] = choices;
-              else applyAugment(p, choices[0]!);
+              else applyAugment(p, pickBotAugment(p, choices, room.game.round, p.ownedCardIds.map((id) => getCard(room.game, id))));
             }
             if (!Object.keys(room.augmentChoices).length) room.game.phase = "NEXT_ROUND";
           } else room.game.phase = "NEXT_ROUND";

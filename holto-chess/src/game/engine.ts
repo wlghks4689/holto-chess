@@ -3,6 +3,7 @@ import { compareHands, evaluatePartial, findBestFive, findBestOmaha, placeInRank
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, rerollLimitFor } from "./config";
+import { bestBotSelection, pickBotAugment, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { calculateIcm } from "./icm";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
@@ -160,19 +161,52 @@ export function toggleSelectedCard(source: HoltoChessGameState, playerId: string
 function aiPrepare(state: HoltoChessGameState, humanIds: readonly string[] = ["p1"]): void {
   const limit = BALANCE.handLimits[state.round];
   for (const player of state.players.filter((item) => !item.eliminated && !humanIds.includes(item.id))) {
-    while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round)) {
-      const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!).filter((entry) => discountedPrice(player, entry.card) <= player.stackBB)
-        .sort((a, b) => b.card.rank - a.card.rank);
-      if (!options.length) break;
-      const entry = options[0]!; const price = discountedPrice(player, entry.card);
-      player.stackBB -= price; player.purchasesThisRound += 1; player.shopCardIds = player.shopCardIds.filter((id) => id !== entry.card.id); player.ownedCardIds.push(entry.card.id);
+    const ownedCards = () => cardsFor(state, player.ownedCardIds);
+    const buy = (cardId: string) => {
+      const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!; const price = discountedPrice(player, entry.card);
+      player.stackBB -= price; player.purchasesThisRound += 1; player.shopCardIds = player.shopCardIds.filter((id) => id !== cardId); player.ownedCardIds.push(cardId);
       entry.state = "OWNED"; entry.ownerPlayerId = player.id; delete entry.reservedPlayerId;
+    };
+    const reroll = () => {
+      const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+      player.stackBB -= cost; releaseShop(state, player); reserveShopCards(state, player); player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
+    };
+    while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round)) {
+      const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!)
+        .map((entry) => ({ card: entry.card, price: discountedPrice(player, entry.card) })).filter((entry) => entry.price <= player.stackBB);
+      const ranked = rankBotPurchases(state.round, player, ownedCards(), options); const best = ranked[0];
+      const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+      const missing = limit - player.ownedCardIds.length;
+      if (player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, best, rerollCost)) { reroll(); continue; }
+      if (!best) break;
+      buy(best.card.id);
     }
-    if (state.round === 2) player.selectedCardIds = [...player.ownedCardIds].sort((a, b) => cardsFor(state, [b])[0]!.rank - cardsFor(state, [a])[0]!.rank).slice(0, 2);
-    if (state.round === 3) {
-      const ranked = [...player.ownedCardIds].sort((a, b) => cardsFor(state, [b])[0]!.rank - cardsFor(state, [a])[0]!.rank);
-      player.selectedCardIds = [ranked[0]!, ranked[3]!, ranked[1]!, ranked[2]!];
+
+    // Extra purchase capacity becomes a deliberate upgrade: compare every legal swap by expected match EV.
+    while (player.ownedCardIds.length === limit && player.purchasesThisRound < purchaseLimitFor(state.round)) {
+      const baseline = scoreBotPlan(state.round, ownedCards(), player.stackBB, `${player.id}:upgrade`);
+      let bestSwap: { ownedId: string; shopId: string; utility: number } | null = null;
+      for (const ownedId of player.ownedCardIds) for (const shopId of player.shopCardIds) {
+        const owned = state.ownershipCardPool.find((entry) => entry.card.id === ownedId)!.card;
+        const offered = state.ownershipCardPool.find((entry) => entry.card.id === shopId)!.card;
+        const refundRate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
+        const refund = Math.floor(cardPrice(owned.rank) * refundRate); const price = discountedPrice(player, offered);
+        if (player.stackBB + refund < price) continue;
+        const replacement = ownedCards().filter((card) => card.id !== ownedId).concat(offered);
+        const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`);
+        if (plan.utility > baseline.utility + 2.25 && (!bestSwap || plan.utility > bestSwap.utility)) bestSwap = { ownedId, shopId, utility: plan.utility };
+      }
+      if (bestSwap) {
+        const oldEntry = state.ownershipCardPool.find((entry) => entry.card.id === bestSwap!.ownedId)!;
+        const refundRate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
+        player.stackBB += Math.floor(cardPrice(oldEntry.card.rank) * refundRate); player.ownedCardIds = player.ownedCardIds.filter((id) => id !== bestSwap!.ownedId);
+        oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId; buy(bestSwap.shopId); continue;
+      }
+      const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+      if ((player.rerollsUsed ?? 0) < rerollLimitFor(state.round) && player.stackBB >= rerollCost + 20 && baseline.equity < 0.58) { reroll(); continue; }
+      break;
     }
+    player.selectedCardIds = bestBotSelection(state.round, ownedCards());
   }
 }
 
@@ -436,7 +470,10 @@ export function leaveRoundResult(source: HoltoChessGameState): HoltoChessGameSta
   if (state.round === 2 || state.round === 4) {
     const human = playerById(state, "p1");
     if (human.eliminated) {
-      for (const survivor of state.players.filter((player) => !player.eliminated)) applyAugment(survivor, choicesFor(state)[0]!);
+      for (const survivor of state.players.filter((player) => !player.eliminated)) {
+        const choices = choicesFor(state);
+        applyAugment(survivor, pickBotAugment(survivor, choices, state.round, cardsFor(state, survivor.ownedCardIds)));
+      }
       state.phase = "NEXT_ROUND";
       log(state, "관전 모드 · 생존자 증강 선택 완료");
     } else {
@@ -452,7 +489,10 @@ export function chooseAugment(source: HoltoChessGameState, playerId: string, aug
   if (state.phase !== "AUGMENT" || player.eliminated) throw new Error("증강을 선택할 수 없습니다.");
   const augment = state.augmentChoices.find((item) => item.id === augmentId); if (!augment) throw new Error("제시된 증강이 아닙니다.");
   applyAugment(player, augment);
-  for (const bot of state.players.filter((item) => !item.eliminated && item.id !== playerId)) applyAugment(bot, choicesFor(state)[0]!);
+  for (const bot of state.players.filter((item) => !item.eliminated && item.id !== playerId)) {
+    const choices = choicesFor(state);
+    applyAugment(bot, pickBotAugment(bot, choices, state.round, cardsFor(state, bot.ownedCardIds)));
+  }
   state.phase = "NEXT_ROUND"; log(state, `${player.name} · ${augment.name} 획득`, "win"); return state;
 }
 
