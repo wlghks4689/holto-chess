@@ -9,17 +9,12 @@ import { madeTone } from "./madeTone";
 import { canSellWithoutBlocking } from "../game/shopRules";
 import { RoundGuide } from "./RoundGuide";
 import { RoundResults } from "./RoundResults";
+import { activeSession, forgetSession, rememberSession, storedSessions } from "./sessionStore";
 
-const SESSION_KEY = "holto-room-session-v1";
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
 const displayPoints = (value: number) => Number(value.toFixed(2));
-function savedSession(): SessionCredential | null {
-  try {
-    const v = JSON.parse(localStorage.getItem(SESSION_KEY) ?? "null");
-    return v && /^[A-Z2-9]{6}$/.test(v.roomId) && /^[a-f0-9]{64}$/.test(v.token) ? v : null;
-  } catch { return null; }
-}
+
 const titles = ["", "TWO HAND", "RUN IT TWICE", "OMAHA DOUBLE", "BEST FIVE", "THE LAST HAND"];
 const phases: Record<string, string> = { LOBBY: "입장 대기", SHOP: "상점", SHOWDOWN_PRIMARY: "1차 쇼다운 준비", GROUP_ASSIGNMENT: "그룹 배정", SHOWDOWN_SECONDARY: "2차 쇼다운 준비", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "다음 라운드", GAME_RESULT: "최종 결과" };
 
@@ -54,7 +49,8 @@ function Selection({ view, send, disabled }: { view: PlayerView; send: (a: GameA
   return <section className="panel select-panel"><h2>{view.round === 3 ? "R3 · Game 1 / Game 2 카드 분할" : "R2 출전 카드 2장"}</h2>{view.round === 3 && <p>먼저 고른 2장은 Game 1, 다음 2장은 Game 2에 배정됩니다.</p>}<div className="card-row centered">{view.me.ownedCards.map((card) => { const index = selected.indexOf(card.id); const footer = index < 0 ? "선택" : view.round === 3 ? index < 2 ? "GAME 1" : "GAME 2" : "선택됨"; return <CardView key={card.id} card={card} selected={index >= 0} footer={footer} onClick={() => setSelected((ids) => ids.includes(card.id) ? ids.filter((id) => id !== card.id) : ids.length < required ? [...ids, card.id] : ids)} />; })}</div><button className="secondary" disabled={disabled || selected.length !== required} onClick={() => send({ type: "SELECT_CARDS", cardIds: selected })}>출전 선택 저장</button><p className="hint">서버에 저장된 선택: {view.me.selectedCardIds.join(", ") || "없음"}</p></section>;
 }
 export function OnlineApp() {
-  const [credential, setCredential] = useState<SessionCredential | null>(savedSession);
+  const [credential, setCredential] = useState<SessionCredential | null>(activeSession);
+  const [resumable, setResumable] = useState<SessionCredential[]>(() => storedSessions().filter((s) => s.roomId !== activeSession()?.roomId));
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState("");
@@ -126,8 +122,8 @@ export function OnlineApp() {
       const response = await fetch(create ? "/api/rooms" : `/api/rooms/${roomCode.trim().toUpperCase()}/join`, { method: "POST" });
       if (!response.ok) throw new Error(response.status === 404 ? "방을 찾을 수 없습니다." : "방이 시작되었거나 입장할 수 없습니다.");
       const session = await response.json() as SessionCredential;
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      setView(null); setCredential(session);
+      rememberSession(session);
+      setView(null); setCredential(session); setResumable(storedSessions().filter((s) => s.roomId !== session.roomId));
     } catch (caught) { setError(caught instanceof Error ? caught.message : "입장 실패"); }
     finally { setBusy(false); }
   };
@@ -148,8 +144,19 @@ export function OnlineApp() {
   };
   const leaveRoom = () => {
     send({ type: "LEAVE_ROOM" });
-    localStorage.removeItem(SESSION_KEY);
+    if (credential) forgetSession(credential.roomId);
   };
+  const resume = (session: SessionCredential) => {
+    rememberSession(session);
+    setError(""); setView(null); setCredential(session);
+    setResumable(storedSessions().filter((s) => s.roomId !== session.roomId));
+  };
+  const clearSession = () => {
+    if (credential) forgetSession(credential.roomId);
+    setCredential(null); setView(null); setStatus("Disconnected");
+    setResumable(storedSessions());
+  };
+  const statusLabel = status === "Connected" ? "접속됨" : status === "Connecting" ? "접속 중…" : status === "Reconnecting" ? "재접속 중…" : "연결 끊김";
   const disabled = status !== "Connected" || !!pending;
   const secondsLeft = view?.barrierEndsAt === undefined ? null : Math.max(0, Math.ceil((view.barrierEndsAt - now) / 1000));
   const waitingOnMe = !!view && view.waitingOn.includes(view.me.playerId);
@@ -157,11 +164,10 @@ export function OnlineApp() {
     purchaseLimit: view.me.purchaseLimit, handLimit: view.me.handLimit }) : false;
   const guideKey = view ? `${view.gameId}:${view.round}` : null;
   const showGuide = view && view.phase !== "LOBBY" && dismissedGuide !== guideKey;
-  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""}><main className={view && view.phase !== "LOBBY" ? "game-arena" : ""}>{showGuide ? <RoundGuide round={view.round} onClose={() => setDismissedGuide(guideKey)} /> : null}<nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>ONLINE · PROTOTYPE</small></div></a><div className="survivors"><small>CONNECTION</small><b>{status}</b></div></nav>
+  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""}><main className={view && view.phase !== "LOBBY" ? "game-arena" : ""}>{showGuide ? <RoundGuide round={view.round} secondsLeft={secondsLeft} onClose={() => setDismissedGuide(guideKey)} /> : null}<nav><a className="brand" href="#top"><span>H</span><div><b>HOLTO CHESS</b><small>ONLINE · PROTOTYPE</small></div></a><div className="survivors"><small>CONNECTION</small><b className={`conn-${status.toLowerCase()}`}>{credential ? statusLabel : "로비"}</b></div></nav>
     <div className="page-shell" id="top">
-      <section className="panel room-panel"><h2>온라인 게임방</h2>{!credential ? <div className="room-controls"><button className="primary" disabled={busy} onClick={() => void join(true)}>Create Room</button><label>Room Code<input aria-label="Room Code" value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="AB12CD" /></label><button className="secondary" disabled={busy || !/^[A-Z2-9]{6}$/.test(roomCode.trim())} onClick={() => void join(false)}>Join Room</button></div> : <><p>Room ID: <strong data-testid="room-id">{credential.roomId}</strong> · Player ID: <strong data-testid="player-id">{credential.playerId}</strong> · Players {view?.humanCount ?? "…"} / 8</p><div className="room-controls"><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>재접속</button><button className="secondary" onClick={() => { localStorage.removeItem(SESSION_KEY); setCredential(null); setView(null); setStatus("Disconnected"); }}>세션 지우기</button></div></>}
+      <section className="panel room-panel"><h2>온라인 게임방</h2>{!credential ? <><label className="nickname-field">닉네임<input aria-label="닉네임" maxLength={16} value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="플레이어" /></label><div className="room-controls"><button className="primary" disabled={busy} onClick={() => void join(true)}>Create Room</button><label>Room Code<input aria-label="Room Code" value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="AB12CD" /></label><button className="secondary" disabled={busy || !/^[A-Z2-9]{6}$/.test(roomCode.trim())} onClick={() => void join(false)}>Join Room</button></div>{resumable.length > 0 && <div className="resume-list"><small>이전에 참가한 방</small>{resumable.map((s) => <button key={s.roomId} className="secondary" onClick={() => resume(s)}>{s.roomId} 방으로 돌아가기</button>)}</div>}</> : <><p>Room ID: <strong data-testid="room-id">{credential.roomId}</strong> · Player ID: <strong data-testid="player-id">{credential.playerId}</strong> · Players {view?.humanCount ?? "…"} / 8</p><div className="room-controls"><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>재접속</button><button className="secondary" onClick={clearSession}>세션 지우기</button></div></>}
         <p className="hint">실제 사용자 2~8명 · 시작 시 빈 좌석은 AI가 채웁니다. 같은 방 코드를 다른 탭이나 브라우저에 입력하세요. 재접속 정보는 이 브라우저에 저장되어 탭을 닫아도 같은 좌석으로 돌아옵니다.</p></section>
-      {!credential && <label className="panel">닉네임 <input aria-label="닉네임" maxLength={16} value={nickname} onChange={(e) => setNickname(e.target.value)} /></label>}
       {error && <p className="room-error" role="alert">{error}</p>}
       {view && <>
         <header className="round-header"><div><span className="round-number">ROUND 0{view.round}</span><h1>{titles[view.round]}</h1></div><div className="phase-badge"><b>{phases[view.phase] ?? view.phase}</b>{secondsLeft !== null && <small>{waitingOnMe ? `내 차례 · ${secondsLeft}초 후 자동 진행` : `대기 ${view.waitingOn.length}명 · ${secondsLeft}초`}</small>}</div></header>

@@ -74,7 +74,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
   const name = (id: string) => profiles.find((p) => p.playerId === id)?.name ?? id;
   const title = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : final ? "FINAL SHOWDOWN" : multi ? match.group === "winner" ? "WINNER SHOWDOWN" : "SURVIVAL SHOWDOWN" : "SHOWDOWN";
   const runLabel = frame.boardIndex >= match.runoutCount ? `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${frame.boardIndex - match.runoutCount + 1}`
-    : match.runoutCount > 1 ? `RUN ${frame.boardIndex + 1}` : `COMMUNITY BOARD - MATCH ${match.matchNumber}`;
+    : match.runoutCount > 1 ? `RUN ${frame.boardIndex + 1}` : "COMMUNITY BOARD";
   const visibleBoardIndexes = match.runoutCount === 2
     ? Array.from({ length: frame.boardIndex + 1 }, (_, index) => index)
     : [frame.boardIndex];
@@ -124,7 +124,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
       const boardWinners = match.boardWinnerIds[boardIndex] ?? [];
       const boardFocus = current ? focus : boardResults.find((result) => boardWinners.includes(result.playerId)) ?? boardResults[0];
       const completed = !current || flags.glow;
-      const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : `COMMUNITY BOARD - MATCH ${match.matchNumber}`
+      const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : "COMMUNITY BOARD"
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
       const outcome = boardWinners.length > 1 ? "SPLIT" : boardWinners[0] === viewerId ? "YOU WIN" : boardWinners[0] ? "OPPONENT WIN" : "";
       return <div className={`cinema-board ${!current ? "complete" : "active"} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>

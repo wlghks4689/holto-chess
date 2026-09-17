@@ -39,7 +39,7 @@ function OmahaExample() {
   </section>;
 }
 
-export function RoundGuide({ round, onClose }: { round: Round; onClose: () => void }) {
+export function RoundGuide({ round, onClose, secondsLeft }: { round: Round; onClose: () => void; secondsLeft?: number | null }) {
   const guide = GUIDES[round];
   return <div className="round-guide-backdrop" role="presentation">
     <section className="round-guide" role="dialog" aria-modal="true" aria-labelledby="round-guide-title">
@@ -49,7 +49,11 @@ export function RoundGuide({ round, onClose }: { round: Round; onClose: () => vo
         {round === 3 ? <OmahaExample /> : <div className="guide-special"><span>RULE CHECK</span><p>{guide.caution}</p></div>}
         <div className="guide-scoring"><span>POINT RULE</span><strong>{guide.scoring}</strong></div>
       </div>
-      <footer><p>라운드가 시작될 때 한 번 표시됩니다.</p><button className="primary" type="button" onClick={onClose}>이해했습니다 · ROUND {round} 시작 <span>→</span></button></footer>
+      <footer><p>{typeof secondsLeft === "number"
+        // The server clock keeps running behind the guide, so say so rather than
+        // letting the shop time vanish while it is being read.
+        ? `라운드가 시작될 때 한 번 표시됩니다 · 남은 시간 ${secondsLeft}초`
+        : "라운드가 시작될 때 한 번 표시됩니다."}</p><button className="primary" type="button" onClick={onClose}>이해했습니다 · ROUND {round} 시작 <span>→</span></button></footer>
     </section>
   </div>;
 }
