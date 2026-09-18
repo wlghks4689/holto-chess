@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { Round } from "../game/types";
-import { RoundGuide } from "./RoundGuide";
+import { GameOverviewGuide } from "./GameOverviewGuide";
 import "./start-screen.css";
 
 type MenuOverlay = "guide" | "settings" | null;
 
 export function StartScreen({ onStart }: { onStart: () => void }) {
   const [overlay, setOverlay] = useState<MenuOverlay>(null);
-  const [round, setRound] = useState<Round>(1);
   const modal = useRef<HTMLDivElement>(null);
 
   // Keep keyboard navigation inside either menu overlay and restore its trigger.
@@ -48,7 +46,7 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
       {import.meta.env.DEV ? <footer className="start-footer">PORENA <span>·</span> DEVELOPMENT PREVIEW</footer> : null}
     </div>
     {overlay && <div ref={modal} className="start-overlay">
-      {overlay === "guide" ? <RoundGuide round={round} onPreviewRound={setRound} onClose={() => setOverlay(null)} /> :
+      {overlay === "guide" ? <GameOverviewGuide onClose={() => setOverlay(null)} /> :
         <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="start-settings-title">
           <header><div><small>PREFERENCES</small><h2 id="start-settings-title">환경 설정</h2></div><button type="button" aria-label="환경 설정 닫기" onClick={() => setOverlay(null)}>×</button></header>
           <p>설정 메뉴를 준비하고 있습니다.<br />아래 항목은 아직 게임에 적용되지 않습니다.</p>

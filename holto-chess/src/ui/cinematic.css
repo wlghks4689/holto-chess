@@ -48,7 +48,7 @@
 .cinema-final-read.is-final strong{animation:cinema-made-label-glow calc(1.1s * var(--final-beat,1)) ease-out 1 both}
 .cinema-final .cinema-winner .cinema-final-read{color:#f4d77f}
 .cinema-heading-copy{animation:cinema-soft-in calc(360ms * var(--final-beat,1)) ease-out both}
-/* R5 card slots: back and front faces share one slot; opening rotates the slot instead of swapping it. */
+/* Shared R1-R5 card primitive: both faces stay in one slot; reveal only rotates the inner plane. */
 .cinema-flip-slot{flex-shrink:0;perspective:700px}
 .cinema-flip-inner{display:grid;transform-style:preserve-3d;transition:transform var(--flip-duration,.42s) cubic-bezier(.3,.65,.25,1) var(--flip-delay,0ms)}
 .cinema-flip-face{grid-area:1 / 1;backface-visibility:hidden;-webkit-backface-visibility:hidden}
@@ -56,6 +56,8 @@
 .cinema-flip-slot.is-open .cinema-flip-inner{transform:rotateY(180deg)}
 .cinema-flip-slot.batch-2 .cinema-flip-inner{transition-duration:var(--river-duration,.6s)}
 .cinema-flip-slot.batch-2.is-open{animation:cinema-final-lift var(--river-duration,.6s) ease-out var(--flip-delay,0ms) both}
+.cinema-flip-slot.cinema-river .cinema-flip-inner{transition-duration:var(--river-duration,.6s)}
+.cinema-flip-slot.cinema-river.is-open{animation:cinema-river-impact var(--river-duration,.6s) ease-out both}
 /* Read beat → next reveal: the backs about to turn rise and charge up over the whole beat, then let go into the flip. */
 .cinema-flip-slot{transition:translate .35s ease-out}
 .cinema-flip-back .card-back{transition:box-shadow .35s ease-out,filter .35s ease-out,border-color .35s ease-out}
@@ -87,7 +89,7 @@
 .cinema-profile b{overflow-wrap:anywhere}
 .cinema-profile .player-avatar{flex-shrink:0}
 .cinema-vs{position:absolute;left:-30px;top:50%;transform:translateY(-50%);z-index:2;color:#a2ffd0;font:800 20px Manrope;text-shadow:0 0 22px #4ffea9}
-.cinema-intro .cinema-seat{padding-top:35px;padding-bottom:35px;animation:cinema-seat-enter .4s ease-out both}
+.cinema-intro .cinema-seat{animation:cinema-seat-enter .4s ease-out both}
 .cinema-hole-cards{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;min-width:0}
 .cinema .playing-card{flex-shrink:0}
 .cinema-board-stack{display:grid;gap:0;margin:24px auto 8px}
@@ -95,6 +97,7 @@
 .cinema-board h3{display:flex;justify-content:center;align-items:center;gap:14px;font:500 11px DM Mono;letter-spacing:.12em;color:#92b5a2;margin:0 0 20px}.cinema-board h3 b{color:var(--mint);font-size:9px}
 .cinema-board-stack.run-it-twice .cinema-board+.cinema-board{border-top:1px solid #294839}
 .cinema-board.complete{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.36)}
+.cinema-board.pending{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.18);opacity:.72}
 .cinema-board.complete .playing-card.compact{width:48px;height:69px}.cinema-board.complete .cinema-board-cards{gap:8px}.cinema-board.complete .hint{margin:8px 0 0}
 .cinema-board-cards{display:flex;justify-content:center;gap:12px}
 .cinema-board .playing-card.compact{width:64px;height:91px}
@@ -166,7 +169,7 @@
 .cinema-final .playing-card.compact .card-rank{font-size:clamp(11px,2.5vw,17px)}
 .cinema-final .playing-card.compact .card-suit{font-size:clamp(15px,3vw,23px)}
 @keyframes cinema-flip{from{transform:rotateY(-90deg);opacity:.25}to{transform:rotateY(0);opacity:1}}
-@keyframes cinema-river-impact{0%{transform:rotateY(-90deg) scale(1.1)}65%{transform:rotateY(0) scale(1.09);filter:brightness(1.2)}100%{transform:scale(1);filter:brightness(1)}}
+@keyframes cinema-river-impact{0%{transform:scale(1)}65%{transform:scale(1.09);filter:brightness(1.2)}100%{transform:scale(1);filter:brightness(1)}}
 @keyframes cinema-suspense{to{transform:translateY(-5px);filter:brightness(1.25)}}
 @keyframes cinema-seat-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes cinema-stamp-drop{0%{opacity:0;transform:translateY(-34px) scale(2.3) rotate(-15deg);filter:blur(2px)}55%{opacity:1;transform:translateY(0) scale(.9) rotate(-5deg);filter:blur(0)}72%{transform:scale(1.07) rotate(-6deg)}100%{opacity:1;transform:scale(1) rotate(-6deg)}}
@@ -208,13 +211,11 @@
   .cinema-heading{align-items:flex-start;flex-direction:column;margin-bottom:20px}
   .cinema-controls{width:100%;justify-content:space-between}
   .cinema-run-timeline{margin-top:0;padding:8px 10px}.cinema-run-row{grid-template-columns:68px 1fr minmax(82px,auto);gap:7px}.cinema-run-row b{font-size:9px}
-  .cinema-intro.cinema-headsup .cinema-seats{grid-template-columns:1fr;gap:34px}
-  .cinema-intro.cinema-headsup .cinema-vs{left:50%;top:-27px;transform:translateX(-50%)}
   .cinema-table.cinema-headsup .cinema-seats{gap:14px}
   .cinema-seat{padding:12px 5px}
   .cinema-profile{font-size:12px;gap:5px;margin-bottom:12px}
   .cinema-profile .player-avatar{width:23px;height:23px}
-  .cinema-table .cinema-vs{font-size:12px;left:-15px}
+  .cinema-headsup .cinema-vs{font-size:12px;left:-15px}
   .cinema-multi:not(.cinema-final) .cinema-seats{grid-template-columns:1fr}
   .cinema-board-cards{gap:8px}
   .cinema-board .playing-card.compact{width:43px;height:64px}

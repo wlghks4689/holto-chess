@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { MatchView, PresentationView, RevealedHand } from "../shared/protocol";
-import { CardBack, CardView } from "./CardView";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
 import type { ServerClock } from "./serverClock";
+import { ShowdownCardFlip } from "./ShowdownCardFlip";
+import { showdownSeatOrder } from "./showdownSeatOrder";
 import "./cinematic.css";
 
 type Profile = { playerId: string; name: string };
@@ -80,16 +81,16 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const winners = final ? finalWinnerStage ? match.winnerIds : [] : flags.result ? match.winnerIds : match.boardWinnerIds[frame.boardIndex] ?? [];
   const focus = results.find((r) => r.playerId === focusId) ?? results.find((r) => winners.includes(r.playerId)) ?? results[0];
   const board = match.boards[frame.boardIndex] ?? [];
-  const ids = [...match.participantIds].sort((a, b) => {
-    if (!multi) return intro ? Number(a === viewerId) - Number(b === viewerId) : Number(b === viewerId) - Number(a === viewerId);
-    return 0;
-  });
+  const ids = showdownSeatOrder(match.participantIds, viewerId);
   const name = (id: string) => profiles.find((p) => p.playerId === id)?.name ?? id;
   const title = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : final ? "FINAL SHOWDOWN" : multi ? match.group === "winner" ? "WINNER SHOWDOWN" : "SURVIVAL SHOWDOWN" : "SHOWDOWN";
   const runLabel = frame.boardIndex >= match.runoutCount ? `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${frame.boardIndex - match.runoutCount + 1}`
     : match.runoutCount > 1 ? `RUN ${frame.boardIndex + 1}` : "COMMUNITY BOARD";
-  const visibleBoardIndexes = match.runoutCount === 2
-    ? Array.from({ length: frame.boardIndex + 1 }, (_, index) => index)
+  // Mount the next run/decider during the current result beat, while every card is still closed.
+  // This keeps RUN 1 on stage and lets RUN 2 reveal by flipping already-present slots.
+  const queuedBoard = frame.phase === "RUN_RESULT" && frame.boardIndex + 1 < match.boards.length ? 1 : 0;
+  const visibleBoardIndexes = match.boards.length > 1
+    ? Array.from({ length: frame.boardIndex + 1 + queuedBoard }, (_, index) => index)
     : [frame.boardIndex];
 
   const labelFor = (id: string, result: RevealedHand) => detailedHandLabel(result.category, result.kickers, match.revealedCards[id] ?? [], result.usedCardIds);
@@ -129,7 +130,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           ? { stage: `current-${readCards}`, tag: readCards === 3 ? "CURRENT READ · 3 CARDS" : "CURRENT BEST · 5 CARDS", title: interimLabel.title, detail: interimLabel.kicker }
           : { stage: "pending", tag: "HAND READ", title: "—", detail: undefined };
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
-      return <div key={id} className={`cinema-seat ${placementClass} made-${tone} ${madeClass}`}>
+      return <div key={id} className={`cinema-seat ${placementClass} made-${tone} ${madeClass}`} data-seat-index={index} data-player-id={id}>
         {intro && !multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L · POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
@@ -137,22 +138,15 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           {!final && flags.result && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
           {flags.runResult && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
         <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {
-          const visible = !final || (!intro && cardIndex < frame.finalCards);
+          const visible = !intro && (!final || cardIndex < frame.finalCards);
           const used = result?.usedCardIds.includes(card.id) ?? false;
           if (final) {
-            // One slot per card for the whole scene: both faces live in the same element and a
-            // rotateY transition turns it over, so nothing is swapped or remounted mid-reveal.
             const slot = finalRevealSlot(cardIndex);
             const slotStyle = { "--flip-delay": `${slot.offset * FINAL_REVEAL_STAGGER_MS[slot.batch] / speed}ms` } as CSSProperties;
-            return <div className={`cinema-flip-slot batch-${slot.batch} ${visible ? "is-open" : ""} ${!visible && slot.batch === nextBatch ? "is-next" : ""}`} style={slotStyle} key={card.id}>
-              <div className="cinema-flip-inner">
-                <div className="cinema-flip-face cinema-flip-back" aria-hidden={visible || undefined}><CardBack compact /></div>
-                <div className="cinema-flip-face cinema-flip-front">{visible && <CardView card={card} compact glow={flags.glow && used} dimmed={flags.holeDim && !used} />}</div>
-              </div>
-            </div>;
+            return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used}
+              className={`batch-${slot.batch} ${!visible && slot.batch === nextBatch ? "is-next" : ""}`} style={slotStyle} key={card.id} />;
           }
-          return <div className={visible ? "cinema-card-open" : "cinema-card-hidden"} key={`${card.id}-${visible}`}>
-            {visible ? <CardView card={card} compact glow={flags.glow && used} dimmed={flags.holeDim && !used} /> : <CardBack compact />}</div>;
+          return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used} key={card.id} />;
         })}</div>
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
           <div className="cinema-final-read-copy" key={read.stage}><small>{read.tag}</small><strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
@@ -166,21 +160,23 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     })}</div>
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
       const current = boardIndex === frame.boardIndex;
+      const pending = boardIndex > frame.boardIndex;
       const shownBoard = match.boards[boardIndex] ?? [];
       const boardResults = match.boardResults[boardIndex] ?? [];
       const boardWinners = match.boardWinnerIds[boardIndex] ?? [];
       const boardFocus = current ? focus : boardResults.find((result) => boardWinners.includes(result.playerId)) ?? boardResults[0];
-      const completed = !current || flags.glow;
+      const completed = !pending && (!current || flags.glow);
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : "COMMUNITY BOARD"
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
       const outcome = boardWinners.length > 1 ? "SPLIT" : boardWinners[0] === viewerId ? "YOU WIN" : boardWinners[0] ? "OPPONENT WIN" : "";
-      return <div className={`cinema-board ${!current ? "complete" : "active"} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
-        <h3>{boardTitle}{!current && outcome ? <b>{outcome}</b> : null}</h3>
+      return <div className={`cinema-board ${pending ? "pending" : !current ? "complete" : "active"} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
+        <h3>{boardTitle}{!current && !pending && outcome ? <b>{outcome}</b> : null}</h3>
         <div className="cinema-board-cards">{shownBoard.map((card, index) => {
-          const visible = !current || index < frame.revealed;
+          const visible = !pending && (!current || index < frame.revealed);
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;
-          return <div className={`${visible ? "cinema-card-open" : "cinema-card-hidden"} ${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`} key={`${boardIndex}-${index}-${visible}`}>
-            {visible ? <CardView card={card} compact glow={completed && used} dimmed={completed && !used} /> : <CardBack compact />}</div>;
+          return <ShowdownCardFlip card={card} open={visible} glow={completed && used} dimmed={completed && !used}
+            className={`${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`}
+            key={`${boardIndex}-${card.id}`} />;
         })}</div>
       </div>;
     })}</div>}

@@ -6,6 +6,7 @@ import type { MatchView, PresentationView } from "../shared/protocol";
 import { cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
 import { CinematicGate, ShowdownCinematic } from "./ShowdownCinematic";
 import { visibleFinalHand } from "./finalShowdownPresentation";
+import { showdownSeatOrder } from "./showdownSeatOrder";
 
 const deck = makeDeck();
 const match: MatchView = {
@@ -18,6 +19,12 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("keeps the viewer in the left seat for every heads-up phase", () => {
+    expect(showdownSeatOrder(["p2", "p1"], "p1")).toEqual(["p1", "p2"]);
+    expect(showdownSeatOrder(["p1", "p2"], "p1")).toEqual(["p1", "p2"]);
+    expect(showdownSeatOrder(["p2", "p1"], "p9")).toEqual(["p2", "p1"]);
+    expect(showdownSeatOrder(["p1", "p2", "p3"], "p1")).toEqual(["p1", "p2", "p3"]);
+  });
   it("evaluates only the R5 cards revealed at each step", () => {
     const cards: Card[] = [
       { id: "9h", rank: 9, suit: "h" }, { id: "9c", rank: 9, suit: "c" }, { id: "Kd", rank: 13, suit: "d" },
@@ -44,6 +51,8 @@ describe("cinematic initial rendering", () => {
     expect(html.match(/class="cinema-seat /g)).toHaveLength(4);
     // Card slots and hand panels exist from the first frame so reveals only change their state.
     expect(html.match(/class="cinema-flip-slot /g)).toHaveLength(28);
+    // Front faces are mounted from frame zero and hidden by the persistent flip plane.
+    expect(html.match(/cinema-flip-front/g)).toHaveLength(28);
     expect(html.match(/class="cinema-final-read is-pending"/g)).toHaveLength(4);
     expect(html).not.toContain("cinema-winner");
     expect(html).not.toContain("cinema-board-cards");
@@ -51,6 +60,37 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("cinema-made");
     expect(html).not.toContain("Skip Cinematic");
     expect(html).not.toContain("Animation Speed");
+  });
+  it("uses persistent two-faced slots for heads-up hole cards and boards", () => {
+    const board = deck.slice(10, 15);
+    const headsUp: MatchView = { ...match, id: "heads-up", round: 1, participantIds: ["p2", "p1"],
+      winnerIds: ["p2"], boards: [board], boardResults: [[]], boardWinnerIds: [["p2"]], results: [], runoutCount: 1,
+      revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) } };
+    const timeline = cinematicTimeline(headsUp);
+    const renderPhase = (phase: (typeof timeline)[number]["phase"]) => renderToStaticMarkup(createElement(ShowdownCinematic, {
+      match: headsUp, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: timeline.find((entry) => entry.phase === phase)!.at,
+    }));
+    const introHtml = renderPhase("VS_INTRO");
+    const tableHtml = renderPhase("TABLE_ENTER");
+    for (const phase of ["VS_INTRO", "TABLE_ENTER", "BEST5_GLOW", "RESULT", "REWARD"] as const) {
+      const html = renderPhase(phase);
+      expect(html.indexOf('data-player-id="p1"')).toBeLessThan(html.indexOf('data-player-id="p2"'));
+    }
+    expect(introHtml.match(/cinema-flip-slot/g)).toHaveLength(4);
+    expect(tableHtml.match(/cinema-flip-slot/g)).toHaveLength(9);
+    expect(tableHtml.match(/cinema-flip-front/g)).toHaveLength(9);
+    expect(tableHtml.match(/data-open="true"/g)).toHaveLength(4);
+  });
+  it("pre-mounts RUN 2 face-down during the RUN 1 result beat", () => {
+    const runTwice: MatchView = { ...match, id: "run-twice", round: 2, participantIds: ["p1", "p2"],
+      boards: [deck.slice(10, 15), deck.slice(15, 20)], boardResults: [[], []], boardWinnerIds: [[], []], results: [], runoutCount: 2,
+      revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) } };
+    const resultAt = cinematicTimeline(runTwice).find((entry) => entry.phase === "RUN_RESULT" && entry.boardIndex === 0)!.at;
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: runTwice, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: resultAt }));
+    expect(html).toContain("cinema-board active");
+    expect(html).toContain("cinema-board pending");
+    expect(html.match(/cinema-board-cards/g)).toHaveLength(2);
+    expect(html.match(/cinema-flip-slot/g)).toHaveLength(14);
   });
   it("offers speed and skip only when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));
