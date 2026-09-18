@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
 import { cinematicTimeline } from "./cinematicTimeline";
+import { FINAL_ARENA_ENTER_MS, FINAL_ARENA_HOLD_MS, FINAL_ARENA_ZOOM_MS } from "../shared/presentationTimeline";
 import { FINAL_REVEAL_STAGGER_MS, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot } from "./finalShowdownPresentation";
 
 const deck = makeDeck();
@@ -47,5 +48,30 @@ describe("R5 final showdown presentation", () => {
     expect(finalNextBatch("FINAL_FIRST_HAND")).toBe(1);
     expect(finalNextBatch("FINAL_SECOND_HAND")).toBe(2);
     for (const phase of ["TABLE_ENTER", "FINAL_FIRST_REVEAL", "FINAL_SECOND_REVEAL", "FINAL_LAST_REVEAL", "FINAL_SEVEN_SETTLE"] as const) expect(finalNextBatch(phase)).toBeUndefined();
+  });
+});
+
+describe("R5 Final Arena entry", () => {
+  const seven = Object.fromEntries([0, 1, 2, 3].map((i) => [`p${i}`, makeDeck().slice(i * 7, i * 7 + 7)]));
+  const withArena = cinematicTimeline({ round: 5, boards: [], revealedCards: seven, results: [{ place: 1 }, { place: 2 }, { place: 3 }, { place: 4 }] });
+
+  it("opens R5 with the arena shot and leaves every later beat untouched", () => {
+    expect(withArena[0]).toMatchObject({ phase: "ARENA_ENTER", at: 0 });
+    expect(FINAL_ARENA_ENTER_MS).toBe(FINAL_ARENA_HOLD_MS + FINAL_ARENA_ZOOM_MS + 300);
+    const rest = withArena.slice(1);
+    expect(rest[0]).toMatchObject({ phase: "VS_INTRO", at: FINAL_ARENA_ENTER_MS });
+    // Same phases, same gaps as the established timeline: only shifted by the pre-roll.
+    const gaps = rest.slice(1).map((frame, index) => [frame.phase, frame.at - rest[index]!.at]);
+    expect(gaps).toEqual([
+      ["TABLE_ENTER", 1200], ["FINAL_FIRST_REVEAL", 400], ["FINAL_FIRST_HAND", 1050], ["FINAL_SECOND_REVEAL", 1400],
+      ["FINAL_SECOND_HAND", 750], ["FINAL_LAST_REVEAL", 1400], ["FINAL_SEVEN_SETTLE", 1000], ["BEST5_GLOW", 500],
+      ["MADE_HAND", 500], ["FINAL_PLACE", 600], ["FINAL_PLACE", 900], ["FINAL_PLACE", 900], ["FINAL_WINNER", 900],
+      ["REWARD", 1300], ["COMPLETE", 1600],
+    ]);
+  });
+
+  it("adds the arena shot to R5 only", () => {
+    const board = makeDeck().slice(0, 5);
+    for (const round of [1, 2, 3, 4]) expect(cinematicTimeline({ round, boards: [board], revealedCards: {} })[0]!.phase).toBe("VS_INTRO");
   });
 });

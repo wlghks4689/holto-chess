@@ -77,11 +77,11 @@ describe("server-synced cinematic gate", () => {
   const phaseOf = (html: string) => /data-phase="([A-Z0-9_]+)"/.exec(html)?.[1];
 
   it("derives the frame from the shared server time, so every seat shows the same beat", () => {
-    const serverTime = presentation.startsAt + 3_000;
-    const expected = frameAt(cinematicTimeline(match), 3_000).phase;
-    expect(phaseOf(at(serverTime))).toBe(expected);
+    const serverTime = presentation.startsAt + 5_000;
+    const timeline = cinematicTimeline(match);
+    expect(phaseOf(at(serverTime))).toBe(frameAt(timeline, 5_000).phase);
     // A seat that connects late or returns from a hidden tab lands on the same frame, not frame 0.
-    expect(phaseOf(at(serverTime))).not.toBe("VS_INTRO");
+    expect(phaseOf(at(serverTime))).not.toBe(timeline[0]!.phase);
   });
 
   it("holds each finished match without a confirm click, then moves on to the next on schedule", () => {

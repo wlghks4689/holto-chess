@@ -17,16 +17,25 @@
 .cinema-final{position:relative;overflow:hidden;background:
   linear-gradient(90deg,transparent 0 16%,rgba(81,230,205,.035) 16% 17%,transparent 17% 39%,rgba(81,230,205,.045) 39% 40%,transparent 40% 60%,rgba(81,230,205,.045) 60% 61%,transparent 61% 83%,rgba(81,230,205,.035) 83% 84%,transparent 84%),
   radial-gradient(ellipse at 50% 42%,#0d4038 0%,#06231d 42%,#020b09 82%)}
+/* R5 Final Arena: the arena artwork is the stage. Establishing shot, then a camera push-in toward the
+   central table (focal point = the arena emblem, 50% 57% of the artwork), then the UI settles on top. */
+.cinema-final{--arena-focus:50% 57%;--arena-scale:1.32}
+.cinema-final>:not(.cinema-final-arena){position:relative;z-index:2}
+.cinema-final-arena{position:absolute;inset:0;z-index:0;overflow:hidden;border-radius:inherit;pointer-events:none}
+.cinema-final-arena img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--arena-focus);transform-origin:var(--arena-focus);transform:scale(calc(1 + (var(--arena-scale) - 1) * var(--arena-progress,1)));transition:transform 90ms linear}
+.cinema-final-arena i{position:absolute;inset:0;background:radial-gradient(ellipse 62% 56% at var(--arena-focus),rgba(3,8,14,.22),rgba(3,8,14,.6) 100%),linear-gradient(180deg,rgba(3,8,14,.42),transparent 28%,transparent 72%,rgba(3,8,14,.58));opacity:calc(.2 + .8 * var(--arena-progress,1));transition:opacity 90ms linear}
+.cinema-final .cinema-heading-copy,.cinema-final .cinema-footer{transition:opacity .6s ease}
+.cinema-arena-enter .cinema-heading-copy{opacity:0;animation:none}
+.cinema-arena-enter .cinema-seats,.cinema-arena-enter .cinema-footer{opacity:0}
+@media(prefers-reduced-motion:reduce){.cinema-final-arena img{transform:scale(var(--arena-scale))!important}.cinema-final-arena i{opacity:1!important}}
 .cinema-final-heading{position:relative;z-index:2;justify-content:center;text-align:center;margin-bottom:24px}
 .cinema-final-heading>div:first-child{max-width:760px}.cinema-final-heading h2{font-size:clamp(28px,5vw,52px);line-height:1;margin:12px 0;letter-spacing:-.035em}
 .cinema-final-heading p{margin:0;color:#7f9d94;font:500 10px DM Mono;letter-spacing:.12em;text-transform:uppercase}
 .cinema-final-heading .cinema-controls{position:absolute;right:0;top:0}
 .cinema-final .cinema-seats{position:relative;z-index:2;gap:22px}
-.cinema-final .cinema-seat{min-height:150px;text-align:left;background:rgba(4,28,24,.82);border-color:#1d5b53;padding:17px 18px}
+.cinema-final .cinema-seat{min-height:150px;text-align:left;background:rgba(4,17,24,.8);border-color:#1d5b53;padding:17px 18px}
 .cinema-final .cinema-profile{justify-content:flex-start;margin-bottom:14px;font-size:14px}
 .cinema-final .cinema-hole-cards{justify-content:flex-start}
-.cinema-final-mark{position:absolute;z-index:1;left:50%;top:52%;width:112px;height:112px;border:1px solid rgba(107,236,216,.2);border-radius:50%;display:grid;place-content:center;text-align:center;transform:translate(-50%,-50%);color:rgba(113,237,217,.26);box-shadow:0 0 35px rgba(43,210,184,.08),inset 0 0 0 10px rgba(43,210,184,.025)}
-.cinema-final-mark b{font:800 50px/1 Manrope}.cinema-final-mark span{font:600 8px/1.15 DM Mono;letter-spacing:.16em}
 /* R5 hand panel: mounted once per seat, only its copy is swapped (soft fade + small rise). */
 .cinema-final-read{border-top:1px solid rgba(93,163,150,.25);margin:13px 0 0;padding-top:11px;min-height:44px;text-align:left;color:var(--made-color);transition:color .4s ease,border-color .4s ease}
 .cinema-final-read-copy{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 12px;animation:cinema-soft-in calc(320ms * var(--final-beat,1)) ease-out both}
@@ -217,7 +226,6 @@
   .cinema-final-heading{padding-top:42px}.cinema-final-heading .cinema-controls{left:0;right:0;top:0;justify-content:space-between}
   .cinema-final-heading h2{font-size:clamp(24px,8vw,34px)}
   .cinema-final .cinema-seat,.cinema-final.cinema-intro .cinema-seat{min-height:124px;padding:12px 7px}
-  .cinema-final-mark{width:70px;height:70px;top:54%}.cinema-final-mark b{font-size:30px}
   .cinema-final .cinema-profile{font-size:11px}
   .cinema-final .cinema-victory{padding:2px 6px 1px;border-width:2px;font-size:11px}
   .cinema-final-read{padding-top:8px;margin-top:9px;min-height:38px}.cinema-final-read-copy{gap:3px 5px}

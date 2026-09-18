@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import type { MatchView, PresentationView, RevealedHand } from "../shared/protocol";
 import { CardBack, CardView } from "./CardView";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
-import { FINAL_REVEAL_STAGGER_MS, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
+import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
 import type { ServerClock } from "./serverClock";
@@ -57,6 +57,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const flags = revealFlags(frame.phase);
   const final = match.round === 5;
   const intro = frame.phase === "VS_INTRO";
+  const arenaEnter = frame.phase === "ARENA_ENTER";
   const multi = match.participantIds.length > 2;
   const finalWinnerStage = final && flags.winner;
 
@@ -96,14 +97,15 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const nextBatch = final ? finalNextBatch(frame.phase) : undefined;
   const phaseMs = (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
   const readStage = finalReadStage(frame.phase);
-  return <section className={`cinema ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${final ? "cinema-final" : ""} ${catchUp ? "cinema-catchup" : ""}`}
+  return <section className={`cinema ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${final ? "cinema-final" : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms`, "--final-beat": `${1 / speed}`, "--phase-duration": `${phaseMs / speed}ms` } as CSSProperties}>
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}><span className="eyebrow" key={final ? finalHeading.kicker : undefined}>{final ? finalHeading.kicker : `ROUND ${match.round} · MATCH ${match.matchday ? `${match.matchday}/3` : match.matchNumber}`}</span><h2>{final ? finalHeading.title : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
-    {final && <div className="cinema-final-mark" aria-hidden="true"><b>F</b><span>FINAL<br />TABLE</span></div>}
+    {final && <div className="cinema-final-arena" aria-hidden="true" style={{ "--arena-progress": arenaZoomProgress(elapsed) } as CSSProperties}>
+      <img src={FINAL_ARENA_IMAGE} alt="" /><i /></div>}
     <div className="cinema-seats">{ids.map((id, index) => {
       const result = results.find((r) => r.playerId === id);
       const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);

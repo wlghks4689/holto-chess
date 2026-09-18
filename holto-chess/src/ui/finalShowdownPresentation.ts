@@ -1,6 +1,7 @@
 import type { Card } from "../core/poker/cards";
 import { evaluatePartial, findBestFive, type HandValue } from "../core/poker/evaluate";
 import type { CinematicFrame, CinematicPhase } from "./cinematicTimeline";
+import { FINAL_ARENA_HOLD_MS, FINAL_ARENA_ZOOM_MS } from "../shared/presentationTimeline";
 
 /** R5 presentation helper. It only evaluates the cards already visible in the current frame. */
 export function visibleFinalHand(cards: readonly Card[], visibleCount: number): HandValue | undefined {
@@ -64,4 +65,23 @@ export function ordinalPlace(place: number | undefined): string {
   if (place === 2) return "2ND";
   if (place === 3) return "3RD";
   return place ? `${place}TH` : "—";
+}
+
+/** R5 arena artwork, preloaded before the final so the establishing shot never waits on the network. */
+export const FINAL_ARENA_IMAGE = "/assets/table/final-table.webp";
+let arenaPreload: HTMLImageElement | undefined;
+export function preloadFinalArena(): void {
+  if (arenaPreload || typeof Image === "undefined") return;
+  arenaPreload = new Image();
+  arenaPreload.src = FINAL_ARENA_IMAGE;
+  void arenaPreload.decode?.().catch(() => { /* the CSS fallback background covers a failed load */ });
+}
+
+/**
+ * Camera push-in progress (0 → 1) for the R5 arena, derived from the cinematic clock itself so speed,
+ * server sync, reconnects and stalls all land on the same framing. Ease-in-out cubic.
+ */
+export function arenaZoomProgress(elapsedMs: number): number {
+  const t = Math.min(1, Math.max(0, (elapsedMs - FINAL_ARENA_HOLD_MS) / FINAL_ARENA_ZOOM_MS));
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }

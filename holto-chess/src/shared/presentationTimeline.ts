@@ -1,10 +1,15 @@
 import type { MatchView } from "./protocol";
 
-export type CinematicPhase = "VS_INTRO" | "TABLE_ENTER" | "PREFLOP_HAND" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
+export type CinematicPhase = "ARENA_ENTER" | "VS_INTRO" | "TABLE_ENTER" | "PREFLOP_HAND" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
   | "TURN" | "TURN_SETTLE" | "TURN_HAND" | "RIVER_SUSPENSE" | "RIVER" | "RIVER_SETTLE" | "RIVER_HAND" | "BEST5_WAIT" | "FINAL_CARDS"
   | "FINAL_FIRST_REVEAL" | "FINAL_FIRST_HAND" | "FINAL_SECOND_REVEAL" | "FINAL_SECOND_HAND" | "FINAL_LAST_REVEAL" | "FINAL_SEVEN_SETTLE"
   | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
 export type CinematicFrame = { at: number; phase: CinematicPhase; boardIndex: number; revealed: number; finalCards: number; finalPlace?: number };
+
+/** R5 arena pre-roll: hold the full arena, push in toward the table, settle (see cinematic.css). */
+export const FINAL_ARENA_HOLD_MS = 400;
+export const FINAL_ARENA_ZOOM_MS = 1800;
+export const FINAL_ARENA_ENTER_MS = FINAL_ARENA_HOLD_MS + FINAL_ARENA_ZOOM_MS + 300;
 
 /** Milliseconds at 1x. Reveal starts are separate from completed flips and pauses. */
 export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards"> & { round?: number; results?: Pick<MatchView["results"][number], "place">[] }): CinematicFrame[] {
@@ -14,6 +19,8 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   const bestFive = () => {
     add("BEST5_GLOW", 500); add("MADE_HAND", 600);
   };
+  // R5 only: the Final Arena establishing shot and camera push-in play before the existing intro.
+  if (match.round === 5 && !match.boards.length) add("ARENA_ENTER", FINAL_ARENA_ENTER_MS);
   add("VS_INTRO", 1200);
   add("TABLE_ENTER", 400 );  if (match.round === 4 && match.boards.length) add("PREFLOP_HAND", 2000);
   if (!match.boards.length) {

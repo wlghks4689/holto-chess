@@ -15,6 +15,7 @@ import { getPrepPresentation } from "./prepPresentation";
 import { createServerClock } from "./serverClock";
 import { ShopCountdown } from "./ShopCountdown";
 import { LoadoutSockets } from "./LoadoutSockets";
+import { preloadFinalArena } from "./finalShowdownPresentation";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
@@ -64,6 +65,8 @@ export function OnlineApp() {
   const [credential, setCredential] = useState<SessionCredential | null>(activeSession);
   const [resumable, setResumable] = useState<SessionCredential[]>(() => storedSessions().filter((s) => s.roomId !== activeSession()?.roomId));
   const [view, setView] = useState<PlayerView | null>(null);
+  // Fetch the Final Arena artwork during the R5 shop so the final's establishing shot is instant.
+  useEffect(() => { if (view?.round === 5) preloadFinalArena(); }, [view?.round]);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState("");
   const [roomCode, setRoomCode] = useState("");
