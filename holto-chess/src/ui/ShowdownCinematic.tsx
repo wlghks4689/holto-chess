@@ -3,12 +3,29 @@ import type { CSSProperties } from "react";
 import type { MatchView, RevealedHand } from "../shared/protocol";
 import { CardBack, CardView } from "./CardView";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
+import { visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
 import "./cinematic.css";
 
 type Profile = { playerId: string; name: string };
 type Props = { match: MatchView; profiles: Profile[]; viewerId: string; onComplete: () => void };
+
+function finalStageCopy(frame: CinematicFrame) {
+  if (["FINAL_FIRST_REVEAL", "FINAL_FIRST_HAND"].includes(frame.phase)) return { kicker: "FIRST REVEAL", title: "CURRENT HAND", caption: "첫 3장으로 만들어진 현재의 흐름" };
+  if (["FINAL_SECOND_REVEAL", "FINAL_SECOND_HAND"].includes(frame.phase)) return { kicker: "SECOND REVEAL", title: "CURRENT BEST", caption: "5장 공개 · 현재 공개 카드만으로 판정" };
+  if (["FINAL_LAST_REVEAL", "FINAL_SEVEN_SETTLE"].includes(frame.phase)) return { kicker: "RIVER REVEAL", title: "FINAL SEVEN", caption: "마지막 두 장이 공개되었습니다" };
+  if (["BEST5_GLOW", "MADE_HAND"].includes(frame.phase)) return { kicker: "BEST 5 CONFIRMED", title: "FINAL HANDS", caption: "최종 7장 중 가장 강한 5장" };
+  if (frame.phase === "FINAL_PLACE") return { kicker: "PLACEMENT RESOLUTION", title: "THE TABLE DECIDES", caption: "4TH → 3RD → 2ND" };
+  return undefined;
+}
+
+function ordinalPlace(place: number | undefined): string {
+  if (place === 1) return "1ST";
+  if (place === 2) return "2ND";
+  if (place === 3) return "3RD";
+  return place ? `${place}TH` : "—";
+}
 
 function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame: CinematicFrame; viewerId: string; name: (id: string) => string }) {
   if (match.runoutCount !== 2) return null;
@@ -47,6 +64,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
   const final = match.round === 5;
   const intro = frame.phase === "VS_INTRO";
   const multi = match.participantIds.length > 2;
+  const finalWinnerStage = final && flags.winner;
 
   useEffect(() => {
     if (frame.phase === "COMPLETE") return;
@@ -64,7 +82,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
   const streetIndex = displayedStreetIndex(frame.phase);
   const streetSnapshot = match.streetSnapshots?.[frame.boardIndex]?.[streetIndex];
   const streetName = ["프리플랍", "플랍", "턴", "리버"][streetIndex];
-  const winners = flags.result || final ? match.winnerIds : match.boardWinnerIds[frame.boardIndex] ?? [];
+  const winners = final ? finalWinnerStage ? match.winnerIds : [] : flags.result ? match.winnerIds : match.boardWinnerIds[frame.boardIndex] ?? [];
   const focus = results.find((r) => r.playerId === focusId) ?? results.find((r) => winners.includes(r.playerId)) ?? results[0];
   const board = match.boards[frame.boardIndex] ?? [];
   const ids = [...match.participantIds].sort((a, b) => {
@@ -80,13 +98,23 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
     : [frame.boardIndex];
 
   const labelFor = (id: string, result: RevealedHand) => detailedHandLabel(result.category, result.kickers, match.revealedCards[id] ?? [], result.usedCardIds);
+  const stageCopy = final ? finalStageCopy(frame) : undefined;
+  const champion = match.results.find((result) => match.winnerIds.includes(result.playerId));
+  const championLabel = champion ? labelFor(champion.playerId, champion) : undefined;
+  const championReward = match.rewards.find((reward) => match.winnerIds.includes(reward.playerId));
+  const finalHeading = frame.phase === "FINAL_WINNER"
+    ? { kicker: "CHAMPION", title: champion ? name(champion.playerId) : "WINNER", caption: championLabel?.title ?? "FINAL WINNER" }
+    : frame.phase === "REWARD" || frame.phase === "COMPLETE"
+      ? { kicker: "REWARD SETTLEMENT", title: `${(championReward?.deltaPoints ?? 0) >= 0 ? "+" : ""}${Number((championReward?.deltaPoints ?? 0).toFixed(2))} POINT`, caption: "1ST PLACE · 승점 지급 완료" }
+      : stageCopy ?? { kicker: "FINAL TABLE", title: "FINAL SHOWDOWN", caption: `${match.participantIds.length} PLAYERS · BEST 5 OF 7 · NO BOARD` };
   return <section className={`cinema ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${final ? "cinema-final" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms` } as CSSProperties}>
-    <header className="cinema-heading"><div><span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : match.matchNumber}</span><h2>{title}</h2></div>
+    <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div><span className="eyebrow">{final ? finalHeading.kicker : `ROUND ${match.round} · MATCH ${match.matchday ? `${match.matchday}/3` : match.matchNumber}`}</span><h2>{final ? finalHeading.title : title}</h2>{final && <p>{finalHeading.caption}</p>}</div>
       <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div></header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
+    {final && <div className="cinema-final-mark" aria-hidden="true"><b>F</b><span>FINAL<br />TABLE</span></div>}
     <div className="cinema-seats">{ids.map((id, index) => {
       const result = results.find((r) => r.playerId === id);
       const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);
@@ -98,12 +126,18 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
       const ledger = match.rewards.find((reward) => reward.playerId === id);
       const reward = match.rewards.find((r) => r.playerId === id);
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
-      const madeClass = flags.glow && result ? `cinema-made-fx ${won ? "cinema-leading" : "cinema-trailing"}` : "";
-      return <div key={id} className={`cinema-seat ${flags.profile ? won ? "cinema-winner" : "cinema-loser" : ""} made-${tone} ${madeClass}`}>
+      const currentPlaceVisible = final && frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && !!result && result.place >= frame.finalPlace;
+      const placementClass = final ? finalWinnerStage ? won ? "cinema-winner" : "cinema-loser" : currentPlaceVisible ? "cinema-final-resolved" : "" : flags.profile ? won ? "cinema-winner" : "cinema-loser" : "";
+      const madeClass = flags.glow && result ? final && !finalWinnerStage ? "cinema-made-fx" : `cinema-made-fx ${won ? "cinema-leading" : "cinema-trailing"}` : "";
+      const interimHand = final && ["FINAL_FIRST_HAND", "FINAL_SECOND_HAND"].includes(frame.phase) ? visibleFinalHand(cards, frame.finalCards) : undefined;
+      const interimLabel = interimHand ? detailedHandLabel(interimHand.category, interimHand.kickers, cards.slice(0, frame.finalCards), interimHand.bestFive.map((card) => card.id)) : undefined;
+      const showFinalPlace = currentPlaceVisible || finalWinnerStage;
+      return <div key={id} className={`cinema-seat ${placementClass} made-${tone} ${madeClass}`}>
         {intro && !multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L · POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
-          {flags.result && <span className="cinema-victory">{final ? `${result?.place ?? "—"}위` : won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
+          {final && showFinalPlace && <span className="cinema-victory">{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
+          {!final && flags.result && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
           {flags.runResult && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
         <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {
           const visible = !final || (!intro && cardIndex < frame.finalCards);
@@ -111,10 +145,13 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
           return <div className={visible ? "cinema-card-open" : "cinema-card-hidden"} key={`${card.id}-${visible}`}>
             {visible ? <CardView card={card} compact glow={flags.glow && used} dimmed={flags.holeDim && !used} /> : <CardBack compact />}</div>;
         })}</div>
+        {interimLabel && <div className="cinema-final-current"><small>{frame.finalCards === 3 ? "CURRENT HAND" : "CURRENT BEST"}</small><strong>{interimLabel.title}</strong>{interimLabel.kicker && <em>({interimLabel.kicker})</em>}</div>}
         {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
-        {flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
+        {flags.made && label && <div className="cinema-made">{final && <span>FINAL BEST 5</span>}<strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {flags.glow && board.length > 0 && result && <button className="cinema-focus" aria-pressed={focus?.playerId === id} onClick={() => setFocusId(id)}>BEST 5 확인{match.round === 3 ? " · 홀 2 + 보드 3" : ""}</button>}
-        {flags.reward && reward && <div className="cinema-reward"><strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> 승점 {Number(reward.deltaPoints.toFixed(2))}점 획득</strong>{reward.detail && <small>{reward.detail}</small>}</div>}
+        {flags.reward && reward && <div className="cinema-reward">{final
+          ? <strong>{result?.place === 1 ? "WINNER" : "PLACEMENT"} REWARD <i>·</i> {reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))} POINT</strong>
+          : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> 승점 {Number(reward.deltaPoints.toFixed(2))}점 획득</strong>}{reward.detail && <small>{reward.detail}</small>}</div>}
       </div>;
     })}</div>
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
@@ -137,7 +174,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete }: Pro
         })}</div>
       </div>;
     })}</div>}
-    <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? "보상 지급 완료" : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? "THE LAST HAND" : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}
+    <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? "보상 지급 완료" : final && frame.phase === "FINAL_WINNER" ? "WINNER" : final && frame.phase === "FINAL_PLACE" ? `${frame.finalPlace}위 확정` : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? finalHeading.title : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}
       {frame.phase === "COMPLETE" && <button className="primary" onClick={onComplete}>결과 확인 →</button>}</footer>
   </section>;
 }

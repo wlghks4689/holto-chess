@@ -1,9 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { makeDeck } from "../core/poker/cards";
+import { makeDeck, type Card } from "../core/poker/cards";
 import type { MatchView } from "../shared/protocol";
 import { CinematicGate, ShowdownCinematic } from "./ShowdownCinematic";
+import { visibleFinalHand } from "./finalShowdownPresentation";
 
 const deck = makeDeck();
 const match: MatchView = {
@@ -16,6 +17,16 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("evaluates only the R5 cards revealed at each step", () => {
+    const cards: Card[] = [
+      { id: "9h", rank: 9, suit: "h" }, { id: "9c", rank: 9, suit: "c" }, { id: "Kd", rank: 13, suit: "d" },
+      { id: "5d", rank: 5, suit: "d" }, { id: "Kh", rank: 13, suit: "h" },
+      { id: "Kc", rank: 13, suit: "c" }, { id: "5s", rank: 5, suit: "s" },
+    ];
+    expect(visibleFinalHand(cards, 3)?.category).toBe("PAIR");
+    expect(visibleFinalHand(cards, 5)?.category).toBe("TWO_PAIR");
+    expect(visibleFinalHand(cards, 7)?.category).toBe("FULL_HOUSE");
+  });
   it("shows the Swiss matchday and pre-match record without leaking later points", () => {
     const swiss: MatchView = { ...match, round: 1, matchday: 2, participantIds: ["p1", "p2"],
       swissBefore: { p1: { wins: 1, draws: 0, losses: 0, score: 1 } },

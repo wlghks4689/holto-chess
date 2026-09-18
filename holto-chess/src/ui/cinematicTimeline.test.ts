@@ -35,12 +35,17 @@ describe("showdown reveal timing", () => {
     expect(timeline.filter((f) => f.phase === "TABLE_ENTER")).toHaveLength(1);
     expect(timeline.filter((f) => f.phase === "REWARD")).toHaveLength(1);
   });
-  it("reveals the four final hands in parallel at 110ms and never creates a board", () => {
-    const timeline = cinematicTimeline({ boards: [], revealedCards: Object.fromEntries([0, 1, 2, 3].map((i) => [`p${i}`, deck.slice(i * 7, i * 7 + 7)])) });
-    const reveals = timeline.filter((f) => f.phase === "FINAL_CARDS");
-    expect(reveals.map((f) => f.finalCards)).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    expect(reveals[1].at - reveals[0].at).toBe(110);
+  it("reveals R5 as 3, then 5, then 7 cards before BEST5 and resolves lower places before the winner", () => {
+    const timeline = cinematicTimeline({ round: 5, boards: [], revealedCards: Object.fromEntries([0, 1, 2, 3].map((i) => [`p${i}`, deck.slice(i * 7, i * 7 + 7)])),
+      results: [{ place: 1 }, { place: 2 }, { place: 3 }, { place: 4 }] });
+    const reveals = timeline.filter((f) => ["FINAL_FIRST_REVEAL", "FINAL_SECOND_REVEAL", "FINAL_LAST_REVEAL"].includes(f.phase));
+    expect(reveals.map((f) => f.finalCards)).toEqual([3, 5, 7]);
     expect(timeline.some((f) => f.phase === "FLOP_1" || f.phase === "RIVER")).toBe(false);
-    expect(timeline.find((f) => f.phase === "BEST5_GLOW")!.at - timeline.find((f) => f.phase === "BEST5_WAIT")!.at).toBe(800);
+    expect(timeline.filter((f) => f.phase === "FINAL_PLACE").map((f) => f.finalPlace)).toEqual([4, 3, 2]);
+    expect(timeline.findIndex((f) => f.phase === "BEST5_GLOW")).toBeLessThan(timeline.findIndex((f) => f.phase === "FINAL_PLACE"));
+    expect(timeline.findIndex((f) => f.phase === "FINAL_WINNER")).toBeLessThan(timeline.findIndex((f) => f.phase === "REWARD"));
+    for (const frame of timeline.filter((f) => f.at < timeline.find((item) => item.phase === "BEST5_GLOW")!.at)) {
+      expect(revealFlags(frame.phase).glow).toBe(false);
+    }
   });
 });

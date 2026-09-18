@@ -14,6 +14,30 @@
 .cinema-seats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px}
 .cinema-multi .cinema-seats{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .cinema-final .cinema-seats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cinema-final{position:relative;overflow:hidden;background:
+  linear-gradient(90deg,transparent 0 16%,rgba(81,230,205,.035) 16% 17%,transparent 17% 39%,rgba(81,230,205,.045) 39% 40%,transparent 40% 60%,rgba(81,230,205,.045) 60% 61%,transparent 61% 83%,rgba(81,230,205,.035) 83% 84%,transparent 84%),
+  radial-gradient(ellipse at 50% 42%,#0d4038 0%,#06231d 42%,#020b09 82%)}
+.cinema-final-heading{position:relative;z-index:2;justify-content:center;text-align:center;margin-bottom:24px}
+.cinema-final-heading>div:first-child{max-width:760px}.cinema-final-heading h2{font-size:clamp(28px,5vw,52px);line-height:1;margin:12px 0;letter-spacing:-.035em}
+.cinema-final-heading p{margin:0;color:#7f9d94;font:500 10px DM Mono;letter-spacing:.12em;text-transform:uppercase}
+.cinema-final-heading .cinema-controls{position:absolute;right:0;top:0}
+.cinema-final .cinema-seats{position:relative;z-index:2;gap:22px}
+.cinema-final .cinema-seat{min-height:150px;text-align:left;background:rgba(4,28,24,.82);border-color:#1d5b53;padding:17px 18px}
+.cinema-final .cinema-profile{justify-content:flex-start;margin-bottom:14px;font-size:14px}
+.cinema-final .cinema-hole-cards{justify-content:flex-start}
+.cinema-final-mark{position:absolute;z-index:1;left:50%;top:52%;width:112px;height:112px;border:1px solid rgba(107,236,216,.2);border-radius:50%;display:grid;place-content:center;text-align:center;transform:translate(-50%,-50%);color:rgba(113,237,217,.26);box-shadow:0 0 35px rgba(43,210,184,.08),inset 0 0 0 10px rgba(43,210,184,.025)}
+.cinema-final-mark b{font:800 50px/1 Manrope}.cinema-final-mark span{font:600 8px/1.15 DM Mono;letter-spacing:.16em}
+.cinema-final-current,.cinema-final .cinema-made{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 12px;border-top:1px solid rgba(93,163,150,.25);margin:13px 0 0;padding-top:11px;text-align:left;color:var(--made-color);animation:cinema-hand-update .25s ease-out both}
+.cinema-final-current small,.cinema-final .cinema-made span{grid-column:1;color:#70b9ad;font:500 9px DM Mono;letter-spacing:.13em}
+.cinema-final-current strong,.cinema-final .cinema-made strong{grid-column:2;grid-row:1 / span 2;font-size:clamp(14px,2vw,20px);text-align:right}
+.cinema-final .cinema-made small{grid-column:1;color:#8aa79e;font:500 9px DM Mono}
+.cinema-final-current em{grid-column:1 / -1;color:#8aa79e;font:500 9px DM Mono;font-style:normal}
+.cinema-final-resolved{opacity:.52;filter:saturate(.7)}
+.cinema-final .cinema-victory{position:absolute;right:16px;top:14px;width:auto;font-size:23px;color:#8ba59d}
+.cinema-final .cinema-winner{border-color:#f0d37c;background:rgba(25,47,37,.94);box-shadow:0 0 25px rgba(240,211,124,.18)}
+.cinema-final .cinema-winner .cinema-victory,.cinema-final .cinema-winner .cinema-made{color:#f4d77f}
+.cinema-final .cinema-loser{opacity:.46;filter:saturate(.65)}
+.cinema-final .cinema-reward{text-align:left}.cinema-final .cinema-reward strong{text-align:left;color:#f4d77f}
 .cinema-seat{position:relative;min-width:0;text-align:center;border:1px solid #365345;border-radius:12px;padding:18px 12px;background:#0a1d15;--made-color:#84f5b6;transition:background .3s,border-color .3s,box-shadow .3s}
 .cinema-profile{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;min-height:30px;margin-bottom:18px;font-size:15px}
 .cinema-profile b{overflow-wrap:anywhere}
@@ -151,6 +175,14 @@
   .cinema-hole-cards .playing-card.compact .card-rank{font-size:13px}
   .cinema-hole-cards .playing-card.compact .card-suit{font-size:19px}
   .cinema-final .cinema-seats{gap:8px}
+  .cinema-final-heading{padding-top:42px}.cinema-final-heading .cinema-controls{left:0;right:0;top:0;justify-content:space-between}
+  .cinema-final-heading h2{font-size:clamp(24px,8vw,34px)}
+  .cinema-final .cinema-seat{min-height:124px;padding:12px 7px}
+  .cinema-final-mark{width:70px;height:70px;top:54%}.cinema-final-mark b{font-size:30px}
+  .cinema-final .cinema-profile{padding-right:24px;font-size:11px}
+  .cinema-final .cinema-victory{right:7px;top:10px;font-size:15px}
+  .cinema-final-current,.cinema-final .cinema-made{gap:3px 5px;padding-top:8px;margin-top:9px}
+  .cinema-final-current strong,.cinema-final .cinema-made strong{font-size:11px}
   .cinema-final .playing-card.compact{width:clamp(15px,4.2vw,25px);height:clamp(27px,6.6vw,39px);border-radius:4px;padding:2px}
   .cinema-final .playing-card.compact .card-rank{font-size:11px}
   .cinema-final .playing-card.compact .card-suit{font-size:14px}
