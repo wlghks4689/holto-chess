@@ -1,0 +1,28 @@
+.loadout{display:grid;gap:22px;margin-top:28px}
+.loadout .loadout-games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.loadout .loadout-game{--game-color:#84f5b6;border:1px solid color-mix(in srgb,var(--game-color) 30%,transparent);border-radius:12px;padding:14px 14px 18px;background:color-mix(in srgb,var(--game-color) 5%,transparent)}
+.loadout .loadout-game.game-2{--game-color:#7cc7ff}
+.loadout .loadout-game header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.loadout .loadout-game header b{color:var(--game-color);font:800 14px Manrope;letter-spacing:.14em}
+.loadout .loadout-game header small{color:#8aa6a0;font:500 11px DM Mono}
+.loadout .loadout-sockets{display:flex;justify-content:center;gap:12px}
+.loadout .loadout-socket{border-radius:10px;transition:transform .15s ease}
+.loadout .loadout-empty{display:grid;place-items:center;padding:0;background:transparent;border:2px dashed color-mix(in srgb,var(--game-color) 45%,transparent);color:color-mix(in srgb,var(--game-color) 70%,transparent);box-shadow:none;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.loadout .loadout-empty span{font:300 30px/1 Manrope}
+.loadout .loadout-empty:hover,.loadout .loadout-socket.is-target .loadout-empty{border-color:var(--game-color);background:color-mix(in srgb,var(--game-color) 10%,transparent)}
+.loadout .loadout-socket.is-armed .loadout-empty{border-style:solid;border-color:var(--game-color);background:color-mix(in srgb,var(--game-color) 16%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--game-color) 40%,transparent)}
+.loadout .loadout-socket.is-target.is-filled{transform:translateY(-2px)}
+.loadout .loadout-socket.is-target.is-filled .playing-card:not(.selected){box-shadow:0 0 0 2px color-mix(in srgb,var(--game-color) 55%,transparent)}
+.loadout .loadout-hand{border-top:1px solid rgba(132,245,182,.14);padding-top:16px}
+.loadout .loadout-hand header{display:flex;align-items:center;justify-content:center;gap:12px;min-height:30px}
+.loadout .loadout-hand header small{color:#8aa6a0;font:600 10px DM Mono;letter-spacing:.12em}
+.loadout .loadout-return{font-size:11px;padding:6px 10px}
+.loadout .loadout-hand .card-row{margin-top:12px;min-height:93px}
+.loadout .loadout-hand-empty{margin:0;align-self:center;color:#6f8d82;font-size:12px}
+.loadout .loadout-hint{margin:0;color:#9cc0b1;font-size:12px}
+.loadout.is-disabled{opacity:.6;pointer-events:none}
+@media(max-width:620px){
+  .loadout .loadout-games{gap:10px}
+  .loadout .loadout-game{padding:10px 8px 12px}
+  .loadout .loadout-sockets{gap:6px}
+}

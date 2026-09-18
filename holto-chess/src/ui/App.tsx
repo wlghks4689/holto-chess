@@ -20,6 +20,7 @@ import { RoundResults } from "./RoundResults";
 import { createRoundSummary, roundMatches } from "../game/roundSummary";
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
+import { LoadoutSockets } from "./LoadoutSockets";
 
 const displayPoints = (value: number) => Number(value.toFixed(2));
 
@@ -94,9 +95,19 @@ function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: H
   </section>;
 }
 
+/** Replays an ordered loadout through the engine's own toggle, so selection rules stay in one place. */
+function applyLoadout(source: HoltoChessGameState, playerId: string, selection: string[] | null): HoltoChessGameState {
+  let state = source;
+  for (const id of [...state.players.find((p) => p.id === playerId)!.selectedCardIds]) state = toggleSelectedCard(state, playerId, id);
+  for (const id of selection ?? []) state = toggleSelectedCard(state, playerId, id);
+  return state;
+}
+
 function SelectPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
   const me = state.players[0]!;
   const r3 = state.round === 3;
+  if (r3) return <section className="panel select-panel"><span className="eyebrow">ROUND 3 · LOADOUT</span><h2>Game 1과 Game 2 소켓에 카드를 배치하세요</h2><p>게임마다 2장씩 사용합니다. 두 게임은 서로 다른 보드로 진행됩니다.</p>
+    <LoadoutSockets cards={me.ownedCardIds.map((id) => getCard(state, id))} selectedCardIds={me.selectedCardIds} onChange={(selection) => act((s) => applyLoadout(s, me.id, selection))} /></section>;
   return <section className="panel select-panel"><span className="eyebrow">ROUND {state.round} · LOADOUT</span><h2>{r3 ? "Game 1과 Game 2에 사용할 카드를 순서대로 선택하세요" : "Run It Twice에 사용할 2장을 선택하세요"}</h2><p>{r3 ? "먼저 고른 2장은 Game 1, 다음 2장은 Game 2에 배정됩니다. 두 게임은 서로 다른 보드로 진행됩니다." : "선택하지 않은 카드는 계속 소유합니다. 두 보드와 Sudden Death에서도 같은 홀카드를 사용합니다."}</p><div className="card-row centered">{me.ownedCardIds.map((id) => { const index = me.selectedCardIds.indexOf(id); const footer = index < 0 ? "선택" : r3 ? index < 2 ? "GAME 1" : "GAME 2" : "선택됨"; return <CardView key={id} card={getCard(state, id)} selected={index >= 0} onClick={() => act((s) => toggleSelectedCard(s, me.id, id))} footer={footer} />; })}</div></section>;
 }
 

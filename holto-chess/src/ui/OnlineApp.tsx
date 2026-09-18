@@ -14,6 +14,7 @@ import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 import { createServerClock } from "./serverClock";
 import { ShopCountdown } from "./ShopCountdown";
+import { LoadoutSockets } from "./LoadoutSockets";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
@@ -50,8 +51,14 @@ function OnlineMatch({ match, view }: { match: MatchView; view: PlayerView }) {
 }
 function Selection({ view, send, disabled }: { view: PlayerView; send: (a: GameAction) => void; disabled: boolean }) {
   const [selected, setSelected] = useState(view.me.selectedCardIds);
-  const required = view.round === 3 ? 4 : 2;
-  return <section className="panel select-panel"><h2>{view.round === 3 ? "R3 · Game 1 / Game 2 카드 분할" : "R2 출전 카드 2장"}</h2>{view.round === 3 && <p>먼저 고른 2장은 Game 1, 다음 2장은 Game 2에 배정됩니다.</p>}<div className="card-row centered">{view.me.ownedCards.map((card) => { const index = selected.indexOf(card.id); const footer = index < 0 ? "선택" : view.round === 3 ? index < 2 ? "GAME 1" : "GAME 2" : "선택됨"; return <CardView key={card.id} card={card} selected={index >= 0} footer={footer} onClick={() => setSelected((ids) => ids.includes(card.id) ? ids.filter((id) => id !== card.id) : ids.length < required ? [...ids, card.id] : ids)} />; })}</div><button className="secondary" disabled={disabled || selected.length !== required} onClick={() => send({ type: "SELECT_CARDS", cardIds: selected })}>출전 선택 저장</button><p className="hint">서버에 저장된 선택: {view.me.selectedCardIds.join(", ") || "없음"}</p></section>;
+  if (view.round === 3) {
+    const saved = selected.length === 4 && selected.join() === view.me.selectedCardIds.join();
+    return <section className="panel select-panel"><span className="eyebrow">ROUND 3 · LOADOUT</span><h2>Game 1과 Game 2 소켓에 카드를 배치하세요</h2><p>게임마다 2장씩 사용합니다. 두 게임은 서로 다른 보드로 진행됩니다.</p>
+      <LoadoutSockets cards={view.me.ownedCards} selectedCardIds={view.me.selectedCardIds} disabled={disabled} onChange={(selection) => setSelected(selection ?? [])} />
+      <button className="secondary" disabled={disabled || selected.length !== 4 || saved} onClick={() => send({ type: "SELECT_CARDS", cardIds: selected })}>{saved ? "배치 저장됨 ✓" : "배치 저장"}</button></section>;
+  }
+  const required = 2;
+  return <section className="panel select-panel"><h2>R2 출전 카드 2장</h2><div className="card-row centered">{view.me.ownedCards.map((card) => { const index = selected.indexOf(card.id); const footer = index < 0 ? "선택" : "선택됨"; return <CardView key={card.id} card={card} selected={index >= 0} footer={footer} onClick={() => setSelected((ids) => ids.includes(card.id) ? ids.filter((id) => id !== card.id) : ids.length < required ? [...ids, card.id] : ids)} />; })}</div><button className="secondary" disabled={disabled || selected.length !== required} onClick={() => send({ type: "SELECT_CARDS", cardIds: selected })}>출전 선택 저장</button><p className="hint">서버에 저장된 선택: {view.me.selectedCardIds.join(", ") || "없음"}</p></section>;
 }
 export function OnlineApp() {
   const [credential, setCredential] = useState<SessionCredential | null>(activeSession);
