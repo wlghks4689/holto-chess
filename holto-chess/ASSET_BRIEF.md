@@ -16,6 +16,8 @@
 |---|---|---|:--:|---|
 | 1 | `assets/table/main-table.webp` | 1920×1080 | 아니오 | **적용 완료.** 게임 진행 중 배경 |
 | 2 | `assets/table/final-table.webp` | 1672×941 | 아니오 | **적용 완료.** R5 Final Arena 배경 (진입 시 중앙 투기장으로 줌인) |
+| 2a | `assets/table/showdown-arena-1.webp` | 1672×941 | 아니오 | **적용 완료.** R1·R3 쇼다운 배경 (석상·관중석) |
+| 2b | `assets/table/showdown-arena-2.webp` | 1672×941 | 아니오 | **적용 완료.** R2·R4 쇼다운 배경 (폭포·계단) |
 | 3 | `assets/cards/card-back.webp` | 240×336 | 아니오 | 카드 뒷면 (시네마틱 공개 전) |
 | 4 | `assets/frames/avatar-frame.webp` | 128×128 | 예 | 플레이어 칩 프로필 테두리 |
 | 5 | `assets/frames/avatar-frame-winner.webp` | 128×128 | 예 | 매치 승자 강조 테두리 |

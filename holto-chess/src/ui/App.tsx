@@ -22,6 +22,7 @@ import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 import { LoadoutSockets } from "./LoadoutSockets";
 import { preloadFinalArena } from "./finalShowdownPresentation";
+import { preloadShowdownStage } from "./showdownStage";
 
 const displayPoints = (value: number) => Number(value.toFixed(2));
 
@@ -163,7 +164,7 @@ function ActionBar({ state, act, reset }: { state: HoltoChessGameState; act: (fn
 
 export function App() {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
-  useEffect(() => { if (state.round === 5) preloadFinalArena(); }, [state.round]);
+  useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
   const act = (fn: (s: HoltoChessGameState) => HoltoChessGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
