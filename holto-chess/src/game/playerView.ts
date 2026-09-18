@@ -4,11 +4,12 @@ import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapsho
 import type { PlayerView } from "../shared/protocol";
 import type { Augment } from "./types";
 import { createMatchView } from "./matchView";
+import { matchesVisible, presentationViewFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
 
 function publicAugment(a: Augment): Augment { return { id: a.id, name: a.name, description: a.description, suit: a.suit, category: a.category }; }
 
-export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, connectedIds: readonly string[] = []): PlayerView {
+export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, connectedIds: readonly string[] = [], now = Date.now()): PlayerView {
   if (!humanIds(room).includes(viewerPlayerId)) throw new Error("Unknown viewer");
   const g = room.game;
   const me = g.players.find((p) => p.id === viewerPlayerId)!;
@@ -16,10 +17,11 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   // Without this the shop shows nobody as ready even once they have committed.
   const readyInPhase = (playerId: string): boolean =>
     room.status === "PLAYING" && g.phase === "SHOP" ? room.endedShopIds.includes(playerId) : room.readyIds.includes(playerId);
-  const visible = room.status === "PLAYING" && ["GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "GAME_RESULT"].includes(g.phase);
+  const visible = matchesVisible(room);
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
     gameId: room.roomId, roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),
+    serverNow: now, presentation: presentationViewFor(room, viewerPlayerId),
     status: room.status, round: g.round, phase: room.status === "LOBBY" ? "LOBBY" : g.phase,
     humanCount: room.sessions.length, capacity: 8,
     barrierEndsAt: barrierDeadline(room), waitingOn: pendingBarrierIds(room),

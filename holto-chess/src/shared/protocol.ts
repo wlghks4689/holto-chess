@@ -33,9 +33,17 @@ export type MatchView = {
   pointAwards?: Record<string, number>; pointAwardDetails?: Record<string, string>;
   revealedCards: Record<string, Card[]>;
 };
-export type RoundSummaryRow = { playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number; eliminated: boolean };
+/** One match in a seat's playback order, relative to the shared presentation start. */
+export type PresentationEntry = { matchId: string; offsetMs: number; durationMs: number };
+/** Server-clock schedule for the current showdown set: same startsAt/endsAt for every seat. */
+export type PresentationView = { version: number; startsAt: number; endsAt: number; matches: PresentationEntry[] };
+export type RoundSummaryRow ={ playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number; eliminated: boolean };
 export type PlayerView = {
   gameId: string; roomId: string; revision: number; turnKey: string;
+  /** Server epoch ms when this view was built; clients estimate their clock offset from it. */
+  serverNow: number;
+  /** Present while showdown matches are visible; drives synchronized cinematic playback. */
+  presentation?: PresentationView;
   status: "LOBBY" | "PLAYING"; round: Round; phase: Phase | "LOBBY";
   humanCount: number; capacity: number;
   /** Epoch ms this phase auto-advances without the remaining players, if it is waiting. */

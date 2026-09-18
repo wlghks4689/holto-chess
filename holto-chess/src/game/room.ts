@@ -3,6 +3,7 @@ import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
 import { beginSecondary, buyCard, choicesFor, createGame, getCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
 import { pickBotAugment } from "./botStrategy";
+import { syncPresentation, type PresentationSchedule } from "./presentation";
 import type { Augment, HoltoChessGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 
@@ -16,6 +17,8 @@ export type RoomSnapshot = {
   /** Epoch ms the current barrier began waiting; drives the auto-ready alarm. */
   barrierSince?: number;
   barrierKey?: string;
+  /** Shared cinematic schedule for the visible showdown set (server clock). */
+  presentation?: PresentationSchedule;
 };
 
 /**
@@ -65,9 +68,13 @@ function refreshBarrier(room: RoomSnapshot, now: number): void {
   room.barrierSince = pendingBarrierIds(room).length ? now : undefined;
 }
 
-/** Epoch ms the barrier may be forced past, or undefined when nothing is waiting. */
+/**
+ * Epoch ms the barrier may be forced past, or undefined when nothing is waiting. The clock never
+ * runs during the shared cinematic: it counts from whichever is later, the barrier or its end.
+ */
 export function barrierDeadline(room: RoomSnapshot): number | undefined {
-  return room.barrierSince === undefined ? undefined : room.barrierSince + barrierTimeoutMs(room.game.phase);
+  if (room.barrierSince === undefined) return undefined;
+  return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + barrierTimeoutMs(room.game.phase);
 }
 export function addSession(source: RoomSnapshot, tokenHash: string): { room: RoomSnapshot; playerId: string } {
   if (source.status !== "LOBBY" || source.sessions.length >= 8) throw new Error("입장할 수 없는 방입니다.");
@@ -187,6 +194,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     }
   }
   settleBarrier(room);
+  syncPresentation(room, now);
   refreshBarrier(room, now);
   assertPoolIntegrity(room.game);
   room.revision++;
@@ -220,6 +228,7 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
     advanceReadyBarrier(room);
   }
   settleBarrier(room);
+  syncPresentation(room, now);
   refreshBarrier(room, now);
   assertPoolIntegrity(room.game);
   room.revision++;

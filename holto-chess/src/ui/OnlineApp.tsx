@@ -12,6 +12,7 @@ import { RoundResults } from "./RoundResults";
 import { activeSession, forgetSession, rememberSession, storedSessions } from "./sessionStore";
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
+import { createServerClock } from "./serverClock";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
@@ -65,6 +66,8 @@ export function OnlineApp() {
   const [spectating, setSpectating] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const socket = useRef<WebSocket | null>(null);
+  // One clock per tab: every received view refines the server-time estimate used by the cinematic.
+  const [serverClock] = useState(createServerClock);
   const pendingRequest = useRef<{ id: string; type: string; revision?: number; timer: ReturnType<typeof setTimeout> } | null>(null);
   const clearPending = () => {
     if (pendingRequest.current) clearTimeout(pendingRequest.current.timer);
@@ -96,6 +99,7 @@ export function OnlineApp() {
         if (import.meta.env.DEV && new URLSearchParams(location.search).has("inspect") && message.type === "PLAYER_VIEW") console.debug("[Holto WS received]", JSON.stringify(message));
         if (message.type === "ROOM_JOINED") { setStatus("Connected"); attempts = 0; setError(""); }
         if (message.type === "PLAYER_VIEW") {
+          serverClock.observe(message.payload.serverNow);
           setView(message.payload);
           if (pendingRequest.current?.revision !== undefined && message.payload.revision >= pendingRequest.current.revision) clearPending();
         }
@@ -114,7 +118,7 @@ export function OnlineApp() {
     };
     connect();
     return () => { disposed = true; clearTimeout(timer); clearPending(); socket.current?.close(1000, "Leaving view"); socket.current = null; };
-  }, [credential, connectionKey]);
+  }, [credential, connectionKey, serverClock]);
 
   const join = async (create: boolean) => {
     if (!/^[\p{L}\p{N} _-]{1,16}$/u.test(nickname.trim())) { setError("닉네임은 문자·숫자 1~16자로 입력하세요."); return; }
@@ -170,7 +174,7 @@ export function OnlineApp() {
   const guideKey = view ? `${view.gameId}:${view.round}` : null;
   const showGuide = view && view.phase !== "LOBBY" && dismissedGuide !== guideKey;
   const prep = view && view.phase !== "LOBBY" ? getPrepPresentation(view.round, view.phase) : null;
-  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""}><main className={view && view.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}>{showGuide ? <RoundGuide round={view.round} secondsLeft={secondsLeft} onClose={() => setDismissedGuide(guideKey)} /> : null}<nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></a>{view && view.phase !== "LOBBY" ? <RoundProgress round={view.round} prep={prep} /> : <span />}<div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div></nav>
+  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""} presentation={view?.presentation} clock={serverClock}><main className={view && view.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}>{showGuide ? <RoundGuide round={view.round} secondsLeft={secondsLeft} onClose={() => setDismissedGuide(guideKey)} /> : null}<nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></a>{view && view.phase !== "LOBBY" ? <RoundProgress round={view.round} prep={prep} /> : <span />}<div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div></nav>
     <div className="page-shell" id="top">
       <section className="panel room-panel"><header className="room-panel-heading"><div><span className="eyebrow">ARENA MATCHMAKING</span><h2>아레나 로비</h2><p>전투에 사용할 이름을 정하고 새로운 테이블을 열거나 기존 방에 합류하세요.</p></div><span className="room-panel-mark" aria-hidden="true">P</span></header>{!credential ? <><div className="lobby-console"><label className="nickname-field"><span>PLAYER NAME</span>닉네임<input aria-label="닉네임" maxLength={16} value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="플레이어" /></label><div className="room-controls"><button className="primary" disabled={busy} onClick={() => void join(true)}><span>새 아레나 생성</span></button><label><span>PRIVATE MATCH</span>Room Code<input aria-label="Room Code" value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="AB12CD" /></label><button className="secondary" disabled={busy || !/^[A-Z2-9]{6}$/.test(roomCode.trim())} onClick={() => void join(false)}>방 참가</button></div></div>{resumable.length > 0 && <div className="resume-list"><small>RECENT ARENAS · 이전에 참가한 방</small>{resumable.map((s) => <button key={s.roomId} className="secondary" onClick={() => resume(s)}>{s.roomId} 방으로 돌아가기</button>)}</div>}</> : <><p className="room-session">ROOM <strong data-testid="room-id">{credential.roomId}</strong><span>·</span> PLAYER <strong data-testid="player-id">{credential.playerId}</strong><span>·</span> {view?.humanCount ?? "…"} / 8</p><div className="room-controls"><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>재접속</button><button className="secondary" onClick={clearSession}>세션 지우기</button></div></>}
         <p className="hint">실제 사용자 2~8명 · 시작 시 빈 좌석은 AI가 채웁니다. 같은 방 코드를 다른 탭이나 브라우저에 입력하세요. 재접속 정보는 이 브라우저에 저장되어 탭을 닫아도 같은 좌석으로 돌아옵니다.</p></section>
