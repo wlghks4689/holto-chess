@@ -1,6 +1,6 @@
-# Holto Chess Balance Simulator
+# PORENA Balance Simulator
 
-현재 `src/game/engine.ts`의 공개 API를 호출해 Holto Chess 게임을 반복 실행하고 밸런스 지표를 수집하는 UI 없는 도구입니다. 게임 규칙, Cloudflare Worker, 온라인 UI를 별도로 재현하거나 수정하지 않습니다.
+현재 `src/game/engine.ts`의 공개 API를 호출해 PORENA 게임을 반복 실행하고 밸런스 지표를 수집하는 UI 없는 도구입니다. 게임 규칙, Cloudflare Worker, 온라인 UI를 별도로 재현하거나 수정하지 않습니다.
 
 ## 실행
 

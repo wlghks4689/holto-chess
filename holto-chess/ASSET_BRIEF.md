@@ -1,4 +1,4 @@
-# Holto Chess · 이미지 에셋 브리프
+# PORENA · 이미지 에셋 브리프
 
 현재 적용된 에셋은 `public/assets/table/main-table.webp` 하나입니다. 아래 목록은 아직
 없는 에셋이며, 전부 **없어도 게임은 정상 동작**하도록 CSS placeholder가 들어가 있습니다.

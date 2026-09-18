@@ -45,7 +45,7 @@ export function renderMarkdownReport(result: SimulationResult, runtimeMs?: numbe
   ]);
   const handRows = Object.entries(result.rounds[5].hands).map(([hand, value]) => [hand, String(value.count), `${n(value.percentage)}%`]);
   const rankRows = Object.entries(result.ranks).map(([rank, value]) => [rank, String(value.appearances), String(value.purchases), `${n(value.purchaseRate)}%`, String(value.sales), String(value.finalOwned)]);
-  return `# Holto Chess Balance Simulation Report
+  return `# PORENA Balance Simulation Report
 
 ## Run
 

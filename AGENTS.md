@@ -5,3 +5,15 @@
 - To start the dev server, run `npm run dev -- --host 0.0.0.0` from the repository root.
 - Verification lives in `holto-chess/`: `npm test`, `npm run test:workers`,
   `npm run lint`, `npm run build` (all reachable from the root too).
+
+## Working scope
+
+- Primary app: `holto-chess/`.
+- Ignore unless explicitly requested:
+  - legacy root app
+  - `node_modules`
+  - `dist`
+  - generated files
+- Do not scan the whole repository for small UI tasks.
+- Prefer targeted grep/read/edit.
+- Do not run build repeatedly.

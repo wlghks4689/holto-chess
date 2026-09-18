@@ -1,18 +1,18 @@
-# Holto Chess 구현 보고서
+# PORENA 구현 보고서
 
 ## Existing Hold'em Reference
 
 참조 저장소: `https://github.com/wlghks4689/holdem-game` (읽기 전용 조사)
 
-- `src/holdem/cards.ts`: `Suit`, 숫자 Rank, 덱 생성, Fisher–Yates 셔플 구조를 수정 후 사용했습니다. Holto Chess의 카드 소유권 추적을 위해 안정적인 `card.id`를 추가했습니다.
+- `src/holdem/cards.ts`: `Suit`, 숫자 Rank, 덱 생성, Fisher–Yates 셔플 구조를 수정 후 사용했습니다. PORENA의 카드 소유권 추적을 위해 안정적인 `card.id`를 추가했습니다.
 - `src/holdem/pokerEval.ts`: 5장 족보 판정, 카테고리별 키커 배열, 휠 스트레이트, 조합 기반 BEST 5, 비교 규칙을 수정 후 사용했습니다. 7장 전용 API를 5~10장 후보로 일반화하고 결과에 `bestFive`와 `displayName`을 포함했습니다.
-- `src/app/holdem/components/Card.tsx`: 이미지 대신 랭크/수트 기호로 카드를 그리는 렌더링 문법과 모바일 크기 원칙을 참고했습니다. Holto Chess 시각 체계에 맞춘 독립 컴포넌트로 새로 작성했습니다.
+- `src/app/holdem/components/Card.tsx`: 이미지 대신 랭크/수트 기호로 카드를 그리는 렌더링 문법과 모바일 크기 원칙을 참고했습니다. PORENA 시각 체계에 맞춘 독립 컴포넌트로 새로 작성했습니다.
 - `src/app/holdem/components/HoleCards.tsx`, `BoardDisplay.tsx`: BEST 5 포함 카드 glow, 미사용 카드 dim, 승자 focus 구조를 로직만 참고해 다인 쇼다운으로 확장했습니다.
 - `src/app/holdem/showdownPresentation.ts`, `madeHandFxPresentation.ts`, `scripts/verify-showdown-presentation.ts`: 족보명과 결정적 쇼다운 표현, Made Hand 등급 분리를 참고했습니다.
-- `src/holdem/gameReducer.ts`, 베팅/블라인드/팟/액션 타이머/AI/온라인 방 코드는 사용하지 않았습니다. Hold'em 상태와 강하게 결합되어 있고 Holto Chess 규칙 경계에 불필요하기 때문입니다.
+- `src/holdem/gameReducer.ts`, 베팅/블라인드/팟/액션 타이머/AI/온라인 방 코드는 사용하지 않았습니다. Hold'em 상태와 강하게 결합되어 있고 PORENA 규칙 경계에 불필요하기 때문입니다.
 - 별도 이미지·사운드 카드 자산은 원본에 존재하지 않았습니다. 원본 역시 CSS 카드 렌더링을 사용하므로 복사한 바이너리 자산은 없습니다.
 
-## Holto Chess Original Implementation
+## PORENA Original Implementation
 
 - 52개 고유 엔트리의 `AVAILABLE / RESERVED_IN_SHOP / OWNED` 상태와 소유·예약 플레이어 역참조를 구현했습니다.
 - 상점 생성 시 즉시 예약하고, 리롤·판매·탈락 시 반환하며 모든 변경 뒤 무결성을 검사합니다.

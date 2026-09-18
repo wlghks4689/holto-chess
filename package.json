@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Delegating workspace root. The application lives in holto-chess/.",
+  "description": "Delegating workspace root for PORENA. The application lives in holto-chess/.",
   "scripts": {
     "postinstall": "npm --prefix holto-chess install",
     "dev": "npm --prefix holto-chess run dev --",

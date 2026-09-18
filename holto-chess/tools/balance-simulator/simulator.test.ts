@@ -53,6 +53,6 @@ describe("balance simulator", () => {
     const result = runSimulation(config({ simulationCount: 1 }));
     const paths = await writeReports(result, output, 12.5);
     expect(JSON.parse(await readFile(paths.jsonPath, "utf8"))).toEqual(result);
-    expect(await readFile(paths.markdownPath, "utf8")).toContain("# Holto Chess Balance Simulation Report");
+    expect(await readFile(paths.markdownPath, "utf8")).toContain("# PORENA Balance Simulation Report");
   });
 });

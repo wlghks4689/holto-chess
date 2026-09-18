@@ -1,4 +1,4 @@
-# Holto Chess Prototype
+# PORENA Prototype
 
 52장 싱글 덱 소유 풀에서 카드를 사고팔며 R1부터 R5까지 생존·점수를 겨루는 독립 웹 프로토타입입니다. 기존 Hold'em 프로젝트를 런타임 의존성으로 사용하지 않습니다.
 
@@ -38,7 +38,7 @@ Run It Twice의 BOARD 1과 BOARD 2는 하나의 encounter 덱에서 연속 10장
 ## 경계
 
 - `src/core/poker`: 특정 게임 모드와 무관한 카드·족보·BEST 5·Omaha 순수 로직
-- `src/game`: Holto Chess 전용 카드풀, 상점, 경제, 증강, 매칭, 탈락, 라운드 상태
+- `src/game`: PORENA 전용 카드풀, 상점, 경제, 증강, 매칭, 탈락, 라운드 상태
 - `src/ui`: 모바일 우선 카드·상점·다인 쇼다운 표현
 
 현재 프로토타입은 로컬 한 기기에서 규칙 루프를 검증하는 용도입니다. 온라인 동기화, 완성형 AI, 최종 밸런스 및 계정 시스템은 포함하지 않습니다.

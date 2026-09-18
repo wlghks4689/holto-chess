@@ -1,7 +1,27 @@
-.mode-switch{display:flex;gap:8px;justify-content:center;padding:10px;background:#06150e}
-.room-panel{padding:22px;margin-bottom:24px}.room-panel p{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
-.room-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.room-controls label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#91aa9e}
-.room-controls input{background:#06150e;border:1px solid #315044;border-radius:6px;padding:12px;color:#e7f5ed;font:600 16px monospace;max-width:180px}
-.room-error{border:1px solid #9a4740;color:#ffc4bf;padding:14px;border-radius:8px}
+.mode-switch{position:fixed;right:16px;bottom:14px;z-index:90;display:flex;gap:6px;justify-content:center;padding:5px;border:1px solid rgba(103,203,220,.18);border-radius:8px;background:rgba(3,10,20,.72);backdrop-filter:blur(12px);box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.mode-switch .secondary{padding:7px 9px;font:500 9px DM Mono;letter-spacing:.04em}
+.local-loading-screen{min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 30%,#153c50 0,#07111f 58%)}
+.local-loading-screen div{display:grid;gap:12px;text-align:center;color:#bcd0c5}
+.local-loading-screen span{color:var(--mint);font:500 10px DM Mono;letter-spacing:.18em}
+.local-loading-screen b{font-size:15px}
+
+.arena-lobby{min-height:100svh;position:relative;isolation:isolate;background:#030914}
+.arena-lobby::before{z-index:-1;opacity:1;mask-image:none;background:linear-gradient(180deg,rgba(2,7,17,.46),rgba(2,8,18,.72) 54%,rgba(2,7,15,.94)),radial-gradient(ellipse at 50% 44%,transparent 0,rgba(2,7,17,.7) 78%),url('/assets/start/battlefield.png') center 42% / cover no-repeat fixed}
+.arena-lobby>.page-shell{display:grid;place-items:start center;min-height:calc(100svh - 78px);padding-top:clamp(56px,9vh,112px)}
+.room-panel{width:min(100%,840px);padding:clamp(22px,4vw,38px);margin-bottom:24px;overflow:hidden}.room-panel p{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.room-panel-heading{position:relative;display:flex!important;align-items:flex-start!important;margin-bottom:28px!important;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.room-panel-heading h2{margin:7px 0 5px;font-size:clamp(25px,4vw,38px);letter-spacing:-.045em}.room-panel-heading p{max-width:560px;margin:0;color:#91aab8}
+.room-panel-mark{align-self:center;color:rgba(116,232,237,.07);font:800 clamp(70px,10vw,118px)/.7 DM Mono;transform:rotate(-8deg);text-shadow:0 0 30px rgba(92,220,230,.08)}
+.lobby-console{display:grid;grid-template-columns:minmax(180px,1fr) 2fr;gap:26px;align-items:end;padding:22px;border:1px solid rgba(103,203,220,.16);border-radius:9px;background:linear-gradient(120deg,rgba(5,16,29,.7),rgba(12,37,52,.46));box-shadow:inset 0 1px rgba(210,250,255,.035)}
+.nickname-field{display:flex;flex-direction:column;gap:6px;margin:0;font:600 11px DM Mono;letter-spacing:.08em;color:#a9c2ce}.nickname-field input{max-width:260px}
+.room-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.room-controls label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9ab4c1}
+.room-controls label span,.nickname-field span{color:#6f94a6;font:500 8px DM Mono;letter-spacing:.14em}
+.room-controls input,.nickname-field input{background:rgba(2,10,21,.82);border:1px solid rgba(103,203,220,.27);border-radius:5px;padding:12px;color:#edfaff;font:600 16px DM Mono;box-shadow:inset 0 4px 15px rgba(0,0,0,.18)}
+.room-controls input{max-width:180px}.room-panel .primary span{margin:0;font:inherit}.room-panel .primary{min-width:166px}
+.room-session{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:#8eaab8;font:500 11px DM Mono}.room-session strong{color:var(--mint);font-size:15px}.room-session span{color:#4b7182}
+.survivors .conn-lobby{color:var(--mint)}
+.resume-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}.resume-list small{width:100%;font:600 9px DM Mono;letter-spacing:.1em;color:#6f94a6}
+.room-error{border:1px solid #9a4740;color:#ffc4bf;padding:14px;border-radius:8px;background:rgba(52,17,23,.76)}
 .action-bar p{font-size:11px;color:#91aa9e}.secondary:disabled,.augment-grid button:disabled{opacity:.45;cursor:not-allowed}
-@media(max-width:620px){.room-panel{padding:16px}.survivors b{font-size:12px}.action-bar{flex-wrap:wrap}.room-controls .primary{min-width:130px}.mode-switch .secondary{font-size:10px}}
+@media(max-width:639px){.arena-lobby::before{background-position:56% center;background-attachment:scroll}.arena-lobby>.page-shell{padding-top:28px}.room-panel{padding:20px 16px}.room-panel-heading{margin-bottom:20px!important}.room-panel-mark{font-size:64px}.lobby-console{grid-template-columns:1fr;gap:16px;padding:15px}.nickname-field input{max-width:100%}.room-controls{display:grid;grid-template-columns:1fr}.room-controls input{max-width:none;width:100%}.room-controls .primary,.room-controls .secondary{width:100%}.resume-list button{width:100%}}
+@media(max-width:620px){.survivors b{font-size:12px}.action-bar{flex-wrap:wrap}.mode-switch+main .action-bar{bottom:62px}.room-controls .primary{min-width:130px}.mode-switch{right:8px;bottom:8px}.mode-switch .secondary{font-size:8px}}
