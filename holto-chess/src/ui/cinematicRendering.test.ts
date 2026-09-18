@@ -42,7 +42,8 @@ describe("cinematic initial rendering", () => {
       rewards: [{ playerId: "p1", beforeBB: 50, afterBB: 70, deltaBB: 20, beforePoints: 3, afterPoints: 6, deltaPoints: 3, outcome: "SURVIVED" }] };
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {} }));
     expect(html).toContain("MATCH 2/3");
-    expect(html).toContain("1W 0D 0L · POINT 3");
+    expect(html).toContain('<p class="swiss-record">1W 0D 0L</p>');
+    expect(html).toContain('<em class="cinema-current-points">POINT 3</em>');
     expect(html).not.toContain("2W 0D 0L");
   });
   it("shows all four final players with 28 card backs, without leaking the result", () => {
@@ -91,6 +92,27 @@ describe("cinematic initial rendering", () => {
     expect(html).toContain("cinema-board pending");
     expect(html.match(/cinema-board-cards/g)).toHaveLength(2);
     expect(html.match(/cinema-flip-slot/g)).toHaveLength(14);
+  });
+  it("marks survival outcomes with stamps and keeps rewards to one concise line", () => {
+    const survival: MatchView = { ...match, id: "survival", round: 4, group: "loser", participantIds: ["p1", "p2"],
+      winnerIds: ["p1"], boards: [deck.slice(10, 15)], boardResults: [[]], boardWinnerIds: [["p1"]], results: [], runoutCount: 1,
+      revealedCards: { p1: deck.slice(0, 5), p2: deck.slice(5, 10) },
+      rewards: [
+        { playerId: "p1", beforeBB: 20, afterBB: 40, deltaBB: 20, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "SURVIVED", detail: "생존 결정 · +0P · BB 20" },
+        { playerId: "p2", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED", detail: "생존 결정 · +0P · BB 0" },
+      ] };
+    const rewardAt = cinematicTimeline(survival).find((entry) => entry.phase === "REWARD")!.at;
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: survival, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(html).toContain('cinema-status-stamp is-survived">생존');
+    expect(html).toContain('cinema-status-stamp is-eliminated">탈락');
+    expect(html).not.toContain("생존 결정");
+    expect(html).toContain("+ 20BB");
+    expect(html).toContain("+ 0P 획득");
+    expect(html).not.toContain("+0P · BB 20");
+    const regularMatch = { ...survival, id: "regular", group: undefined };
+    const regularHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: regularMatch, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(regularHtml).not.toContain("cinema-status-stamp");
+    expect(regularHtml).toContain("VICTORY");
   });
   it("offers speed and skip only when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));

@@ -120,6 +120,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const swiss = (flags.reward ? match.swissAfter : match.swissBefore)?.[id];
       const ledger = match.rewards.find((reward) => reward.playerId === id);
       const reward = match.rewards.find((r) => r.playerId === id);
+      const survivalOutcome = flags.reward && match.group === "loser" && (reward?.outcome === "SURVIVED" || reward?.outcome === "ELIMINATED") ? reward.outcome : undefined;
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const currentPlaceVisible = final && frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && !!result && result.place >= frame.finalPlace;
       const placementClass = final ? finalWinnerStage ? won ? "cinema-winner" : "cinema-loser" : currentPlaceVisible ? "cinema-final-resolved" : "" : flags.profile ? won ? "cinema-winner" : "cinema-loser" : "";
@@ -135,10 +136,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
       return <div key={id} className={`cinema-seat ${placementClass} made-${tone} ${madeClass}`} data-seat-index={index} data-player-id={id}>
         {intro && !multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
-        {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L · POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</p>}
+        {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
+          {swiss && <em className="cinema-current-points">POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
-          {!final && flags.result && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
+          {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
+          {!final && flags.result && !survivalOutcome && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
           {flags.runResult && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
         <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {
           const visible = !intro && (!final || cardIndex < frame.finalCards);
@@ -158,7 +161,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {flags.glow && board.length > 0 && result && <button className="cinema-focus" aria-pressed={focus?.playerId === id} onClick={() => setFocusId(id)}>BEST 5 확인{match.round === 3 ? " · 홀 2 + 보드 3" : ""}</button>}
         {flags.reward && reward && <div className="cinema-reward">{final
           ? <strong>{ordinalPlace(result?.place)} PLACE REWARD <i>·</i> {reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))} POINT</strong>
-          : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> 승점 {Number(reward.deltaPoints.toFixed(2))}점 획득</strong>}{reward.detail && <small>{reward.detail}</small>}</div>}
+          : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> {reward.deltaPoints >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaPoints).toFixed(2))}P 획득</strong>}</div>}
       </div>;
     })}</div>
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
