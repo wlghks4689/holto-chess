@@ -1,0 +1,17 @@
+.shop-countdown{--countdown-color:var(--mint,#84f5b6);display:grid;grid-template-columns:auto auto;align-items:baseline;justify-content:start;column-gap:10px;row-gap:5px;min-width:0;padding:4px 16px;border-left:1px solid rgba(132,245,182,.18);color:var(--countdown-color)}
+.shop-countdown small{grid-column:1;color:#8fb0a0;font:600 10px DM Mono;letter-spacing:.08em;white-space:nowrap}
+.shop-countdown strong{grid-column:2;grid-row:1 / span 2;font:800 30px/1 Manrope;font-variant-numeric:tabular-nums;letter-spacing:.01em;text-align:right}
+.shop-countdown-bar{grid-column:1;grid-row:2;position:relative;display:block;width:120px;height:4px;border-radius:2px;background:rgba(132,245,182,.14);overflow:hidden}
+.shop-countdown-bar b{position:absolute;inset:0;transform-origin:left center;transform:scaleX(var(--countdown-ratio,1));background:currentColor;border-radius:inherit;transition:transform .3s linear}
+.shop-countdown em{grid-column:1 / -1;max-width:220px;color:#7f9c8f;font:500 10px DM Mono;font-style:normal}
+.shop-countdown.is-warning{--countdown-color:#f5c86a}
+.shop-countdown.is-critical{--countdown-color:#ff7a7a}
+.shop-countdown.is-critical strong{animation:shop-countdown-pulse 1s ease-in-out infinite}
+@keyframes shop-countdown-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.06)}}
+@media(max-width:620px){
+  .shop-countdown{width:100%;box-sizing:border-box;border-left:0;padding:0 0 8px;grid-template-columns:1fr auto}
+  .shop-countdown-bar{width:100%}
+  .shop-countdown strong{font-size:24px}
+  .shop-countdown em{white-space:normal}
+}
+@media(prefers-reduced-motion:reduce){.shop-countdown.is-critical strong{animation:none}.shop-countdown-bar b{transition:none}}

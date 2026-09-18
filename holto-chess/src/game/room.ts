@@ -4,6 +4,7 @@ import { BALANCE } from "./config";
 import { beginSecondary, buyCard, choicesFor, createGame, getCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
 import { pickBotAugment } from "./botStrategy";
 import { syncPresentation, type PresentationSchedule } from "./presentation";
+import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
 import type { Augment, HoltoChessGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 
@@ -21,15 +22,8 @@ export type RoomSnapshot = {
   presentation?: PresentationSchedule;
 };
 
-/**
- * How long a barrier waits before bots play the outstanding seats. The shop is
- * the only phase that asks for real decisions, so it gets the longer clock.
- */
-export const BARRIER_TIMEOUT_MS = { SHOP: 60_000, DEFAULT: 30_000, RESULTS: 180_000 } as const;
-export function barrierTimeoutMs(phase: string): number {
-  if (["ROUND_RESULT", "GROUP_ASSIGNMENT"].includes(phase)) return BARRIER_TIMEOUT_MS.RESULTS;
-  return phase === "SHOP" ? BARRIER_TIMEOUT_MS.SHOP : BARRIER_TIMEOUT_MS.DEFAULT;
-}
+// Re-exported so existing server and test imports keep working.
+export { BARRIER_TIMEOUT_MS, barrierTimeoutMs };
 export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded"): RoomSnapshot {
   const game = createGame(seed, randomMode);
   return { schema: 1, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [], augmentChoices: {} };

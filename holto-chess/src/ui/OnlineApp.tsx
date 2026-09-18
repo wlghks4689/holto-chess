@@ -13,6 +13,8 @@ import { activeSession, forgetSession, rememberSession, storedSessions } from ".
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 import { createServerClock } from "./serverClock";
+import { ShopCountdown } from "./ShopCountdown";
+import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
@@ -77,9 +79,10 @@ export function OnlineApp() {
 
   useEffect(() => {
     if (view?.barrierEndsAt === undefined) return;
-    const id = setInterval(() => setNow(Date.now()), 500);
+    // Deadlines are server epoch ms: read them against the server clock, not this device's.
+    const id = setInterval(() => setNow(serverClock.now()), 250);
     return () => clearInterval(id);
-  }, [view?.barrierEndsAt]);
+  }, [view?.barrierEndsAt, serverClock]);
 
   useEffect(() => {
     if (!credential) return;
@@ -190,6 +193,7 @@ export function OnlineApp() {
               ? `다른 플레이어를 기다립니다 · 준비 ${readyHumans}/${totalHumans}`
               : `준비를 누르면 이번 상점에서는 더 행동할 수 없습니다 · 준비 ${readyHumans}/${totalHumans}`}</p>
               <small className="hint">전원이 준비하면 남은 시간과 상관없이 즉시 쇼다운을 시작합니다.</small></div>
+            {view.barrierEndsAt !== undefined && <ShopCountdown endsAt={view.barrierEndsAt} totalMs={BARRIER_TIMEOUT_MS.SHOP} now={now} committed={view.me.committed} />}
             <button className="primary" disabled={disabled || view.me.committed} onClick={() => send({ type: "END_SHOP_PHASE" })}>{view.me.committed ? "준비 완료 ✓" : "준비 완료 · 구성 확정"}</button></div></>}
         <RoundResults round={view.round} rows={view.roundSummary ?? []} viewerId={view.me.playerId}>{(view.roundHistory ?? view.matches).map((m) => <OnlineMatch key={m.id} match={m} view={view} />)}</RoundResults>
         {view.phase === "AUGMENT" && <section className="panel augment-panel"><h2>{view.me.augmentChoices.length ? "증강 하나를 선택하세요" : "다른 플레이어의 선택을 기다립니다"}</h2><div className="augment-grid">{view.me.augmentChoices.map((a) => <button key={a.id} disabled={disabled} onClick={() => send({ type: "SELECT_AUGMENT", augmentId: a.id })}><b>{a.name}</b><p>{a.description}</p></button>)}</div></section>}
