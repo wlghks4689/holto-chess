@@ -26,6 +26,9 @@ nav { min-height: 78px; padding: 0 max(24px, calc((100vw - 1240px)/2)); display:
 .round-progress .active { color: var(--mint); }
 .round-progress .active i { background: var(--mint); color: #082016; box-shadow: 0 0 22px rgba(132,245,182,.25); }
 .round-progress .done { color: #77b998; }
+.round-progress.prep-progress { gap: 34px; }
+.prep-progress span:not(:last-child)::after { width: 28px; left: 41px; }
+.prep-progress .prep-step i { border-radius: 7px; font-weight: 700; }
 .survivors { justify-self:end; display:flex; gap:10px; align-items:center; }
 .survivors small { color:#739989; font:500 9px DM Mono; letter-spacing:.12em; }
 .survivors b { font: 800 24px DM Mono; color:var(--mint); }
@@ -39,6 +42,15 @@ h1 { margin:0; font-size:clamp(38px, calc(7vw - 4px), 72px); line-height:.9; let
 .phase-badge small { color:#658779; font:500 9px DM Mono; letter-spacing:.12em; }
 .phase-badge b { font-size:18px; }
 .phase-badge span { color:var(--mint); font:500 10px DM Mono; }
+.prep-round-header { align-items:flex-start; }
+.prep-heading-copy { max-width:900px; }
+.prep-status-line { display:flex; align-items:center; gap:12px; margin-bottom:9px; }
+.prep-status-line b { color:var(--mint); font:600 10px DM Mono; letter-spacing:.17em; }
+.prep-round-header h1 { margin-bottom:3px; }
+.prep-round-header h2 { margin:0; color:var(--mint); font:600 18px DM Mono; letter-spacing:.12em; }
+.prep-rule-list { display:flex; flex-wrap:wrap; gap:7px 20px; margin:18px 0 0; padding:0; list-style:none; color:#9ab1a6; font-size:12px; }
+.prep-rule-list li { position:relative; padding-left:13px; }
+.prep-rule-list li::before { content:""; position:absolute; left:0; top:.55em; width:4px; height:4px; border-radius:50%; background:var(--mint); box-shadow:0 0 9px rgba(132,245,182,.5); }
 .pool-meter { min-height:42px; border:1px solid var(--line); border-radius:8px; background:rgba(1,9,5,.5); display:flex; align-items:center; gap:22px; padding:0 14px; color:#8fac9f; font:500 10px DM Mono; }
 .pool-meter .integrity { margin-right:auto; border-right:1px solid var(--line); padding-right:16px; }
 .integrity.ok { color:var(--mint); }.integrity.bad{color:#ff776e}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { assertPoolIntegrity } from "../game/cardPool";
 import { BALANCE, purchaseLimitFor, rerollLimitFor } from "../game/config";
 import {
@@ -18,6 +18,8 @@ import { madeTone } from "./madeTone";
 import { RoundGuide } from "./RoundGuide";
 import { RoundResults } from "./RoundResults";
 import { createRoundSummary, roundMatches } from "../game/roundSummary";
+import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
+import { getPrepPresentation } from "./prepPresentation";
 
 const displayPoints = (value: number) => Number(value.toFixed(2));
 
@@ -153,15 +155,15 @@ export function App() {
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
   const act = (fn: (s: HoltoChessGameState) => HoltoChessGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
   const round = ROUND_COPY[state.round]; const alive = state.players.filter((player) => !player.eliminated).length;
-  const progress = useMemo(() => Array.from({ length: 5 }, (_, index) => index + 1), []);
+  const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
   const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
   const guideKey = `${gameVersion}:${state.round}`;
   return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name }))} viewerId="p1"><main className="game-arena">
     {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
-    <nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><div className="round-progress">{progress.map((n) => <span key={n} className={`${n === state.round ? "active" : ""} ${n < state.round ? "done" : ""}`}><i>{n < state.round ? "✓" : n}</i><small>R{n}</small></span>)}</div><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
+    <nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">
-      <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>
+      {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
       <PoolMeter state={state} />
       <PlayerStrip state={state} />
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
