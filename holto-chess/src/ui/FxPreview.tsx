@@ -43,15 +43,23 @@ function Sample({ name, context, leading }: { name: string; context: Context; le
   if (context === "recap") {
     return <div className="fx-sample">
       <header><b>{hand.displayName}</b><code>made-{tone}</code></header>
-      <div className={`board made-${tone}`}>
-        <small>COMMUNITY BOARD</small>
-        <div className="card-row centered">
-          {cards.map((entry) => <CardView key={entry.id} card={entry} compact glow={used.includes(entry.id)} dimmed={!used.includes(entry.id)} />)}
+      {/* Wrapped exactly as the recap does, including .match-card's overflow
+          clip, so a halo that would be cut in game is cut here too. */}
+      <article className="match-card">
+        <div className="boards">
+          <div className={`board made-${tone}`}>
+            <small>COMMUNITY BOARD</small>
+            <div className="card-row centered">
+              {cards.map((entry) => <CardView key={entry.id} card={entry} compact glow={used.includes(entry.id)} dimmed={!used.includes(entry.id)} />)}
+            </div>
+          </div>
         </div>
-      </div>
-      <div className={leading ? "winner" : ""}>
-        <ShowdownHand cards={cards} usedCardIds={used} winner={leading} displayName={hand.displayName} category={hand.category} kickers={hand.kickers} />
-      </div>
+        <div className="combatants">
+          <div className={`combatant ${leading ? "winner" : ""}`}>
+            <ShowdownHand cards={cards} usedCardIds={used} winner={leading} displayName={hand.displayName} category={hand.category} kickers={hand.kickers} />
+          </div>
+        </div>
+      </article>
     </div>;
   }
 
