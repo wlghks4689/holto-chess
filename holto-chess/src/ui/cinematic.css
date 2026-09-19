@@ -171,7 +171,9 @@
 .cinema .cinema-made-fx.made-flush .playing-card.glow{animation:cinema-card-glow-flush 1.05s ease-out 1}
 .cinema .cinema-made-fx.made-full-house .playing-card.glow{animation:cinema-card-glow-house 1.2s ease-out 1}
 .cinema .cinema-made-fx.made-quads .playing-card.glow{animation:cinema-card-glow-quads 1.15s ease-out 1}
-.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{animation:cinema-card-glow-sf 1.45s ease-in-out 1}
+/* The reference rule is a static halo, so it is the base here too: reduced-motion
+   viewers get the same look instead of falling back to the generic ring. */
+.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{box-shadow:0 0 20px rgba(34,211,238,.84),0 0 44px rgba(192,132,252,.6),0 0 62px rgba(244,114,182,.34);animation:cinema-card-glow-sf 1.45s ease-out 1 both}
 .cinema .cinema-made-fx.made-royal .playing-card.glow{animation:cinema-card-glow-royal 1.65s ease-out 1}
 .cinema-street-made{margin:14px 0 4px;min-height:48px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
 .cinema-street-made small,.cinema-street-made strong,.cinema-street-made em{display:block;font-style:normal}
@@ -223,7 +225,9 @@
 @keyframes cinema-card-glow-flush{0%{box-shadow:0 0 8px rgba(56,189,248,.5),0 0 18px rgba(14,165,233,.24)}45%{box-shadow:0 0 17px rgba(56,189,248,.91),0 0 37px rgba(14,165,233,.53),0 0 46px rgba(125,211,252,.19)}100%{box-shadow:0 0 13px rgba(56,189,248,.74),0 0 31px rgba(14,165,233,.41)}}
 @keyframes cinema-card-glow-house{0%{box-shadow:0 0 9px rgba(192,132,252,.55),0 0 20px rgba(139,92,246,.2)}45%{box-shadow:0 0 20px rgba(216,180,254,.96),0 0 44px rgba(167,139,250,.62),0 0 57px rgba(126,34,206,.28)}100%{box-shadow:0 0 15px rgba(192,132,252,.76),0 0 30px rgba(139,92,246,.4)}}
 @keyframes cinema-card-glow-quads{0%{box-shadow:0 0 10px rgba(251,113,133,.48)}45%{box-shadow:0 0 21px rgba(251,113,133,.96),0 0 45px rgba(239,68,68,.67),0 0 58px rgba(190,24,93,.34)}100%{box-shadow:0 0 19px rgba(251,113,133,.84),0 0 38px rgba(239,68,68,.52)}}
-@keyframes cinema-card-glow-sf{0%{box-shadow:0 0 15px #38bdf8}50%{box-shadow:0 0 28px #f472b6,0 0 52px rgba(192,132,252,.55)}100%{box-shadow:0 0 18px #c084fc}}
+/* Ports holdem-game's .holdem-made-card-glow-t5: a held three-layer halo of
+   cyan, violet and pink. The 100% frame is that rule's exact value. */
+@keyframes cinema-card-glow-sf{0%{box-shadow:0 0 8px rgba(34,211,238,.5),0 0 18px rgba(192,132,252,.3),0 0 26px rgba(244,114,182,.16)}45%{box-shadow:0 0 25px rgba(34,211,238,.95),0 0 53px rgba(192,132,252,.72),0 0 74px rgba(244,114,182,.42)}100%{box-shadow:0 0 20px rgba(34,211,238,.84),0 0 44px rgba(192,132,252,.6),0 0 62px rgba(244,114,182,.34)}}
 @keyframes cinema-card-glow-royal{0%{box-shadow:0 0 16px rgba(255,255,255,.95),0 0 34px rgba(253,224,71,.72)}45%{box-shadow:0 0 27px rgba(255,255,255,.98),0 0 58px rgba(34,211,238,.68),0 0 88px rgba(253,224,71,.54)}100%{box-shadow:0 0 18px rgba(255,255,255,.86),0 0 32px rgba(253,224,71,.58)}}
 @media(max-width:639px){
   .cinema{margin:12px 0;padding:14px 10px;border-radius:12px}
