@@ -1,8 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "holto-chess",
+  "name": "porena",
+  "account_id": "0a1102b704cf75e79300017e1904fe7e",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-15",
+  "routes": [
+    { "pattern": "porena.kr", "custom_domain": true },
+    { "pattern": "www.porena.kr", "custom_domain": true }
+  ],
   "assets": {
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
@@ -11,6 +16,15 @@
   "durable_objects": {
     "bindings": [{ "name": "GAME_ROOM", "class_name": "GameRoom" }]
   },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  },
+  "ratelimits": [
+    { "name": "ROOM_CREATE_LIMITER", "namespace_id": "2026091901", "simple": { "limit": 10, "period": 60 } },
+    { "name": "ROOM_CONNECT_LIMITER", "namespace_id": "2026091902", "simple": { "limit": 120, "period": 60 } }
+  ],
   "exports": {
     "GameRoom": { "type": "durable-object", "storage": "sqlite" }
   }

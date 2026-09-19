@@ -43,7 +43,10 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
           <button type="button" onClick={() => setOverlay("settings")}>환경 설정</button>
         </div>
       </div>
-      {import.meta.env.DEV ? <footer className="start-footer">PORENA <span>·</span> DEVELOPMENT PREVIEW</footer> : null}
+      <footer className="start-footer">
+        <a href={`mailto:wlghks1778@gmail.com?subject=${encodeURIComponent("[PORENA] 버그 제보")}&body=${encodeURIComponent("발생 시각:\n방 코드:\n기기 / 브라우저:\n문제 상황 및 재현 방법:\n\n비밀번호나 재접속 토큰은 보내지 마세요.")}`}>버그 제보 · wlghks1778@gmail.com</a>
+        {import.meta.env.DEV ? <><span>·</span> DEVELOPMENT PREVIEW</> : null}
+      </footer>
     </div>
     {overlay && <div ref={modal} className="start-overlay">
       {overlay === "guide" ? <GameOverviewGuide onClose={() => setOverlay(null)} /> :

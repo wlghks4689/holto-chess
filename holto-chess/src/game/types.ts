@@ -81,7 +81,7 @@ export type MatchResult = {
 
 export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };
 
-export type HoltoChessGameState = {
+export type PorenaGameState = {
   round: Round;
   phase: Phase;
   players: PlayerState[];

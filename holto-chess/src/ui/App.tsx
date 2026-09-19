@@ -6,7 +6,7 @@ import {
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   sellCard, startNextRound, toggleSelectedCard, toggleShopLock,
 } from "../game/engine";
-import type { HoltoChessGameState, MatchResult, Phase } from "../game/types";
+import type { PorenaGameState, MatchResult, Phase } from "../game/types";
 import { createMatchView } from "../game/matchView";
 import { canSellWithoutBlocking } from "../game/shopRules";
 import { CinematicGate } from "./ShowdownCinematic";
@@ -39,7 +39,7 @@ const PHASE_LABEL: Record<Phase, string> = {
   SHOWDOWN_SECONDARY: "2차 쇼다운", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
 };
 
-function PoolMeter({ state }: { state: HoltoChessGameState }) {
+function PoolMeter({ state }: { state: PorenaGameState }) {
   const counts = state.ownershipCardPool.reduce((acc, entry) => ({ ...acc, [entry.state]: acc[entry.state] + 1 }), { AVAILABLE: 0, RESERVED_IN_SHOP: 0, OWNED: 0 });
   const valid = (() => { try { return assertPoolIntegrity(state); } catch { return false; } })();
   return <div className="pool-meter">
@@ -50,7 +50,7 @@ function PoolMeter({ state }: { state: HoltoChessGameState }) {
   </div>;
 }
 
-function PlayerStrip({ state }: { state: HoltoChessGameState }) {
+function PlayerStrip({ state }: { state: PorenaGameState }) {
   const [open, setOpen] = useState(false);
   const me = state.players.find((player) => player.id === "p1") ?? state.players[0]!;
   const rankedPlayers = [...state.players].sort((left, right) => {
@@ -76,7 +76,7 @@ function PlayerStrip({ state }: { state: HoltoChessGameState }) {
   </section>;
 }
 
-function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
+function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
   const me = state.players[0]!; const cap = BALANCE.handLimits[state.round];
   const purchaseLimit = purchaseLimitFor(state.round); const rerollLimit = rerollLimitFor(state.round);
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
@@ -98,14 +98,14 @@ function ShopPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: H
 }
 
 /** Replays an ordered loadout through the engine's own toggle, so selection rules stay in one place. */
-function applyLoadout(source: HoltoChessGameState, playerId: string, selection: string[] | null): HoltoChessGameState {
+function applyLoadout(source: PorenaGameState, playerId: string, selection: string[] | null): PorenaGameState {
   let state = source;
   for (const id of [...state.players.find((p) => p.id === playerId)!.selectedCardIds]) state = toggleSelectedCard(state, playerId, id);
   for (const id of selection ?? []) state = toggleSelectedCard(state, playerId, id);
   return state;
 }
 
-function SelectPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
+function SelectPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
   const me = state.players[0]!;
   const r3 = state.round === 3;
   if (r3) return <section className="panel select-panel"><span className="eyebrow">ROUND 3 · LOADOUT</span><h2>Game 1과 Game 2 소켓에 카드를 배치하세요</h2><p>게임마다 2장씩 사용합니다. 두 게임은 서로 다른 보드로 진행됩니다.</p>
@@ -113,7 +113,7 @@ function SelectPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s:
   return <section className="panel select-panel"><span className="eyebrow">ROUND {state.round} · LOADOUT</span><h2>{r3 ? "Game 1과 Game 2에 사용할 카드를 순서대로 선택하세요" : "Run It Twice에 사용할 2장을 선택하세요"}</h2><p>{r3 ? "먼저 고른 2장은 Game 1, 다음 2장은 Game 2에 배정됩니다. 두 게임은 서로 다른 보드로 진행됩니다." : "선택하지 않은 카드는 계속 소유합니다. 두 보드와 Sudden Death에서도 같은 홀카드를 사용합니다."}</p><div className="card-row centered">{me.ownedCardIds.map((id) => { const index = me.selectedCardIds.indexOf(id); const footer = index < 0 ? "선택" : r3 ? index < 2 ? "GAME 1" : "GAME 2" : "선택됨"; return <CardView key={id} card={getCard(state, id)} selected={index >= 0} onClick={() => act((s) => toggleSelectedCard(s, me.id, id))} footer={footer} />; })}</div></section>;
 }
 
-function MatchCard({ state, match, matchNumber }: { state: HoltoChessGameState; match: MatchResult; matchNumber: number }) {
+function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; match: MatchResult; matchNumber: number }) {
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
   const winnerNames = match.winnerIds.map((id) => state.players.find((p) => p.id === id)!.name).join(", ");
   const stageLabel = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : match.stage === "final" ? "최종전" : match.group === "winner" ? "승자조" : match.group === "loser" ? "생존전" : match.stage === "secondary" ? "2차전" : "1차전";
@@ -134,22 +134,22 @@ function MatchCard({ state, match, matchNumber }: { state: HoltoChessGameState; 
   </article>;
 }
 
-function ShowdownPanel({ state }: { state: HoltoChessGameState }) {
+function ShowdownPanel({ state }: { state: PorenaGameState }) {
   if (!state.roundResults.length) return <section className="arena-empty panel"><span className="arena-mark">♞</span><h2>쇼다운 준비 완료</h2><p>각 매치는 참가자가 소유한 모든 카드를 제외한 독립 Showdown Deck으로 진행됩니다.</p></section>;
   return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1">{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
 }
 
-function AugmentPanel({ state, act }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void }) {
+function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
   return <section className="panel augment-panel"><span className="eyebrow">AUGMENT DRAFT</span><h2>전략을 바꿀 증강 하나를 선택하세요</h2><div className="augment-grid">{state.augmentChoices.map((augment, index) => <button key={augment.id} onClick={() => act((s) => chooseAugment(s, "p1", augment.id))}><span>0{index + 1}</span><b>{augment.name}</b><p>{augment.description}</p><em>선택하기 →</em></button>)}</div></section>;
 }
 
-function FinalPanel({ state }: { state: HoltoChessGameState }) {
+function FinalPanel({ state }: { state: PorenaGameState }) {
   const standings = finalStandings(state);
   return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row, index) => <div className={`standing ${index === 0 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`} key={row.playerId}><strong>{row.placement}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b><small>{row.hand?.displayName}{row.eliminatedRound ? ` · R${row.eliminatedRound} 탈락` : " · FINAL"}</small></span><span>{displayPoints(row.points)}<small>승점</small></span><span>{row.handScore}<small>족보</small></span><span>{row.stackScore}<small>스택</small></span><em>{displayPoints(row.total)} P</em><i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}<small>RANK</small></i></div>)}</div></section>;
 }
 
-function ActionBar({ state, act, reset }: { state: HoltoChessGameState; act: (fn: (s: HoltoChessGameState) => HoltoChessGameState) => void; reset: () => void }) {
-  const me = state.players[0]!; let label = "계속"; let fn: ((s: HoltoChessGameState) => HoltoChessGameState) | null = null;
+function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void; reset: () => void }) {
+  const me = state.players[0]!; let label = "계속"; let fn: ((s: PorenaGameState) => PorenaGameState) | null = null;
   if (state.phase === "SHOP") { label = `구성 확정 · R${state.round} 쇼다운`; fn = prepareShowdown; }
   if (state.phase === "DECK_SELECT") { const required = state.round === 3 ? 4 : 2; label = `선택 확정 (${me.selectedCardIds.length}/${required})`; fn = confirmSelection; }
   if (state.phase === "SHOWDOWN_PRIMARY") { label = state.round === 5 ? "The Last Hand 공개" : "1차 쇼다운 공개"; fn = resolvePrimary; }
@@ -167,7 +167,7 @@ export function App() {
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
-  const act = (fn: (s: HoltoChessGameState) => HoltoChessGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
+  const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
   const round = ROUND_COPY[state.round]; const alive = state.players.filter((player) => !player.eliminated).length;
   const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));

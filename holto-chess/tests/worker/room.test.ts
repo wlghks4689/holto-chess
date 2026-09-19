@@ -5,7 +5,7 @@ import type { GameAction, PlayerView, ServerMessage, SessionCredential } from ".
 import type { RoomSnapshot } from "../../src/game/room";
 import { assertPoolIntegrity } from "../../src/game/cardPool";
 
-const origin = "https://holto.test";
+const origin = "https://porena.test";
 const sockets: WebSocket[] = [];
 afterEach(() => { for (const ws of sockets.splice(0)) ws.close(1000); });
 async function session(roomId?: string): Promise<SessionCredential> {
@@ -40,6 +40,42 @@ async function connect(s: SessionCredential) {
   return { ws, messages, wait, view, send };
 }
 describe("GameRoom in the Cloudflare runtime", () => {
+  it("limits connection attempts and expires old room snapshots", async () => {
+    const headers = { Origin: origin, "CF-Connecting-IP": "192.0.2.92" };
+    for (let i = 0; i < 120; i++) {
+      expect((await exports.default.fetch(`${origin}/api/unknown`, { headers })).status).toBe(404);
+    }
+    expect((await exports.default.fetch(`${origin}/api/unknown`, { headers })).status).toBe(429);
+    const a = await session();
+    const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+    await runInDurableObject(stub, (_instance, state) => state.storage.put("expiresAt", Date.now() - 1));
+    await evictDurableObject(stub);
+    await runInDurableObject(stub, async (instance, state) => {
+      await instance.alarm();
+      expect(await state.storage.get("snapshot:v1")).toBeUndefined();
+      expect(await state.storage.get("expiresAt")).toBeUndefined();
+      expect(await state.storage.getAlarm()).toBeNull();
+    });
+  });
+  it("limits room creation without allocating more rooms and keeps health available", async () => {
+    const headers = { Origin: origin, "CF-Connecting-IP": "192.0.2.91" };
+    for (let i = 0; i < 10; i++) {
+      expect((await exports.default.fetch(`${origin}/api/rooms`, { method: "POST", headers })).status).toBe(201);
+    }
+    const limited = await exports.default.fetch(`${origin}/api/rooms`, { method: "POST", headers });
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("Retry-After")).toBe("60");
+    expect((await exports.default.fetch(`${origin}/api/health`, { headers })).status).toBe(200);
+  });
+  it("caps a room at eight players and preserves www paths and query strings", async () => {
+    const a = await session();
+    for (let i = 1; i < 8; i++) await session(a.roomId);
+    const full = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/join`, { method: "POST", headers: { Origin: origin } });
+    expect(full.status).toBe(409);
+    const redirect = await exports.default.fetch("https://www.porena.kr/play?room=ABC234", { redirect: "manual" });
+    expect(redirect.status).toBe(301);
+    expect(redirect.headers.get("Location")).toBe("https://porena.kr/play?room=ABC234");
+  });
   it("finishes R1–R5 over two sockets, including reconnect and identical final standings", async () => {
     const a = await session(); const b = await session(a.roomId);
     const clients = [await connect(a), await connect(b)];

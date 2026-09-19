@@ -49,7 +49,7 @@ describe("balance simulator", () => {
   });
 
   it("generates parseable JSON and a Markdown report", async () => {
-    const output = await mkdtemp(join(tmpdir(), "holto-balance-")); temporaryDirectories.push(output);
+    const output = await mkdtemp(join(tmpdir(), "porena-balance-")); temporaryDirectories.push(output);
     const result = runSimulation(config({ simulationCount: 1 }));
     const paths = await writeReports(result, output, 12.5);
     expect(JSON.parse(await readFile(paths.jsonPath, "utf8"))).toEqual(result);

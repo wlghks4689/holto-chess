@@ -71,7 +71,7 @@ export function OnlineApp() {
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState("");
   const [roomCode, setRoomCode] = useState("");
-  const [nickname, setNickname] = useState(() => localStorage.getItem("holto-nickname") ?? "플레이어");
+  const [nickname, setNickname] = useState(() => localStorage.getItem("porena-nickname") ?? "플레이어");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<GameAction["type"] | false>(false);
   const [connectionKey, setConnectionKey] = useState(0);
@@ -105,12 +105,12 @@ export function OnlineApp() {
       setStatus("Connecting"); clearPending();
       const ws = new WebSocket(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/rooms/${credential.roomId}`);
       socket.current = ws;
-      ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: localStorage.getItem("holto-nickname") ?? "플레이어" }));
+      ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: localStorage.getItem("porena-nickname") ?? "플레이어" }));
       ws.onmessage = (event) => {
         if (disposed) return;
         const message = JSON.parse(event.data) as ServerMessage;
         // Opt-in local diagnostics: exact received views, never session credentials.
-        if (import.meta.env.DEV && new URLSearchParams(location.search).has("inspect") && message.type === "PLAYER_VIEW") console.debug("[Holto WS received]", JSON.stringify(message));
+        if (import.meta.env.DEV && new URLSearchParams(location.search).has("inspect") && message.type === "PLAYER_VIEW") console.debug("[PORENA WS received]", JSON.stringify(message));
         if (message.type === "ROOM_JOINED") { setStatus("Connected"); attempts = 0; setError(""); }
         if (message.type === "PLAYER_VIEW") {
           serverClock.observe(message.payload.serverNow);
@@ -136,7 +136,7 @@ export function OnlineApp() {
 
   const join = async (create: boolean) => {
     if (!/^[\p{L}\p{N} _-]{1,16}$/u.test(nickname.trim())) { setError("닉네임은 문자·숫자 1~16자로 입력하세요."); return; }
-    localStorage.setItem("holto-nickname", nickname.trim());
+    localStorage.setItem("porena-nickname", nickname.trim());
     setBusy(true); setError("");
     try {
       const response = await fetch(create ? "/api/rooms" : `/api/rooms/${roomCode.trim().toUpperCase()}/join`, { method: "POST" });

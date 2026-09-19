@@ -1,9 +1,9 @@
 import type { SessionCredential } from "../shared/protocol";
 
-export const LEGACY_SESSION_KEY = "holto-room-session-v1";
-export const SESSION_KEY = "holto-room-sessions-v2";
+export const LEGACY_SESSION_KEY = "porena-room-session-v1";
+export const SESSION_KEY = "porena-room-sessions-v2";
 /** Which room THIS tab is playing. Per-tab, so a second tab never steals the seat. */
-export const ACTIVE_ROOM_KEY = "holto-active-room";
+export const ACTIVE_ROOM_KEY = "porena-active-room";
 const MAX_REMEMBERED = 4;
 
 const isCredential = (value: unknown): value is SessionCredential =>

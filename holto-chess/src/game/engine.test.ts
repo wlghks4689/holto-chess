@@ -6,9 +6,9 @@ import {
   leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   sellCard, startNextRound, toggleSelectedCard,
 } from "./engine";
-import type { HoltoChessGameState } from "./types";
+import type { PorenaGameState } from "./types";
 
-function fillHuman(state: HoltoChessGameState): HoltoChessGameState {
+function fillHuman(state: PorenaGameState): PorenaGameState {
   if (state.players[0]!.eliminated) return state;
   const target = BALANCE.handLimits[state.round];
   while (state.players[0]!.ownedCardIds.length < target) {
@@ -19,7 +19,7 @@ function fillHuman(state: HoltoChessGameState): HoltoChessGameState {
   return state;
 }
 
-function playRound(state: HoltoChessGameState): HoltoChessGameState {
+function playRound(state: PorenaGameState): PorenaGameState {
   state = fillHuman(state); state = prepareShowdown(state);
   if (state.phase === "DECK_SELECT") {
     const required = state.round === 3 ? 4 : 2;
@@ -31,7 +31,7 @@ function playRound(state: HoltoChessGameState): HoltoChessGameState {
   return state;
 }
 
-describe("Holto Chess engine", () => {
+describe("PORENA engine", () => {
   it("assigns a distinct readable nickname to every seat", () => {
     const names = createGame(99).players.map((player) => player.name);
     expect(new Set(names).size).toBe(8);

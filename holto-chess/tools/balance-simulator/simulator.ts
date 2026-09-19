@@ -4,7 +4,7 @@ import {
   getCardPrice, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   startNextRound, toggleSelectedCard,
 } from "../../src/game/engine";
-import type { HoltoChessGameState, MatchResult, Round } from "../../src/game/types";
+import type { PorenaGameState, MatchResult, Round } from "../../src/game/types";
 import { assertSimulationInvariants } from "./invariants";
 import { assignPolicies, hasStrategyCandidate, orderedShop, selectR2Cards, selectR3Cards, shouldReroll } from "./policies";
 import {
@@ -19,7 +19,7 @@ const expectedEnd: Record<Round, number> = { 1: 8, 2: 6, 3: 6, 4: 4, 5: 4 };
 const roundEconomy = () => Object.fromEntries(ROUNDS.map((round) => [round, emptyEconomy()])) as Record<Round, EconomyCounter>;
 const addEconomy = (target: EconomyCounter, key: keyof EconomyCounter, value = 1) => { target[key] += value; };
 
-function poolSnapshot(state: HoltoChessGameState, checkShopFill = false): PoolSnapshot {
+function poolSnapshot(state: PorenaGameState, checkShopFill = false): PoolSnapshot {
   const count = (name: "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED") => state.ownershipCardPool.filter((entry) => entry.state === name).length;
   return {
     round: state.round, available: count("AVAILABLE"), reserved: count("RESERVED_IN_SHOP"), owned: count("OWNED"),
@@ -27,7 +27,7 @@ function poolSnapshot(state: HoltoChessGameState, checkShopFill = false): PoolSn
   };
 }
 
-function captureShopAppearances(state: HoltoChessGameState, ranks: Record<string, RankCounter>): void {
+function captureShopAppearances(state: PorenaGameState, ranks: Record<string, RankCounter>): void {
   for (const player of state.players.filter((entry) => !entry.eliminated)) for (const id of player.shopCardIds) ranks[RANK_LABEL[getCard(state, id).rank]]!.appearances += 1;
 }
 

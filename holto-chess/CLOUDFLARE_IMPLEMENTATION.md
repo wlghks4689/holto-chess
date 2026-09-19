@@ -5,7 +5,7 @@
 ## 1. 기존 구조 분석
 
 - React + TypeScript + Vite SPA. 기존 `tsc -b && vite build`, Vitest, ESLint 구성을 확장했다.
-- `src/ui/App.tsx`의 React state가 전체 `HoltoChessGameState`를 소유했다. ShopPanel, PlayerStrip, MatchCard, FinalPanel 등이 원장과 플레이어 배열을 직접 읽었다.
+- `src/ui/App.tsx`의 React state가 전체 `PorenaGameState`를 소유했다. ShopPanel, PlayerStrip, MatchCard, FinalPanel 등이 원장과 플레이어 배열을 직접 읽었다.
 - `src/game/engine.ts`는 React와 분리되어 있었고, 상태를 복제해 액션을 적용한다. 따라서 재작성하지 않고 서버에서도 호출한다.
 - Card Ledger는 52개의 AVAILABLE / RESERVED_IN_SHOP / OWNED 엔트리다. 상점은 전역 풀에서 카드를 예약하며, 판매·리롤·탈락 시 반환한다.
 - `core/poker`는 족보/키커/BEST 5/Omaha 평가를 담당한다. `showdownDeck.ts`는 매치 참가자의 모든 소유 카드를 제외한 임시 덱을 생성한다.
@@ -169,7 +169,7 @@ npx wrangler deploy --dry-run
 1. Cloudflare 계정을 준비하고 Workers 이용이 가능한 계정을 선택한다.
 2. 아래 `wrangler login`의 브라우저 인증을 본인이 완료한다.
 3. `wrangler whoami`로 대상 계정을 확인한다. 여러 계정이면 의도한 계정을 `account_id`로 Wrangler 설정에 지정한다.
-4. 동일 계정에 기존 `holto-chess` Worker가 있다면 덮어쓰기 전에 확인하고 필요하면 `name`을 바꾼다.
+4. 동일 계정에 기존 `porena` Worker가 있다면 덮어쓰기 전에 확인하고 필요하면 `name`을 바꾼다.
 5. `npm run deploy`를 실행한다. 최초 배포에서 exports 선언에 따라 SQLite GameRoom namespace가 생성된다. Dashboard에서 DB/DO를 수동 생성할 필요가 없다.
 6. 배포 결과의 workers.dev 주소에서 두 브라우저를 확인한다. custom domain이 필요하면 해당 Worker의 Settings → Domains & Routes에서 추가한다. 이는 선택 사항이다.
 

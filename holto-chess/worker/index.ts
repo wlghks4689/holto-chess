@@ -7,10 +7,22 @@ function code(): string {
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
+    if (url.hostname === "www.porena.kr") {
+      url.protocol = "https:";
+      url.hostname = "porena.kr";
+      return Response.redirect(url.toString(), 301);
+    }
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
     if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return env.ASSETS.fetch(request);
     // Same-origin browser credentials. No token in a query string, cookie or routing header.
     if (request.headers.get("Origin") !== url.origin) return new Response("Origin rejected", { status: 403 });
+    // No accounts exist yet: use the Cloudflare-provided IP as a coarse abuse
+    // guard, with a generous shared-network connection budget. Never log it.
+    const limiter = url.pathname === "/api/rooms" ? env.ROOM_CREATE_LIMITER : env.ROOM_CONNECT_LIMITER;
+    const { success } = await limiter.limit({ key: request.headers.get("CF-Connecting-IP") ?? "local" });
+    if (!success) return new Response("요청이 너무 많습니다. 잠시 후 다시 시도하세요.", {
+      status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" },
+    });
     const forward = (roomId: string, path: string) => {
       const target = new URL(request.url); target.pathname = path; target.search = "";
       const headers = new Headers(request.headers); headers.set("X-Room-Id", roomId);

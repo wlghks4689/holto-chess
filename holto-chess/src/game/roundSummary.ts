@@ -1,12 +1,12 @@
-import type { HoltoChessGameState } from "./types";
+import type { PorenaGameState } from "./types";
 import type { RoundSummaryRow } from "../shared/protocol";
 
-export function roundMatches(state: HoltoChessGameState) {
+export function roundMatches(state: PorenaGameState) {
   return state.matches.filter((match) => match.id.startsWith(`${state.round}-`));
 }
 
 /** Only cards already revealed in resolved matches may enter the public summary. */
-export function createRoundSummary(state: HoltoChessGameState): RoundSummaryRow[] {
+export function createRoundSummary(state: PorenaGameState): RoundSummaryRow[] {
   const matches = roundMatches(state);
   return state.players.flatMap((player) => {
     const played = matches.filter((match) => match.playerIds.includes(player.id));

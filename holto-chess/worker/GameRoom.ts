@@ -33,7 +33,10 @@ export class GameRoom extends DurableObject<Env> {
   private async commit(next: RoomSnapshot): Promise<void> {
     // Publish only after durable storage succeeds. Failed commands never replace the snapshot.
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
-    catch { throw new Error("상태를 저장하지 못했습니다. 재접속 후 다시 시도하세요."); }
+    catch {
+      console.error(JSON.stringify({ event: "room_storage_failed", roomId: next.roomId, revision: next.revision }));
+      throw new Error("상태를 저장하지 못했습니다. 재접속 후 다시 시도하세요.");
+    }
     this.room = next;
   }
   /**
@@ -49,8 +52,11 @@ export class GameRoom extends DurableObject<Env> {
     }
     const barrier = this.room ? barrierDeadline(this.room) : undefined;
     if (barrier !== undefined) deadlines.push(barrier);
-    if (!deadlines.length) { await this.ctx.storage.deleteAlarm(); return; }
-    await this.ctx.storage.setAlarm(Math.min(...deadlines));
+    const next = deadlines.length ? Math.min(...deadlines) : null;
+    // Avoid a billed write when the scheduled deadline has not changed.
+    if (await this.ctx.storage.getAlarm() === next) return;
+    if (next === null) await this.ctx.storage.deleteAlarm();
+    else await this.ctx.storage.setAlarm(next);
   }
   private send(ws: WebSocket, message: ServerMessage): void {
     try { ws.send(JSON.stringify(message)); } catch { /* Closed sockets have no state authority. */ }

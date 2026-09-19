@@ -1,6 +1,6 @@
 import type { Card } from "../../src/core/poker/cards";
 import { getCard, getCardPrice } from "../../src/game/engine";
-import type { HoltoChessGameState, PlayerState } from "../../src/game/types";
+import type { PorenaGameState, PlayerState } from "../../src/game/types";
 import type { PolicyName } from "./types";
 
 const rankCounts = (cards: Card[]) => cards.reduce((map, card) => map.set(card.rank, (map.get(card.rank) ?? 0) + 1), new Map<number, number>());
@@ -22,7 +22,7 @@ function policyScore(policy: PolicyName, candidate: Card, owned: Card[], price: 
   return (links + wheelLink) * 180 + candidate.rank - price;
 }
 
-export function orderedShop(state: HoltoChessGameState, player: PlayerState, policy: PolicyName): string[] {
+export function orderedShop(state: PorenaGameState, player: PlayerState, policy: PolicyName): string[] {
   const owned = player.ownedCardIds.map((id) => getCard(state, id));
   return [...player.shopCardIds].sort((left, right) => {
     const a = getCard(state, left); const b = getCard(state, right);
@@ -31,7 +31,7 @@ export function orderedShop(state: HoltoChessGameState, player: PlayerState, pol
   });
 }
 
-export function hasStrategyCandidate(state: HoltoChessGameState, player: PlayerState, policy: PolicyName): boolean {
+export function hasStrategyCandidate(state: PorenaGameState, player: PlayerState, policy: PolicyName): boolean {
   if (policy === "HIGH_RANK") return player.shopCardIds.some((id) => getCard(state, id).rank >= 11);
   if (policy === "ECONOMY") return player.shopCardIds.some((id) => getCardPrice(state, player.id, id) <= 7);
   const owned = player.ownedCardIds.map((id) => getCard(state, id));
@@ -46,12 +46,12 @@ export function hasStrategyCandidate(state: HoltoChessGameState, player: PlayerS
   }));
 }
 
-export function shouldReroll(state: HoltoChessGameState, player: PlayerState, policy: PolicyName): boolean {
+export function shouldReroll(state: PorenaGameState, player: PlayerState, policy: PolicyName): boolean {
   if (policy === "ECONOMY" || player.shopCardIds.length === 0) return false;
   return !hasStrategyCandidate(state, player, policy) && player.stackBB >= 15;
 }
 
-export function selectR2Cards(state: HoltoChessGameState, player: PlayerState, policy: PolicyName): string[] {
+export function selectR2Cards(state: PorenaGameState, player: PlayerState, policy: PolicyName): string[] {
   const owned = player.ownedCardIds.map((id) => ({ id, card: getCard(state, id) }));
   let best = owned.slice(0, 2).map((entry) => entry.id);
   let score = Number.NEGATIVE_INFINITY;
@@ -73,7 +73,7 @@ export function assignPolicies(playerIds: string[], policies: PolicyName[], mode
  * R3 splits the four owned cards into Game 1 and Game 2 pairs. The engine reads
  * selectedCardIds[0..1] as Game 1 and [2..3] as Game 2, so the returned order matters.
  */
-export function selectR3Cards(state: HoltoChessGameState, player: PlayerState, policy: PolicyName): string[] {
+export function selectR3Cards(state: PorenaGameState, player: PlayerState, policy: PolicyName): string[] {
   const owned = player.ownedCardIds.map((id) => ({ id, card: getCard(state, id) }));
   if (owned.length !== 4) return owned.map((entry) => entry.id);
   const pairScore = (a: typeof owned[number], b: typeof owned[number]) =>

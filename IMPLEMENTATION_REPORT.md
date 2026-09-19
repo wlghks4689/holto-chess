@@ -39,7 +39,7 @@
 
 ## Match-scoped Community Board 리팩터링
 
-1. 기존 구조: `HoltoChessGameState.communityBoards`와 `engine.ts`의 `uniqueBoard`가 라운드 전체 보드를 만들고 중복까지 금지했습니다. Primary와 Secondary가 만든 보드도 전역 배열에 누적했습니다.
+1. 기존 구조: `PorenaGameState.communityBoards`와 `engine.ts`의 `uniqueBoard`가 라운드 전체 보드를 만들고 중복까지 금지했습니다. Primary와 Secondary가 만든 보드도 전역 배열에 누적했습니다.
 2. 상태 변경: 전역 `communityBoards`를 제거했습니다. 보드의 진실 공급원은 각 `MatchResult.boards`이며, 보드별 평가 결과와 승자는 `boardResults`, `boardWinnerIds`에 저장합니다.
 3. Match별 생성: `showdownDeck.ts`의 `createShowdownDeck`이 encounter 참가자의 전체 OWNED 카드 ID를 Set으로 만든 뒤 완전한 52장 덱에서 제외하고 셔플합니다.
 4. 제외 범위: 실제 선택 홀카드가 아니라 참가자의 `ownedCardIds` 전체를 제거합니다. RESERVED, AVAILABLE, 다른 매치 참가자의 OWNED 카드는 제거하지 않습니다.

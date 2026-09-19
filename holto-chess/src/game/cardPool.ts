@@ -1,11 +1,11 @@
 import { makeDeck } from "../core/poker/cards";
-import type { HoltoChessGameState, PlayerState, PoolCard } from "./types";
+import type { PorenaGameState, PlayerState, PoolCard } from "./types";
 
 export function createOwnershipPool(): PoolCard[] {
   return makeDeck().map((card) => ({ card, state: "AVAILABLE" }));
 }
 
-export function assertPoolIntegrity(state: HoltoChessGameState): true {
+export function assertPoolIntegrity(state: PorenaGameState): true {
   if (state.ownershipCardPool.length !== 52) throw new Error("Card pool must contain exactly 52 entries");
   const ids = new Set(state.ownershipCardPool.map((entry) => entry.card.id));
   if (ids.size !== 52) throw new Error("Card pool contains duplicate card ids");
@@ -37,7 +37,7 @@ export function assertPoolIntegrity(state: HoltoChessGameState): true {
   return true;
 }
 
-export function releasePlayerCards(state: HoltoChessGameState, player: PlayerState): void {
+export function releasePlayerCards(state: PorenaGameState, player: PlayerState): void {
   for (const id of [...player.ownedCardIds, ...player.shopCardIds]) {
     const entry = state.ownershipCardPool.find((item) => item.card.id === id)!;
     entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId;

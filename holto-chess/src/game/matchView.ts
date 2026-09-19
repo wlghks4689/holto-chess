@@ -1,5 +1,5 @@
 import type { MatchView, RevealedHand } from "../shared/protocol";
-import type { HoltoChessGameState, MatchResult, PlayerShowdown } from "./types";
+import type { PorenaGameState, MatchResult, PlayerShowdown } from "./types";
 
 export function revealedHand(result: PlayerShowdown): RevealedHand {
   return { playerId: result.playerId, place: result.place, category: result.hand.category,
@@ -7,7 +7,7 @@ export function revealedHand(result: PlayerShowdown): RevealedHand {
 }
 
 /** Public match allowlist, called only after the caller has checked visibility. */
-export function createMatchView(game: HoltoChessGameState, match: MatchResult): MatchView {
+export function createMatchView(game: PorenaGameState, match: MatchResult): MatchView {
   return {
     matchday: match.matchday, swissBefore: match.swissBefore ? structuredClone(match.swissBefore) : undefined,
     swissAfter: match.swissAfter ? structuredClone(match.swissAfter) : undefined,

@@ -1,8 +1,8 @@
 import { BALANCE } from "../../src/game/config";
 import { assertPoolIntegrity } from "../../src/game/cardPool";
-import type { HoltoChessGameState } from "../../src/game/types";
+import type { PorenaGameState } from "../../src/game/types";
 
-export function assertSimulationInvariants(state: HoltoChessGameState, expectedAlive?: number): true {
+export function assertSimulationInvariants(state: PorenaGameState, expectedAlive?: number): true {
   assertPoolIntegrity(state);
   const owned = state.players.flatMap((player) => player.ownedCardIds);
   if (new Set(owned).size !== owned.length) throw new Error("A physical card is owned by more than one player");

@@ -4,7 +4,7 @@ import { CardView } from "./CardView";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
 
-/** Hold'em showdown focus, using Holto's round-specific evaluator results. */
+/** Hold'em showdown focus, using PORENA's round-specific evaluator results. */
 
 export function ShowdownHand({ cards, usedCardIds, winner, displayName, category, kickers }: {
   cards: Card[]; usedCardIds: readonly string[]; winner: boolean; displayName: string;

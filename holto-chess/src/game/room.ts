@@ -5,13 +5,13 @@ import { beginSecondary, buyCard, choicesFor, createGame, getCard, prepareShowdo
 import { pickBotAugment } from "./botStrategy";
 import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
-import type { Augment, HoltoChessGameState } from "./types";
+import type { Augment, PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
   schema: 1; roomId: string; revision: number; status: "LOBBY" | "PLAYING";
-  game: HoltoChessGameState;
+  game: PorenaGameState;
   sessions: { playerId: string; tokenHash: string; requests: string[]; departed?: boolean }[];
   readyIds: string[]; endedShopIds: string[];
   augmentChoices: Record<string, Augment[]>;
