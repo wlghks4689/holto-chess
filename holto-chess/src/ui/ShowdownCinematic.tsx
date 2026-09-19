@@ -5,6 +5,7 @@ import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type Cin
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
+import { cinemaSeatClass } from "./madeFxClasses";
 import { showdownStage } from "./showdownStage";
 import type { ServerClock } from "./serverClock";
 import { ShowdownCardFlip } from "./ShowdownCardFlip";
@@ -124,7 +125,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const currentPlaceVisible = final && frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && !!result && result.place >= frame.finalPlace;
       const placementClass = final ? finalWinnerStage ? won ? "cinema-winner" : "cinema-loser" : currentPlaceVisible ? "cinema-final-resolved" : "" : flags.profile ? won ? "cinema-winner" : "cinema-loser" : "";
-      const madeClass = flags.glow && result ? final && !finalWinnerStage ? "cinema-made-fx" : `cinema-made-fx ${won ? "cinema-leading" : "cinema-trailing"}` : "";
+      const made = !!(flags.glow && result);
+      const leading = final && !finalWinnerStage ? undefined : won;
       const readCards = readStage.kind === "current" ? readStage.cards : 0;
       const interimHand = final && readCards ? visibleFinalHand(cards, readCards) : undefined;
       const interimLabel = interimHand ? detailedHandLabel(interimHand.category, interimHand.kickers, cards.slice(0, readCards), interimHand.bestFive.map((card) => card.id)) : undefined;
@@ -134,7 +136,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           ? { stage: `current-${readCards}`, tag: readCards === 3 ? "CURRENT READ · 3 CARDS" : "CURRENT BEST · 5 CARDS", title: interimLabel.title, detail: interimLabel.kicker }
           : { stage: "pending", tag: "HAND READ", title: "—", detail: undefined };
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
-      return <div key={id} className={`cinema-seat ${placementClass} made-${tone} ${madeClass}`} data-seat-index={index} data-player-id={id}>
+      return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
         {intro && !multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
