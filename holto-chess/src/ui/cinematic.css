@@ -162,13 +162,10 @@
 .cinema-made-fx.made-full-house::after{inset:-35%;background:conic-gradient(from 25deg,transparent,rgba(216,180,254,.5),rgba(139,92,246,.4),transparent 56%,rgba(192,132,252,.42),transparent);animation:cinema-panel-orbit 1.45s ease-out 1}
 .cinema-made-fx.made-quads::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.5),rgba(251,113,133,.78) 18%,rgba(190,24,93,.3) 52%,transparent 80%);animation:cinema-panel-quads-burst 1.55s cubic-bezier(.22,1,.36,1) 1}
 .cinema-made-fx.made-quads::after{inset:-40%;background:conic-gradient(from 0deg,transparent 0 8%,rgba(251,113,133,.84) 15%,transparent 24% 38%,rgba(239,68,68,.7) 48%,transparent 58% 72%,rgba(190,24,93,.76) 82%,transparent 92%);animation:cinema-panel-quads-orbit 1.65s cubic-bezier(.2,.8,.25,1) 1}
-/* Straight flush and royal now share the recap's aura, which is the port of
-   holdem-game's rainbow-orbit and royal-aura layers. */
-.cinema-made-fx.made-straight-flush::before{inset:-10px;border-radius:16px;background:var(--fx-sf-orbit);filter:blur(13px);animation:porena-sf-orbit 1.75s cubic-bezier(.2,.8,.25,1) 1 both}
+.cinema-made-fx.made-straight-flush::before{display:none}
 .cinema-made-fx.made-straight-flush::after{display:none}
-.cinema-made-fx.made-royal{background:var(--fx-royal-panel)}
-.cinema-made-fx.made-royal::before{inset:-12px;border-radius:18px;background:var(--fx-royal-aura);filter:blur(18px);animation:porena-royal-aura 1.9s ease-out 1 both}
-.cinema-made-fx.made-royal::after{inset:-16px;border-radius:50%;background:var(--fx-royal-flash);animation:porena-royal-flash 1.45s ease-out 1}
+.cinema-made-fx.made-royal::before{display:none}
+.cinema-made-fx.made-royal::after{display:none}
 .cinema-made-fx.cinema-trailing{--fx-peak:.24}
 .cinema .cinema-made-fx.made-straight .playing-card.glow{animation:cinema-card-glow-straight .85s ease-out 1}
 .cinema .cinema-made-fx.made-flush .playing-card.glow{animation:cinema-card-glow-flush 1.05s ease-out 1}
@@ -176,8 +173,8 @@
 .cinema .cinema-made-fx.made-quads .playing-card.glow{animation:cinema-card-glow-quads 1.15s ease-out 1}
 /* holdem-game applies its per-kind variant class instead of the tier glow for
    straight flush and royal, so both reuse those exact animations here. */
-.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{animation:porena-sf-card 1.8s linear 1}
-.cinema .cinema-made-fx.made-royal .playing-card.glow{animation:porena-royal-card 1.9s ease-out 1 both}
+.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{box-shadow:var(--fx-sf-rim);animation:porena-sf-card 1.8s linear 1}
+.cinema .cinema-made-fx.made-royal .playing-card.glow{box-shadow:var(--fx-royal-rim);animation:porena-royal-card 1.9s ease-out 1}
 .cinema-street-made{margin:14px 0 4px;min-height:48px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
 .cinema-street-made small,.cinema-street-made strong,.cinema-street-made em{display:block;font-style:normal}
 .cinema-street-made small{color:#779889;font:500 9px DM Mono;letter-spacing:.08em;margin-bottom:4px}
