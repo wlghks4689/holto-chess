@@ -9,7 +9,9 @@ import { madeTone } from "./madeTone";
 import { canSellWithoutBlocking } from "../game/shopRules";
 import { RoundGuide } from "./RoundGuide";
 import { RoundResults } from "./RoundResults";
-import { activeSession, forgetSession, rememberSession, storedSessions } from "./sessionStore";
+import { forgetSession, rememberSession, storedSessions } from "./sessionStore";
+import { MultiplayerLobby, OnlineEntryFrame, RoomWaitingRoom } from "./OnlineLobby";
+import { onlineScreen } from "./onlineScreen";
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 import { createServerClock } from "./serverClock";
@@ -62,9 +64,9 @@ function Selection({ view, send, disabled }: { view: PlayerView; send: (a: GameA
   const required = 2;
   return <section className="panel select-panel"><h2>R2 출전 카드 2장</h2><div className="card-row centered">{view.me.ownedCards.map((card) => { const index = selected.indexOf(card.id); const footer = index < 0 ? "선택" : "선택됨"; return <CardView key={card.id} card={card} selected={index >= 0} footer={footer} onClick={() => setSelected((ids) => ids.includes(card.id) ? ids.filter((id) => id !== card.id) : ids.length < required ? [...ids, card.id] : ids)} />; })}</div><button className="secondary" disabled={disabled || selected.length !== required} onClick={() => send({ type: "SELECT_CARDS", cardIds: selected })}>출전 선택 저장</button><p className="hint">서버에 저장된 선택: {view.me.selectedCardIds.join(", ") || "없음"}</p></section>;
 }
-export function OnlineApp() {
-  const [credential, setCredential] = useState<SessionCredential | null>(activeSession);
-  const [resumable, setResumable] = useState<SessionCredential[]>(() => storedSessions().filter((s) => s.roomId !== activeSession()?.roomId));
+export function OnlineApp({ onHome }: { onHome: () => void }) {
+  const [credential, setCredential] = useState<SessionCredential | null>(null);
+  const [resumable, setResumable] = useState<SessionCredential[]>(storedSessions);
   const [view, setView] = useState<PlayerView | null>(null);
   // Fetch this round's showdown artwork (R5: the Final Arena) during its shop so the showdown opens on it.
   useEffect(() => { if (view?.round === 5) preloadFinalArena(); else preloadShowdownStage(view?.round); }, [view?.round]);
@@ -117,14 +119,19 @@ export function OnlineApp() {
           setView(message.payload);
           if (pendingRequest.current?.revision !== undefined && message.payload.revision >= pendingRequest.current.revision) clearPending();
         }
-        if (message.type === "ACK" && pendingRequest.current?.id === message.requestId) pendingRequest.current.revision = message.revision;
+        if (message.type === "ACK" && pendingRequest.current?.id === message.requestId) {
+          if (pendingRequest.current.type === "LEAVE_ROOM") {
+            forgetSession(credential.roomId);
+            clearPending(); setCredential(null); setView(null); setStatus("Disconnected"); setError(""); setResumable(storedSessions());
+          } else pendingRequest.current.revision = message.revision;
+        }
         if (message.type === "ERROR") { if (!message.requestId || message.requestId === pendingRequest.current?.id) clearPending(); setError(message.message); }
       };
       ws.onclose = (event) => {
         if (disposed) return;
         setStatus("Disconnected"); clearPending();
         if (event.code === 4001) { setError("다른 탭에서 같은 좌석에 접속했습니다. 이 탭의 연결을 종료합니다."); return; }
-        if (event.code === 1008 || attempts >= 5) { setError("연결을 복구하지 못했습니다. 재접속하거나 세션을 지우고 새 방에 입장하세요."); return; }
+        if (event.code === 1008 || attempts >= 5) { setError("연결을 복구하지 못했습니다. 다시 연결하거나 로비에서 다른 방에 참가하세요."); return; }
         setStatus("Reconnecting");
         timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 10000));
       };
@@ -140,7 +147,7 @@ export function OnlineApp() {
     setBusy(true); setError("");
     try {
       const response = await fetch(create ? "/api/rooms" : `/api/rooms/${roomCode.trim().toUpperCase()}/join`, { method: "POST" });
-      if (!response.ok) throw new Error(response.status === 404 ? "방을 찾을 수 없습니다." : "방이 시작되었거나 입장할 수 없습니다.");
+      if (!response.ok) throw new Error(response.status === 429 ? "요청이 많습니다. 잠시 후 다시 시도하세요." : response.status === 404 ? "방을 찾을 수 없습니다." : "방이 시작되었거나 입장할 수 없습니다.");
       const session = await response.json() as SessionCredential;
       rememberSession(session);
       setView(null); setCredential(session); setResumable(storedSessions().filter((s) => s.roomId !== session.roomId));
@@ -164,15 +171,14 @@ export function OnlineApp() {
   };
   const leaveRoom = () => {
     send({ type: "LEAVE_ROOM" });
-    if (credential) forgetSession(credential.roomId);
   };
   const resume = (session: SessionCredential) => {
     rememberSession(session);
     setError(""); setView(null); setCredential(session);
     setResumable(storedSessions().filter((s) => s.roomId !== session.roomId));
   };
-  const clearSession = () => {
-    if (credential) forgetSession(credential.roomId);
+  const returnToLobby = () => {
+    clearPending(); setError(""); setSpectating(false); setDismissedGuide(null);
     setCredential(null); setView(null); setStatus("Disconnected");
     setResumable(storedSessions());
   };
@@ -188,15 +194,18 @@ export function OnlineApp() {
   const guideKey = view ? `${view.gameId}:${view.round}` : null;
   const showGuide = view && view.phase !== "LOBBY" && dismissedGuide !== guideKey;
   const prep = view && view.phase !== "LOBBY" ? getPrepPresentation(view.round, view.phase) : null;
+  const screen = onlineScreen(credential, view);
+  if (screen === "lobby") return <MultiplayerLobby nickname={nickname} onNickname={setNickname} roomCode={roomCode} onRoomCode={setRoomCode} busy={busy} error={error} sessions={resumable} onJoin={(create) => void join(create)} onResume={resume} onHome={onHome} />;
+  if (screen === "connecting" || screen === "departed") return <OnlineEntryFrame title={screen === "departed" ? "퇴장한 방입니다" : "방에 연결하고 있습니다"} eyebrow="PRIVATE ARENA"><p className="entry-description">{credential?.roomId} · {statusLabel}</p>{error && <p className="room-error" role="alert">{error}</p>}<div className="entry-recovery">{screen === "connecting" && <button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>연결 다시 시도</button>}<button className="secondary" onClick={() => { if (screen === "departed" && credential) forgetSession(credential.roomId); returnToLobby(); }}>로비로 돌아가기</button></div></OnlineEntryFrame>;
+  if (!view) return null;
+  if (screen === "waiting") return <RoomWaitingRoom view={view} status={statusLabel} connected={status === "Connected"} pending={!!pending} error={error} onReady={() => send({ type: "READY" })} onLeave={leaveRoom} onRetry={() => setConnectionKey((n) => n + 1)} onReturn={returnToLobby} />;
   return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""} presentation={view?.presentation} clock={serverClock}><main className={view && view.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}>{showGuide ? <RoundGuide round={view.round} secondsLeft={secondsLeft} onClose={() => setDismissedGuide(guideKey)} /> : null}<nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></a>{view && view.phase !== "LOBBY" ? <RoundProgress round={view.round} prep={prep} /> : <span />}<div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div></nav>
     <div className="page-shell" id="top">
-      <section className="panel room-panel"><header className="room-panel-heading"><div><span className="eyebrow">ARENA MATCHMAKING</span><h2>아레나 로비</h2><p>전투에 사용할 이름을 정하고 새로운 테이블을 열거나 기존 방에 합류하세요.</p></div><span className="room-panel-mark" aria-hidden="true">P</span></header>{!credential ? <><div className="lobby-console"><label className="nickname-field"><span>PLAYER NAME</span>닉네임<input aria-label="닉네임" maxLength={16} value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="플레이어" /></label><div className="room-controls"><button className="primary" disabled={busy} onClick={() => void join(true)}><span>새 아레나 생성</span></button><label><span>PRIVATE MATCH</span>Room Code<input aria-label="Room Code" value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="AB12CD" /></label><button className="secondary" disabled={busy || !/^[A-Z2-9]{6}$/.test(roomCode.trim())} onClick={() => void join(false)}>방 참가</button></div></div>{resumable.length > 0 && <div className="resume-list"><small>RECENT ARENAS · 이전에 참가한 방</small>{resumable.map((s) => <button key={s.roomId} className="secondary" onClick={() => resume(s)}>{s.roomId} 방으로 돌아가기</button>)}</div>}</> : <><p className="room-session">ROOM <strong data-testid="room-id">{credential.roomId}</strong><span>·</span> PLAYER <strong data-testid="player-id">{credential.playerId}</strong><span>·</span> {view?.humanCount ?? "…"} / 8</p><div className="room-controls"><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>재접속</button><button className="secondary" onClick={clearSession}>세션 지우기</button></div></>}
-        <p className="hint">실제 사용자 2~8명 · 시작 시 빈 좌석은 AI가 채웁니다. 같은 방 코드를 다른 탭이나 브라우저에 입력하세요. 재접속 정보는 이 브라우저에 저장되어 탭을 닫아도 같은 좌석으로 돌아옵니다.</p></section>
       {error && <p className="room-error" role="alert">{error}</p>}
+      {status !== "Connected" && <div className="entry-recovery" role="status"><span>{statusLabel}</span><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>연결 다시 시도</button><button className="secondary" onClick={returnToLobby}>로비로 돌아가기 · 방 유지</button></div>}
       {view && <>
         {prep ? <PrepRoundHeader prep={prep} phaseLabel={phases[view.phase] ?? view.phase} phaseDetail={secondsLeft !== null ? <small>{waitingOnMe ? `내 차례 · ${secondsLeft}초 후 자동 진행` : `대기 ${view.waitingOn.length}명 · ${secondsLeft}초`}</small> : undefined} /> : <header className="round-header"><div><span className="round-number">ROUND 0{view.round}</span><h1>{titles[view.round]}</h1></div><div className="phase-badge"><b>{phases[view.phase] ?? view.phase}</b>{secondsLeft !== null && <small>{waitingOnMe ? `내 차례 · ${secondsLeft}초 후 자동 진행` : `대기 ${view.waitingOn.length}명 · ${secondsLeft}초`}</small>}</div></header>}
         <div className="player-strip">{view.players.map((p) => <div className={`player-chip ${p.playerId === view.me.playerId ? "me" : ""} ${!p.alive ? "out" : ""}`} key={p.playerId}><span className="player-avatar">{p.playerId.slice(1)}</span><span><b>{p.name} {p.human ? "" : "AI"}</b><small>{p.alive ? `${p.stackBB}BB · ${displayPoints(p.points)}P` : "OUT"} {p.ready ? "✓" : ""}</small></span></div>)}</div>
-        {view.phase === "LOBBY" ? <section className="panel transition-panel"><h2>모두 준비하면 시작합니다</h2><p>최소 2명의 사용자와 각자의 준비 완료가 필요합니다.</p><button className="primary" disabled={disabled || view.players.find((p) => p.playerId === view.me.playerId)?.ready} onClick={() => send({ type: "READY" })}>READY · 준비 완료</button></section> : null}
         {view.phase === "SHOP" && view.me.alive && <><section className="shop-layout"><div className="inventory panel"><header><h2>내 카드 <em>{view.me.ownedCards.length} / {view.me.handLimit}</em></h2><div className="stat-block"><strong>{view.me.stackBB}<i>BB</i></strong></div></header><div className="card-row owned-row">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} onClick={!disabled && !view.me.committed && canSell ? () => send({ type: "SELL_CARD", cardId: card.id }) : undefined} footer={canSell ? "판매" : "판매 불가"} />)}</div><p className="hint">{canSell ? `판매 환급 ${view.me.sellPercent}% · 판매 후 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p></div><div className="market panel"><header><h2>카드 마켓</h2><span className="purchase-count">구매 {view.me.purchases}/{view.me.purchaseLimit}</span></header><div className="card-row market-row">{view.me.shopCards.map(({ card, price }) => <ShopCard key={card.id} card={card} price={price} locked={view.me.lockedShopCardIds?.includes(card.id) ?? false} disabled={disabled || view.me.committed} onBuy={() => send({ type: "BUY_CARD", cardId: card.id })} onLock={() => send({ type: "LOCK_SHOP", cardId: card.id })} />)}</div><div className="market-actions"><button className="secondary" disabled={disabled || view.me.committed || view.me.rerollsUsed >= view.me.rerollLimit || view.me.stackBB < view.me.rerollCost} onClick={() => send({ type: "REROLL" })}>{pending === "REROLL" ? "REFRESHING…" : `리롤 ${view.me.rerollCost}BB`} · {Math.max(0, view.me.rerollLimit - view.me.rerollsUsed)} / {view.me.rerollLimit}</button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div></div></section>
           {(view.round === 2 || view.round === 3) && <Selection key={`${view.round}:${view.me.ownedCards.map((c) => c.id).join()}`} view={view} send={send} disabled={disabled || view.me.committed} />}
           <div className="action-bar shop-ready-bar">

@@ -162,10 +162,13 @@
 .cinema-made-fx.made-full-house::after{inset:-35%;background:conic-gradient(from 25deg,transparent,rgba(216,180,254,.5),rgba(139,92,246,.4),transparent 56%,rgba(192,132,252,.42),transparent);animation:cinema-panel-orbit 1.45s ease-out 1}
 .cinema-made-fx.made-quads::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.5),rgba(251,113,133,.78) 18%,rgba(190,24,93,.3) 52%,transparent 80%);animation:cinema-panel-quads-burst 1.55s cubic-bezier(.22,1,.36,1) 1}
 .cinema-made-fx.made-quads::after{inset:-40%;background:conic-gradient(from 0deg,transparent 0 8%,rgba(251,113,133,.84) 15%,transparent 24% 38%,rgba(239,68,68,.7) 48%,transparent 58% 72%,rgba(190,24,93,.76) 82%,transparent 92%);animation:cinema-panel-quads-orbit 1.65s cubic-bezier(.2,.8,.25,1) 1}
-.cinema-made-fx.made-straight-flush::before{display:none}
-.cinema-made-fx.made-straight-flush::after{display:none}
-.cinema-made-fx.made-royal::before{display:none}
-.cinema-made-fx.made-royal::after{display:none}
+/* Use the same behind-the-seat bloom/orbit layers as full house and quads.
+   Shared holdem-game palettes preserve SF rainbow and RF white/gold identity.
+   Radial falloff hides rotating rectangle edges; cards/text stay above the FX. */
+.cinema-made-fx.made-straight-flush::before{background:radial-gradient(ellipse at 50% 42%,rgba(34,211,238,.48),rgba(192,132,252,.22) 46%,transparent 76%);animation:cinema-panel-bloom 1.8s ease-out 1}
+.cinema-made-fx.made-straight-flush::after{inset:-40%;border-radius:50%;background:var(--fx-sf-orbit);mask-image:radial-gradient(ellipse,transparent 8%,#000 28%,#000 42%,transparent 68%);animation:cinema-panel-quads-orbit 1.8s cubic-bezier(.2,.8,.25,1) 1}
+.cinema-made-fx.made-royal::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.64),rgba(191,219,254,.4) 26%,rgba(196,181,253,.18) 50%,transparent 78%);animation:cinema-panel-royal 2.1s ease-out 1}
+.cinema-made-fx.made-royal::after{inset:-40%;border-radius:50%;background:var(--fx-royal-aura);mask-image:radial-gradient(ellipse,transparent 6%,#000 24%,#000 42%,transparent 68%);animation:cinema-panel-quads-orbit 2.1s cubic-bezier(.2,.8,.25,1) 1}
 .cinema-made-fx.cinema-trailing{--fx-peak:.24}
 .cinema .cinema-made-fx.made-straight .playing-card.glow{animation:cinema-card-glow-straight .85s ease-out 1}
 .cinema .cinema-made-fx.made-flush .playing-card.glow{animation:cinema-card-glow-flush 1.05s ease-out 1}
@@ -175,6 +178,13 @@
    straight flush and royal, so both reuse those exact animations here. */
 .cinema .cinema-made-fx.made-straight-flush .playing-card.glow{box-shadow:var(--fx-sf-rim);animation:porena-sf-card 1.8s linear 1}
 .cinema .cinema-made-fx.made-royal .playing-card.glow{box-shadow:var(--fx-royal-rim);animation:porena-royal-card 1.9s ease-out 1}
+/* Persistent identity, including after the one-shot orbit has finished.
+   These outrank generic/final-table winner colors without changing other hands. */
+.cinema .cinema-seat.cinema-made-fx.made-straight-flush{--made-color:#a5f3fc;border-color:transparent;background:linear-gradient(#142333,#142333) padding-box,var(--fx-sf-spectrum) border-box}
+.cinema .cinema-made-fx.made-straight-flush .cinema-made strong,.cinema .cinema-made-fx.made-straight-flush .cinema-victory{width:fit-content;max-width:100%;margin-inline:auto;background:var(--fx-sf-spectrum);background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 10px rgba(125,211,252,.58))}
+.cinema .cinema-seat.cinema-made-fx.made-royal{--made-color:#e2efff;border-color:#dceafa;background:var(--fx-royal-panel);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 0 26px rgba(181,211,250,.28)}
+.cinema .cinema-made-fx.made-royal .cinema-made strong,.cinema .cinema-made-fx.made-royal .cinema-victory{color:#f2f8ff;text-shadow:0 0 10px rgba(255,255,255,.8),0 0 26px rgba(170,209,255,.58)}
+.cinema .cinema-seat.cinema-made-fx:is(.made-straight-flush,.made-royal).cinema-trailing{border-color:color-mix(in srgb,var(--made-color) 38%,#365345);background:#081710;box-shadow:none}
 .cinema-street-made{margin:14px 0 4px;min-height:48px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
 .cinema-street-made small,.cinema-street-made strong,.cinema-street-made em{display:block;font-style:normal}
 .cinema-street-made small{color:#779889;font:500 9px DM Mono;letter-spacing:.08em;margin-bottom:4px}
@@ -256,7 +266,7 @@
   .cinema-final .cinema-hole-cards{gap:2px}
   .cinema-final .cinema-reward b{font-size:12px}
 }
-@media(prefers-reduced-motion:reduce){.cinema *{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){.cinema *:not(.fx-motion-preview *){animation:none!important;transition:none!important}.cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::before,.cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::after{animation:none!important;opacity:0}}
 /* Server-synced playback: a large clock jump lands on the current frame instead of replaying every transition. */
 .cinema-catchup,.cinema-catchup *{transition:none!important}
 .cinema-waiting{display:grid;place-items:center;align-content:center;gap:18px;min-height:320px;text-align:center}

@@ -84,11 +84,12 @@ export function FxPreview() {
   const [leading, setLeading] = useState(true);
   const [onlyFx, setOnlyFx] = useState(true);
   const [replay, setReplay] = useState(0);
+  const [previewMotion, setPreviewMotion] = useState(false);
   const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const names = MADE_TONE_SAMPLES.filter((name) => !onlyFx || madeTone(name) !== "default");
 
-  return <main className="fx-preview">
+  return <main className={`fx-preview${previewMotion ? " fx-motion-preview" : ""}`}>
     <header className="fx-preview-head">
       <div><small>DEVELOPMENT</small><h1>메이드 핸드 이펙트</h1>
         <p>실제 평가기와 실제 카드 컴포넌트로 그립니다. 족보 이름과 톤 클래스는 게임과 같은 함수에서 나옵니다.</p></div>
@@ -102,11 +103,12 @@ export function FxPreview() {
           <button type="button" className={!leading ? "locked" : ""} onClick={() => setLeading(false)}>패자</button>
         </div>
         <label><input type="checkbox" checked={onlyFx} onChange={(e) => setOnlyFx(e.target.checked)} />전용 연출만</label>
+        {reduced && <label><input type="checkbox" checked={previewMotion} onChange={(e) => { setPreviewMotion(e.target.checked); setReplay((n) => n + 1); }} />이 미리보기에서만 동작 허용</label>}
         <button type="button" className="primary" onClick={() => setReplay((n) => n + 1)}>다시 재생</button>
       </div>
     </header>
-    {reduced && <p className="fx-warning" role="status">
-      이 브라우저가 <code>prefers-reduced-motion: reduce</code> 상태라 애니메이션이 정지됩니다. 움직임을 보려면 OS의 동작 줄이기 설정을 해제하세요.
+    {reduced && !previewMotion && <p className="fx-warning" role="status">
+      이 브라우저가 <code>prefers-reduced-motion: reduce</code> 상태라 애니메이션이 정지됩니다. 확인하려면 ‘이 미리보기에서만 동작 허용’을 선택하세요. 실제 게임 설정은 바뀌지 않습니다.
     </p>}
     <div className="fx-grid" key={`${context}-${leading}-${replay}`}>
       {names.map((name) => <Sample key={name} name={name} context={context} leading={leading} />)}
