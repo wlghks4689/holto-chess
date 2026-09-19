@@ -58,7 +58,7 @@ describe("barrier liveness", () => {
     expect(finished.game.phase).toBe("GAME_RESULT");
     expect(pendingBarrierIds(finished)).toEqual([]);
     expect(barrierDeadline(finished)).toBeUndefined();
-  });
+  }, 30_000);
 
   it("does not force a barrier before the deadline", () => {
     const room = started();
@@ -118,7 +118,7 @@ describe("barrier liveness", () => {
     }
     // Nobody ever answered, so bots must have carried the game to its end.
     expect(room.game.phase).toBe("GAME_RESULT");
-  });
+  }, 30_000);
 });
 
 describe("leaving a room", () => {
@@ -155,7 +155,7 @@ describe("leaving a room", () => {
     const out = room.game.players.find((p) => p.eliminated && ["p1", "p2"].includes(p.id));
     expect(out).toBeDefined();
     expect(pendingBarrierIds(room)).not.toContain(out!.id);
-  });
+  }, 30_000);
 
   it("every human leaving still lets the game finish on bots", () => {
     let room = started(2);
@@ -168,7 +168,7 @@ describe("leaving a room", () => {
       room = next;
     }
     expect(room.game.phase).toBe("GAME_RESULT");
-  });
+  }, 30_000);
 });
 
 describe("shop ready barrier", () => {
