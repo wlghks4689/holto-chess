@@ -36,7 +36,7 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
   return <main className="start-screen">
     <div className="start-content" inert={overlay !== null}>
       <div className="start-main">
-        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1 aria-label="PORENA"><span>POREN</span><span className="start-title-accent">A</span></h1><div className="start-title-line" /><p className="start-tagline">패를 만들고, 아레나를 지배하라.</p></header>
+        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1 aria-label="PORENA"><span>POREN</span><span className="start-title-accent">A</span></h1><div className="start-title-line" /><p className="start-tagline">최강의 패를 조합하여 아레나에서 승리하라</p></header>
         <div className="start-menu" aria-label="메인 메뉴">
           <button type="button" className="start-menu-primary" onClick={onStart}><span>시작하기</span><i aria-hidden="true">→</i></button>
           <button type="button" onClick={() => setOverlay("guide")}>게임 설명</button>
