@@ -41,7 +41,7 @@
 .cinema-final .cinema-heading-copy,.cinema-final .cinema-footer{transition:opacity .6s ease}
 .cinema-arena-enter .cinema-heading-copy{opacity:0;animation:none}
 .cinema-arena-enter .cinema-seats,.cinema-arena-enter .cinema-footer{opacity:0}
-@media(prefers-reduced-motion:reduce){.cinema-final-arena img{transform:scale(var(--arena-scale))!important}.cinema-final-arena i{opacity:1!important}}
+@media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) .cinema-final-arena img{transform:scale(var(--arena-scale))!important}.cinema:not(.cinema-motion-enabled) .cinema-final-arena i{opacity:1!important}}
 .cinema-final-heading{position:relative;z-index:2;justify-content:center;text-align:center;margin-bottom:24px}
 .cinema-final-heading>div:first-child{max-width:760px}.cinema-final-heading h2{font-size:clamp(28px,5vw,52px);line-height:1;margin:12px 0;letter-spacing:-.035em}
 .cinema-final-heading p{margin:0;color:#7f9d94;font:500 10px DM Mono;letter-spacing:.12em;text-transform:uppercase}
@@ -126,6 +126,10 @@
 .cinema .made-straight{--made-color:#fbbf24}.cinema .made-flush{--made-color:#38bdf8}.cinema .made-full-house{--made-color:#a78bfa}.cinema .made-quads{--made-color:#fb7185}.cinema .made-straight-flush{--made-color:#c084fc}.cinema .made-royal{--made-color:#fde68a}
 .cinema .playing-card.glow{position:relative;z-index:2;transform:scale(1.025);filter:none;box-shadow:0 0 0 1px color-mix(in srgb,var(--made-color) 78%,white),0 0 14px color-mix(in srgb,var(--made-color) 58%,transparent);animation:none}
 .cinema .playing-card.dimmed{opacity:.4;filter:brightness(.72) saturate(.5)}
+/* Community cards must remain readable even when excluded from the focused BEST 5. */
+.cinema .cinema-board .playing-card.dimmed{opacity:.85;filter:brightness(.94) saturate(.85)}
+.cinema-motion-control{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 16px;margin:0 0 20px;color:#b1c5d1;font-size:12px}
+.cinema-motion-control button{font-size:12px;padding:8px 12px}
 .cinema-winner{border-color:var(--made-color);box-shadow:0 0 20px color-mix(in srgb,var(--made-color) 20%,transparent);background:#123023}
 .cinema-loser .cinema-profile{opacity:.65}
 .cinema-victory{display:block;width:100%;color:var(--made-color);font:800 15px Manrope;letter-spacing:.12em;animation:cinema-seat-enter .3s ease-out both}
@@ -266,7 +270,7 @@
   .cinema-final .cinema-hole-cards{gap:2px}
   .cinema-final .cinema-reward b{font-size:12px}
 }
-@media(prefers-reduced-motion:reduce){.cinema *:not(.fx-motion-preview *){animation:none!important;transition:none!important}.cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::before,.cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::after{animation:none!important;opacity:0}}
+@media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) *:not(.fx-motion-preview *){animation:none!important;transition:none!important}.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::before,.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::after{animation:none!important;opacity:0}}
 /* Server-synced playback: a large clock jump lands on the current frame instead of replaying every transition. */
 .cinema-catchup,.cinema-catchup *{transition:none!important}
 .cinema-waiting{display:grid;place-items:center;align-content:center;gap:18px;min-height:320px;text-align:center}

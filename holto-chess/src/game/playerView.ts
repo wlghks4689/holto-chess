@@ -30,6 +30,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       ownedCards: me.ownedCardIds.map((id) => getCard(g, id)),
       shopCards: me.shopCardIds.map((id) => ({ card: getCard(g, id), price: getCardPrice(g, me.id, id) })),
       selectedCardIds: [...me.selectedCardIds], augments: me.augments.map(publicAugment),
+      ...(g.round === 3 && room.loadoutDrafts?.[me.id] ? { loadoutSlots: [...room.loadoutDrafts[me.id]] } : {}),
       augmentChoices: (room.augmentChoices[me.id] ?? []).map(publicAugment),
       handLimit: BALANCE.handLimits[g.round], shopSize: me.shopSize, shopLocked: false, lockedShopCardIds: [...(me.lockedShopCardIds ?? [])],
       purchases: me.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round),

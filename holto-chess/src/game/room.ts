@@ -7,6 +7,7 @@ import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
 import type { Augment, PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
+import { fillSlots, normalizeSlots } from "../shared/loadoutSlots";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
@@ -15,6 +16,7 @@ export type RoomSnapshot = {
   sessions: { playerId: string; tokenHash: string; requests: string[]; departed?: boolean }[];
   readyIds: string[]; endedShopIds: string[];
   augmentChoices: Record<string, Augment[]>;
+  loadoutDrafts?: Record<string, (string | null)[]>;
   /** Epoch ms the current barrier began waiting; drives the auto-ready alarm. */
   barrierSince?: number;
   barrierKey?: string;
@@ -54,10 +56,10 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
   return waiting.filter((id) => !room.readyIds.includes(id));
 }
 
-/** Shop time belongs to the phase, not to each player's readiness change. */
+/** A phase has one deadline; another player's confirmation never restarts it. */
 function refreshBarrier(room: RoomSnapshot, now: number): void {
   const pending = pendingBarrierIds(room);
-  const key = `${turnKey(room)}|${room.game.phase === "SHOP" && pending.length ? "shop" : pending.join(",")}`;
+  const key = `${turnKey(room)}|${pending.length ? "waiting" : "done"}`;
   if (room.barrierKey === key) return;
   room.barrierKey = key;
   room.barrierSince = pendingBarrierIds(room).length ? now : undefined;
@@ -100,7 +102,7 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
       } else room.game.phase = "NEXT_ROUND";
       break;
     }
-    case "NEXT_ROUND": room.game = startNextRound(room.game); room.endedShopIds = []; break;
+    case "NEXT_ROUND": room.game = startNextRound(room.game); room.endedShopIds = []; room.loadoutDrafts = {}; break;
   }
   room.readyIds = [];
   if (room.game.phase === "SHOP" && !activeHumans(room).length) room.game = prepareShowdown(room.game, controlledHumanIds(room));
@@ -113,6 +115,7 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
  */
 function settleBarrier(room: RoomSnapshot): void {
   for (let guard = 0; guard < 64; guard += 1) {
+    if (room.status === "PLAYING" && room.game.phase === "NEXT_ROUND") { advanceReadyBarrier(room); continue; }
     if (room.status !== "PLAYING" || pendingBarrierIds(room).length) return;
     const before = `${room.game.round}:${room.game.phase}`;
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
@@ -178,8 +181,18 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
       case "SELECT_CARDS":
         { const required = room.game.round === 2 ? 2 : room.game.round === 3 ? 4 : 0;
         if (!required || action.cardIds.length !== required || new Set(action.cardIds).size !== required || action.cardIds.some((id) => !me.ownedCardIds.includes(id))) throw new Error(`보유 카드 ${required || 2}장을 선택하세요.`); }
-        me.selectedCardIds = [...action.cardIds]; break;
+        me.selectedCardIds = [...action.cardIds];
+        if (room.game.round === 3) { room.loadoutDrafts ??= {}; room.loadoutDrafts[playerId] = [...action.cardIds]; }
+        break;
+      case "SELECT_LOADOUT": {
+        if (room.game.round !== 3 || action.slots.length !== 4 || action.slots.some((id) => id !== null && !me.ownedCardIds.includes(id)) || new Set(action.slots.filter(Boolean)).size !== action.slots.filter(Boolean).length) throw new Error("내 보유 카드만 서로 다른 소켓에 배치하세요.");
+        room.loadoutDrafts ??= {};
+        room.loadoutDrafts[playerId] = [...action.slots];
+        me.selectedCardIds = action.slots.every((id): id is string => !!id) ? [...action.slots] : [];
+        break;
+      }
       case "END_SHOP_PHASE":
+        if (room.game.round === 3) me.selectedCardIds = fillSlots(room.loadoutDrafts?.[playerId] ?? me.selectedCardIds, me.ownedCardIds);
         if (me.ownedCardIds.length !== BALANCE.handLimits[room.game.round]) throw new Error(`카드 ${BALANCE.handLimits[room.game.round]}장이 필요합니다.`);
         if (room.game.round === 2 && me.selectedCardIds.length !== 2) throw new Error("출전 카드 2장을 선택하세요.");
         if (room.game.round === 3 && me.selectedCardIds.length !== 4) throw new Error("Game 1·2용 카드 4장을 나누세요.");
@@ -207,8 +220,18 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   if (!pending.length) return null;
   const room = structuredClone(source);
   if (room.game.phase === "SHOP") {
+    // Complete missing sockets without letting the timeout bot reshuffle a complete human hand.
+    const loadoutOnly = room.game.round === 3 ? pending.filter((id) => room.game.players.find((p) => p.id === id)!.ownedCardIds.length === BALANCE.handLimits[3]) : [];
+    for (const id of loadoutOnly) {
+      const player = room.game.players.find((p) => p.id === id)!;
+      player.selectedCardIds = fillSlots(room.loadoutDrafts?.[id] ?? player.selectedCardIds, player.ownedCardIds);
+    }
     // Excluding them from the human list hands their shop to the existing bot.
-    room.game = prepareShowdown(room.game, controlledHumanIds(room).filter((id) => !pending.includes(id)));
+    room.game = prepareShowdown(room.game, controlledHumanIds(room).filter((id) => !pending.includes(id) || loadoutOnly.includes(id)));
+    if (room.game.round === 3) for (const id of pending.filter((id) => !loadoutOnly.includes(id))) {
+      const player = room.game.players.find((p) => p.id === id)!;
+      player.selectedCardIds = fillSlots(normalizeSlots(room.loadoutDrafts?.[id] ?? [], player.ownedCardIds), player.ownedCardIds);
+    }
     for (const id of pending) if (!room.endedShopIds.includes(id)) room.endedShopIds.push(id);
   } else if (room.game.phase === "AUGMENT") {
     for (const id of pending) {

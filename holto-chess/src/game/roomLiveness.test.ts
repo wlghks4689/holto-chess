@@ -72,8 +72,8 @@ describe("barrier liveness", () => {
   });
 
   it("reserves viewing time for results while retaining short ready barriers", () => {
-    expect(barrierTimeoutMs("ROUND_RESULT")).toBe(180_000);
-    expect(barrierTimeoutMs("GROUP_ASSIGNMENT")).toBe(180_000);
+    expect(barrierTimeoutMs("ROUND_RESULT")).toBe(30_000);
+    expect(barrierTimeoutMs("GROUP_ASSIGNMENT")).toBe(30_000);
     const shop = started();
     expect(shop.game.phase).toBe("SHOP");
     expect(barrierTimeoutMs(shop.game.phase)).toBe(60_000);

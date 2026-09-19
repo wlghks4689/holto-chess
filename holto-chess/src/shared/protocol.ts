@@ -9,6 +9,7 @@ export type GameAction =
   | { type: "REROLL" }
   | { type: "LOCK_SHOP"; cardId: string }
   | { type: "SELECT_CARDS"; cardIds: string[] }
+  | { type: "SELECT_LOADOUT"; slots: (string | null)[] }
   | { type: "SELECT_AUGMENT"; augmentId: string }
   | { type: "END_SHOP_PHASE" }
   | { type: "LEAVE_ROOM" };
@@ -54,6 +55,7 @@ export type PlayerView = {
     playerId: string; stackBB: number; points: number; alive: boolean;
     ownedCards: Card[]; shopCards: { card: Card; price: number }[];
     selectedCardIds: string[]; augments: Augment[]; augmentChoices: Augment[];
+    loadoutSlots?: (string | null)[];
     handLimit: number; shopSize: number; shopLocked: boolean; lockedShopCardIds: string[]; purchases: number;
     purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
     rerollsUsed: number; rerollLimit: number;
@@ -86,7 +88,8 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
-    SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [], LEAVE_ROOM: [],
+      SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [], LEAVE_ROOM: [],
+      SELECT_LOADOUT: ["slots"],
   };
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");
   const allowed = ["type", "requestId", "turnKey", ...fields[v.type]];
@@ -94,5 +97,6 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
   if (v.type === "SELECT_AUGMENT" && !string("augmentId", /^[a-z][a-z0-9_]{0,39}$/)) throw new Error("잘못된 증강입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 2장 또는 4장이 필요합니다.");
+  if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");
   return v as ClientMessage;
 }

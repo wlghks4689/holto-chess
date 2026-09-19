@@ -24,7 +24,7 @@ describe("shop countdown", () => {
     expect(open).toContain("AI가 자동 확정");
     expect(open).toContain("--countdown-ratio:0.7");
     const done = renderToStaticMarkup(createElement(ShopCountdown, { endsAt: 60_000, totalMs: 60_000, now: 55_500, committed: true }));
-    expect(done).toContain("쇼다운 시작까지 최대");
+    expect(done).toContain("다른 플레이어 상점 종료까지");
     expect(done).toContain("is-critical");
     expect(done).not.toContain("AI가 자동 확정");
   });
