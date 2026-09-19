@@ -54,9 +54,10 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
   return waiting.filter((id) => !room.readyIds.includes(id));
 }
 
-/** Restart the countdown whenever the set of blockers changes. */
+/** Shop time belongs to the phase, not to each player's readiness change. */
 function refreshBarrier(room: RoomSnapshot, now: number): void {
-  const key = `${turnKey(room)}|${pendingBarrierIds(room).join(",")}`;
+  const pending = pendingBarrierIds(room);
+  const key = `${turnKey(room)}|${room.game.phase === "SHOP" && pending.length ? "shop" : pending.join(",")}`;
   if (room.barrierKey === key) return;
   room.barrierKey = key;
   room.barrierSince = pendingBarrierIds(room).length ? now : undefined;

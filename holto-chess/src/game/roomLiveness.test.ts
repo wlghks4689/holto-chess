@@ -38,17 +38,19 @@ describe("barrier liveness", () => {
     expect(pendingBarrierIds(room).sort()).toEqual(["p1", "p2"]);
     expect(barrierDeadline(room)).toBe(T0 + BARRIER_TIMEOUT_MS.SHOP);
 
-    const oneDone = finishShop(room, "p1");
+    const oneDone = finishShop(room, "p1", T0 + 45_000);
     expect(pendingBarrierIds(oneDone)).toEqual(["p2"]);
-    // A different blocker set restarts the countdown rather than inheriting it.
+    // Ready must not grant everyone another 60 seconds in the same shop.
     expect(barrierDeadline(oneDone)).toBe(T0 + BARRIER_TIMEOUT_MS.SHOP);
 
     // Clearing the shop barrier immediately opens the next one, so a deadline
     // stays armed; it only disarms when the game has nothing left to wait for.
-    const bothDone = finishShop(oneDone, "p2");
+    expect(forceBarrier(oneDone, T0 + BARRIER_TIMEOUT_MS.SHOP - 1)).toBeNull();
+    expect(forceBarrier(oneDone, T0 + BARRIER_TIMEOUT_MS.SHOP)).not.toBeNull();
+    const bothDone = finishShop(oneDone, "p2", T0 + 50_000);
     expect(bothDone.game.phase).toBe("SHOWDOWN_PRIMARY");
     expect(pendingBarrierIds(bothDone).sort()).toEqual(["p1", "p2"]);
-    expect(barrierDeadline(bothDone)).toBe(T0 + BARRIER_TIMEOUT_MS.DEFAULT);
+    expect(barrierDeadline(bothDone)).toBe(T0 + 50_000 + BARRIER_TIMEOUT_MS.DEFAULT);
 
     let finished = bothDone;
     for (let step = 0; step < 40 && finished.game.phase !== "GAME_RESULT"; step++) {
