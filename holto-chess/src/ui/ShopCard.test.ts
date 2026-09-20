@@ -4,16 +4,15 @@ import { describe, expect, it } from "vitest";
 import { ShopCard } from "./ShopCard";
 
 describe("two-card deal shop card", () => {
-  it("starts face down and keeps purchase separate and disabled", () => {
+  it("starts face up and can be purchased immediately", () => {
     const html = renderToStaticMarkup(createElement(ShopCard, {
       card: { id: "As", rank: 14, suit: "s" }, price: 20, locked: false,
       onBuy: () => undefined, onLock: () => undefined,
     }));
-    expect(html).toContain("is-hidden");
-    expect(html).toContain("shop-card-flip-inner");
-    expect(html).toContain("상점 카드 확인");
-    expect(html).toContain("확인 후 구매 · 20 BB");
-    expect(html).toMatch(/class="card-purchase" disabled=""/);
+    expect(html).toContain("A♠ 상점 카드");
+    expect(html).toContain("구매 · 20 BB");
+    expect(html).not.toContain("card-back");
+    expect(html).not.toMatch(/class="card-purchase" disabled=""/);
   });
 
   it("renders lock as an independent control", () => {
