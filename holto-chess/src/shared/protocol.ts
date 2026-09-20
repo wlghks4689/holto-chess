@@ -1,6 +1,6 @@
 import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
-import type { Augment, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
+import type { Augment, HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
 
 export type GameAction =
   | { type: "READY" }
@@ -30,6 +30,7 @@ export type MatchView = {
   boards: Card[][]; boardWinnerIds: string[][]; boardResults: RevealedHand[][]; results: RevealedHand[];
   streetSnapshots?: StreetSnapshotView[][];
   runoutCount: number; suddenDeathCount: number;
+  highCardDraw?: HighCardDraw;
   tiebreakKind?: TiebreakKind; tiebreakStartIndex?: number; regulationWinnerIds?: string[];
   pointAwards?: Record<string, number>; pointAwardDetails?: Record<string, string>;
   revealedCards: Record<string, Card[]>;
@@ -39,6 +40,7 @@ export type PresentationEntry = { matchId: string; offsetMs: number; durationMs:
 /** Server-clock schedule for the current showdown set: same startsAt/endsAt for every seat. */
 export type PresentationView = { version: number; startsAt: number; endsAt: number; matches: PresentationEntry[] };
 export type RoundSummaryRow ={ playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number; eliminated: boolean };
+export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round };
 export type PlayerView = {
   gameId: string; roomId: string; revision: number; turnKey: string;
   /** Server epoch ms when this view was built; clients estimate their clock offset from it. */
@@ -64,7 +66,7 @@ export type PlayerView = {
   matches: MatchView[];
   roundSummary?: RoundSummaryRow[];
   roundHistory?: MatchView[];
-  standings: { playerId: string; points: number; handScore: number; stackScore: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round }[];
+  standings: FinalStandingView[];
 };
 export type ServerMessage =
   | { type: "PLAYER_VIEW"; payload: PlayerView }

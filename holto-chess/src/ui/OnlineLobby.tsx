@@ -1,24 +1,22 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { PlayerView, SessionCredential } from "../shared/protocol";
-
-export function OnlineEntryFrame({ title, eyebrow, children }: { title: string; eyebrow: string; children: ReactNode }) {
-  return <main className="online-entry"><section className="entry-panel" aria-labelledby="entry-title">
-    <header className="entry-heading"><span className="entry-brand">PORENA</span><span className="eyebrow">{eyebrow}</span><h1 id="entry-title">{title}</h1></header>
-    {children}
-  </section></main>;
-}
+import { MatchHistoryPage } from "./MatchHistory";
+import { OnlineEntryFrame } from "./OnlineEntryFrame";
+export { OnlineEntryFrame } from "./OnlineEntryFrame";
 
 export function MultiplayerLobby({ nickname, onNickname, roomCode, onRoomCode, busy, error, sessions, onJoin, onResume, onHome }: {
   nickname: string; onNickname: (value: string) => void; roomCode: string; onRoomCode: (value: string) => void;
   busy: boolean; error: string; sessions: SessionCredential[]; onJoin: (create: boolean) => void;
   onResume: (session: SessionCredential) => void; onHome: () => void;
 }) {
-  const [panel, setPanel] = useState<"create" | "join" | null>(null);
+  const [panel, setPanel] = useState<"create" | "join" | "history" | null>(null);
+  if (panel === "history") return <MatchHistoryPage onBack={() => setPanel(null)} />;
   return <OnlineEntryFrame title="멀티플레이 로비" eyebrow="MULTIPLAYER">
     <p className="entry-description">다른 플레이어와 아레나에 참가하세요.</p>
     <div className="entry-choices">
       <button className="primary" disabled={busy} aria-expanded={panel === "create"} aria-controls="room-entry-form" onClick={() => setPanel("create")}>새 방 만들기 <span aria-hidden="true">＋</span></button>
       <button className="secondary" disabled={busy} aria-expanded={panel === "join"} aria-controls="room-entry-form" onClick={() => setPanel("join")}>방 찾기 <span>방 코드로 참가</span></button>
+      <button className="secondary entry-history-button" disabled={busy} onClick={() => setPanel("history")}>대전 기록 <span>완료한 경기 보기</span></button>
     </div>
     {panel && <form id="room-entry-form" className="entry-form" onSubmit={(event) => { event.preventDefault(); if (!busy) onJoin(panel === "create"); }}>
       <h2>{panel === "create" ? "새 아레나 만들기" : "방 참가하기"}</h2>

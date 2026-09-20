@@ -7,6 +7,7 @@ type Attachment = { roomId: string; playerId: string | null; joinedAt: number; w
 const SNAPSHOT_KEY = "snapshot:v1";
 const EXPIRY_KEY = "expiresAt";
 const ROOM_LIFETIME_MS = 24 * 60 * 60 * 1000;
+const FINISHED_ROOM_LIFETIME_MS = 15 * 60 * 1000;
 const AUTH_TIMEOUT_MS = 15000;
 function randomSeed(): number { return crypto.getRandomValues(new Uint32Array(1))[0]! || 1; }
 function token(): string { return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""); }
@@ -26,6 +27,14 @@ export class GameRoom extends DurableObject<Env> {
         this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
         await ctx.storage.put(EXPIRY_KEY, this.expiresAt);
       }
+      if (this.room?.game.phase === "GAME_RESULT") {
+        const finishedExpiry = Date.now() + FINISHED_ROOM_LIFETIME_MS;
+        if (!this.expiresAt || this.expiresAt > finishedExpiry) {
+          this.expiresAt = finishedExpiry;
+          await ctx.storage.put(EXPIRY_KEY, finishedExpiry);
+          await ctx.storage.setAlarm(finishedExpiry);
+        }
+      }
       if (this.room && this.room.schema !== 1) throw new Error("Unsupported room snapshot version");
     });
   }
@@ -36,6 +45,12 @@ export class GameRoom extends DurableObject<Env> {
     catch {
       console.error(JSON.stringify({ event: "room_storage_failed", roomId: next.roomId, revision: next.revision }));
       throw new Error("상태를 저장하지 못했습니다. 재접속 후 다시 시도하세요.");
+    }
+    if (next.game.phase === "GAME_RESULT" && this.room?.game.phase !== "GAME_RESULT") {
+      // Connected players keep a short result-viewing window, but completed
+      // arenas must not occupy durable storage for the full room lifetime.
+      this.expiresAt = Date.now() + FINISHED_ROOM_LIFETIME_MS;
+      await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
     }
     this.room = next;
   }
@@ -87,6 +102,15 @@ export class GameRoom extends DurableObject<Env> {
       });
     }
     if (!this.room || this.room.roomId !== roomId) return new Response("Room not found", { status: 404 });
+    if (url.pathname === "/internal/session" && request.method === "POST") {
+      const secret = request.headers.get("X-Porena-Session");
+      if (!secret || !/^[a-f0-9]{64}$/.test(secret)) return new Response("Invalid session", { status: 401 });
+      const digest = await hash(secret);
+      const session = this.room.sessions.find((entry) => entry.tokenHash === digest);
+      if (!session) return new Response("Invalid session", { status: 401 });
+      if (session.departed || this.room.game.phase === "GAME_RESULT") return new Response("Room finished", { status: 410 });
+      return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+    }
     if (url.pathname === "/internal/join" && request.method === "POST") {
       return this.ctx.blockConcurrencyWhile(async () => {
         if (this.room!.status !== "LOBBY" || this.room!.sessions.length >= 8) return new Response("Room unavailable", { status: 409 });
@@ -97,6 +121,7 @@ export class GameRoom extends DurableObject<Env> {
       });
     }
     if (url.pathname !== "/internal/ws" || request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("Not found", { status: 404 });
+    if (this.room.game.phase === "GAME_RESULT") return new Response("Room finished", { status: 410 });
     if (this.ctx.getWebSockets().length >= 24) return new Response("Too many connections", { status: 429 });
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);

@@ -53,6 +53,7 @@ describe("online screen separation", () => {
     const html = renderToStaticMarkup(createElement(MultiplayerLobby, { nickname: "테스터", onNickname: noop, roomCode: "", onRoomCode: noop, busy: false, error: "", sessions: [credential], onJoin: noop, onResume: noop, onHome: noop }));
     expect(html).toContain("멀티플레이 로비");
     expect(html).toContain("다시 참가");
+    expect(html).toContain("대전 기록");
     expect(html).toContain("홈으로");
     expect(html).not.toContain("READY");
     expect(html).not.toContain("TWO HAND");

@@ -1,0 +1,55 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { addSession, createRoom } from "../game/room";
+import { createPlayerView } from "../game/playerView";
+import { FinalResultsPanel } from "./FinalResultsPanel";
+import { loadSavedFinalResults, makeSavedFinalResult, saveFinalResult } from "./finalResultArchive";
+import { MatchHistoryPage } from "./MatchHistory";
+
+class MemoryStorage {
+  private values = new Map<string, string>();
+  getItem(key: string) { return this.values.get(key) ?? null; }
+  setItem(key: string, value: string) { this.values.set(key, value); }
+}
+
+function finalView() {
+  const view = createPlayerView(addSession(createRoom("ABCDEF", 101), "one").room, "p1");
+  const opponentId = view.players[1].playerId;
+  view.phase = "GAME_RESULT";
+  view.players[0].name = "지팡스키";
+  view.players[1].name = "클럽 레이븐";
+  view.standings = [
+    { playerId: "p1", points: 58, handScore: 19, stackScore: 22, stackBB: 229, total: 99, displayName: "풀하우스", finalPlace: 1, placement: 1, rankPoints: 8 },
+    { playerId: opponentId, points: 39, handScore: 15, stackScore: 19, stackBB: 198, total: 73, displayName: "투페어", finalPlace: 2, placement: 2, rankPoints: 4, eliminatedRound: 5 },
+  ];
+  return view;
+}
+
+describe("final result panel", () => {
+  beforeEach(() => vi.stubGlobal("localStorage", new MemoryStorage()));
+
+  it("places the hand name under hand score and final BB under stack score without FINAL", () => {
+    const html = renderToStaticMarkup(createElement(FinalResultsPanel, { view: finalView() }));
+    expect(html).toContain("지팡스키");
+    expect(html).toContain("19<small>풀하우스</small>");
+    expect(html).toContain("22<small>229BB</small>");
+    expect(html).toContain("R5 탈락");
+    expect(html).not.toContain("FINAL");
+    expect(html).toContain("이 기기에 결과 저장");
+  });
+
+  it("stores a complete result locally and replaces a duplicate game save", () => {
+    const view = finalView();
+    saveFinalResult(makeSavedFinalResult(view, "2026-09-20T01:00:00.000Z"));
+    saveFinalResult(makeSavedFinalResult(view, "2026-09-20T02:00:00.000Z"));
+    const saved = loadSavedFinalResults();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].savedAt).toBe("2026-09-20T02:00:00.000Z");
+    expect(saved[0].standings[0]).toMatchObject({ name: "지팡스키", handName: "풀하우스", stackBB: 229 });
+    const history = renderToStaticMarkup(createElement(MatchHistoryPage, { onBack: () => {} }));
+    expect(history).toContain("대전 기록");
+    expect(history).toContain("지팡스키");
+    expect(history).toContain("최종 229BB");
+  });
+});

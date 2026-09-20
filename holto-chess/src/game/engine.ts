@@ -274,6 +274,7 @@ function resolveParticipants(
   const boardWinnerIds = boardRankings.map((ranking) => [...ranking[0]!]);
   let winnerIds: string[];
   let suddenDeathCount = 0;
+  let highCardDraw: MatchResult["highCardDraw"];
   if (boards.length === 2 && playerIds.length === 2) {
     const wins = new Map(playerIds.map((id) => [id, 0]));
     for (const ranking of boardRankings) if (ranking[0]!.length === 1) wins.set(ranking[0]![0]!, wins.get(ranking[0]![0]!)! + 1);
@@ -283,8 +284,16 @@ function resolveParticipants(
   const regulationWinnerIds = preserveRegulationTie && winnerIds.length > 1 ? [...winnerIds] : undefined;
   const tiebreakStartIndex = boards.length;
   while (requireSingleWinner && winnerIds.length !== 1) {
-    if (suddenDeathCount >= 256) throw new Error("쇼다운 계산 한도에 도달했습니다. 다시 시도하세요.");
     const tied = winnerIds.length ? winnerIds : playerIds;
+    if (suddenDeathCount >= 2) {
+      // A separate rank-only deck cannot tie and never changes owned cards.
+      const ranks = shuffle(Array.from({ length: 13 }, (_, i) => i + 2), () => nextRandom(state));
+      const draws = tied.map((playerId, i) => ({ playerId, rank: ranks[i]! }));
+      const winnerId = draws.reduce((best, draw) => draw.rank > best.rank ? draw : best).playerId;
+      highCardDraw = { draws, winnerId };
+      winnerIds = [winnerId];
+      break;
+    }
     // The fresh deck excludes every player in the original encounter, even
     // when only the tied leaders continue in the decider.
     const sudden = encounterBoards(state, playerIds, 1)[0]!;
@@ -315,7 +324,11 @@ function resolveParticipants(
       ? p.selectedCardIds.slice((gameNumber - 1) * 2, gameNumber * 2) : p.ownedCardIds;
     return [id, [...ids]];
   }));
-  return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, streetSnapshots, runoutCount: boardCount, results, suddenDeathCount, revealedCardIds,
+  if (highCardDraw) results = results.map((result) => ({
+    ...result, place: result.playerId === highCardDraw.winnerId ? 1
+      : highCardDraw.draws.some((draw) => draw.playerId === result.playerId) ? 2 : result.place,
+  }));
+  return { id: `${state.round}-${stage}-${++state.encounterSequence}`, stage, playerIds, winnerIds, boards, boardResults, boardWinnerIds, streetSnapshots, runoutCount: boardCount, results, suddenDeathCount, highCardDraw, revealedCardIds,
     regulationWinnerIds, tiebreakKind: suddenDeathCount ? tiebreakKind : undefined,
     tiebreakStartIndex: suddenDeathCount ? tiebreakStartIndex : undefined, gameNumber };
 }

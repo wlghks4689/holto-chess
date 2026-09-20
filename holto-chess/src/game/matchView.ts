@@ -18,6 +18,7 @@ export function createMatchView(game: PorenaGameState, match: MatchResult): Matc
     results: match.results.map(revealedHand), boardResults: match.boardResults.map((results) => results.map(revealedHand)),
     streetSnapshots: (match.streetSnapshots ?? []).map((snapshots) => snapshots.map((snapshot) => ({ street: snapshot.street, results: snapshot.results.map(revealedHand) }))),
     runoutCount: match.runoutCount, suddenDeathCount: match.suddenDeathCount,
+    highCardDraw: match.highCardDraw ? structuredClone(match.highCardDraw) : undefined,
     tiebreakKind: match.tiebreakKind, tiebreakStartIndex: match.tiebreakStartIndex,
     regulationWinnerIds: match.regulationWinnerIds ? [...match.regulationWinnerIds] : undefined,
     pointAwards: match.pointAwards ? { ...match.pointAwards } : undefined,

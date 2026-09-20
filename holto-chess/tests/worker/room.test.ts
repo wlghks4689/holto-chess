@@ -108,6 +108,13 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(clients[0].view().phase).toBe("GAME_RESULT");
     expect(clients[1].view().standings).toEqual(clients[0].view().standings);
     expect(clients[0].view().standings).toHaveLength(8);
+    const status = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/session`, { method: "POST", headers: { Origin: origin, "X-Porena-Session": a.token } });
+    expect(status.status).toBe(410);
+    const reconnect = await exports.default.fetch(`${origin}/ws/rooms/${a.roomId}`, { headers: { Upgrade: "websocket", Origin: origin } });
+    expect(reconnect.status).toBe(410);
+    const expiresAt = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
+    expect(expiresAt).toBeGreaterThan(Date.now());
+    expect(expiresAt).toBeLessThanOrEqual(Date.now() + 15 * 60 * 1000);
   }, 30_000);
   it("serializes concurrent rerolls, keeps locks, deduplicates retries and rejects a burst past the limit", async () => {
     const a = await session(); const b = await session(a.roomId); const c = await session(a.roomId);

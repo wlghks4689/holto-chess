@@ -52,6 +52,7 @@ export type MatchReward = {
   detail?: string;
 };
 export type TiebreakKind = "GROUP_DECIDER" | "WINNER_TIEBREAK" | "SURVIVAL_TIEBREAK";
+export type HighCardDraw = { draws: { playerId: string; rank: number }[]; winnerId: string };
 export type MatchResult = {
   matchday?: number;
   swissBefore?: Record<string, import("./swiss").SwissRecord>;
@@ -67,6 +68,7 @@ export type MatchResult = {
   runoutCount: number;
   results: PlayerShowdown[];
   suddenDeathCount: number;
+  highCardDraw?: HighCardDraw;
   tiebreakKind?: TiebreakKind;
   tiebreakStartIndex?: number;
   regulationWinnerIds?: string[];

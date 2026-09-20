@@ -37,6 +37,8 @@ export default {
     }
     const join = /^\/api\/rooms\/([A-Z2-9]{6})\/join$/.exec(url.pathname);
     if (join && request.method === "POST") return forward(join[1], "/internal/join");
+    const savedSession = /^\/api\/rooms\/([A-Z2-9]{6})\/session$/.exec(url.pathname);
+    if (savedSession && request.method === "POST") return forward(savedSession[1], "/internal/session");
     const socket = /^\/ws\/rooms\/([A-Z2-9]{6})$/.exec(url.pathname);
     if (socket && request.method === "GET" && request.headers.get("Upgrade")?.toLowerCase() === "websocket") return forward(socket[1], "/internal/ws");
     return new Response("Not found", { status: 404 });

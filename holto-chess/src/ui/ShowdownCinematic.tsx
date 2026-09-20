@@ -12,6 +12,7 @@ import { ShowdownCardFlip } from "./ShowdownCardFlip";
 import { useCinematicMotion } from "./useCinematicMotion";
 import { showdownSeatOrder } from "./showdownSeatOrder";
 import "./cinematic.css";
+import { HighCardDrawNotice, HighCardDrawResult } from "./HighCardDraw";
 
 type Profile = { playerId: string; name: string };
 /**
@@ -24,7 +25,7 @@ const CATCH_UP_MS = 400;
 
 function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame: CinematicFrame; viewerId: string; name: (id: string) => string }) {
   if (match.runoutCount !== 2) return null;
-  const currentComplete = ["RUN_RESULT", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
+  const currentComplete = ["RUN_RESULT", "HIGH_CARD_NOTICE", "HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
   const outcome = (boardIndex: number) => {
     const winners = match.boardWinnerIds[boardIndex] ?? [];
     if (winners.length > 1) return "SPLIT";
@@ -110,6 +111,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       {controls && !synced && <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
+    {match.highCardDraw && frame.phase === "HIGH_CARD_NOTICE" && <HighCardDrawNotice survival={match.group === "loser"} seconds={Math.max(1, Math.ceil((frame.at + phaseMs - elapsed) / 1000))} />}
+    {match.highCardDraw && ["HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase) && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
     {stage && <div className="cinema-stage" aria-hidden="true" style={{ "--stage-focus": stage.focus } as CSSProperties}><img src={stage.image} alt="" /><i /></div>}
     {final && <div className="cinema-final-arena" aria-hidden="true" style={{ "--arena-progress": arenaZoomProgress(elapsed) } as CSSProperties}>
       <img src={FINAL_ARENA_IMAGE} alt="" /><i /></div>}

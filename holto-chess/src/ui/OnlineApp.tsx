@@ -21,11 +21,12 @@ import { formatCountdown } from "./countdown";
 import { preloadFinalArena } from "./finalShowdownPresentation";
 import { preloadShowdownStage } from "./showdownStage";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
+import { FinalResultsPanel } from "./FinalResultsPanel";
+import { HighCardDrawResult } from "./HighCardDraw";
+import { makeSavedFinalResult, saveFinalResult } from "./finalResultArchive";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
-const displayPoints = (value: number) => Number(value.toFixed(2));
-
 const titles = ["", "TWO HAND", "RUN IT TWICE", "OMAHA DOUBLE", "BEST FIVE", "THE LAST HAND"];
 const phases: Record<string, string> = { LOBBY: "입장 대기", SHOP: "상점", SHOWDOWN_PRIMARY: "1차 쇼다운 준비", GROUP_ASSIGNMENT: "그룹 배정", SHOWDOWN_SECONDARY: "2차 쇼다운 준비", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "다음 라운드", GAME_RESULT: "최종 결과" };
 
@@ -35,6 +36,7 @@ function OnlineMatch({ match, view }: { match: MatchView; view: PlayerView }) {
   const stageLabel = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : match.stage === "final" ? "최종전" : match.group === "winner" ? "승자조" : match.group === "loser" ? "생존전" : match.stage === "secondary" ? "2차전" : "1차전";
   const outcomeLabel = match.stage === "final" ? "최종 1위" : match.group === "loser" ? "생존" : "승리";
   return <article className="match-card">
+    {match.highCardDraw && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
     <header><span>매치 {matchNumber} · {stageLabel}</span><b>♔ {match.winnerIds.map(name).join(", ")} {outcomeLabel}</b><em>{match.suddenDeathCount ? `타이브레이크 ${match.suddenDeathCount}회` : ""}</em></header>
     <div className={`boards ${match.boards.length > 1 ? "multi-board" : ""}`}>
       {match.boards.map((board, i) => {
@@ -79,6 +81,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const [spectating, setSpectating] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const socket = useRef<WebSocket | null>(null);
+  const archivedGameId = useRef<string | null>(null);
   // One clock per tab: every received view refines the server-time estimate used by the cinematic.
   const [serverClock] = useState(createServerClock);
   const pendingRequest = useRef<{ id: string; type: string; revision?: number; timer: ReturnType<typeof setTimeout> } | null>(null);
@@ -87,6 +90,20 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     pendingRequest.current = null;
     setPending(false);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const sessions = storedSessions();
+    if (!sessions.length) return;
+    void Promise.all(sessions.map(async (session) => {
+      try {
+        const response = await fetch(`/api/rooms/${session.roomId}/session`, { method: "POST", headers: { "X-Porena-Session": session.token } });
+        if ([401, 404, 410].includes(response.status)) { forgetSession(session.roomId); return null; }
+      } catch { /* Keep the seat when offline; a transient failure is not proof the room ended. */ }
+      return session;
+    })).then((checked) => { if (!cancelled) setResumable(checked.filter((session): session is SessionCredential => !!session)); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (view?.barrierEndsAt === undefined) return;
@@ -114,6 +131,12 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         if (message.type === "ROOM_JOINED") { setStatus("Connected"); attempts = 0; setError(""); }
         if (message.type === "PLAYER_VIEW") {
           serverClock.observe(message.payload.serverNow);
+          if (message.payload.phase === "GAME_RESULT" && archivedGameId.current !== message.payload.gameId) {
+            archivedGameId.current = message.payload.gameId;
+            try { saveFinalResult(makeSavedFinalResult(message.payload)); } catch { /* The result screen remains usable without local storage. */ }
+            forgetSession(message.payload.roomId);
+            setResumable(storedSessions());
+          }
           setView(message.payload);
           if (pendingRequest.current?.revision !== undefined && message.payload.revision >= pendingRequest.current.revision) clearPending();
         }
@@ -194,7 +217,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   if (screen === "connecting" || screen === "departed") return <OnlineEntryFrame title={screen === "departed" ? "퇴장한 방입니다" : "방에 연결하고 있습니다"} eyebrow="PRIVATE ARENA"><p className="entry-description">{credential?.roomId} · {statusLabel}</p>{error && <p className="room-error" role="alert">{error}</p>}<div className="entry-recovery">{screen === "connecting" && <button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>연결 다시 시도</button>}<button className="secondary" onClick={() => { if (screen === "departed" && credential) forgetSession(credential.roomId); returnToLobby(); }}>로비로 돌아가기</button></div></OnlineEntryFrame>;
   if (!view) return null;
   if (screen === "waiting") return <RoomWaitingRoom view={view} status={statusLabel} connected={status === "Connected"} pending={!!pending} error={error} onReady={() => send({ type: "READY" })} onLeave={leaveRoom} onRetry={() => setConnectionKey((n) => n + 1)} onReturn={returnToLobby} />;
-  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""} presentation={view?.presentation} clock={serverClock}><main className={view && view.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}><nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></a>{view && view.phase !== "LOBBY" ? <RoundProgress round={view.round} prep={null} /> : <span />}<div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div></nav>
+  return <CinematicGate key={credential?.roomId ?? "lobby"} matches={view?.matches ?? []} profiles={view?.players ?? []} viewerId={view?.me.playerId ?? ""} presentation={view?.presentation} clock={serverClock}><main className={view && view.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}><nav><button className="brand brand-home" type="button" onClick={onHome} aria-label="PORENA 메인 화면으로 이동"><span>P</span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></button>{view && view.phase !== "LOBBY" ? <RoundProgress round={view.round} prep={null} /> : <span />}<div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div></nav>
     <div className="page-shell" id="top">
       {error && <p className="room-error" role="alert">{error}</p>}
       {status !== "Connected" && <div className="entry-recovery" role="status"><span>{statusLabel}</span><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>연결 다시 시도</button><button className="secondary" onClick={returnToLobby}>로비로 돌아가기 · 방 유지</button></div>}
@@ -210,7 +233,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
               <small className="hint">전원이 준비하면 상점이 종료되고 쇼다운 확인 단계로 이동합니다.</small></div>
             {view.barrierEndsAt !== undefined && <ShopCountdown endsAt={view.barrierEndsAt} totalMs={BARRIER_TIMEOUT_MS.SHOP} now={now} committed={view.me.committed} />}
             <button className="primary" disabled={disabled || view.me.committed || view.me.ownedCards.length !== view.me.handLimit || (view.round === 2 && view.me.selectedCardIds.length !== 2)} onClick={() => send({ type: "END_SHOP_PHASE" })}>{view.me.committed ? "준비 완료 ✓" : "준비 완료 · 구성 확정"}</button></div></>}
-        {view.phase === "GAME_RESULT" && <section className="panel final-panel"><h2>최종 결과</h2><p className="formula">누적 승점 + 족보 점수 + ⌊BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{view.standings.map((s, i) => <div className={`standing ${i === 0 ? "champion" : ""} ${s.eliminatedRound ? "eliminated" : ""}`} key={s.playerId}><strong>{s.placement}</strong><span><b>{view.players.find((p) => p.playerId === s.playerId)?.name}</b><small>{s.displayName}{s.eliminatedRound ? ` · R${s.eliminatedRound} 탈락` : " · FINAL"}</small></span><span>{displayPoints(s.points)}<small>승점</small></span><span>{s.handScore}<small>족보</small></span><span>{s.stackScore}<small>스택</small></span><em>{displayPoints(s.total)} P</em><i className={`rank-point ${s.rankPoints > 0 ? "positive" : s.rankPoints < 0 ? "negative" : ""}`}>{s.rankPoints > 0 ? "+" : ""}{s.rankPoints}<small>RANK</small></i></div>)}</div></section>}
+        {view.phase === "GAME_RESULT" && <FinalResultsPanel view={view} />}
         <RoundResults round={view.round} rows={view.roundSummary ?? []} viewerId={view.me.playerId}>{(view.roundHistory ?? view.matches).map((m) => <OnlineMatch key={m.id} match={m} view={view} />)}</RoundResults>
         {view.phase === "AUGMENT" && <section className="panel augment-panel"><header className="augment-heading"><h2>{view.me.augmentChoices.length ? "증강 하나를 선택하세요" : "다른 플레이어의 선택을 기다립니다"}</h2>{secondsLeft !== null && <div className="action-countdown" role="timer" aria-label={`${phases[view.phase]} 남은 시간 ${secondsLeft}초`}><small>남은 시간</small><strong>{formatCountdown(secondsLeft)}</strong></div>}</header><div className="augment-grid">{view.me.augmentChoices.map((a) => <button key={a.id} disabled={disabled} onClick={() => send({ type: "SELECT_AUGMENT", augmentId: a.id })}><b>{a.name}</b><p>{a.description}</p></button>)}</div></section>}
         {!view.me.alive && !view.players.find((p) => p.playerId === view.me.playerId)?.departed && <section className="panel eliminated-panel"><h2>탈락했습니다</h2><p className="hint">남은 플레이어의 진행을 막지 않습니다. 관전하거나 방을 나갈 수 있습니다.</p><div className="room-controls">{spectating ? <span className="hint">관전 중 · 최종 결과까지 함께 볼 수 있습니다.</span> : <button className="secondary" onClick={() => setSpectating(true)}>관전하기</button>}<button className="secondary" disabled={disabled} onClick={leaveRoom}>방 나가기</button></div></section>}

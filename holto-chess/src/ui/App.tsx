@@ -8,6 +8,7 @@ import {
 } from "../game/engine";
 import type { PorenaGameState, MatchResult, Phase } from "../game/types";
 import { createMatchView } from "../game/matchView";
+import { HighCardDrawResult } from "./HighCardDraw";
 import { canSellWithoutBlocking } from "../game/shopRules";
 import { CinematicGate } from "./ShowdownCinematic";
 import { ShopCard } from "./ShopCard";
@@ -118,6 +119,7 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
   const stageLabel = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : match.stage === "final" ? "최종전" : match.group === "winner" ? "승자조" : match.group === "loser" ? "생존전" : match.stage === "secondary" ? "2차전" : "1차전";
   const outcomeLabel = match.stage === "final" ? "최종 1위" : match.group === "loser" ? "생존" : "승리";
   return <article className="match-card">
+    {match.highCardDraw && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
     <header><span>매치 {matchNumber} · {stageLabel}</span><b>♔ {winnerNames} {outcomeLabel}</b>{match.suddenDeathCount ? <em>타이브레이크 {match.suddenDeathCount}회</em> : null}</header>
     {match.boards.length ? <div className={`boards ${match.boards.length > 1 ? "multi-board" : ""}`}>{match.boards.map((board, boardIndex) => {
       const winners = match.boardWinnerIds[boardIndex] ?? [];

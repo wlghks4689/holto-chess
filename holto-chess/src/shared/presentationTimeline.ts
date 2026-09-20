@@ -3,7 +3,7 @@ import type { MatchView } from "./protocol";
 export type CinematicPhase = "ARENA_ENTER" | "VS_INTRO" | "TABLE_ENTER" | "PREFLOP_HAND" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
   | "TURN" | "TURN_SETTLE" | "TURN_HAND" | "RIVER_SUSPENSE" | "RIVER" | "RIVER_SETTLE" | "RIVER_HAND" | "BEST5_WAIT" | "FINAL_CARDS"
   | "FINAL_FIRST_REVEAL" | "FINAL_FIRST_HAND" | "FINAL_SECOND_REVEAL" | "FINAL_SECOND_HAND" | "FINAL_LAST_REVEAL" | "FINAL_SEVEN_SETTLE"
-  | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
+  | "HIGH_CARD_NOTICE" | "HIGH_CARD_DRAW" | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
 export type CinematicFrame = { at: number; phase: CinematicPhase; boardIndex: number; revealed: number; finalCards: number; finalPlace?: number };
 
 /** R5 arena pre-roll: hold the full arena, push in toward the table, settle (see cinematic.css). */
@@ -12,7 +12,7 @@ export const FINAL_ARENA_ZOOM_MS = 1800;
 export const FINAL_ARENA_ENTER_MS = FINAL_ARENA_HOLD_MS + FINAL_ARENA_ZOOM_MS + 300;
 
 /** Milliseconds at 1x. Reveal starts are separate from completed flips and pauses. */
-export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards"> & { round?: number; results?: Pick<MatchView["results"][number], "place">[] }): CinematicFrame[] {
+export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards" | "highCardDraw"> & { round?: number; results?: Pick<MatchView["results"][number], "place">[] }): CinematicFrame[] {
   const frames: CinematicFrame[] = [];
   let at = 0; let boardIndex = 0; let revealed = 0; let finalCards = 0;
   const add = (phase: CinematicPhase, duration: number, finalPlace?: number) => { frames.push({ at, phase, boardIndex, revealed, finalCards, finalPlace }); at += duration; };
@@ -57,6 +57,11 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     }
     boardIndex = match.boards.length - 1;
   }
+  if (match.highCardDraw) {
+    add("RUN_RESULT", 800);
+    add("HIGH_CARD_NOTICE", 6500);
+    add("HIGH_CARD_DRAW", 3000);
+  }
   add("RESULT", 650); add("REWARD", 1100); add("COMPLETE", 0);
   return frames;
 }
@@ -67,6 +72,9 @@ export function frameAt(frames: readonly CinematicFrame[], elapsed: number): Cin
 }
 
 export function revealFlags(phase: CinematicPhase) {
+  if (phase === "HIGH_CARD_NOTICE" || phase === "HIGH_CARD_DRAW") {
+    return { glow: true, holeDim: true, boardDim: true, profile: false, made: true, runResult: false, result: false, reward: false, winner: false };
+  }
   const order = ["BEST5_GLOW", "MADE_HAND", "RUN_RESULT", "RESULT", "REWARD", "COMPLETE"];
   const index = order.indexOf(phase);
   const finalResolution = ["FINAL_PLACE", "FINAL_WINNER", "REWARD", "COMPLETE"].includes(phase);
@@ -78,6 +86,7 @@ export function revealFlags(phase: CinematicPhase) {
 
 /** Keeps the previous made hand visible while a newly opened street settles for 200ms. */
 export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
+  if (phase === "HIGH_CARD_NOTICE" || phase === "HIGH_CARD_DRAW") return 3;
   if (["FLOP_HAND"].includes(phase)) return 1;
   if (["TURN_HAND"].includes(phase)) return 2;
   if (["RIVER_HAND", "BEST5_WAIT", "BEST5_GLOW", "MADE_HAND", "RUN_RESULT", "RESULT", "REWARD", "COMPLETE"].includes(phase)) return 3;
@@ -91,7 +100,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client derives its frame from that clock, so all seats see the same beat at the same moment.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 2;
+export const PRESENTATION_VERSION = 3;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause on a finished match before the next one starts (replaces the per-match confirm click). */
