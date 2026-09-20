@@ -112,6 +112,20 @@ describe("open draft rules v2", () => {
       expect(phases).toContain("CARD_SWITCH_OUT"); expect(phases).toContain("CARD_SWITCH_IN");
     }
   });
+  it("marks direct R3 points-cut eliminations in their showdown reward", () => {
+    let g = resolvePrimary(lockRunLoadouts(drafted()));
+    g = next(g);
+    g.players.forEach((player, index) => { player.points = index < 2 ? -100 + index : 100 + index; });
+    g = resolvePrimary(prepareShowdown(g, []));
+    const eliminated = g.players.filter((player) => player.eliminated);
+    expect(eliminated).toHaveLength(2);
+    for (const player of eliminated) {
+      const match = g.roundResults.find((candidate) => candidate.playerIds.includes(player.id));
+      expect(match?.rewards?.find((reward) => reward.playerId === player.id)).toMatchObject({
+        outcome: "ELIMINATED", detail: "누적 승점 하위 2명 · R3 탈락",
+      });
+    }
+  });
   it.each([1,17,303,707,9001])("completes new 8→8→6→4 flow with viable R3 shops and 16-card R4 draft (seed %i)", (seed) => {
     let g = resolvePrimary(lockRunLoadouts(drafted(r2(seed))));
     g = next(g); expect(g.round).toBe(3);

@@ -39,6 +39,32 @@ describe("server room authority and projections", () => {
     expect(() => parseClientMessage('{"type":"__proto__","requestId":"abcdefghi","turnKey":"1:SHOP"}')).toThrow();
     expect(r).toEqual(before);
   });
+  it("lets a player cancel deck readiness while another player is still preparing", () => {
+    let r = start();
+    const shopCard = createPlayerView(r, "p1").me.shopCards[0]!.card.id;
+    r = act(r, "p1", { type: "BUY_CARD", cardId: shopCard });
+    r = act(r, "p1", { type: "END_SHOP_PHASE" });
+    expect(createPlayerView(r, "p1").me.committed).toBe(true);
+    r = act(r, "p1", { type: "CANCEL_SHOP_READY" });
+    expect(createPlayerView(r, "p1").me.committed).toBe(false);
+    expect(r.game.phase).toBe("SHOP");
+  });
+  it("starts a fresh game in the same room after every remaining player requests a rematch", () => {
+    let r = start();
+    r.game.phase = "GAME_RESULT";
+    r.game.players[0].name = "첫 번째";
+    r.game.players[1].name = "두 번째";
+    r.game.players[0].eliminated = true;
+    r = act(r, "p1", { type: "REMATCH_READY" });
+    expect(r.game.phase).toBe("GAME_RESULT");
+    expect(r.readyIds).toEqual(["p1"]);
+    r = act(r, "p2", { type: "REMATCH_READY" });
+    expect(r.game.phase).toBe("SHOP");
+    expect(r.game.round).toBe(1);
+    expect(r.readyIds).toEqual([]);
+    expect(r.game.players.slice(0, 2).map((player) => player.name)).toEqual(["첫 번째", "두 번째"]);
+    expect(r.game.players.every((player) => !player.eliminated)).toBe(true);
+  });
   it("does not serialize private cards, logs, ledger, seed or another player's choices", () => {
     const r = start();
     r.augmentChoices.p2 = [{ id: "win_bonus", name: "PRIVATE_SENTINEL", description: "secret" }];

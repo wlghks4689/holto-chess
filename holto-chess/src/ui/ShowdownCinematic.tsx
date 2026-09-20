@@ -141,7 +141,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const swiss = (flags.reward ? match.swissAfter : match.swissBefore)?.[id];
       const ledger = match.rewards.find((reward) => reward.playerId === id);
       const reward = (match.runRewards?.[frame.boardIndex] ?? match.rewards).find((r) => r.playerId === id);
-      const survivalOutcome = flags.result && match.group === "loser" && (reward?.outcome === "SURVIVED" || reward?.outcome === "ELIMINATED") ? reward.outcome : undefined;
+      const survivalOutcome = flags.result && (reward?.outcome === "ELIMINATED" || match.group === "loser" && reward?.outcome === "SURVIVED") ? reward.outcome : undefined;
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const currentPlaceVisible = final && frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && !!result && result.place >= frame.finalPlace;
       const placementClass = final ? finalWinnerStage ? won ? "cinema-winner" : "cinema-loser" : currentPlaceVisible ? "cinema-final-resolved" : "" : flags.profile ? won ? "cinema-winner" : "cinema-loser" : "";

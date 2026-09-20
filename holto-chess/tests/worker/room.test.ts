@@ -133,10 +133,19 @@ describe("GameRoom in the Cloudflare runtime", () => {
     const status = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/session`, { method: "POST", headers: { Origin: origin, "X-Porena-Session": a.token } });
     expect(status.status).toBe(410);
     const reconnect = await exports.default.fetch(`${origin}/ws/rooms/${a.roomId}`, { headers: { Upgrade: "websocket", Origin: origin } });
-    expect(reconnect.status).toBe(410);
+    expect(reconnect.status).toBe(101);
+    reconnect.webSocket?.accept();
+    reconnect.webSocket?.close(1000, "test complete");
     const expiresAt = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
     expect(expiresAt).toBeGreaterThan(Date.now());
     expect(expiresAt).toBeLessThanOrEqual(Date.now() + 15 * 60 * 1000);
+
+    expect(await clients[0].send({ type: "REMATCH_READY" })).toMatchObject({ type: "ACK" });
+    expect(await clients[1].send({ type: "REMATCH_READY" })).toMatchObject({ type: "ACK" });
+    await Promise.all(clients.map((client) => client.wait((message) => message.type === "PLAYER_VIEW" && message.payload.phase === "SHOP" && message.payload.round === 1)));
+    expect(clients.every((client) => client.view().players.filter((player) => player.human).every((player) => player.alive))).toBe(true);
+    const rematchExpiry = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
+    expect(rematchExpiry).toBeGreaterThan(Date.now() + 23 * 60 * 60 * 1000);
   }, 30_000);
   it("serializes concurrent rerolls, keeps locks, deduplicates lock retries and rejects a burst past the limit", async () => {
     const a = await session(); const b = await session(a.roomId); const c = await session(a.roomId);

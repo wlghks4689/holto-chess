@@ -15,6 +15,8 @@ export type GameAction =
   | { type: "SELECT_LOADOUT"; slots: (string | null)[] }
   | { type: "SELECT_AUGMENT"; augmentId: string }
   | { type: "END_SHOP_PHASE" }
+  | { type: "CANCEL_SHOP_READY" }
+  | { type: "REMATCH_READY" }
   | { type: "LEAVE_ROOM" };
 export type ClientMessage =
   | { type: "JOIN_ROOM"; token: string; nickname?: string }
@@ -110,7 +112,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   const fields: Record<string, string[]> = {
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
-      SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [], LEAVE_ROOM: [],
+      SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], LEAVE_ROOM: [],
       SELECT_LOADOUT: ["slots"],
   };
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");

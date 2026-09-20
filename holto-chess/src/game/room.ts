@@ -140,6 +140,21 @@ function settleBarrier(room: RoomSnapshot): void {
   }
 }
 
+function startRematch(room: RoomSnapshot): void {
+  const names = Object.fromEntries(room.game.players.map((player) => [player.id, player.name]));
+  const seed = (room.game.seed + room.revision + 1) >>> 0 || 1;
+  room.game = createGame(seed, room.game.randomMode, room.game.rulesVersion ?? 2);
+  for (const session of room.sessions) room.game.players.find((player) => player.id === session.playerId)!.name = names[session.playerId]!;
+  room.status = "PLAYING";
+  room.readyIds = [];
+  room.endedShopIds = [];
+  room.augmentChoices = {};
+  room.loadoutDrafts = {};
+  room.barrierSince = undefined;
+  room.barrierKey = undefined;
+  room.presentation = undefined;
+}
+
 export function applyRoomAction(source: RoomSnapshot, playerId: string, action: GameAction, expectedTurn: string, now = Date.now()): RoomSnapshot {
   const current = source.sessions.find((s) => s.playerId === playerId);
   if (!current) throw new Error("세션이 없습니다.");
@@ -163,6 +178,15 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     const remaining = controlledHumanIds(room);
     if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; }
+  } else if (action.type === "REMATCH_READY") {
+    if (room.game.phase !== "GAME_RESULT") throw new Error("최종 결과 이후에만 새 게임을 시작할 수 있습니다.");
+    const players = controlledHumanIds(room);
+    if (players.length < 2) throw new Error("같은 방 새 게임에는 실제 플레이어 2명이 필요합니다.");
+    room.readyIds = [...new Set([...room.readyIds, playerId])];
+    if (allReady(players)) startRematch(room);
+  } else if (action.type === "CANCEL_SHOP_READY") {
+    if (room.game.phase !== "SHOP" || me.eliminated || !room.endedShopIds.includes(playerId)) throw new Error("취소할 덱 준비가 없습니다.");
+    room.endedShopIds = room.endedShopIds.filter((id) => id !== playerId);
   } else if (action.type === "READY") {
     const eligible = activeHumans(room);
     const voters = eligible.length ? eligible : controlledHumanIds(room);

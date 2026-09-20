@@ -12,8 +12,8 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
   return <section className="open-draft panel" aria-label={`R${view.round} 공개 드래프트`}>
-    <header><small className="draft-kicker">ROUND {view.round} · {ordering ? "DRAFT ORDER" : "OPEN DRAFT"}</small><h2>{ordering ? "낮은 승점부터 선택합니다" : "공유 아레나에서 한 장을 선택하세요"}</h2><div className="draft-clock" role="timer" aria-label={`선택 제한 남은 시간 ${seconds ?? (ordering ? 5 : 20)}초`}><span>선택 제한</span><strong>{seconds ?? (ordering ? 5 : 20)}</strong><span>초</span></div></header>
-    <p className="hint">승점 낮은 순 → 동점이면 BB 높은 순 → 완전 동률은 서버 추첨 · 선택 제한 20초</p>
+    <header><small className="draft-kicker">ROUND {view.round} · {ordering ? "선택 순서 안내" : "공개 드래프트"}</small><h2>{ordering ? "낮은 순위부터 카드를 선택합니다" : "공개 카드 한 장을 선택하세요"}</h2><div className="draft-clock" role="timer" aria-label={`선택 제한 남은 시간 ${seconds ?? (ordering ? 5 : 20)}초`}><span>남은 시간</span><strong>{seconds ?? (ordering ? 5 : 20)}</strong><span>초</span></div></header>
+    <p className="draft-rule"><span>승점이 낮은 순서</span><i>→</i><span>동점이면 BB가 높은 순서</span><i>→</i><span>완전 동률은 서버 추첨</span></p>
     {view.round === 4 && <div><small>내 보유 카드 · 상대에게 비공개</small><div className="card-row">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
       <b>{String(index + 1).padStart(2, "0")}</b><span>{name(entry.playerId)}</span><small>{entry.points}P · {entry.stackBB}BB</small>
@@ -25,7 +25,7 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
       <CardView card={card} onClick={myTurn && !disabled && !claimedBy && view.me.stackBB >= price ? () => send({ type: "DRAFT_PICK", cardId: card.id }) : undefined} />
       <strong className="draft-price">{price} BB</strong>
       <small>{claimedBy ? name(claimedBy) : view.me.stackBB < price ? "BB 부족" : myTurn ? "구매 가능" : "차례 대기"}</small>
-    </div>)}</div><footer aria-live="polite"><small>CURRENT PICK</small><h3>{draft.currentPlayerId ? name(draft.currentPlayerId) : "구매 완료"}{myTurn ? " · 내 차례" : ""}</h3><p>제한 시간 내에 선택하지 못한 경우 남은 카드 중 1장을 자동 구매 처리됩니다.</p></footer></>}
+    </div>)}</div><footer aria-live="polite"><small>현재 선택 차례</small><h3>{draft.currentPlayerId ? name(draft.currentPlayerId) : "드래프트 완료"}{myTurn ? " · 내 차례" : ""}</h3><p>시간 안에 선택하지 않으면 남은 카드 중 한 장을 자동으로 구매합니다.</p></footer></>}
   </section>;
 }
 

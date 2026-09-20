@@ -7,7 +7,9 @@
 .draft-clock span { color:#a8d2d5; font:700 11px/1 DM Mono; letter-spacing:.06em; }
 .draft-clock span:first-child { grid-column:1/-1; grid-row:1; margin-bottom:4px; }
 .draft-clock span:last-child { grid-column:2; grid-row:2; padding-bottom:2px; }
-.open-draft>.hint { margin:0 16px 8px; }
+.draft-rule { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:2px 16px 10px; color:#8aaab1; font:600 10px/1.4 DM Mono; }
+.draft-rule span { border:1px solid rgba(103,203,220,.16); border-radius:999px; padding:5px 9px; background:rgba(4,23,31,.55); }
+.draft-rule i { color:#5fbdbd; font-style:normal; }
 .draft-order { padding:0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; list-style:none; }
 .draft-order li { border:1px solid #234651; border-radius:10px; padding:10px; min-width:0; background:#071923; }
 .draft-order li.current { border-color:#80e5df; box-shadow:inset 0 0 24px #67eee318; }
@@ -29,7 +31,7 @@
 .open-draft>footer { text-align:center; color:#96dad9; }
 .open-draft:has(.draft-arena) { display:flex; flex-direction:column; }
 .open-draft:has(.draft-arena)>header { order:0; }
-.open-draft:has(.draft-arena)>.hint { order:1; }
+.open-draft:has(.draft-arena)>.draft-rule { order:1; }
 .open-draft:has(.draft-arena)>.draft-arena { order:2; }
 .open-draft:has(.draft-arena)>footer { order:3; }
 .open-draft:has(.draft-arena)>.draft-order { order:4; }
@@ -40,7 +42,8 @@
 .run-loadout-action>p { margin:0; color:#7896a4; font-size:11px; line-height:1.55; }
 .run-loadout-action>.primary { display:flex; align-items:center; justify-content:center; gap:15px; }
 .run-loadout-timer { min-width:42px; padding-left:15px; border-left:1px solid rgba(4,33,35,.28); color:#06262b; font:800 14px/1 DM Mono; font-variant-numeric:tabular-nums; }
-@media(max-width:700px) { .open-draft { padding-top:14px; } .panel.open-draft>header { gap:5px 10px; padding:3px 12px 12px; } .draft-kicker { font-size:9px; } .open-draft>header h2 { font-size:18px; } .draft-clock { min-width:96px;padding:7px 10px 6px; } .draft-clock strong { font-size:32px; } .draft-clock span { font-size:10px; } .open-draft>.hint { margin-left:12px; margin-right:12px; } .draft-order { grid-template-columns:repeat(2,minmax(0,1fr)); } .draft-arena { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 6px; padding:16px 8px 14px; border-radius:18px; } .draft-offer { grid-template-rows:76px 22px 28px; gap:4px; } .draft-arena .playing-card { width:52px; height:76px; min-width:0; } .draft-price { min-width:44px;padding:4px 6px;font-size:11px; } .draft-offer>small { font-size:9px; } .run-loadout-slots { gap:5px; } .run-loadout-slots .playing-card { width:54px; height:76px; min-width:0; } }
+@media(max-width:700px) { .open-draft { padding-top:14px; } .panel.open-draft>header { gap:5px 10px; padding:3px 12px 12px; } .draft-kicker { font-size:9px; } .open-draft>header h2 { font-size:18px; } .draft-clock { min-width:96px;padding:7px 10px 6px; } .draft-clock strong { font-size:32px; } .draft-clock span { font-size:10px; } .draft-rule { gap:5px;margin-inline:12px;font-size:9px}.draft-rule span{padding:4px 7px}.draft-order { grid-template-columns:repeat(2,minmax(0,1fr)); } .draft-arena { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 6px; padding:16px 8px 14px; border-radius:18px; } .draft-offer { grid-template-rows:76px 22px 28px; gap:4px; } .draft-arena .playing-card { width:52px; height:76px; min-width:0; } .draft-price { min-width:44px;padding:4px 6px;font-size:11px; } .draft-offer>small { font-size:9px; } .run-loadout-slots { gap:5px; } .run-loadout-slots .playing-card { width:54px; height:76px; min-width:0; } }
+@media(max-width:520px){.draft-rule i{display:none}.draft-rule span{flex:1 1 100%;text-align:center}}
 @media(max-width:420px) { .panel.open-draft>header { grid-template-columns:minmax(0,1fr) 88px; gap:4px 8px; } .draft-kicker{white-space:normal;line-height:1.2}.open-draft>header h2{font-size:16px;line-height:1.2}.draft-clock{min-width:88px;padding-inline:8px}.draft-clock strong{font-size:30px} }
 @media(max-width:620px) { .run-loadout-action { align-items:stretch; } .run-loadout-action>p { display:block; width:100%; text-align:center; font-size:10px; } .run-loadout-action>.primary { width:100%; } }
 @media(prefers-reduced-motion:reduce) { .draft-acquired { animation:none; } }

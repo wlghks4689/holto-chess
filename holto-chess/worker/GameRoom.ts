@@ -51,6 +51,9 @@ export class GameRoom extends DurableObject<Env> {
       // arenas must not occupy durable storage for the full room lifetime.
       this.expiresAt = Date.now() + FINISHED_ROOM_LIFETIME_MS;
       await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+    } else if (next.game.phase !== "GAME_RESULT" && this.room?.game.phase === "GAME_RESULT") {
+      this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
+      await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
     }
     this.room = next;
   }
@@ -121,7 +124,6 @@ export class GameRoom extends DurableObject<Env> {
       });
     }
     if (url.pathname !== "/internal/ws" || request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("Not found", { status: 404 });
-    if (this.room.game.phase === "GAME_RESULT") return new Response("Room finished", { status: 410 });
     if (this.ctx.getWebSockets().length >= 24) return new Response("Too many connections", { status: 429 });
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);

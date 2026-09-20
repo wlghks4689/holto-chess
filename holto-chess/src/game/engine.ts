@@ -489,7 +489,14 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
   else if (state.round === 2 || state.round === 4) { state.phase = "GROUP_ASSIGNMENT"; log(state, `승자조 ${state.winnerGroup.length}명 · 패자조 ${state.loserGroup.length}명`); }
   else {
     state.phase = "ROUND_RESULT";
-    if (state.round === 3 && state.rulesVersion === 2) assignSurvivalBoundary(state);
+    if (state.round === 3 && state.rulesVersion === 2) {
+      assignSurvivalBoundary(state);
+      for (const match of matches) for (const reward of match.rewards ?? []) {
+        if (!playerById(state, reward.playerId).eliminated) continue;
+        reward.outcome = "ELIMINATED";
+        reward.detail = "누적 승점 하위 2명 · R3 탈락";
+      }
+    }
     log(state, `R${state.round} 쇼다운 종료`, "win");
   }
   return state;

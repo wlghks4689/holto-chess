@@ -127,7 +127,8 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("+0P · BB 20");
     const regularMatch = { ...survival, id: "regular", group: undefined };
     const regularHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: regularMatch, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
-    expect(regularHtml).not.toContain("cinema-status-stamp");
+    expect(regularHtml).toContain('cinema-status-stamp is-eliminated">탈락');
+    expect(regularHtml).not.toContain("is-survived");
     expect(regularHtml).toContain("WIN");
   });
   it("offers speed and skip only when the local simulation opts in", () => {
