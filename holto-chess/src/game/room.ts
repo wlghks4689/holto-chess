@@ -77,7 +77,9 @@ function refreshBarrier(room: RoomSnapshot, now: number): void {
  */
 export function barrierDeadline(room: RoomSnapshot): number | undefined {
   if (room.barrierSince === undefined) return undefined;
-  return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + barrierTimeoutMs(room.game.phase);
+  const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId : undefined;
+  const botDraftTurn = !!draftPicker && !activeHumans(room).includes(draftPicker);
+  return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + (botDraftTurn ? 650 : barrierTimeoutMs(room.game.phase));
 }
 export function addSession(source: RoomSnapshot, tokenHash: string): { room: RoomSnapshot; playerId: string } {
   if (source.status !== "LOBBY" || source.sessions.length >= 8) throw new Error("입장할 수 없는 방입니다.");
@@ -93,7 +95,7 @@ export function addSession(source: RoomSnapshot, tokenHash: string): { room: Roo
 function advanceReadyBarrier(room: RoomSnapshot): void {
   switch (room.game.phase) {
     case "DRAFT_ORDER": room.game = openDraft(room.game); break;
-    case "RUN_LOADOUT": room.game = lockRunLoadouts(room.game); break;
+    case "RUN_LOADOUT": room.game = lockRunLoadouts(room.game, activeHumans(room)); break;
     case "SURVIVAL_READY": room.game = resolveSurvival(room.game); break;
     case "SHOWDOWN_PRIMARY": room.game = resolvePrimary(room.game); break;
     case "GROUP_ASSIGNMENT": room.game = beginSecondary(room.game); break;

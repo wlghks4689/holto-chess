@@ -19,11 +19,14 @@
 .cinema-controls{display:flex;align-items:center;gap:10px;font-size:11px}
 .cinema-controls select{background:#102a1e;color:#e7f5ed;border:1px solid #375344;border-radius:4px;padding:5px}
 .cinema-controls button{font-size:10px;padding:8px}
-.cinema-run-timeline{max-width:720px;margin:-8px auto 24px;padding:10px 14px;border:1px solid #294839;border-radius:10px;background:rgba(4,19,12,.72)}
-.cinema-run-row{display:grid;grid-template-columns:88px 1fr minmax(100px,auto);align-items:center;gap:10px;min-height:32px;color:#688879;font:600 10px DM Mono;transition:color .25s,opacity .25s}
-.cinema-run-row i{height:1px;background:#294839;position:relative}.cinema-run-row i:before{content:"";position:absolute;left:0;top:50%;width:6px;height:6px;border-radius:50%;background:#426553;transform:translateY(-50%);transition:background .25s,box-shadow .25s}
-.cinema-run-row b{text-align:right;font-size:11px}.cinema-run-row.active{color:#d8ebe1}.cinema-run-row.active i:before{background:var(--mint);box-shadow:0 0 10px var(--mint)}
-.cinema-run-row.complete{color:#9fc4b1}.cinema-run-row.complete b{color:var(--mint)}.cinema-run-row.tiebreak{color:#e3b957}.cinema-run-row.tiebreak i:before{background:#e3b957}
+.cinema-run-timeline{max-width:760px;margin:-8px auto 24px;padding:8px 14px;border:1px solid #294839;border-radius:10px;background:rgba(4,19,12,.72)}
+.cinema-run-row{display:grid;grid-template-columns:58px minmax(0,1fr) minmax(112px,auto);align-items:center;gap:12px;min-height:64px;padding:7px 0;color:#688879;font:600 10px DM Mono;transition:color .25s,opacity .25s}
+.cinema-run-row+.cinema-run-row{border-top:1px solid #294839}.cinema-run-label{letter-spacing:.08em}
+.cinema-run-matchup{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);align-items:center;gap:8px}.cinema-run-matchup>strong{color:#6f9b87;text-align:center;font-size:10px}
+.cinema-run-player{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0}.cinema-run-player.is-right{justify-content:flex-start}.cinema-run-player small{overflow:hidden;color:#a8c8b8;text-overflow:ellipsis;white-space:nowrap}.cinema-run-hand{display:flex;gap:3px;flex:0 0 auto}
+.cinema-run-hand .playing-card.compact{width:28px;height:40px;padding:2px;border-radius:4px}.cinema-run-hand .playing-card.compact .card-rank{font-size:11px}.cinema-run-hand .playing-card.compact .card-suit{font-size:14px}
+.cinema-run-result{text-align:right;font-size:11px}.cinema-run-row.active{color:#d8ebe1}.cinema-run-row.active .cinema-run-matchup>strong{color:var(--mint);text-shadow:0 0 8px rgba(132,245,182,.55)}
+.cinema-run-row.complete{color:#9fc4b1}.cinema-run-row.complete .cinema-run-result{color:var(--mint)}.cinema-run-row.tiebreak{min-height:38px;color:#e3b957}.cinema-run-tiebreak-copy{text-align:center;color:#9f8c62}
 .cinema-run-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;margin:8px 0 4px;padding-top:10px;border-top:1px solid #294839;text-align:center;color:#9bb7a8;font-size:11px}
 .cinema-run-score strong{color:var(--mint);font-size:22px}.cinema-run-score span:first-child{text-align:right}.cinema-run-score span:last-child{text-align:left}
 .cinema-seats{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px}
@@ -251,7 +254,7 @@
   .cinema{margin:12px 0;padding:14px 10px;border-radius:12px}
   .cinema-heading{align-items:flex-start;flex-direction:column;margin-bottom:20px}
   .cinema-controls{width:100%;justify-content:space-between}
-  .cinema-run-timeline{margin-top:0;padding:8px 10px}.cinema-run-row{grid-template-columns:68px 1fr minmax(82px,auto);gap:7px}.cinema-run-row b{font-size:9px}
+  .cinema-run-timeline{margin-top:0;padding:6px 9px}.cinema-run-row{grid-template-columns:42px minmax(0,1fr);gap:5px 8px;min-height:62px;padding:7px 0}.cinema-run-result{grid-column:2;text-align:center;font-size:9px}.cinema-run-matchup{gap:4px;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)}.cinema-run-player{gap:3px}.cinema-run-player small{display:none}.cinema-run-hand .playing-card.compact{width:25px;height:36px}.cinema-run-tiebreak-copy{font-size:9px}
   .cinema-table.cinema-headsup .cinema-seats{gap:14px}
   .cinema-seat{padding:12px 5px}
   .cinema-profile{font-size:12px;gap:5px;margin-bottom:12px}

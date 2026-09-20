@@ -48,14 +48,14 @@ describe("PORENA engine", () => {
   it("reserves shops globally without duplicate cards", () => {
     const state = createGame(101);
     const ids = state.players.flatMap((player) => player.shopCardIds);
-    expect(ids).toHaveLength(24); expect(new Set(ids).size).toBe(24); expect(assertPoolIntegrity(state)).toBe(true);
+    expect(ids).toHaveLength(16); expect(new Set(ids).size).toBe(16); expect(assertPoolIntegrity(state)).toBe(true);
   });
 
   it("returns rerolled and sold cards to legal pool states", () => {
     let state = createGame(202);
     state = rerollShop(state, "p1");
-    expect(state.players[0]!.shopCardIds).toHaveLength(3);
-    expect(new Set(state.players.flatMap((player) => player.shopCardIds)).size).toBe(24);
+    expect(state.players[0]!.shopCardIds).toHaveLength(2);
+    expect(new Set(state.players.flatMap((player) => player.shopCardIds)).size).toBe(16);
     const bought = state.players[0]!.shopCardIds[0]!; state = buyCard(state, "p1", bought); state = sellCard(state, "p1", bought);
     expect(state.ownershipCardPool.find((entry) => entry.card.id === bought)?.state).toBe("AVAILABLE"); expect(assertPoolIntegrity(state)).toBe(true);
   });

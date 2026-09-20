@@ -5,6 +5,7 @@ import {
   forceBarrier, pendingBarrierIds, turnKey, type RoomSnapshot,
 } from "./room";
 import type { GameAction } from "../shared/protocol";
+import type { PlayerState } from "./types";
 import { createPlayerView } from "./playerView";
 
 const T0 = 1_000_000;
@@ -150,14 +151,16 @@ describe("leaving a room", () => {
   });
 
   it("an eliminated player never blocks a barrier in the first place", () => {
-    let room = started(2, 4242);
-    // Drive to a round where elimination has happened.
-    for (let guard = 0; guard < 40 && !room.game.players.some((p) => p.eliminated); guard++) {
+    let room = started(2, 5150);
+    // Drive until a seated human is out. Stopping at the first elimination of
+    // anyone made this depend on which bots the planner happens to beat.
+    let out: PlayerState | undefined;
+    for (let guard = 0; guard < 40 && !out; guard++) {
       const next = forceBarrier(room, barrierDeadline(room) ?? T0);
       if (!next) break;
       room = next;
+      out = room.game.players.find((p) => p.eliminated && ["p1", "p2"].includes(p.id));
     }
-    const out = room.game.players.find((p) => p.eliminated && ["p1", "p2"].includes(p.id));
     expect(out).toBeDefined();
     expect(pendingBarrierIds(room)).not.toContain(out!.id);
   }, 30_000);

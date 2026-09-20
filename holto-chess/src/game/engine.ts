@@ -2,8 +2,8 @@ import { shuffle, type Card } from "../core/poker/cards";
 import { compareHands, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
-import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, rerollLimitFor } from "./config";
-import { bestBotSelection, pickBotAugment, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
+import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
+import { bestBotSelection, bestRunLoadout, pickBotAugment, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { calculateIcm } from "./icm";
 import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
@@ -30,7 +30,8 @@ function drawAvailable(state: PorenaGameState) {
 }
 
 function reserveShopCards(state: PorenaGameState, player: PlayerState): void {
-  while (player.shopCardIds.length < (state.rulesVersion === 2 && state.round === 4 ? 2 : player.shopSize)) {
+  const targetSize = state.rulesVersion === 2 ? regularShopSizeFor(state.round) : player.shopSize;
+  while (player.shopCardIds.length < targetSize) {
     const entry = drawAvailable(state);
     if (!entry) break;
     entry.state = "RESERVED_IN_SHOP"; entry.reservedPlayerId = player.id;
@@ -129,6 +130,7 @@ export function rerollShop(source: PorenaGameState, playerId: string): PorenaGam
   const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
   if ((player.rerollsUsed ?? 0) >= rerollLimitFor(state.round, state.rulesVersion ?? 1)) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
+  if (player.shopCardIds.length > 0 && player.shopCardIds.every((id) => player.lockedShopCardIds?.includes(id))) throw new Error("모든 상점 카드가 잠겨 있어 리롤할 수 없습니다.");
   assertPoolIntegrity(state);
   releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
   player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
@@ -161,6 +163,7 @@ export function toggleSelectedCard(source: PorenaGameState, playerId: string, ca
 
 function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"]): void {
   const limit = BALANCE.handLimits[state.round];
+  const planContext = { rulesVersion: state.rulesVersion ?? 1 } as const;
   for (const player of state.players.filter((item) => !item.eliminated && !humanIds.includes(item.id))) {
     const ownedCards = () => cardsFor(state, player.ownedCardIds);
     const buy = (cardId: string) => {
@@ -175,7 +178,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"])
     while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state.rulesVersion ?? 1)) {
       const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!)
         .map((entry) => ({ card: entry.card, price: discountedPrice(player, entry.card) })).filter((entry) => entry.price <= player.stackBB);
-      const ranked = rankBotPurchases(state.round, player, ownedCards(), options); const best = ranked[0];
+      const ranked = rankBotPurchases(state.round, player, ownedCards(), options, planContext); const best = ranked[0];
       const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
       const missing = limit - player.ownedCardIds.length;
       if (player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, best, rerollCost)) { reroll(); continue; }
@@ -185,7 +188,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"])
 
     // Extra purchase capacity becomes a deliberate upgrade: compare every legal swap by expected match EV.
     while (player.ownedCardIds.length === limit && player.purchasesThisRound < purchaseLimitFor(state.round, state.rulesVersion ?? 1)) {
-      const baseline = scoreBotPlan(state.round, ownedCards(), player.stackBB, `${player.id}:upgrade`);
+      const baseline = scoreBotPlan(state.round, ownedCards(), player.stackBB, `${player.id}:upgrade`, planContext);
       let bestSwap: { ownedId: string; shopId: string; utility: number } | null = null;
       for (const ownedId of player.ownedCardIds) for (const shopId of player.shopCardIds) {
         const owned = state.ownershipCardPool.find((entry) => entry.card.id === ownedId)!.card;
@@ -194,7 +197,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"])
         const refund = Math.floor(cardPrice(owned.rank) * refundRate); const price = discountedPrice(player, offered);
         if (player.stackBB + refund < price) continue;
         const replacement = ownedCards().filter((card) => card.id !== ownedId).concat(offered);
-        const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`);
+        const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`, planContext);
         if (plan.utility > baseline.utility + 2.25 && (!bestSwap || plan.utility > bestSwap.utility)) bestSwap = { ownedId, shopId, utility: plan.utility };
       }
       if (bestSwap) {
@@ -717,7 +720,7 @@ export function autoPickDraft(source: PorenaGameState): PorenaGameState {
   const p = playerById(source, id);
   const options = source.draft!.cardIds.filter((cardId) => source.ownershipCardPool.find((e) => e.card.id === cardId)?.state === "AVAILABLE")
     .map((cardId) => ({ card: getCard(source, cardId), price: getCardPrice(source, id, cardId) })).filter((o) => o.price <= p.stackBB);
-  const best = rankBotPurchases(source.round, p, cardsFor(source, p.ownedCardIds), options)[0];
+  const best = rankBotPurchases(source.round, p, cardsFor(source, p.ownedCardIds), options, { rulesVersion: source.rulesVersion ?? 2 })[0];
   if (!best) throw new Error("구매 가능한 드래프트 카드가 없습니다.");
   return pickDraftCard(source, id, best.card.id);
 }
@@ -730,13 +733,16 @@ export function setRunLoadout(source: PorenaGameState, playerId: string, cardIds
   p.selectedCardIds = [...cardIds]; return state;
 }
 
-export function lockRunLoadouts(source: PorenaGameState): PorenaGameState {
+export function lockRunLoadouts(source: PorenaGameState, humanIds: readonly string[] = ["p1"]): PorenaGameState {
   if (source.phase !== "RUN_LOADOUT") throw new Error("RUN 배치 단계가 아닙니다.");
   const state = structuredClone(source);
   for (const p of state.players.filter((p) => !p.eliminated)) {
     if (p.ownedCardIds.length !== 3) throw new Error("R2 보유 카드 3장이 필요합니다.");
     const valid = [...new Set(p.selectedCardIds)].filter((id) => p.ownedCardIds.includes(id));
-    p.selectedCardIds = [...valid, ...p.ownedCardIds.filter((id) => !valid.includes(id))];
+    // Bots always solve for the anchor. A human who placed nothing gets the same
+    // solve rather than owned order; a partial placement stays their own.
+    if (!humanIds.includes(p.id) || !valid.length) p.selectedCardIds = bestRunLoadout(p, cardsFor(state, p.ownedCardIds));
+    else p.selectedCardIds = [...valid, ...p.ownedCardIds.filter((id) => !valid.includes(id))];
   }
   state.phase = "SHOWDOWN_PRIMARY"; return state;
 }

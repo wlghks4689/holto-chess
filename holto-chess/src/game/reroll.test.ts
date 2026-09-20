@@ -2,18 +2,17 @@ import { expect, it } from "vitest";
 import { createGame as createGameCurrent, rerollShop, startNextRound, toggleShopLock } from "./engine";
 import { assertPoolIntegrity } from "./cardPool";
 
-it("allows two rerolls, rejects the third without changes, and resets next round", () => {
+it("allows one R1 reroll, rejects the second without changes, and resets for R2", () => {
   let state = createGame(11);
-  state = rerollShop(rerollShop(state, "p1"), "p1");
-  expect(state.players[0].rerollsUsed).toBe(2);
-  expect(state.players[0].stackBB).toBe(40);
+  state = rerollShop(state, "p1");
+  expect(state.players[0].rerollsUsed).toBe(1);
+  expect(state.players[0].stackBB).toBe(45);
   const before = structuredClone(state);
   expect(() => rerollShop(state, "p1")).toThrow(/횟수/);
   expect(state).toEqual(before);
   state.phase = "NEXT_ROUND";
   state = startNextRound(state);
   expect(state.players[0].rerollsUsed).toBe(0);
-  expect(rerollShop(rerollShop(state, "p1"), "p1").players[0].rerollsUsed).toBe(2);
 });
 
 it.each(["funds", "phase", "eliminated"])("rejects %s without changing BB, count, shop or ledger", (reason) => {
@@ -44,6 +43,14 @@ it("supports legacy snapshots with an absent counter", () => {
   const state = createGame(14);
   delete state.players[0].rerollsUsed;
   expect(rerollShop(state, "p1").players[0].rerollsUsed).toBe(1);
+});
+
+it("rejects reroll without charging when both dealt cards are locked", () => {
+  let state = createGame(131);
+  for (const id of [...state.players[0].shopCardIds]) state = toggleShopLock(state, "p1", id);
+  const before = structuredClone(state);
+  expect(() => rerollShop(state, "p1")).toThrow(/모든 상점 카드가 잠겨/);
+  expect(state).toEqual(before);
 });
 
 // Legacy persisted rounds keep their individual shops.

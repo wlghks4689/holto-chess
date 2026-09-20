@@ -9,6 +9,7 @@ import { cinemaSeatClass } from "./madeFxClasses";
 import { showdownStage } from "./showdownStage";
 import type { ServerClock } from "./serverClock";
 import { ShowdownCardFlip } from "./ShowdownCardFlip";
+import { CardView } from "./CardView";
 import { useCinematicMotion } from "./useCinematicMotion";
 import { showdownSeatOrder } from "./showdownSeatOrder";
 import "./cinematic.css";
@@ -23,28 +24,36 @@ type Props = { match: MatchView; profiles: Profile[]; viewerId: string; onComple
 /** A jump larger than this (hidden tab, reconnect) lands on the current frame without replaying transitions. */
 const CATCH_UP_MS = 400;
 
-function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame: CinematicFrame; viewerId: string; name: (id: string) => string }) {
+function RunTimeline({ match, frame, name }: { match: MatchView; frame: CinematicFrame; name: (id: string) => string }) {
   if (match.runoutCount !== 2) return null;
   const currentComplete = ["RUN_RESULT", "HIGH_CARD_NOTICE", "HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
   const outcome = (boardIndex: number) => {
     const winners = match.boardWinnerIds[boardIndex] ?? [];
-    if (winners.length > 1) return "SPLIT";
-    if (winners[0] === viewerId) return "YOU WIN";
-    return winners[0] ? "OPPONENT WIN" : "결과 대기";
+    if (winners.length > 1) return "무승부";
+    return winners[0] ? `${name(winners[0])} 승리` : "결과 대기";
   };
   const runComplete = (index: number) => frame.boardIndex > index || frame.boardIndex === index && currentComplete;
   const scoreVisible = runComplete(1);
   const scores = match.participantIds.map((id) => match.boardWinnerIds.slice(0, 2).filter((winners) => winners.length === 1 && winners[0] === id).length);
   const tiebreakCount = Math.max(0, frame.boardIndex - match.runoutCount + 1);
+  const leftId = match.participantIds[0]!;
+  const rightId = match.participantIds[1]!;
+  const runHand = (playerId: string, index: number) => match.runCards?.[playerId]?.[index] ?? match.revealedCards[playerId] ?? [];
   return <aside className="cinema-run-timeline" aria-label="Run It Twice 진행 상황">
     {[0, 1].map((index) => <div className={`cinema-run-row ${frame.boardIndex === index && !runComplete(index) ? "active" : ""} ${runComplete(index) ? "complete" : ""}`} key={index}>
-      <span>RUN {index + 1}</span><i /> <b>{runComplete(index) ? outcome(index) : frame.boardIndex === index ? "진행 중…" : "대기"}</b>
+      <span className="cinema-run-label">RUN {index + 1}</span>
+      <div className="cinema-run-matchup">
+        <div className="cinema-run-player"><small>{name(leftId)}</small><div className="cinema-run-hand">{runHand(leftId, index).map((card) => <CardView card={card} compact key={card.id} />)}</div></div>
+        <strong>VS</strong>
+        <div className="cinema-run-player is-right"><div className="cinema-run-hand">{runHand(rightId, index).map((card) => <CardView card={card} compact key={card.id} />)}</div><small>{name(rightId)}</small></div>
+      </div>
+      <b className="cinema-run-result">{runComplete(index) ? outcome(index) : frame.boardIndex === index ? "진행 중…" : "대기"}</b>
     </div>)}
     {scoreVisible && <div className="cinema-run-score"><span>{name(match.participantIds[0]!)}</span><strong>{scores[0]} : {scores[1]}</strong><span>{name(match.participantIds[1]!)}</span></div>}
     {scoreVisible && match.boards.length > 2 && Array.from({ length: tiebreakCount }, (_, offset) => {
       const boardIndex = match.runoutCount + offset; const complete = runComplete(boardIndex);
       return <div className={`cinema-run-row tiebreak ${frame.boardIndex === boardIndex && !complete ? "active" : ""} ${complete ? "complete" : ""}`} key={boardIndex}>
-        <span>TIEBREAK {offset + 1}</span><i /><b>{complete ? outcome(boardIndex) : "진행 중…"}</b>
+        <span className="cinema-run-label">TIEBREAK {offset + 1}</span><div className="cinema-run-tiebreak-copy">추가 보드 판정</div><b className="cinema-run-result">{complete ? outcome(boardIndex) : "진행 중…"}</b>
       </div>;
     })}
   </aside>;
@@ -115,7 +124,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}><span className="eyebrow" key={final ? finalHeading.kicker : undefined}>{final ? finalHeading.kicker : `ROUND ${match.round} · MATCH ${match.matchday ? `${match.matchday}/3` : match.matchNumber}`}</span><h2>{final ? finalHeading.title : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div>}</header>
-    {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
+    {!intro && <RunTimeline match={match} frame={frame} name={name} />}
     {cardSwitch && <p className="hint" role="status">CARD SWITCH · 대표 카드 유지 · RUN 2 보조 카드 교체</p>}
     {match.highCardDraw && frame.phase === "HIGH_CARD_NOTICE" && <HighCardDrawNotice survival={match.group === "loser"} surviveCount={match.highCardDraw.surviveCount} seconds={Math.max(1, Math.ceil((frame.at + phaseMs - elapsed) / 1000))} />}
     {match.highCardDraw && ["HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase) && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
@@ -190,9 +199,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const completed = !pending && (!current || flags.glow);
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : "COMMUNITY BOARD"
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
-      const outcome = boardWinners.length > 1 ? "SPLIT" : boardWinners[0] === viewerId ? "YOU WIN" : boardWinners[0] ? "OPPONENT WIN" : "";
       return <div className={`cinema-board ${pending ? "pending" : !current ? "complete" : "active"} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
-        <h3>{boardTitle}{!current && !pending && outcome ? <b>{outcome}</b> : null}</h3>
+        <h3>{boardTitle}</h3>
         <div className="cinema-board-cards">{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;

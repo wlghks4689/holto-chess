@@ -116,8 +116,8 @@ describe("open draft rules v2", () => {
     let g = resolvePrimary(lockRunLoadouts(drafted(r2(seed))));
     g = next(g); expect(g.round).toBe(3);
     expect(g.players.filter((p) => !p.eliminated)).toHaveLength(8);
-    expect(g.players.every((p) => p.shopCardIds.length === 3)).toBe(true);
-    expect(g.ownershipCardPool.filter((e) => e.state === "AVAILABLE")).toHaveLength(4);
+    expect(g.players.every((p) => p.shopCardIds.length === 2)).toBe(true);
+    expect(g.ownershipCardPool.filter((e) => e.state === "AVAILABLE")).toHaveLength(12);
     g = resolvePrimary(prepareShowdown(g, []));
     if (g.survival) { g = leaveRoundResult(g); g = resolveSurvival(g); }
     expect(g.players.filter((p) => !p.eliminated)).toHaveLength(6);
@@ -131,7 +131,7 @@ describe("open draft rules v2", () => {
     expect(() => buyCard(g,p.id,p.shopCardIds[0]!)).toThrow(/한도/);
     g = sellCard(g,p.id,p.ownedCardIds[0]!); g = buyCard(g,p.id,p.shopCardIds[0]!);
     expect(g.players.find((x) => x.id === p.id)!.purchasesThisRound).toBe(1);
-    g = rerollShop(g,p.id); expect(() => rerollShop(g,p.id)).toThrow(/리롤 횟수/);
+    g = rerollShop(rerollShop(g,p.id),p.id); expect(() => rerollShop(g,p.id)).toThrow(/리롤 횟수/);
     g = resolveSecondary(beginSecondary(resolvePrimary(prepareShowdown(g, []))));
     expect(g.players.filter((p) => !p.eliminated)).toHaveLength(4);
     g = next(g); g = resolvePrimary(prepareShowdown(g, []));
@@ -149,11 +149,11 @@ function roomAtDraft() {
   return room;
 }
 describe("draft authority, timeouts and privacy", () => {
-  it("has a 20-second persisted pick deadline and advances one pick only, including bots", () => {
+  it("keeps the human 20-second deadline and advances bot picks after a short beat", () => {
     let room = roomAtDraft(); expect(barrierDeadline(room)).toBe(21000);
     expect(forceBarrier(room,20999)).toBeNull();
     room = forceBarrier(room,21000)!; expect(room.game.draft!.picks).toHaveLength(1);
-    expect(barrierDeadline(room)).toBe(41000); expect(forceBarrier(room,21000)).toBeNull();
+    expect(barrierDeadline(room)).toBe(21650); expect(forceBarrier(room,21649)).toBeNull();
     room = structuredClone(room);
     while(room.game.phase==="OPEN_DRAFT") room=forceBarrier(room,barrierDeadline(room)!)!;
     expect(room.game.phase).toBe("RUN_LOADOUT");

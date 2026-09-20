@@ -1,13 +1,26 @@
 import { makeDeck, type Card } from "../core/poker/cards";
-import { compareHands, findBestFive, findBestOmaha, type HandValue } from "../core/poker/evaluate";
+import { compareHands, findBestFive, findBestOmaha, type HandCategory, type HandValue } from "../core/poker/evaluate";
 import { BALANCE } from "./config";
 import type { Augment, PlayerState, Round } from "./types";
 
 type PricedCard = { card: Card; price: number };
-export type BotPlanScore = { equity: number; expectedHandScore: number; utility: number };
+export type BotPlanScore = { equity: number; expectedHandScore: number; potential: number; utility: number };
+export type BotPlanOptions = {
+  /** Version 2 plays R2 as [anchor, run-1 secondary] and [anchor, run-2 secondary]. */
+  rulesVersion?: 1 | 2;
+  /**
+   * Common-random baseline. Every candidate in one comparison must draw its boards
+   * and opponents from the SAME deck, or sampling noise buries the synergy edges
+   * this planner exists to measure.
+   */
+  sharedKnown?: readonly Card[];
+  /** R2 only: score this exact [anchor, run-1, run-2] order instead of the heuristic one. */
+  runOrder?: readonly Card[];
+};
 
-// Common-random 24-universe sampling keeps seven bots responsive while preserving stable candidate ordering.
-const SAMPLES = 24;
+// Common-random sampling keeps seven bots responsive. Cheap rounds afford more
+// universes; R4 evaluates ten cards per player, so it stays lean.
+const SAMPLES: Record<Round, number> = { 1: 24, 2: 48, 3: 24, 4: 24, 5: 24 };
 
 function hash(value: string): number {
   let output = 2166136261;
@@ -61,25 +74,147 @@ function bestOmahaSplit(cards: readonly Card[]): [Card[], Card[]] {
   })[0]!;
 }
 
+/** Low card of every straight window; the wheel counts an ace as one. */
+const STRAIGHT_LOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+/** How much of a draw survives, indexed by board cards it still needs. */
+const COMPLETION = [0, 0.62, 0.3, 0.1] as const;
+
+/**
+ * Utility points per point of reachable hand score. The one dial on how much the
+ * planner pays for synergy, so tune here and nowhere else.
+ *
+ * Equity enters utility at x100, and a live diamond draw is worth roughly 1.5-3
+ * potential beside two matching suited cards. At 1.5 that is enough to settle
+ * near-ties — 8d over 8s next to 7d6d — while a genuine equity edge still wins:
+ * in R2 an ace leads a suited connector by ~5 equity points, or ~5.5 utility,
+ * which no realistic potential gap overturns. Raising this past ~4 inverts that
+ * and the bots start chasing any two suited cards over aces.
+ */
+const POTENTIAL_WEIGHT = 1.5;
+
+function coveredInWindow(cards: readonly Card[], low: number): number {
+  const hit = new Set<number>();
+  for (const card of cards) {
+    const rank = card.rank === 14 && low === 1 ? 1 : card.rank;
+    if (rank >= low && rank <= low + 4) hit.add(rank);
+  }
+  return hit.size;
+}
+
+/**
+ * Value of the strongest hand this hole group can still *reach* once the board
+ * arrives, so a card is judged by what it builds with the cards already held and
+ * not by its own rank. 7d6d plus 8d keeps a straight-flush window alive; As does
+ * not, even though the ace is the pricier card.
+ *
+ * Made hands are excluded (a draw needs at least one board card): the sampled
+ * evaluation already measures everything the hole cards have completed.
+ */
+function drawPotential(cards: readonly Card[], boardCards: number): number {
+  if (boardCards <= 0) return 0;
+  const bySuit = new Map<string, Card[]>();
+  for (const card of cards) bySuit.set(card.suit, [...(bySuit.get(card.suit) ?? []), card]);
+  let best = 0;
+  const consider = (category: HandCategory, need: number): void => {
+    if (need < 1 || need >= COMPLETION.length || need > boardCards) return;
+    best = Math.max(best, BALANCE.handScores[category] * COMPLETION[need]!);
+  };
+  for (const suited of bySuit.values()) {
+    if (suited.length < 2) continue;
+    consider("FLUSH", 5 - Math.min(suited.length, 5));
+    for (const low of STRAIGHT_LOWS) {
+      const covered = coveredInWindow(suited, low);
+      if (covered >= 2) consider("STRAIGHT_FLUSH", 5 - covered);
+    }
+  }
+  for (const low of STRAIGHT_LOWS) {
+    const covered = coveredInWindow(cards, low);
+    if (covered >= 2) consider("STRAIGHT", 5 - covered);
+  }
+  return best;
+}
+
+/**
+ * R2 deals each run its own board, so the anchor — the one card both runs play —
+ * is the only placement that moves EV. Ordering the secondaries is cosmetic, but
+ * the stronger pairing leads so the reveal reads in descending strength.
+ */
+function runOrders(cards: readonly Card[]): Card[][] {
+  return cards.map((anchor, index) => [anchor, ...cards.filter((_, other) => other !== index)
+    .sort((left, right) => pairScore([anchor, right]) - pairScore([anchor, left]))]);
+}
+
+/** Cheap anchor pick used inside sampling, where a nested search would be too slow. */
+function heuristicRunOrder(cards: readonly Card[]): Card[] {
+  if (cards.length !== 3) return [...cards];
+  return runOrders(cards).sort((left, right) =>
+    (pairScore([right[0]!, right[1]!]) + pairScore([right[0]!, right[2]!]))
+    - (pairScore([left[0]!, left[1]!]) + pairScore([left[0]!, left[2]!])))[0]!;
+}
+
+/** Hole groups the round actually plays, and the board cards that join each one. */
+function potentialFor(round: Round, cards: readonly Card[], rulesVersion: 1 | 2, runOrder?: readonly Card[]): number {
+  if (round === 5) return 0; // No board: the made seven-card hand is already fully measured.
+  if (round === 3) {
+    if (cards.length !== 4) return drawPotential(cards, 3);
+    // Omaha plays exactly two hole cards with exactly three board cards.
+    return bestOmahaSplit(cards).reduce((sum, half) => sum + drawPotential(half, 3), 0) / 2;
+  }
+  if (round === 2) {
+    if (cards.length !== 3) return drawPotential(cards, 5);
+    if (rulesVersion !== 2) return drawPotential(bestPair(cards), 5);
+    const [anchor, ...secondaries] = runOrder ?? heuristicRunOrder(cards);
+    return secondaries.reduce((sum, secondary) => sum + drawPotential([anchor!, secondary], 5), 0) / 2;
+  }
+  return drawPotential(cards, 5);
+}
+
 function compare(hero: HandValue, opponent: HandValue): number {
   const result = compareHands(hero, opponent);
   return result > 0 ? 1 : result === 0 ? 0.5 : 0;
 }
 
-function scoreHeadsUp(round: Round, heroCards: readonly Card[], opponentCards: readonly Card[], deck: readonly Card[]): { result: number; handScore: number } {
+function scoreHeadsUp(
+  round: Round,
+  heroCards: readonly Card[],
+  opponentCards: readonly Card[],
+  deck: readonly Card[],
+  rulesVersion: 1 | 2,
+  runOrder?: readonly Card[],
+): { result: number; handScore: number } {
   if (round === 5) {
     const hero = findBestFive(heroCards); const opponent = findBestFive(opponentCards);
     return { result: compare(hero, opponent), handScore: BALANCE.handScores[hero.category] };
   }
   if (round === 2) {
-    const heroPair = bestPair(heroCards); const opponentPair = bestPair(opponentCards);
+    // Version 1 played one chosen pair twice.
+    if (rulesVersion !== 2) {
+      const heroPair = bestPair(heroCards); const opponentPair = bestPair(opponentCards);
+      let result = 0; let handScore = 0;
+      for (let run = 0; run < 2; run += 1) {
+        const board = deck.slice(run * 5, run * 5 + 5);
+        const hero = findBestFive([...heroPair, ...board]); const opponent = findBestFive([...opponentPair, ...board]);
+        result += compare(hero, opponent); handScore += BALANCE.handScores[hero.category];
+      }
+      return { result: result / 2, handScore: handScore / 2 };
+    }
+    // Version 2 fields [anchor, run-N secondary] against a board of that run's own.
+    // Which secondary draws which board is decided by nothing the player controls,
+    // so every secondary is scored on every board: same expectation as one fixed
+    // assignment, far less sampling noise between two candidate cards.
+    const heroPlan = runOrder ?? heuristicRunOrder(heroCards);
+    const opponentPlan = heuristicRunOrder(opponentCards);
     let result = 0; let handScore = 0;
     for (let run = 0; run < 2; run += 1) {
       const board = deck.slice(run * 5, run * 5 + 5);
-      const hero = findBestFive([...heroPair, ...board]); const opponent = findBestFive([...opponentPair, ...board]);
-      result += compare(hero, opponent); handScore += BALANCE.handScores[hero.category];
+      for (let secondary = 1; secondary <= 2; secondary += 1) {
+        const hero = findBestFive([heroPlan[0]!, heroPlan[secondary]!, ...board]);
+        const opponent = findBestFive([opponentPlan[0]!, opponentPlan[secondary]!, ...board]);
+        result += compare(hero, opponent); handScore += BALANCE.handScores[hero.category];
+      }
     }
-    return { result: result / 2, handScore: handScore / 2 };
+    return { result: result / 4, handScore: handScore / 4 };
   }
   if (round === 3) {
     const heroSplit = bestOmahaSplit(heroCards); const opponentSplit = bestOmahaSplit(opponentCards);
@@ -97,30 +232,53 @@ function scoreHeadsUp(round: Round, heroCards: readonly Card[], opponentCards: r
 }
 
 /** Hidden opponent cards are never inspected: the bot samples legal unknown universes instead. */
-export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: number, seedKey: string): BotPlanScore {
+export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: number, seedKey: string, options: BotPlanOptions = {}): BotPlanScore {
   const limit = BALANCE.handLimits[round];
   if (cards.length > limit) throw new Error("Bot plan exceeds the round hand limit");
-  const known = new Set(cards.map((card) => card.id));
+  const rulesVersion = options.rulesVersion ?? 2;
+  // Deriving the deck from the shared baseline rather than from `cards` is what
+  // makes candidates comparable: identical boards and opponents every sample, so
+  // the score gap between two cards is the cards, never the shuffle.
+  const known = new Set([...(options.sharedKnown ?? cards), ...cards].map((card) => card.id));
   const unseen = makeDeck().filter((card) => !known.has(card.id));
+  const samples = SAMPLES[round];
   let equity = 0; let expectedHandScore = 0;
-  for (let sample = 0; sample < SAMPLES; sample += 1) {
+  for (let sample = 0; sample < samples; sample += 1) {
     const random = randomFrom(hash(`${seedKey}:${round}:${sample}`));
     const deck = shuffled(unseen, random); let cursor = 0;
     const completedHero = [...cards, ...deck.slice(cursor, cursor += limit - cards.length)];
     const opponent = deck.slice(cursor, cursor += limit);
-    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor));
+    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor), rulesVersion, cards.length === limit ? options.runOrder : undefined);
     equity += outcome.result; expectedHandScore += outcome.handScore;
   }
-  equity /= SAMPLES; expectedHandScore /= SAMPLES;
+  equity /= samples; expectedHandScore /= samples;
+  const potential = potentialFor(round, cards, rulesVersion, options.runOrder);
   const stackValue = Math.floor(Math.max(0, stackAfter) / BALANCE.stackScoreUnitBB);
-  const utility = equity * 100 + expectedHandScore * (round === 5 ? 1.8 : 0.45) + stackValue * (round === 5 ? 1.4 : 0.35);
-  return { equity, expectedHandScore, utility };
+  const utility = equity * 100 + expectedHandScore * (round === 5 ? 1.8 : 0.45) + potential * POTENTIAL_WEIGHT
+    + stackValue * (round === 5 ? 1.4 : 0.35);
+  return { equity, expectedHandScore, potential, utility };
 }
 
-export function rankBotPurchases(round: Round, player: PlayerState, ownedCards: readonly Card[], options: readonly PricedCard[]): (PricedCard & { plan: BotPlanScore })[] {
+export function rankBotPurchases(round: Round, player: PlayerState, ownedCards: readonly Card[], options: readonly PricedCard[], context: BotPlanOptions = {}): (PricedCard & { plan: BotPlanScore })[] {
   const seedKey = `${player.id}:${player.points}:${player.stackBB}`;
-  return options.map((option) => ({ ...option, plan: scoreBotPlan(round, [...ownedCards, option.card], player.stackBB - option.price, seedKey) }))
+  const sharedKnown = [...ownedCards, ...options.map((option) => option.card)];
+  return options.map((option) => ({ ...option, plan: scoreBotPlan(round, [...ownedCards, option.card], player.stackBB - option.price, seedKey, { ...context, sharedKnown }) }))
     .sort((a, b) => b.plan.utility - a.plan.utility || a.price - b.price || b.card.rank - a.card.rank);
+}
+
+/**
+ * Orders R2's three cards as [anchor, run-1, run-2]. The anchor plays both runs,
+ * so each candidate anchor is scored over full head-to-head samples rather than
+ * by the in-sample heuristic.
+ */
+export function bestRunLoadout(player: PlayerState, cards: readonly Card[]): string[] {
+  if (cards.length !== 3) throw new Error("R2 RUN loadout needs exactly three cards");
+  const seedKey = `${player.id}:${player.points}:${player.stackBB}:run`;
+  const ranked = runOrders(cards).map((order) => ({
+    order,
+    plan: scoreBotPlan(2, cards, player.stackBB, seedKey, { rulesVersion: 2, sharedKnown: cards, runOrder: order }),
+  })).sort((a, b) => b.plan.utility - a.plan.utility || b.order[0]!.rank - a.order[0]!.rank);
+  return ranked[0]!.order.map((card) => card.id);
 }
 
 export function shouldBotReroll(round: Round, player: PlayerState, best: (PricedCard & { plan: BotPlanScore }) | undefined, rerollCost: number): boolean {

@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { purchaseLimitFor, rerollLimitFor } from "./config";
-import { beginSecondary, buyCard, chooseAugment, createGame as createGameCurrent, finalStandings, leaveRoundResult, prepareShowdown, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
+import { purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
+import { beginSecondary, buyCard, chooseAugment, createGame as createGameCurrent, finalStandings, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
 import type { Round } from "./types";
 
 function buyThree(round: Round) {
   let state = createGame(160 + round); state.round = round; state.players[0].stackBB = 100;
-  for (let count = 0; count < 3; count += 1) state = buyCard(state, "p1", state.players[0].shopCardIds[0]!);
+  for (let count = 0; count < 3; count += 1) {
+    if (!state.players[0].shopCardIds.length) state = rerollShop(state, "p1");
+    state = buyCard(state, "p1", state.players[0].shopCardIds[0]!);
+  }
   return state;
 }
 
 describe("round-specific shop limits", () => {
-  it("uses new purchase limits 2/2/2/2/3", () => {
-    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => purchaseLimitFor(r))).toEqual([2, 2, 2, 2, 3]);
+  it("uses purchase limits 2/2/2/3/3", () => {
+    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => purchaseLimitFor(r))).toEqual([2, 2, 2, 3, 3]);
   });
 
   it("retains three purchases in persisted legacy R4", () => {
@@ -27,8 +30,12 @@ describe("round-specific shop limits", () => {
     expect(() => buyCard(state, "p1", state.players[0].shopCardIds[0]!)).toThrow(/구매 횟수/);
   });
 
-  it("uses new reroll limits 2/2/2/1/3", () => {
-    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => rerollLimitFor(r))).toEqual([2, 2, 2, 1, 3]);
+  it("uses reroll limits 1/2/2/2/3", () => {
+    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => rerollLimitFor(r))).toEqual([1, 2, 2, 2, 3]);
+  });
+
+  it("deals two cards in every regular shop and none in R2", () => {
+    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => regularShopSizeFor(r))).toEqual([2, 0, 2, 2, 2]);
   });
 });
 

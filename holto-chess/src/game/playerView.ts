@@ -1,4 +1,4 @@
-import { BALANCE, purchaseLimitFor, rerollLimitFor } from "./config";
+import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
 import { finalStandings, getCard, getCardPrice } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { PlayerView } from "../shared/protocol";
@@ -38,7 +38,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       selectedCardIds: [...me.selectedCardIds], augments: me.augments.map(publicAugment),
       ...(g.round === 3 && room.loadoutDrafts?.[me.id] ? { loadoutSlots: [...room.loadoutDrafts[me.id]] } : {}),
       augmentChoices: (room.augmentChoices[me.id] ?? []).map(publicAugment),
-      handLimit: BALANCE.handLimits[g.round], shopSize: g.rulesVersion === 2 && g.round === 4 ? 2 : me.shopSize, shopLocked: false, lockedShopCardIds: [...(me.lockedShopCardIds ?? [])],
+      handLimit: BALANCE.handLimits[g.round], shopSize: g.rulesVersion === 2 ? regularShopSizeFor(g.round) : me.shopSize, shopLocked: false, lockedShopCardIds: [...(me.lockedShopCardIds ?? [])],
       purchases: me.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round, g.rulesVersion ?? 1),
       rerollsUsed: me.rerollsUsed ?? 0, rerollLimit: rerollLimitFor(g.round, g.rulesVersion ?? 1),
       rerollCost: Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0)),

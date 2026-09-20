@@ -17,18 +17,18 @@ export const ROUND_POINTS = {
 } as const;
 
 export const BALANCE = {
-  rerollLimits: { 1: 2, 2: 2, 3: 2, 4: 1, 5: 3 },
+  rerollLimits: { 1: 1, 2: 2, 3: 2, 4: 2, 5: 3 },
   playerCount: 8,
   startStackBB: 50,
-  baseShopSize: 3,
-  maxShopSize: 5,
+  baseShopSize: 2,
+  maxShopSize: 2,
   rerollCostBB: 5,
   cardLockCostBB: 3,
   roundIncomeBB: 30,
   winRewardBB: 20,
   winStreakStepBB: 5,
   loseStreakStepBB: 10,
-  purchaseLimits: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 3 },
+  purchaseLimits: { 1: 2, 2: 2, 3: 2, 4: 3, 5: 3 },
   sellRate: 0.6,
   stackScoreUnitBB: 10,
   handLimits: { 1: 2, 2: 3, 3: 4, 4: 5, 5: 7 },
@@ -41,5 +41,6 @@ export function cardPrice(rank: number): number {
   return BALANCE.rankPrices[rank as keyof typeof BALANCE.rankPrices] ?? 5;
 }
 
+export function regularShopSizeFor(round: Round): number { return round === 2 ? 0 : BALANCE.baseShopSize; }
 export function purchaseLimitFor(round: Round, rulesVersion: number = 2): number { return round === 4 && rulesVersion === 1 ? 3 : BALANCE.purchaseLimits[round]; }
 export function rerollLimitFor(round: Round, rulesVersion: number = 2): number { return round === 4 && rulesVersion === 1 ? 2 : BALANCE.rerollLimits[round]; }

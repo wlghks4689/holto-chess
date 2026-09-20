@@ -138,7 +138,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(expiresAt).toBeGreaterThan(Date.now());
     expect(expiresAt).toBeLessThanOrEqual(Date.now() + 15 * 60 * 1000);
   }, 30_000);
-  it("serializes concurrent rerolls, keeps locks, deduplicates retries and rejects a burst past the limit", async () => {
+  it("serializes concurrent rerolls, keeps locks, deduplicates lock retries and rejects a burst past the limit", async () => {
     const a = await session(); const b = await session(a.roomId); const c = await session(a.roomId);
     const clients = await Promise.all([connect(a), connect(b), connect(c)]);
     for (const client of clients) await client.send({ type: "READY" });
@@ -156,14 +156,15 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(new Set(shopIds).size).toBe(shopIds.length);
     expect(first.game.players[0].shopCardIds).toContain(locked);
     const requestId = crypto.randomUUID();
-    const packet = JSON.stringify({ type: "REROLL", requestId, turnKey: clients[0].view().turnKey });
+    const secondLock = clients[0].view().me.shopCards.find(({ card }) => card.id !== locked)!.card.id;
+    const packet = JSON.stringify({ type: "LOCK_SHOP", cardId: secondLock, requestId, turnKey: clients[0].view().turnKey });
     clients[0].ws.send(packet); clients[0].ws.send(packet);
     await clients[0].wait((m) => m.type === "ACK" && m.requestId === requestId);
     const burst = await Promise.all(Array.from({ length: 3 }, () => clients[0].send({ type: "REROLL" })));
     expect(burst.every((r) => r.type === "ERROR")).toBe(true);
     const after = (await saved())!;
-    expect(after.game.players[0].rerollsUsed).toBe(2);
-    expect(after.game.players[0].stackBB).toBe(37);
+    expect(after.game.players[0].rerollsUsed).toBe(1);
+    expect(after.game.players[0].stackBB).toBe(39);
     expect(after.revision).toBe(first.revision + 1);
     expect(assertPoolIntegrity(after.game)).toBe(true);
     await evictDurableObject(stub);

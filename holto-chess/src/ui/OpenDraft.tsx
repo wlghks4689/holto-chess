@@ -24,8 +24,8 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
     {!ordering && <><div className="draft-arena">{draft.cards.map(({ card, price, claimedBy }) => <div key={card.id} className={`draft-offer ${claimedBy ? "claimed" : ""}`}>
       <CardView card={card} onClick={myTurn && !disabled && !claimedBy && view.me.stackBB >= price ? () => send({ type: "DRAFT_PICK", cardId: card.id }) : undefined} />
       <strong className="draft-price">{price} BB</strong>
-      <small>{claimedBy ? `CLAIMED · ${name(claimedBy)}` : view.me.stackBB < price ? "BB 부족" : myTurn ? "구매 가능" : "차례 대기"}</small>
-    </div>)}</div><footer aria-live="polite"><small>CURRENT PICK</small><h3>{draft.currentPlayerId ? name(draft.currentPlayerId) : "구매 완료"}{myTurn ? " · 내 차례" : ""}</h3><p>시간이 끝나면 서버가 구매 가능한 카드 한 장을 자동 선택합니다.</p></footer></>}
+      <small>{claimedBy ? name(claimedBy) : view.me.stackBB < price ? "BB 부족" : myTurn ? "구매 가능" : "차례 대기"}</small>
+    </div>)}</div><footer aria-live="polite"><small>CURRENT PICK</small><h3>{draft.currentPlayerId ? name(draft.currentPlayerId) : "구매 완료"}{myTurn ? " · 내 차례" : ""}</h3><p>제한 시간 내에 선택하지 못한 경우 남은 카드 중 1장을 자동 구매 처리됩니다.</p></footer></>}
   </section>;
 }
 

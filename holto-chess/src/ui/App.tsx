@@ -84,6 +84,7 @@ function PlayerStrip({ state }: { state: PorenaGameState }) {
 function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
   const me = state.players[0]!; const cap = BALANCE.handLimits[state.round];
   const purchaseLimit = purchaseLimitFor(state.round); const rerollLimit = rerollLimitFor(state.round);
+  const allShopCardsLocked = me.shopCardIds.length > 0 && me.shopCardIds.every((id) => me.lockedShopCardIds?.includes(id));
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
     purchaseLimit, handLimit: cap });
   return <section className="shop-layout">
@@ -94,10 +95,10 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
       <p className="hint">{canSell ? `카드를 누르면 기준가의 ${me.augments.some((a) => a.id === "sell_bonus") ? "80" : "60"}%에 판매합니다. 판매 후에도 라운드 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p>
     </div>
     <div className="market panel">
-      <header><div><span className="eyebrow">RESERVED FOR YOU</span><h2>카드 마켓 <em>{me.shopCardIds.length} / {me.shopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound}/{purchaseLimit}</span></header>
-      <div className="card-row market-row">{me.shopCardIds.map((id) => <ShopCard key={id} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
+      <header><div><span className="eyebrow">TWO CARD DEAL</span><h2>카드 마켓 <em>{me.shopCardIds.length} / {BALANCE.baseShopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
+      <div className="card-row market-row">{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
-      <div className="market-actions"><button className="secondary" disabled={(me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {Math.max(0, rerollLimit - (me.rerollsUsed ?? 0))} / {rerollLimit}</button><span className="hint">카드별 잠금 3BB · 해제 무료</span></div>
+      <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button><span className="hint">{allShopCardsLocked ? "모든 카드가 잠겨 리롤할 수 없습니다." : "카드별 잠금 3BB · 해제 무료"}</span></div>
     </div>
   </section>;
 }
@@ -172,13 +173,14 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
 export function App() {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
   const draftPickIndex = state.draft?.picks.length ?? 0;
+  const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
   useEffect(() => {
     const phase = state.phase;
     if (!["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(phase)) return;
-    const delay = phase === "DRAFT_ORDER" ? 5000 : phase === "RUN_LOADOUT" ? 60000 : 20000;
+    const delay = phase === "DRAFT_ORDER" ? 5000 : phase === "RUN_LOADOUT" ? 60000 : draftPickerId === "p1" ? 20000 : 650;
     const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s) : phase === "RUN_LOADOUT" ? resolvePrimary(lockRunLoadouts(s)) : autoPickDraft(s)), delay);
     return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex]);
+  }, [state.phase, draftPickIndex, draftPickerId]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
@@ -201,7 +203,7 @@ export function App() {
       {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
       <PoolMeter state={state} />
       <PlayerStrip state={state} />
-      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 5 : 20} />}
+      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 5 : draftPickerId === "p1" ? 20 : 1} />}
       {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={60} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}

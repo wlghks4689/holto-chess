@@ -9,8 +9,6 @@ const EARLY: Augment[] = [
 ];
 
 const LATE: Augment[] = [
-  { id: "shop_plus_one", name: "진열 확장 I", description: "상점 슬롯 +1 (최대 5)." },
-  { id: "shop_plus_two", name: "진열 확장 II", description: "상점 슬롯 +2 (최대 5)." },
   { id: "rank_discount", name: "로우 카드 계약", description: "2~9 카드 구매가 2BB 저렴합니다." },
   { id: "r5_hand_bonus", name: "마지막 패", description: "R5 족보 점수 +4." },
   ...EARLY,
