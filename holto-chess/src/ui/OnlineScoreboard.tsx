@@ -3,7 +3,7 @@ import type { PlayerView } from "../shared/protocol";
 
 export function OnlineScoreboard({ view }: { view: PlayerView }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const rows = [...view.players].sort((a, b) => Number(b.alive) - Number(a.alive) || b.points - a.points || b.stackBB - a.stackBB || a.playerId.localeCompare(b.playerId));
+  const rows = [...view.players].sort((a, b) => b.points - a.points || b.stackBB - a.stackBB || a.playerId.localeCompare(b.playerId));
   return <section className="online-scoreboard">
     <button className="secondary score-toggle" onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">플레이어 순위 <span>{view.players.filter((p) => p.alive).length}명 생존 · 펼치기 ▾</span></button>
     <dialog ref={dialog} className="online-score-dialog" aria-labelledby="online-score-title" onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close(); }}>

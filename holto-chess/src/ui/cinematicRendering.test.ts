@@ -81,6 +81,11 @@ describe("cinematic initial rendering", () => {
     expect(tableHtml.match(/cinema-flip-slot/g)).toHaveLength(9);
     expect(tableHtml.match(/cinema-flip-front/g)).toHaveLength(9);
     expect(tableHtml.match(/data-open="true"/g)).toHaveLength(4);
+    expect(renderPhase("BEST5_GLOW")).not.toContain("VICTORY");
+    for (const phase of ["RESULT", "REWARD", "COMPLETE"] as const) {
+      expect(renderPhase(phase).match(/VICTORY/g)).toHaveLength(1);
+      expect(renderPhase(phase).match(/class="cinema-victory"/g)).toHaveLength(2);
+    }
   });
   it("pre-mounts RUN 2 face-down during the RUN 1 result beat", () => {
     const runTwice: MatchView = { ...match, id: "run-twice", round: 2, participantIds: ["p1", "p2"],

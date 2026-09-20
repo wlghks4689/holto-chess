@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { GameOverviewGuide } from "./GameOverviewGuide";
+import { useCinematicMotion } from "./useCinematicMotion";
 import "./start-screen.css";
 
 type MenuOverlay = "guide" | "settings" | null;
 
 export function StartScreen({ onStart }: { onStart: () => void }) {
+  const motion = useCinematicMotion();
   const [overlay, setOverlay] = useState<MenuOverlay>(null);
   const modal = useRef<HTMLDivElement>(null);
 
@@ -52,7 +54,8 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
       {overlay === "guide" ? <GameOverviewGuide onClose={() => setOverlay(null)} /> :
         <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="start-settings-title">
           <header><div><small>PREFERENCES</small><h2 id="start-settings-title">환경 설정</h2></div><button type="button" aria-label="환경 설정 닫기" onClick={() => setOverlay(null)}>×</button></header>
-          <p>설정 메뉴를 준비하고 있습니다.<br />아래 항목은 아직 게임에 적용되지 않습니다.</p>
+          <fieldset><legend>게임 연출</legend><label>카드 회전·쇼다운 애니메이션<input type="checkbox" role="switch" checked={motion.enabled} onChange={(event) => motion.setEnabled(event.target.checked)} /></label><p className="start-settings-note">기본값은 켜짐입니다. 끄면 카드 회전·화면 이동·메이드 연출의 움직임이 줄어듭니다. 공개 순서와 게임 진행 시간은 유지됩니다. 설정은 이 브라우저에 자동 저장됩니다.</p></fieldset>
+          <p>아래 준비 중인 항목은 아직 게임에 적용되지 않습니다.</p>
           <fieldset disabled><legend>사운드 · 준비 중</legend><label>전체 음량<input type="range" min="0" max="100" defaultValue="70" /></label><label>배경 음악<input type="checkbox" defaultChecked /></label><label>효과음<input type="checkbox" defaultChecked /></label></fieldset>
           <fieldset disabled><legend>화면 · 준비 중</legend><label>기본 애니메이션 속도<select defaultValue="1"><option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option></select></label></fieldset>
           <p className="start-settings-note">현재 쇼다운 속도는 게임 내 속도 메뉴에서 변경할 수 있습니다.</p>

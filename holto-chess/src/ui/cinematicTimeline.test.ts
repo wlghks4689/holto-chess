@@ -13,8 +13,8 @@ describe("showdown reveal timing", () => {
     expect(time("FLOP_3") - time("FLOP_2")).toBe(400);
     expect(time("FLOP_HAND") - time("FLOP_SETTLE")).toBe(200);
     expect(time("TURN_HAND") - time("TURN_SETTLE")).toBe(200);
-    expect(time("RIVER_HAND") - time("RIVER_SETTLE")).toBe(200);
-    expect(time("BEST5_GLOW") - time("RIVER")).toBe(600 + 200 + 600 + 300);
+    expect(time("BEST5_GLOW") - time("RIVER_SETTLE")).toBe(200);
+    expect(time("BEST5_GLOW") - time("RIVER")).toBe(600 + 200);
     expect(displayedStreetIndex("FLOP_SETTLE")).toBe(0);
     expect(displayedStreetIndex("FLOP_HAND")).toBe(1);
     expect(displayedStreetIndex("TURN_SETTLE")).toBe(1);
@@ -25,13 +25,16 @@ describe("showdown reveal timing", () => {
       expect(revealFlags(frame.phase)).toMatchObject({ glow: false, profile: false, made: false, result: false, reward: false });
     }
     expect(revealFlags("BEST5_GLOW")).toMatchObject({ glow: true, made: true });
-    expect(time("BEST5_GLOW")).toBeLessThan(time("MADE_HAND"));
+    expect(timeline.some((frame) => frame.phase === "MADE_HAND" || frame.phase === "RUN_RESULT")).toBe(false);
+    expect(time("RESULT") - time("BEST5_GLOW")).toBe(650);
+    expect(time("REWARD") - time("RESULT")).toBe(650);
+    expect(time("COMPLETE") - time("REWARD")).toBe(1100);
     expect(time("RESULT")).toBeLessThan(time("REWARD"));
   });
   it("runs two boards and tiebreak as one continuous timeline with only one table entry", () => {
     const timeline = cinematicTimeline({ boards: [deck.slice(0, 5), deck.slice(5, 10), deck.slice(10, 15)], revealedCards: {} });
     expect(timeline.filter((f) => f.phase === "VS_INTRO")).toHaveLength(1);
-    expect(timeline.filter((f) => f.phase === "RUN_RESULT").map((f) => f.boardIndex)).toEqual([0, 1, 2]);
+    expect(timeline.filter((f) => f.phase === "RUN_RESULT").map((f) => f.boardIndex)).toEqual([0, 1]);
     expect(timeline.filter((f) => f.phase === "TABLE_ENTER")).toHaveLength(1);
     expect(timeline.filter((f) => f.phase === "REWARD")).toHaveLength(1);
   });

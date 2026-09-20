@@ -54,9 +54,7 @@ function PlayerStrip({ state }: { state: PorenaGameState }) {
   const [open, setOpen] = useState(false);
   const me = state.players.find((player) => player.id === "p1") ?? state.players[0]!;
   const rankedPlayers = [...state.players].sort((left, right) => {
-    if (left.eliminated !== right.eliminated) return left.eliminated ? 1 : -1;
-    if (left.eliminated && right.eliminated) return (right.eliminatedRound ?? 0) - (left.eliminatedRound ?? 0);
-    return right.stackBB - left.stackBB || right.points - left.points || left.name.localeCompare(right.name, "ko");
+    return right.points - left.points || right.stackBB - left.stackBB || left.name.localeCompare(right.name, "ko");
   });
   return <section className={`player-scoreboard ${open ? "is-open" : ""}`}>
     <button className="player-score-summary" type="button" aria-expanded={open} aria-controls="player-score-drawer" onClick={() => setOpen((value) => !value)}>
@@ -65,8 +63,9 @@ function PlayerStrip({ state }: { state: PorenaGameState }) {
       <em>{open ? "접기" : "전체 순위"}<i>{open ? "↑" : "↓"}</i></em>
     </button>
     <button className="player-score-backdrop" type="button" tabIndex={open ? 0 : -1} aria-label="플레이어 스코어 닫기" onClick={() => setOpen(false)} />
-    <div className="player-score-drawer" id="player-score-drawer" role="dialog" aria-modal="true" aria-label="CHIP COUNT 순위표">
-      <header><span>LIVE STANDINGS</span><b>CHIP COUNT</b><button type="button" aria-label="닫기" onClick={() => setOpen(false)}>×</button></header>
+    <div className="player-score-drawer" id="player-score-drawer" role="dialog" aria-modal="true" aria-label="승점 순위표">
+      <header><span>LIVE STANDINGS</span><b>승점 순위</b><button type="button" aria-label="닫기" onClick={() => setOpen(false)}>×</button></header>
+      <p>현재 승점순 · 동점 시 보유 BB순 (최종 순위와 다를 수 있습니다)</p>
       <div className="chip-count-list">{rankedPlayers.map((player, index) => <div key={player.id} className={`chip-count-row ${player.id === "p1" ? "me" : ""} ${player.eliminated ? "out" : ""}`}>
         <span className="chip-count-rank">{String(index + 1).padStart(2, "0")}</span>
         <strong>{player.name}</strong>

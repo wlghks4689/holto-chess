@@ -128,8 +128,10 @@
 .cinema .playing-card.dimmed{opacity:.4;filter:brightness(.72) saturate(.5)}
 /* Community cards must remain readable even when excluded from the focused BEST 5. */
 .cinema .cinema-board .playing-card.dimmed{opacity:.85;filter:brightness(.94) saturate(.85)}
-.cinema-motion-control{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 16px;margin:0 0 20px;color:#b1c5d1;font-size:12px}
-.cinema-motion-control button{font-size:12px;padding:8px 12px}
+/* The game preference also disables motion when the OS allows animations. */
+.cinema[data-match-id]:not(.cinema-motion-enabled) *,.cinema[data-match-id]:not(.cinema-motion-enabled) *::before,.cinema[data-match-id]:not(.cinema-motion-enabled) *::after{animation:none!important;transition:none!important}
+.cinema[data-match-id]:not(.cinema-motion-enabled) .cinema-final-arena img{transform:scale(var(--arena-scale))!important}
+.cinema[data-match-id]:not(.cinema-motion-enabled) .cinema-final-arena i{opacity:1!important}
 .cinema-winner{border-color:var(--made-color);box-shadow:0 0 20px color-mix(in srgb,var(--made-color) 20%,transparent);background:#123023}
 .cinema-loser .cinema-profile{opacity:.65}
 .cinema-victory{display:block;width:100%;color:var(--made-color);font:800 15px Manrope;letter-spacing:.12em;animation:cinema-seat-enter .3s ease-out both}

@@ -109,7 +109,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}><span className="eyebrow" key={final ? finalHeading.kicker : undefined}>{final ? finalHeading.kicker : `ROUND ${match.round} · MATCH ${match.matchday ? `${match.matchday}/3` : match.matchNumber}`}</span><h2>{final ? finalHeading.title : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div>}</header>
-    {motion.reduced && <div className="cinema-motion-control"><span>{motion.enabled ? "이 게임의 연출 켜짐" : "동작 줄이기 설정으로 카드 회전 연출이 꺼져 있습니다"}</span><button className="secondary" aria-pressed={motion.enabled} onClick={motion.toggle}>{motion.enabled ? "시스템 설정 따르기" : "카드 회전·연출 켜기"}</button></div>}
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
     {stage && <div className="cinema-stage" aria-hidden="true" style={{ "--stage-focus": stage.focus } as CSSProperties}><img src={stage.image} alt="" /><i /></div>}
     {final && <div className="cinema-final-arena" aria-hidden="true" style={{ "--arena-progress": arenaZoomProgress(elapsed) } as CSSProperties}>
@@ -124,7 +123,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const swiss = (flags.reward ? match.swissAfter : match.swissBefore)?.[id];
       const ledger = match.rewards.find((reward) => reward.playerId === id);
       const reward = match.rewards.find((r) => r.playerId === id);
-      const survivalOutcome = flags.reward && match.group === "loser" && (reward?.outcome === "SURVIVED" || reward?.outcome === "ELIMINATED") ? reward.outcome : undefined;
+      const survivalOutcome = flags.result && match.group === "loser" && (reward?.outcome === "SURVIVED" || reward?.outcome === "ELIMINATED") ? reward.outcome : undefined;
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const currentPlaceVisible = final && frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && !!result && result.place >= frame.finalPlace;
       const placementClass = final ? finalWinnerStage ? won ? "cinema-winner" : "cinema-loser" : currentPlaceVisible ? "cinema-final-resolved" : "" : flags.profile ? won ? "cinema-winner" : "cinema-loser" : "";
@@ -146,8 +145,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           {swiss && <em className="cinema-current-points">POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
           {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
-          {!final && flags.result && !survivalOutcome && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}</span>}
-          {flags.runResult && <span className="cinema-victory">{won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
+          {!final && (flags.result || flags.runResult) && !survivalOutcome && <span className="cinema-victory" key="outcome">{flags.runResult ? `RUN ${frame.boardIndex + 1} · ${won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}` : won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
         <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {
           const visible = !intro && (!final || cardIndex < frame.finalCards);
           const used = result?.usedCardIds.includes(card.id) ?? false;

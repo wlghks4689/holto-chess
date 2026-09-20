@@ -180,7 +180,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
       case "LOCK_SHOP": room.game = toggleShopLock(room.game, playerId, action.cardId); break;
       case "SELECT_CARDS":
         { const required = room.game.round === 2 ? 2 : room.game.round === 3 ? 4 : 0;
-        if (!required || action.cardIds.length !== required || new Set(action.cardIds).size !== required || action.cardIds.some((id) => !me.ownedCardIds.includes(id))) throw new Error(`보유 카드 ${required || 2}장을 선택하세요.`); }
+        if (!required || (room.game.round === 2 ? action.cardIds.length > required : action.cardIds.length !== required) || new Set(action.cardIds).size !== action.cardIds.length || action.cardIds.some((id) => !me.ownedCardIds.includes(id))) throw new Error(`보유 카드 ${required || 2}장을 선택하세요.`); }
         me.selectedCardIds = [...action.cardIds];
         if (room.game.round === 3) { room.loadoutDrafts ??= {}; room.loadoutDrafts[playerId] = [...action.cardIds]; }
         break;

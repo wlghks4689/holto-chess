@@ -7,6 +7,18 @@ import { EmptyHandSlots } from "./EmptyHandSlots";
 import { OnlineScoreboard } from "./OnlineScoreboard";
 
 describe("online compact game UI", () => {
+  it("ranks points before BB and survival status, using BB only to break ties", () => {
+    const view = createPlayerView(addSession(createRoom("ABCDEF", 101), "one").room, "p1");
+    view.players = view.players.slice(0, 3);
+    Object.assign(view.players[0], { name: "HIGH_BB", points: 10, stackBB: 300, alive: true });
+    Object.assign(view.players[1], { name: "HIGH_POINTS", points: 20, stackBB: 30, alive: false });
+    Object.assign(view.players[2], { name: "TIED_POINTS", points: 10, stackBB: 100, alive: true });
+    const originalIds = view.players.map((player) => player.playerId);
+    const html = renderToStaticMarkup(createElement(OnlineScoreboard, { view }));
+    expect(html.indexOf("HIGH_POINTS")).toBeLessThan(html.indexOf("HIGH_BB"));
+    expect(html.indexOf("HIGH_BB")).toBeLessThan(html.indexOf("TIED_POINTS"));
+    expect(view.players.map((player) => player.playerId)).toEqual(originalIds);
+  });
   it("shows exactly the unfilled hand capacity, including later seven-card rounds", () => {
     for (const [count, limit] of [[1, 2], [3, 3], [4, 7], [7, 7]]) {
       const html = renderToStaticMarkup(createElement(EmptyHandSlots, { count, limit }));

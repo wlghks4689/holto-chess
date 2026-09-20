@@ -1,24 +1,28 @@
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 const KEY = "porena.cinematic-motion";
-const query = "(prefers-reduced-motion: reduce)";
-const getReduced = () => typeof matchMedia === "function" && matchMedia(query).matches;
+const CHANGE = "porena:cinematic-motion";
+let fallback = true;
+function getEnabled() {
+  try { return localStorage.getItem(KEY) !== "disabled"; } catch { return fallback; }
+}
 function subscribe(notify: () => void) {
-  const media = matchMedia(query);
-  media.addEventListener("change", notify);
-  return () => media.removeEventListener("change", notify);
+  window.addEventListener("storage", notify);
+  window.addEventListener(CHANGE, notify);
+  return () => {
+    window.removeEventListener("storage", notify);
+    window.removeEventListener(CHANGE, notify);
+  };
 }
 
-/** Respect the OS by default; an explicit choice applies only to this game's cinematics. */
+export function setCinematicMotion(enabled: boolean) {
+  fallback = enabled;
+  try { localStorage.setItem(KEY, enabled ? "enabled" : "disabled"); } catch { /* Keep the choice in memory if storage is blocked. */ }
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CHANGE));
+}
+
+/** Game preference, enabled by default. Does not change the OS motion setting. */
 export function useCinematicMotion() {
-  const reduced = useSyncExternalStore(subscribe, getReduced, () => false);
-  const [enabled, setEnabled] = useState(() => {
-    try { return sessionStorage.getItem(KEY) === "enabled"; } catch { return false; }
-  });
-  const toggle = () => {
-    const next = !enabled;
-    setEnabled(next);
-    try { sessionStorage.setItem(KEY, next ? "enabled" : "system"); } catch { /* Storage is optional. */ }
-  };
-  return { reduced, enabled, toggle };
+  const enabled = useSyncExternalStore(subscribe, getEnabled, getEnabled);
+  return { enabled, setEnabled: setCinematicMotion };
 }

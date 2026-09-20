@@ -17,7 +17,8 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   let at = 0; let boardIndex = 0; let revealed = 0; let finalCards = 0;
   const add = (phase: CinematicPhase, duration: number, finalPlace?: number) => { frames.push({ at, phase, boardIndex, revealed, finalCards, finalPlace }); at += duration; };
   const bestFive = () => {
-    add("BEST5_GLOW", 500); add("MADE_HAND", 600);
+    if (match.round === 5) { add("BEST5_GLOW", 500); add("MADE_HAND", 600); }
+    else add("BEST5_GLOW", 650);
   };
   // R5 only: the Final Arena establishing shot and camera push-in play before the existing intro.
   if (match.round === 5 && !match.boards.length) add("ARENA_ENTER", FINAL_ARENA_ENTER_MS);
@@ -48,12 +49,15 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
       revealed = 3; add("FLOP_3", 420); add("FLOP_SETTLE", 200); add("FLOP_HAND", 800);
       revealed = 4; add("TURN", 420); add("TURN_SETTLE", 200); add("TURN_HAND", 800);
       add("RIVER_SUSPENSE", 250);
-      revealed = 5; add("RIVER", 600); add("RIVER_SETTLE", 200); add("RIVER_HAND", 600); add("BEST5_WAIT", 300);
-      bestFive(); add("RUN_RESULT", 1000);
+      revealed = 5; add("RIVER", 600); add("RIVER_SETTLE", 200);
+      // One hand read, then one outcome. Intermediate run results are needed only
+      // when another board follows; the final board flows straight into RESULT.
+      bestFive();
+      if (boardIndex < match.boards.length - 1) add("RUN_RESULT", 800);
     }
     boardIndex = match.boards.length - 1;
   }
-  add("RESULT", 1100); add("REWARD", 1600); add("COMPLETE", 0);
+  add("RESULT", 650); add("REWARD", 1100); add("COMPLETE", 0);
   return frames;
 }
 
@@ -87,7 +91,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client derives its frame from that clock, so all seats see the same beat at the same moment.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 1;
+export const PRESENTATION_VERSION = 2;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause on a finished match before the next one starts (replaces the per-match confirm click). */
