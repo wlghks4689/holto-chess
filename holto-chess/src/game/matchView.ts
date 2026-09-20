@@ -9,6 +9,10 @@ export function revealedHand(result: PlayerShowdown): RevealedHand {
 /** Public match allowlist, called only after the caller has checked visibility. */
 export function createMatchView(game: PorenaGameState, match: MatchResult): MatchView {
   return {
+    runCards: match.runCards ? Object.fromEntries(Object.entries(match.runCards).map(([id, runs]) => [id, runs.map((ids) => ids.map((cardId) => ({ ...game.ownershipCardPool.find((e) => e.card.id === cardId)!.card })))])) : undefined,
+    runRewards: match.runRewards ? structuredClone(match.runRewards) : undefined,
+    standingsBefore: match.standingsBefore ? { ...match.standingsBefore } : undefined,
+    standingsAfterRuns: match.standingsAfterRuns?.map((s) => ({ ...s })),
     matchday: match.matchday, swissBefore: match.swissBefore ? structuredClone(match.swissBefore) : undefined,
     swissAfter: match.swissAfter ? structuredClone(match.swissAfter) : undefined,
     id: match.id, round: game.round, matchNumber: game.roundResults.findIndex((m) => m.id === match.id) + 1,

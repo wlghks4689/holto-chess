@@ -4,7 +4,7 @@ import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapsho
 import type { PlayerView } from "../shared/protocol";
 import type { Augment } from "./types";
 import { createMatchView } from "./matchView";
-import { matchesVisible, presentationViewFor } from "./presentation";
+import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
 
 function publicAugment(a: Augment): Augment { return { id: a.id, name: a.name, description: a.description, suit: a.suit, category: a.category }; }
@@ -23,6 +23,12 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     gameId: room.roomId, roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),
     serverNow: now, presentation: presentationViewFor(room, viewerPlayerId),
     status: room.status, round: g.round, phase: room.status === "LOBBY" ? "LOBBY" : g.phase,
+    ...(g.survival ? { survival: structuredClone(g.survival) } : {}),
+    ...(g.draft && ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(g.phase) ? { draft: {
+      cards: g.draft.cardIds.map((id) => ({ card: getCard(g, id), price: g.draft!.picks.find((p) => p.cardId === id)?.price ?? getCardPrice(g, g.draft!.order[g.draft!.picks.length]?.playerId ?? me.id, id), claimedBy: g.draft!.picks.find((p) => p.cardId === id)?.playerId })),
+      order: g.draft.order.map((p) => ({ ...p })), currentPlayerId: g.draft.order[g.draft.picks.length]?.playerId,
+      ...(g.round === 2 ? { publicHands: Object.fromEntries(g.players.map((p) => [p.id, p.ownedCardIds.map((id) => getCard(g, id))])) } : {}),
+    } } : {}),
     humanCount: room.sessions.length, capacity: 8,
     barrierEndsAt: barrierDeadline(room), waitingOn: pendingBarrierIds(room),
     me: {
@@ -32,15 +38,15 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       selectedCardIds: [...me.selectedCardIds], augments: me.augments.map(publicAugment),
       ...(g.round === 3 && room.loadoutDrafts?.[me.id] ? { loadoutSlots: [...room.loadoutDrafts[me.id]] } : {}),
       augmentChoices: (room.augmentChoices[me.id] ?? []).map(publicAugment),
-      handLimit: BALANCE.handLimits[g.round], shopSize: me.shopSize, shopLocked: false, lockedShopCardIds: [...(me.lockedShopCardIds ?? [])],
-      purchases: me.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round),
-      rerollsUsed: me.rerollsUsed ?? 0, rerollLimit: rerollLimitFor(g.round),
+      handLimit: BALANCE.handLimits[g.round], shopSize: g.rulesVersion === 2 && g.round === 4 ? 2 : me.shopSize, shopLocked: false, lockedShopCardIds: [...(me.lockedShopCardIds ?? [])],
+      purchases: me.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round, g.rulesVersion ?? 1),
+      rerollsUsed: me.rerollsUsed ?? 0, rerollLimit: rerollLimitFor(g.round, g.rulesVersion ?? 1),
       rerollCost: Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0)),
       sellPercent: me.augments.some((a) => a.id === "sell_bonus") ? 80 : 60,
       committed: room.endedShopIds.includes(me.id),
     },
     players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed, publicAugments: p.augments.map(publicAugment) })),
-    matches: visible ? g.roundResults.filter((m) => m.playerIds.includes(me.id)).map((m) => createMatchView(g, m)) : [],
+    matches: visible ? visibleMatchesFor(room, me.id).map((m) => createMatchView(g, m)) : [],
     roundSummary: visible ? createRoundSummary(g) : [],
     roundHistory: visible ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...createMatchView(g, m), matchNumber: index + 1 })) : [],
     standings: g.phase === "GAME_RESULT" ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, stackBB: s.stackBB, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound })) : [],

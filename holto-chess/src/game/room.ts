@@ -8,6 +8,7 @@ import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts"
 import type { Augment, PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 import { fillSlots, normalizeSlots } from "../shared/loadoutSlots";
+import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
@@ -26,8 +27,8 @@ export type RoomSnapshot = {
 
 // Re-exported so existing server and test imports keep working.
 export { BARRIER_TIMEOUT_MS, barrierTimeoutMs };
-export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded"): RoomSnapshot {
-  const game = createGame(seed, randomMode);
+export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2): RoomSnapshot {
+  const game = createGame(seed, randomMode, rulesVersion);
   return { schema: 1, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [], augmentChoices: {} };
 }
 export function turnKey(room: RoomSnapshot): string {
@@ -45,12 +46,17 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 }
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
-const BARRIER_PHASES = ["SHOP", "AUGMENT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
+const BARRIER_PHASES = ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "AUGMENT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
 
 /** Who the current barrier is still waiting on. Empty means nothing is blocked. */
 export function pendingBarrierIds(room: RoomSnapshot): string[] {
   if (room.status !== "PLAYING" || !BARRIER_PHASES.includes(room.game.phase)) return [];
   const waiting = activeHumans(room);
+  if (room.game.phase === "OPEN_DRAFT") {
+    const picker = room.game.draft?.order[room.game.draft.picks.length]?.playerId;
+    return picker ? [picker] : [];
+  }
+  if (room.game.phase === "SURVIVAL_READY") return waiting.filter((id) => room.game.survival?.playerIds.includes(id) && !room.readyIds.includes(id));
   if (room.game.phase === "SHOP") return waiting.filter((id) => !room.endedShopIds.includes(id));
   if (room.game.phase === "AUGMENT") return waiting.filter((id) => room.augmentChoices[id]?.length);
   return waiting.filter((id) => !room.readyIds.includes(id));
@@ -59,7 +65,7 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
 /** A phase has one deadline; another player's confirmation never restarts it. */
 function refreshBarrier(room: RoomSnapshot, now: number): void {
   const pending = pendingBarrierIds(room);
-  const key = `${turnKey(room)}|${pending.length ? "waiting" : "done"}`;
+  const key = `${turnKey(room)}|${room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : ""}|${pending.length ? "waiting" : "done"}`;
   if (room.barrierKey === key) return;
   room.barrierKey = key;
   room.barrierSince = pendingBarrierIds(room).length ? now : undefined;
@@ -86,10 +92,14 @@ export function addSession(source: RoomSnapshot, tokenHash: string): { room: Roo
 /** Runs the transition a fully-satisfied READY barrier triggers. */
 function advanceReadyBarrier(room: RoomSnapshot): void {
   switch (room.game.phase) {
+    case "DRAFT_ORDER": room.game = openDraft(room.game); break;
+    case "RUN_LOADOUT": room.game = lockRunLoadouts(room.game); break;
+    case "SURVIVAL_READY": room.game = resolveSurvival(room.game); break;
     case "SHOWDOWN_PRIMARY": room.game = resolvePrimary(room.game); break;
     case "GROUP_ASSIGNMENT": room.game = beginSecondary(room.game); break;
     case "SHOWDOWN_SECONDARY": room.game = resolveSecondary(room.game); break;
     case "ROUND_RESULT": {
+      if (room.game.survival) { room.game.phase = "SURVIVAL_READY"; break; }
       if (room.game.round === 2 || room.game.round === 4) {
         room.game.phase = "AUGMENT";
         for (const p of room.game.players.filter((p) => !p.eliminated)) {
@@ -155,9 +165,20 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const eligible = activeHumans(room);
     const voters = eligible.length ? eligible : controlledHumanIds(room);
     if (!voters.includes(playerId)) throw new Error("생존자의 진행을 기다리세요.");
-    if (["SHOP", "AUGMENT", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
+    if (["OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "AUGMENT", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     if (allReady(voters)) advanceReadyBarrier(room);
+  } else if (action.type === "DRAFT_PICK") {
+    if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
+    room.game = pickDraftCard(room.game, playerId, action.cardId);
+  } else if (action.type === "RUN_LOADOUT") {
+    if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("배치 시간이 끝났습니다.");
+    if (room.readyIds.includes(playerId)) throw new Error("이미 구성을 확정했습니다.");
+    room.game = setRunLoadout(room.game, playerId, action.cardIds);
+  } else if (action.type === "LOCK_RUN_LOADOUT") {
+    if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("배치 시간이 끝났습니다.");
+    if (room.game.phase !== "RUN_LOADOUT" || me.eliminated) throw new Error("RUN 배치 단계가 아닙니다.");
+    room.readyIds = [...new Set([...room.readyIds, playerId])];
   } else if (action.type === "SELECT_AUGMENT") {
     const choice = room.augmentChoices[playerId]?.find((a) => a.id === action.augmentId);
     if (room.game.phase !== "AUGMENT" || me.eliminated || !choice) throw new Error("선택할 수 없는 증강입니다.");
@@ -219,7 +240,9 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   const pending = pendingBarrierIds(source);
   if (!pending.length) return null;
   const room = structuredClone(source);
-  if (room.game.phase === "SHOP") {
+  if (room.game.phase === "OPEN_DRAFT") {
+    room.game = autoPickDraft(room.game);
+  } else if (room.game.phase === "SHOP") {
     // Complete missing sockets without letting the timeout bot reshuffle a complete human hand.
     const loadoutOnly = room.game.round === 3 ? pending.filter((id) => room.game.players.find((p) => p.id === id)!.ownedCardIds.length === BALANCE.handLimits[3]) : [];
     for (const id of loadoutOnly) {

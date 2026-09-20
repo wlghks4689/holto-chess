@@ -3,7 +3,7 @@ import type { MatchView } from "./protocol";
 export type CinematicPhase = "ARENA_ENTER" | "VS_INTRO" | "TABLE_ENTER" | "PREFLOP_HAND" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
   | "TURN" | "TURN_SETTLE" | "TURN_HAND" | "RIVER_SUSPENSE" | "RIVER" | "RIVER_SETTLE" | "RIVER_HAND" | "BEST5_WAIT" | "FINAL_CARDS"
   | "FINAL_FIRST_REVEAL" | "FINAL_FIRST_HAND" | "FINAL_SECOND_REVEAL" | "FINAL_SECOND_HAND" | "FINAL_LAST_REVEAL" | "FINAL_SEVEN_SETTLE"
-  | "HIGH_CARD_NOTICE" | "HIGH_CARD_DRAW" | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
+  | "CARD_SWITCH_OUT" | "CARD_SWITCH_IN" | "HIGH_CARD_NOTICE" | "HIGH_CARD_DRAW" | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
 export type CinematicFrame = { at: number; phase: CinematicPhase; boardIndex: number; revealed: number; finalCards: number; finalPlace?: number };
 
 /** R5 arena pre-roll: hold the full arena, push in toward the table, settle (see cinematic.css). */
@@ -12,7 +12,7 @@ export const FINAL_ARENA_ZOOM_MS = 1800;
 export const FINAL_ARENA_ENTER_MS = FINAL_ARENA_HOLD_MS + FINAL_ARENA_ZOOM_MS + 300;
 
 /** Milliseconds at 1x. Reveal starts are separate from completed flips and pauses. */
-export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards" | "highCardDraw"> & { round?: number; results?: Pick<MatchView["results"][number], "place">[] }): CinematicFrame[] {
+export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards" | "highCardDraw" | "runCards"> & { round?: number; results?: Pick<MatchView["results"][number], "place">[] }): CinematicFrame[] {
   const frames: CinematicFrame[] = [];
   let at = 0; let boardIndex = 0; let revealed = 0; let finalCards = 0;
   const add = (phase: CinematicPhase, duration: number, finalPlace?: number) => { frames.push({ at, phase, boardIndex, revealed, finalCards, finalPlace }); at += duration; };
@@ -22,7 +22,9 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   };
   // R5 only: the Final Arena establishing shot and camera push-in play before the existing intro.
   if (match.round === 5 && !match.boards.length) add("ARENA_ENTER", FINAL_ARENA_ENTER_MS);
-  add("VS_INTRO", 1200);
+  // Regular rounds get an extra 200ms so the staggered face-up hole-card reveal can settle.
+  // R5 keeps its separate, staged seven-card reveal unchanged.
+  add("VS_INTRO", match.round === 5 ? 1200 : 1400);
   add("TABLE_ENTER", 400 );  if (match.round === 4 && match.boards.length) add("PREFLOP_HAND", 2000);
   if (!match.boards.length) {
     if (match.round === 5) {
@@ -44,6 +46,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   } else {
     for (boardIndex = 0; boardIndex < match.boards.length; boardIndex++) {
       revealed = 0;
+      if (boardIndex === 1 && match.runCards) { add("CARD_SWITCH_OUT", 450); add("CARD_SWITCH_IN", 450); }
       revealed = 1; add("FLOP_1", 400);
       revealed = 2; add("FLOP_2", 400);
       revealed = 3; add("FLOP_3", 420); add("FLOP_SETTLE", 200); add("FLOP_HAND", 800);
@@ -100,7 +103,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client derives its frame from that clock, so all seats see the same beat at the same moment.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 3;
+export const PRESENTATION_VERSION = 4;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause on a finished match before the next one starts (replaces the per-match confirm click). */

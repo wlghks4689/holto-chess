@@ -5,7 +5,7 @@ import { loadSavedFinalResults, makeSavedFinalResult, saveFinalResult } from "./
 const display = (value: number) => Number(value.toFixed(2));
 
 function StandingRow({ row, name }: { row: FinalStandingView; name: string }) {
-  return <div className={`standing ${row.placement === 1 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`}>
+  return <div className={`standing podium-${row.placement} ${row.placement === 1 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`}>
     <strong>{row.placement}</strong>
     <span><b>{name}</b>{row.eliminatedRound ? <small>R{row.eliminatedRound} 탈락</small> : null}</span>
     <span>{display(row.points)}<small>승점</small></span>

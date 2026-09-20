@@ -3,6 +3,9 @@ import type { HandCategory } from "../core/poker/evaluate";
 import type { Augment, HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
 
 export type GameAction =
+  | { type: "DRAFT_PICK"; cardId: string }
+  | { type: "RUN_LOADOUT"; cardIds: string[] }
+  | { type: "LOCK_RUN_LOADOUT" }
   | { type: "READY" }
   | { type: "BUY_CARD"; cardId: string }
   | { type: "SELL_CARD"; cardId: string }
@@ -21,6 +24,10 @@ export type PublicPlayer = { playerId: string; name: string; stackBB: number; po
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
+  runCards?: Record<string, Card[][]>;
+  runRewards?: MatchReward[][];
+  standingsBefore?: Record<string, number>;
+  standingsAfterRuns?: Record<string, number>[];
   matchday?: number;
   swissBefore?: Record<string, import("../game/swiss").SwissRecord>;
   swissAfter?: Record<string, import("../game/swiss").SwissRecord>;
@@ -42,6 +49,8 @@ export type PresentationView = { version: number; startsAt: number; endsAt: numb
 export type RoundSummaryRow ={ playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number; eliminated: boolean };
 export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round };
 export type PlayerView = {
+  survival?: { playerIds: string[]; eliminateCount: number };
+  draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]> };
   gameId: string; roomId: string; revision: number; turnKey: string;
   /** Server epoch ms when this view was built; clients estimate their clock offset from it. */
   serverNow: number;
@@ -89,6 +98,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   }
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
+    DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
       SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [], LEAVE_ROOM: [],
       SELECT_LOADOUT: ["slots"],
@@ -96,7 +106,8 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");
   const allowed = ["type", "requestId", "turnKey", ...fields[v.type]];
   if (Object.keys(v).some((k) => !allowed.includes(k))) throw new Error("허용되지 않은 필드입니다.");
-  if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
+  if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP", "DRAFT_PICK"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
+  if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 3 || new Set(v.cardIds).size !== 3 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
   if (v.type === "SELECT_AUGMENT" && !string("augmentId", /^[a-z][a-z0-9_]{0,39}$/)) throw new Error("잘못된 증강입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");
   if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");

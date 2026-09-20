@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
 import {
-  beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, finalStandings,
+  beginSecondary, buyCard, chooseAugment, confirmSelection, createGame as createGameCurrent, finalStandings,
   leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   sellCard, startNextRound, toggleSelectedCard,
 } from "./engine";
@@ -191,3 +191,6 @@ describe("PORENA engine", () => {
     }
   });
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createGame(...args: Parameters<typeof createGameCurrent>) { return createGameCurrent(args[0], args[1], 1); }

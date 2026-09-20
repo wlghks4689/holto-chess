@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, turnKey, type RoomSnapshot } from "./room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom as createRoomCurrent, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 import { prepareShowdown, startNextRound } from "./engine";
 import { createPlayerView } from "./playerView";
 import { parseClientMessage, type GameAction } from "../shared/protocol";
@@ -81,3 +81,6 @@ describe("one-click online loadout", () => {
     expect(room.game.phase).toBe("ROUND_RESULT");
   });
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createRoom(...args: Parameters<typeof createRoomCurrent>) { return createRoomCurrent(args[0], args[1], args[2], 1); }

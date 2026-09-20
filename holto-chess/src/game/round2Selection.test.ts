@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addSession, applyRoomAction, createRoom, turnKey, type RoomSnapshot } from "./room";
+import { addSession, applyRoomAction, createRoom as createRoomCurrent, turnKey, type RoomSnapshot } from "./room";
 import { prepareShowdown, startNextRound } from "./engine";
 import { createPlayerView } from "./playerView";
 import { parseClientMessage, type GameAction } from "../shared/protocol";
@@ -42,3 +42,6 @@ describe("R2 selection after selling", () => {
     expect(() => act(room, { type: "SELECT_CARDS", cardIds: [room.game.players[1].ownedCardIds[0]] })).toThrow();
   });
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createRoom(...args: Parameters<typeof createRoomCurrent>) { return createRoomCurrent(args[0], args[1], args[2], 1); }

@@ -14,7 +14,7 @@ import { showdownSeatOrder } from "./showdownSeatOrder";
 import "./cinematic.css";
 import { HighCardDrawNotice, HighCardDrawResult } from "./HighCardDraw";
 
-type Profile = { playerId: string; name: string };
+type Profile = { playerId: string; name: string; points?: number; alive?: boolean };
 /**
  * `controls` exposes speed/skip for local simulation only. `elapsedMs` hands playback to an outside
  * clock (the server-synced gate): no local timer, no speed, no per-match confirm.
@@ -99,7 +99,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     ? Array.from({ length: frame.boardIndex + 1 + queuedBoard }, (_, index) => index)
     : [frame.boardIndex];
 
-  const labelFor = (id: string, result: RevealedHand) => detailedHandLabel(result.category, result.kickers, match.revealedCards[id] ?? [], result.usedCardIds);
+  const cardSwitch = frame.phase === "CARD_SWITCH_OUT" || frame.phase === "CARD_SWITCH_IN";
+  const runIndex = frame.phase === "CARD_SWITCH_OUT" ? 0 : frame.boardIndex;
+  const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
+  const labelFor = (id: string, result: RevealedHand) => detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds);
+  const rankPoints = match.standingsAfterRuns?.[frame.boardIndex - (flags.result || flags.runResult || flags.reward ? 0 : 1)] ?? match.standingsBefore
+    ?? Object.fromEntries(profiles.filter((p) => p.alive !== false).map((p) => [p.playerId, p.points ?? 0]));
   const finalHeading = finalHeadingCopy(frame);
   const nextBatch = final ? finalNextBatch(frame.phase) : undefined;
   const phaseMs = (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
@@ -111,21 +116,22 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       {controls && !synced && <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
-    {match.highCardDraw && frame.phase === "HIGH_CARD_NOTICE" && <HighCardDrawNotice survival={match.group === "loser"} seconds={Math.max(1, Math.ceil((frame.at + phaseMs - elapsed) / 1000))} />}
+    {cardSwitch && <p className="hint" role="status">CARD SWITCH · 대표 카드 유지 · RUN 2 보조 카드 교체</p>}
+    {match.highCardDraw && frame.phase === "HIGH_CARD_NOTICE" && <HighCardDrawNotice survival={match.group === "loser"} surviveCount={match.highCardDraw.surviveCount} seconds={Math.max(1, Math.ceil((frame.at + phaseMs - elapsed) / 1000))} />}
     {match.highCardDraw && ["HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase) && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
     {stage && <div className="cinema-stage" aria-hidden="true" style={{ "--stage-focus": stage.focus } as CSSProperties}><img src={stage.image} alt="" /><i /></div>}
     {final && <div className="cinema-final-arena" aria-hidden="true" style={{ "--arena-progress": arenaZoomProgress(elapsed) } as CSSProperties}>
       <img src={FINAL_ARENA_IMAGE} alt="" /><i /></div>}
-    <div className="cinema-seats">{ids.map((id, index) => {
+    <div className="cinema-seats">{intro && !multi && <span className="cinema-vs" aria-hidden="true">VS</span>}{ids.map((id, index) => {
       const result = results.find((r) => r.playerId === id);
       const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);
       const streetLabel = streetResult ? labelFor(id, streetResult) : undefined;
       const won = winners.includes(id);
-      const cards = match.revealedCards[id] ?? [];
+      const cards = cardsForRun(id);
       const label = result ? labelFor(id, result) : undefined;
       const swiss = (flags.reward ? match.swissAfter : match.swissBefore)?.[id];
       const ledger = match.rewards.find((reward) => reward.playerId === id);
-      const reward = match.rewards.find((r) => r.playerId === id);
+      const reward = (match.runRewards?.[frame.boardIndex] ?? match.rewards).find((r) => r.playerId === id);
       const survivalOutcome = flags.result && match.group === "loser" && (reward?.outcome === "SURVIVED" || reward?.outcome === "ELIMINATED") ? reward.outcome : undefined;
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const currentPlaceVisible = final && frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && !!result && result.place >= frame.finalPlace;
@@ -135,6 +141,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const readCards = readStage.kind === "current" ? readStage.cards : 0;
       const interimHand = final && readCards ? visibleFinalHand(cards, readCards) : undefined;
       const interimLabel = interimHand ? detailedHandLabel(interimHand.category, interimHand.kickers, cards.slice(0, readCards), interimHand.bestFive.map((card) => card.id)) : undefined;
+      const currentPoints = rankPoints[id];
+      const currentRank = currentPoints === undefined ? undefined : 1 + Object.values(rankPoints).filter((points) => points > currentPoints).length;
+      const tiedOnPoints = currentPoints === undefined ? false : Object.values(rankPoints).filter((points) => points === currentPoints).length > 1;
       const read = !final ? undefined : readStage.kind === "final" && label
         ? { stage: "final", tag: "FINAL BEST 5", title: label.title, detail: label.kicker }
         : interimLabel
@@ -142,15 +151,15 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           : { stage: "pending", tag: "HAND READ", title: "—", detail: undefined };
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
-        {intro && !multi && index === 1 && <span className="cinema-vs" aria-hidden="true">VS</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
+          {match.round >= 2 && currentRank !== undefined && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 승점 순위 ${tiedOnPoints ? "공동 " : ""}${currentRank}위, ${currentPoints}점`}><small>현재 순위</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}<em>{currentPoints}P</em></span>}
           {swiss && <em className="cinema-current-points">POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
           {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
-          {!final && (flags.result || flags.runResult) && !survivalOutcome && <span className="cinema-victory" key="outcome">{flags.runResult ? `RUN ${frame.boardIndex + 1} · ${won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}` : won ? winners.length > 1 ? "SPLIT" : "VICTORY" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
+          {!final && (flags.result || flags.runResult) && !survivalOutcome && <span className="cinema-victory" key="outcome">{(flags.runResult || match.runCards) ? `RUN ${frame.boardIndex + 1} · ${won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}` : won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
         <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {
-          const visible = !intro && (!final || cardIndex < frame.finalCards);
+          const visible = (!final && intro) || (!intro && (!final || cardIndex < frame.finalCards));
           const used = result?.usedCardIds.includes(card.id) ?? false;
           if (final) {
             const slot = finalRevealSlot(cardIndex);
@@ -158,14 +167,15 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used}
               className={`batch-${slot.batch} ${!visible && slot.batch === nextBatch ? "is-next" : ""}`} style={slotStyle} key={card.id} />;
           }
-          return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used} key={card.id} />;
+          return <ShowdownCardFlip card={card} open={visible && !(cardSwitch && cardIndex === 1)} glow={flags.glow && used} dimmed={flags.holeDim && !used}
+            className={intro ? "cinema-vs-reveal" : ""} style={intro ? { "--flip-delay": `${cardIndex * 200}ms` } as CSSProperties : undefined} key={match.runCards ? cardIndex : card.id} />;
         })}</div>
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
           <div className="cinema-final-read-copy" key={read.stage}><small>{read.tag}</small><strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
         {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {!final && flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {flags.glow && board.length > 0 && result && <button className="cinema-focus" aria-pressed={focus?.playerId === id} onClick={() => setFocusId(id)}>BEST 5 확인{match.round === 3 ? " · 홀 2 + 보드 3" : ""}</button>}
-        {flags.reward && reward && <div className="cinema-reward">{final
+        {(flags.reward || flags.runResult && match.runRewards) && reward && <div className="cinema-reward">{final
           ? <strong>{ordinalPlace(result?.place)} PLACE REWARD <i>·</i> {reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))} POINT</strong>
           : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> {reward.deltaPoints >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaPoints).toFixed(2))}P 획득</strong>}</div>}
       </div>;

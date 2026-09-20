@@ -85,6 +85,25 @@ describe("GameRoom in the Cloudflare runtime", () => {
       await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
       if (clients[0].view().phase === "GAME_RESULT") break;
       const phase = clients[0].view().phase;
+      if (phase === "OPEN_DRAFT") {
+        const draft = clients[0].view().draft!;
+        const picker = clients.find((c) => c.view().me.playerId === draft.currentPlayerId);
+        if (picker) {
+          const card = picker.view().draft!.cards.find((c) => !c.claimedBy && c.price <= picker.view().me.stackBB)!;
+          expect(await picker.send({ type: "DRAFT_PICK", cardId: card.card.id })).toMatchObject({ type: "ACK" });
+        } else {
+          const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+          await runInDurableObject(stub, async (_instance, state) => {
+            const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
+            saved.barrierSince = Date.now() - 21_000;
+            await state.storage.put("snapshot:v1", saved);
+          });
+          await evictDurableObject(stub);
+          await runInDurableObject(stub, (instance) => instance.alarm());
+          await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision > revision)));
+        }
+        continue;
+      }
       for (const client of clients) {
         const view = client.view();
         if (!view.me.alive) continue;
@@ -94,6 +113,9 @@ describe("GameRoom in the Cloudflare runtime", () => {
           }
           if ([2, 3].includes(view.round)) await client.send({ type: "SELECT_CARDS", cardIds: client.view().me.ownedCards.slice(0, view.round === 2 ? 2 : 4).map((c) => c.id) });
           await client.send({ type: "END_SHOP_PHASE" });
+        } else if (phase === "RUN_LOADOUT") {
+          expect(await client.send({ type: "RUN_LOADOUT", cardIds: view.me.ownedCards.map((c) => c.id) })).toMatchObject({ type: "ACK" });
+          expect(await client.send({ type: "LOCK_RUN_LOADOUT" })).toMatchObject({ type: "ACK" });
         } else if (phase === "AUGMENT") {
           await client.send({ type: "SELECT_AUGMENT", augmentId: view.me.augmentChoices[0].id });
         } else await client.send({ type: "READY" });

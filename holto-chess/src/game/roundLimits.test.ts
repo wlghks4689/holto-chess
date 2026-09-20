@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { purchaseLimitFor, rerollLimitFor } from "./config";
-import { beginSecondary, buyCard, chooseAugment, createGame, finalStandings, leaveRoundResult, prepareShowdown, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
+import { beginSecondary, buyCard, chooseAugment, createGame as createGameCurrent, finalStandings, leaveRoundResult, prepareShowdown, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
 import type { Round } from "./types";
 
 function buyThree(round: Round) {
@@ -10,11 +10,11 @@ function buyThree(round: Round) {
 }
 
 describe("round-specific shop limits", () => {
-  it("uses purchase limits 2/2/2/3/3", () => {
-    expect(([1, 2, 3, 4, 5] as Round[]).map(purchaseLimitFor)).toEqual([2, 2, 2, 3, 3]);
+  it("uses new purchase limits 2/2/2/2/3", () => {
+    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => purchaseLimitFor(r))).toEqual([2, 2, 2, 2, 3]);
   });
 
-  it("allows three purchases in R4", () => {
+  it("retains three purchases in persisted legacy R4", () => {
     expect(buyThree(4).players[0].purchasesThisRound).toBe(3);
   });
 
@@ -27,10 +27,13 @@ describe("round-specific shop limits", () => {
     expect(() => buyCard(state, "p1", state.players[0].shopCardIds[0]!)).toThrow(/구매 횟수/);
   });
 
-  it("uses reroll limits 2/2/2/2/3", () => {
-    expect(([1, 2, 3, 4, 5] as Round[]).map(rerollLimitFor)).toEqual([2, 2, 2, 2, 3]);
+  it("uses new reroll limits 2/2/2/1/3", () => {
+    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => rerollLimitFor(r))).toEqual([2, 2, 2, 1, 3]);
   });
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createGame(...args: Parameters<typeof createGameCurrent>) { return createGameCurrent(args[0], args[1], 1); }
 
 describe("persisted snapshot trimming", () => {
   const score = (game: ReturnType<typeof createGame>) =>

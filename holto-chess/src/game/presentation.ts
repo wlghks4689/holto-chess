@@ -21,7 +21,7 @@ export function matchesVisible(room: RoomSnapshot): boolean {
 
 /** The matches a seat watches, in the order its client plays them. */
 export function visibleMatchesFor(room: RoomSnapshot, playerId: string): MatchResult[] {
-  return room.game.roundResults.filter((match) => match.playerIds.includes(playerId));
+  return room.game.roundResults.filter((match) => match.playerIds.includes(playerId) || room.game.round === 3 && match.tiebreakKind === "SURVIVAL_TIEBREAK");
 }
 
 /**

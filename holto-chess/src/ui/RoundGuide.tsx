@@ -13,9 +13,9 @@ type Guide = {
 
 const GUIDES: Record<Round, Guide> = {
   1: { kicker: "TEXAS HOLD'EM · SWISS 3 MATCHES", title: "Classic Hold'em", summary: "홀카드 2장으로 상대와 총 3번 경기합니다. 탈락 없이 모두 다음 라운드로 진출합니다.", steps: ["기본 카드 1장과 상점 카드 1장으로 홀카드 2장 완성", "같은 핸드로 3경기 진행 · 매 경기 새로운 상대와 대결", "보드 5장과 홀카드로 가장 좋은 BEST5를 만들어 승부"], scoring: "승리 +3 Point · Split +1 Point · 패배 +0 Point", caution: "텍사스 홀덤 규칙으로 승부합니다. 첫 경기는 무작위로 매칭하고, 이후에는 비슷한 성적의 상대와 대결하는 스위스 대진 방식으로 진행합니다." },
-  2: { kicker: "RUN IT TWICE", title: "RUN IT TWICE", summary: "보유 카드 3장 중 사용할 카드 2장을 고르고 보유한 카드를 제외한 덱으로 런 아웃을 두 번 진행하여 승자를 결정합니다.", steps: ["3장 중 홀카드 2장 선택", "RUN 1 종료 후 RUN 2 진행", "RUN 2까지 합산해 매치 승자 결정"], scoring: "1차전 승리 +6P · 승자조 +3P · 생존전 +2P", caution: "커뮤니티 카드는 두 플레이어의 보유 카드를 제외한 46장의 카드가 사용됩니다. 무승부인 경우 타이 브레이크를 진행합니다." },
+  2: { kicker: "OPEN DRAFT · SPLIT HAND", title: "RUN IT TWICE", summary: "기존 두 장을 공개하고 8장 공개 풀에서 한 장을 구매합니다. 낮은 승점부터 선택하며, 한 사람당 20초입니다.", steps: ["공개 드래프트로 3장 완성", "60초 안에 대표 카드 + RUN별 보조 카드 배치", "대표 카드 유지 · 보조 카드만 교체하여 RUN 2"], scoring: "RUN별 승리 +4P · Split +2P · 패배 +0P · 전원 생존", caution: "두 플레이어의 보유 6장을 제외한 46장으로 중복 없는 두 보드를 만듭니다. 세 장 모두 사용하며 RUN 시작 후 변경 불가. Split은 BB 0, 연승·연패 모두 초기화합니다." },
   3: { kicker: "OMAHA DOUBLE", title: "Omaha Hold'em", summary: "보유 카드 4장을 2장씩 선택하여 GAME 1, GAME 2의 대표 카드로 사용합니다. 각 게임은 두 플레이어의 카드 8장을 제외한 44장의 덱을 사용합니다.", steps: ["4장을 2장씩 나누어 GAME 1과 GAME 2의 대표 카드로 사용", "Game 1과 Game 2를 독립 진행", "각 게임마다 홀 2장 + 보드 3장으로 BEST5"], scoring: "게임별 승리 +5P · Split 양쪽 +2P", caution: "Hold’em처럼 보드 4장을 가져올 수 없습니다. 아래 상황이 가장 흔한 오해입니다." },
-  4: { kicker: "BEST FIVE", title: "Best Five of Ten.", summary: "홀카드 5장과 커뮤니티 보드 5장을 합쳐 자유롭게 BEST5를 만듭니다.", steps: ["상점에서 홀카드 5장 완성", "매치 전용 보드 5장 공개", "홀+보드 10장 중 자유 BEST5"], scoring: "1차전 승리 +10P · Split +5P · 생존전 패자 탈락", caution: "홀카드 또는 보드의 사용 장수 제한이 없습니다. 강한 5장만 남고 나머지는 비교에서 제외됩니다." },
+  4: { kicker: "OPEN DRAFT · BEST FIVE", title: "Best Five of Ten.", summary: "16장 공개 풀에서 누적 승점이 낮은 순으로 한 장씩 구매합니다. 상대의 보유 카드는 비공개입니다.", steps: ["6명 순차 드래프트 · 홀카드 5장 완성", "개인 상점 2장 · 리롤 1회 · 구매 2회", "홀 5장 + 보드 5장 중 자유 BEST5"], scoring: "1차전 승리 +10P · Split +5P · 생존전 패자 탈락", caution: "보유 한도는 5장입니다. 상점에서 교체 구매하려면 먼저 판매하세요. 드래프트 구매는 상점 구매 횟수와 별도입니다." },
   5: { kicker: "THE LAST HAND", title: "The Ultimate Five.", summary: "커뮤니티 카드 없이 보유한 7장의 카드 중 최고의 족보 5장으로 승부합니다.", steps: ["상점에서 최종 7장 구성", "각자의 7장 중 BEST5 공개", "누적 승점·족보·스택을 합산"], scoring: "R5 배치 승점 20 / 12 / 5 / 3P", caution: "7장 중 가장 강한 5장만 최종 족보로 인정됩니다. 최종 순위는 누적 승점·족보 점수·보유 BB를 합산해 결정합니다." },
 };
 
@@ -49,6 +49,7 @@ export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound }: { ro
         <ol>{guide.steps.map((step, index) => <li key={step}><i>0{index + 1}</i><span>{step}</span></li>)}</ol>
         {round === 3 ? <OmahaExample /> : <div className="guide-special"><span>RULE CHECK</span><p>{guide.caution}</p></div>}
         <div className="guide-scoring"><span>POINT RULE</span><strong>{guide.scoring}</strong></div>
+        {round === 3 && <p>누적 승점 하위 2명이 탈락합니다. 탈락선 동점자만 보유 4장 중 정확히 2장을 쓰는 오마하 생존전을 진행합니다. 추가 타이브레이크 2회 후에도 동점이면 안내 후 하이카드 드로우로 필요한 탈락자만 결정합니다.</p>}
       </div>
       <footer><p>{onPreviewRound ? "각 라운드를 선택해 규칙을 확인하세요." : typeof secondsLeft === "number"
         // The server clock keeps running behind the guide, so say so rather than

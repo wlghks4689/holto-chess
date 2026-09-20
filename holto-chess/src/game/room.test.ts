@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addSession, applyRoomAction, createRoom, turnKey, type RoomSnapshot } from "./room";
+import { addSession, applyRoomAction, createRoom as createRoomCurrent, turnKey, type RoomSnapshot } from "./room";
 import { createPlayerView } from "./playerView";
 import { parseClientMessage, type GameAction } from "../shared/protocol";
 import { assertPoolIntegrity } from "./cardPool";
@@ -147,3 +147,6 @@ describe("server room authority and projections", () => {
     expect(r).toEqual(before);
   });
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createRoom(...args: Parameters<typeof createRoomCurrent>) { return createRoomCurrent(args[0], args[1], args[2], 1); }

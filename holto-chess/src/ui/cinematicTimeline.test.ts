@@ -4,10 +4,10 @@ import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags } from ".
 
 const deck = makeDeck();
 describe("showdown reveal timing", () => {
-  it("keeps cards hidden for intro and updates each made hand 200ms after the street settles", () => {
+  it("holds the face-up intro reveal and updates each made hand 200ms after the street settles", () => {
     const timeline = cinematicTimeline({ boards: [deck.slice(0, 5)], revealedCards: { p1: deck.slice(5, 7) } });
     const time = (phase: string) => timeline.find((frame) => frame.phase === phase)!.at;
-    expect(frameAt(timeline, 1199).phase).toBe("VS_INTRO");
+    expect(frameAt(timeline, 1399).phase).toBe("VS_INTRO");
     expect(frameAt(timeline, 1200).revealed).toBe(0);
     expect(time("FLOP_2") - time("FLOP_1")).toBe(400);
     expect(time("FLOP_3") - time("FLOP_2")).toBe(400);

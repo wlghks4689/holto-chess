@@ -69,7 +69,7 @@ function Sample({ name, context, leading }: { name: string; context: Context; le
     <div className="cinema">
       <div className={cinemaSeatClass({ tone, placement: leading ? "cinema-winner" : "cinema-loser", made: true, leading })}>
         <div className="cinema-profile"><span className="player-avatar">1</span><b>SAMPLE</b>
-          <span className="cinema-victory">{leading ? "VICTORY" : "LOSS"}</span></div>
+          <span className="cinema-victory">{leading ? "WIN" : "LOSS"}</span></div>
         <div className="cinema-hole-cards">
           {cards.map((entry) => <CardView key={entry.id} card={entry} compact glow={used.includes(entry.id)} />)}
         </div>

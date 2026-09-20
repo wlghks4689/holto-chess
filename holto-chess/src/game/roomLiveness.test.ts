@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BALANCE } from "./config";
 import {
-  BARRIER_TIMEOUT_MS, addSession, applyRoomAction, barrierDeadline, barrierTimeoutMs, createRoom,
+  BARRIER_TIMEOUT_MS, addSession, applyRoomAction, barrierDeadline, barrierTimeoutMs, createRoom as createRoomCurrent,
   forceBarrier, pendingBarrierIds, turnKey, type RoomSnapshot,
 } from "./room";
 import type { GameAction } from "../shared/protocol";
@@ -122,6 +122,9 @@ describe("barrier liveness", () => {
     expect(room.game.phase).toBe("GAME_RESULT");
   }, 30_000);
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createRoom(...args: Parameters<typeof createRoomCurrent>) { return createRoomCurrent(args[0], args[1], args[2], 1); }
 
 describe("leaving a room", () => {
   it("frees the barrier immediately and hands the seat to the bot", () => {

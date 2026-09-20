@@ -3,7 +3,7 @@ import { MATCH_HOLD_MS, PRESENTATION_LEAD_MS, cinematicTimeline, presentationDur
 import { createMatchView } from "./matchView";
 import { createPlayerView } from "./playerView";
 import { matchesVisible, visibleMatchesFor } from "./presentation";
-import { addSession, applyRoomAction, barrierDeadline, barrierTimeoutMs, createRoom, forceBarrier, turnKey, type RoomSnapshot } from "./room";
+import { addSession, applyRoomAction, barrierDeadline, barrierTimeoutMs, createRoom as createRoomCurrent, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 
 const T0 = 5_000_000;
 function started(count = 3, seed = 707): RoomSnapshot {
@@ -86,3 +86,6 @@ describe("server-scheduled showdown presentation", () => {
     expect(createPlayerView(room, "p1").presentation).toBeUndefined();
   });
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createRoom(...args: Parameters<typeof createRoomCurrent>) { return createRoomCurrent(args[0], args[1], args[2], 1); }

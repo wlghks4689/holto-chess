@@ -3,7 +3,7 @@ import type { Phase, Round } from "../game/types";
 const PREP_COPY: Record<Exclude<Round, 1>, { title: string; rules: string[] }> = {
   2: {
     title: "RUN IT TWICE",
-    rules: ["홀카드 3장", "3장 중 2장 선택", "같은 홀카드로 두 번 진행", "게임마다 새로운 보드"],
+    rules: ["8장 공개 풀 드래프트", "대표 카드 + RUN별 보조 카드", "RUN별 독립 승점", "탈락 없이 전원 진출"],
   },
   3: {
     title: "OMAHA DOUBLE GAME",

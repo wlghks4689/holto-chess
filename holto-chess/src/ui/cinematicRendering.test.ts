@@ -62,6 +62,14 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("Skip Cinematic");
     expect(html).not.toContain("Animation Speed");
   });
+  it("renders cumulative point standings as explicit rank badges with shared places", () => {
+    const ranked: MatchView = { ...match, standingsBefore: { p1: 12, p2: 8, p3: 8, p4: 3 } };
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: ranked, profiles, viewerId: "p1", onComplete: () => {} }));
+    expect(html).toContain('aria-label="현재 승점 순위 1위, 12점"');
+    expect(html.match(/aria-label="현재 승점 순위 공동 2위, 8점"/g)).toHaveLength(2);
+    expect(html).toContain('class="cinema-rank-badge" data-rank="4" aria-label="현재 승점 순위 4위, 3점"');
+    expect(html).not.toContain("TIE");
+  });
   it("uses persistent two-faced slots for heads-up hole cards and boards", () => {
     const board = deck.slice(10, 15);
     const headsUp: MatchView = { ...match, id: "heads-up", round: 1, participantIds: ["p2", "p1"],
@@ -78,12 +86,14 @@ describe("cinematic initial rendering", () => {
       expect(html.indexOf('data-player-id="p1"')).toBeLessThan(html.indexOf('data-player-id="p2"'));
     }
     expect(introHtml.match(/cinema-flip-slot/g)).toHaveLength(4);
+    expect(introHtml.match(/data-open="true"/g)).toHaveLength(4);
+    expect(introHtml.indexOf("cinema-vs")).toBeLessThan(introHtml.indexOf('data-player-id="p1"'));
     expect(tableHtml.match(/cinema-flip-slot/g)).toHaveLength(9);
     expect(tableHtml.match(/cinema-flip-front/g)).toHaveLength(9);
     expect(tableHtml.match(/data-open="true"/g)).toHaveLength(4);
-    expect(renderPhase("BEST5_GLOW")).not.toContain("VICTORY");
+    expect(renderPhase("BEST5_GLOW")).not.toContain("WIN");
     for (const phase of ["RESULT", "REWARD", "COMPLETE"] as const) {
-      expect(renderPhase(phase).match(/VICTORY/g)).toHaveLength(1);
+      expect(renderPhase(phase).match(/WIN/g)).toHaveLength(1);
       expect(renderPhase(phase).match(/class="cinema-victory"/g)).toHaveLength(2);
     }
   });
@@ -117,7 +127,7 @@ describe("cinematic initial rendering", () => {
     const regularMatch = { ...survival, id: "regular", group: undefined };
     const regularHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: regularMatch, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(regularHtml).not.toContain("cinema-status-stamp");
-    expect(regularHtml).toContain("VICTORY");
+    expect(regularHtml).toContain("WIN");
   });
   it("offers speed and skip only when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));

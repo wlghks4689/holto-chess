@@ -24,6 +24,10 @@ import { getPrepPresentation } from "./prepPresentation";
 import { LoadoutSockets } from "./LoadoutSockets";
 import { preloadFinalArena } from "./finalShowdownPresentation";
 import { preloadShowdownStage } from "./showdownStage";
+import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
+import { createPlayerView } from "../game/playerView";
+import { OpenDraftPanel, RunLoadoutPanel } from "./OpenDraft";
+import type { GameAction } from "../shared/protocol";
 
 const displayPoints = (value: number) => Number(value.toFixed(2));
 
@@ -36,6 +40,7 @@ const ROUND_COPY = {
 } as const;
 
 const PHASE_LABEL: Record<Phase, string> = {
+  DRAFT_ORDER: "드래프트 순서 공개", OPEN_DRAFT: "공개 드래프트", RUN_LOADOUT: "RUN 카드 배치", SURVIVAL_READY: "생존 타이브레이크",
   SHOP: "상점", DECK_SELECT: "출전 카드 선택", SHOWDOWN_PRIMARY: "1차 쇼다운", GROUP_ASSIGNMENT: "그룹 배정",
   SHOWDOWN_SECONDARY: "2차 쇼다운", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
 };
@@ -120,7 +125,7 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
   const outcomeLabel = match.stage === "final" ? "최종 1위" : match.group === "loser" ? "생존" : "승리";
   return <article className="match-card">
     {match.highCardDraw && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
-    <header><span>매치 {matchNumber} · {stageLabel}</span><b>♔ {winnerNames} {outcomeLabel}</b>{match.suddenDeathCount ? <em>타이브레이크 {match.suddenDeathCount}회</em> : null}</header>
+    <header><span>매치 {matchNumber} · {stageLabel}</span><b>{match.runCards ? "RUN 1 · RUN 2 독립 결과" : `♔ ${winnerNames} ${outcomeLabel}`}</b>{match.suddenDeathCount ? <em>타이브레이크 {match.suddenDeathCount}회</em> : null}</header>
     {match.boards.length ? <div className={`boards ${match.boards.length > 1 ? "multi-board" : ""}`}>{match.boards.map((board, boardIndex) => {
       const winners = match.boardWinnerIds[boardIndex] ?? [];
       const winnerUsed = new Set((match.boardResults[boardIndex] ?? []).filter((result) => winners.includes(result.playerId)).flatMap((result) => result.usedCardIds));
@@ -128,7 +133,7 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
       return <div className={`board made-${madeTone((match.boardResults[boardIndex] ?? []).find((r) => winners.includes(r.playerId))?.hand.displayName ?? "")} ${boardIndex >= match.runoutCount ? "sudden-board" : ""}`} key={`${match.id}-board-${boardIndex}`}><small>{label}</small><div className="card-row centered">{board.map((card) => <CardView key={card.id} card={card} compact glow={winnerUsed.has(card.id)} dimmed={!winnerUsed.has(card.id)} />)}</div>{match.runoutCount === 2 && <RunWinner winners={winners.map(name)} />}</div>;
     })}</div> : <div className="no-board">NO COMMUNITY · THE LAST HAND</div>}
     <div className={`combatants ${match.playerIds.length > 2 ? "multi" : ""}`}>{[...match.results].sort((a, b) => a.place - b.place).map((result) => {
-      const player = state.players.find((p) => p.id === result.playerId)!; const winner = match.winnerIds.includes(player.id); const shownIds = match.revealedCardIds[player.id] ?? [];
+      const player = state.players.find((p) => p.id === result.playerId)!; const winner = match.winnerIds.includes(player.id); const shownIds = match.runCards?.[player.id]?.[1] ?? match.revealedCardIds[player.id] ?? [];
       const reward = match.rewards?.find((entry) => entry.playerId === player.id);
       return <div key={player.id} className={`combatant ${winner ? "winner" : ""}`}><div className="combatant-title"><span>{winner ? "♔" : `#${result.place}`}</span><b>{player.name}</b>{reward && <em>{reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))}P</em>}</div>{reward?.detail?.includes("ICM") && <p className="combatant-detail">{reward.detail}</p>}<ShowdownHand cards={shownIds.map((id) => getCard(state, id))} usedCardIds={result.usedCardIds} winner={winner} displayName={result.hand.displayName} category={result.hand.category} kickers={result.hand.kickers} /></div>;
     })}</div>
@@ -146,7 +151,7 @@ function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Po
 
 function FinalPanel({ state }: { state: PorenaGameState }) {
   const standings = finalStandings(state);
-  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row, index) => <div className={`standing ${index === 0 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`} key={row.playerId}><strong>{row.placement}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b><small>{row.hand?.displayName}{row.eliminatedRound ? ` · R${row.eliminatedRound} 탈락` : " · FINAL"}</small></span><span>{displayPoints(row.points)}<small>승점</small></span><span>{row.handScore}<small>족보</small></span><span>{row.stackScore}<small>스택</small></span><em>{displayPoints(row.total)} P</em><i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}<small>RANK</small></i></div>)}</div></section>;
+  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row, index) => <div className={`standing podium-${row.placement} ${index === 0 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`} key={row.playerId}><strong>{row.placement}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b>{row.eliminatedRound ? <small>R{row.eliminatedRound} 탈락</small> : null}</span><span>{displayPoints(row.points)}<small>승점</small></span><span>{row.handScore}<small>{row.hand?.displayName || "족보 없음"}</small></span><span>{row.stackScore}<small>{displayPoints(row.stackBB)}BB</small></span><em>{displayPoints(row.total)} P</em><i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}<small>RANK</small></i></div>)}</div></section>;
 }
 
 function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void; reset: () => void }) {
@@ -156,6 +161,7 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   if (state.phase === "SHOWDOWN_PRIMARY") { label = state.round === 5 ? "The Last Hand 공개" : "1차 쇼다운 공개"; fn = resolvePrimary; }
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
   if (state.phase === "SHOWDOWN_SECONDARY") { label = "새 매치 보드 공개"; fn = resolveSecondary; }
+  if (state.phase === "SURVIVAL_READY") { label = "생존 타이브레이크 시작"; fn = resolveSurvival; }
   if (state.phase === "ROUND_RESULT") { label = state.round === 2 || state.round === 4 ? "증강 드래프트" : "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} 상점으로`; fn = startNextRound; }
   const requiredSelection = state.round === 3 ? 4 : 2;
@@ -165,6 +171,14 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
 
 export function App() {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
+  const draftPickIndex = state.draft?.picks.length ?? 0;
+  useEffect(() => {
+    const phase = state.phase;
+    if (!["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(phase)) return;
+    const delay = phase === "DRAFT_ORDER" ? 5000 : phase === "RUN_LOADOUT" ? 60000 : 20000;
+    const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s) : phase === "RUN_LOADOUT" ? resolvePrimary(lockRunLoadouts(s)) : autoPickDraft(s)), delay);
+    return () => clearTimeout(timer);
+  }, [state.phase, draftPickIndex]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
@@ -174,13 +188,21 @@ export function App() {
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
   const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
   const guideKey = `${gameVersion}:${state.round}`;
-  return <CinematicGate key={gameVersion} controls matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name }))} viewerId="p1"><main className="game-arena">
+  const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [], augmentChoices: {} }, "p1");
+  const draftAction = (a: GameAction) => {
+    if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId));
+    if (a.type === "RUN_LOADOUT") act((s) => setRunLoadout(s, "p1", a.cardIds));
+    if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
+  };
+  return <CinematicGate key={gameVersion} controls matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><main className="game-arena">
     {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
     <nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">
       {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
       <PoolMeter state={state} />
       <PlayerStrip state={state} />
+      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <OpenDraftPanel view={draftView} send={draftAction} disabled={false} seconds={null} />}
+      {state.phase === "RUN_LOADOUT" && <RunLoadoutPanel view={draftView} send={draftAction} disabled={false} seconds={null} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}

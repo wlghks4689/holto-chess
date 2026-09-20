@@ -2,7 +2,8 @@ import type { Card, Suit } from "../core/poker/cards";
 import type { HandCategory, HandValue } from "../core/poker/evaluate";
 
 export type Round = 1 | 2 | 3 | 4 | 5;
-export type Phase = "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "AUGMENT" | "NEXT_ROUND" | "GAME_RESULT";
+export type Phase = "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "AUGMENT" | "NEXT_ROUND" | "GAME_RESULT";
+export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: number; stackBB: number }[]; picks: { playerId: string; cardId: string; price: number }[] };
 export type PoolCardState = "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED";
 
 export type PoolCard = {
@@ -52,8 +53,12 @@ export type MatchReward = {
   detail?: string;
 };
 export type TiebreakKind = "GROUP_DECIDER" | "WINNER_TIEBREAK" | "SURVIVAL_TIEBREAK";
-export type HighCardDraw = { draws: { playerId: string; rank: number }[]; winnerId: string };
+export type HighCardDraw = { draws: { playerId: string; rank: number }[]; winnerId: string; survivorIds?: string[]; surviveCount?: number };
 export type MatchResult = {
+  runCards?: Record<string, string[][]>;
+  runRewards?: MatchReward[][];
+  standingsBefore?: Record<string, number>;
+  standingsAfterRuns?: Record<string, number>[];
   matchday?: number;
   swissBefore?: Record<string, import("./swiss").SwissRecord>;
   swissAfter?: Record<string, import("./swiss").SwissRecord>;
@@ -84,6 +89,10 @@ export type MatchResult = {
 export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };
 
 export type PorenaGameState = {
+  /** Missing in persisted pre-draft games: keep their original rules. */
+  rulesVersion?: 1 | 2;
+  draft?: OpenDraft;
+  survival?: { playerIds: string[]; eliminateCount: number };
   round: Round;
   phase: Phase;
   players: PlayerState[];

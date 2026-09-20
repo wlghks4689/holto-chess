@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createGame, resolveSecondary } from "./engine";
+import { createGame as createGameCurrent, resolveSecondary } from "./engine";
 import { createMatchView } from "./matchView";
 import { cinematicTimeline } from "../shared/presentationTimeline";
 import { createElement } from "react";
@@ -14,6 +14,9 @@ vi.mock("./showdownDeck", async (importOriginal) => {
       id: ({ 10: "T", 11: "J", 12: "Q", 13: "K", 14: "A" })[rank] + "s", rank, suit: "s",
     }))) };
 });
+
+// Regression coverage for persisted games created before the open-draft rules.
+function createGame(...args: Parameters<typeof createGameCurrent>) { return createGameCurrent(args[0], args[1], 1); }
 
 describe("bounded high-card decider", () => {
   it("bounds R2 run-it-twice to four boards and reproduces a persisted seeded result", () => {

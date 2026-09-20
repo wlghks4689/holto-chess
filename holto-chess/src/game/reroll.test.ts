@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { createGame, rerollShop, startNextRound, toggleShopLock } from "./engine";
+import { createGame as createGameCurrent, rerollShop, startNextRound, toggleShopLock } from "./engine";
 import { assertPoolIntegrity } from "./cardPool";
 
 it("allows two rerolls, rejects the third without changes, and resets next round", () => {
@@ -45,6 +45,9 @@ it("supports legacy snapshots with an absent counter", () => {
   delete state.players[0].rerollsUsed;
   expect(rerollShop(state, "p1").players[0].rerollsUsed).toBe(1);
 });
+
+// Legacy persisted rounds keep their individual shops.
+function createGame(...args: Parameters<typeof createGameCurrent>) { return createGameCurrent(args[0], args[1], 1); }
 
 it("allows three rerolls in R5 and rejects the fourth", () => {
   let state = createGame(15); state.round = 5; state.players[0].stackBB = 100;
