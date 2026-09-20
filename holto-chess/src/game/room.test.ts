@@ -9,7 +9,8 @@ function lobby(count = 2, seed = 303) {
   for (let i = 0; i < count; i++) room = addSession(room, `hash-${i}`).room;
   return room;
 }
-function act(r: RoomSnapshot, id: string, a: GameAction) { return applyRoomAction(r, id, a, turnKey(r)); }
+// Clients confirm only after the shared presentation has finished.
+function act(r: RoomSnapshot, id: string, a: GameAction) { return applyRoomAction(r, id, a, turnKey(r), Math.max(Date.now(), r.presentation?.endsAt ?? 0)); }
 function start(count = 2, seed = 303) {
   let r = lobby(count, seed);
   for (const s of r.sessions) r = act(r, s.playerId, { type: "READY" });
@@ -120,7 +121,7 @@ describe("server room authority and projections", () => {
       for (const session of r.sessions) {
         const v = createPlayerView(r, session.playerId);
         for (const m of v.matches) {
-          expect(m.participantIds).toContain(session.playerId);
+          if (v.me.alive) expect(m.participantIds).toContain(session.playerId);
           const source = r.game.roundResults.find((result) => result.id === m.id)!;
           expect(m.results).toEqual(source.results.map((result) => ({
             playerId: result.playerId, place: result.place,

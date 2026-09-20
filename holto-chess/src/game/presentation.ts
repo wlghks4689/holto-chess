@@ -21,6 +21,10 @@ export function matchesVisible(room: RoomSnapshot): boolean {
 
 /** The matches a seat watches, in the order its client plays them. */
 export function visibleMatchesFor(room: RoomSnapshot, playerId: string): MatchResult[] {
+  const eliminated = room.game.players.find((player) => player.id === playerId)?.eliminated;
+  // Keep a newly eliminated viewer on their own deciding match first. In
+  // later rounds, automatically show the remaining tables instead of silence.
+  if (eliminated && !room.game.roundResults.some((match) => match.playerIds.includes(playerId))) return room.game.roundResults;
   return room.game.roundResults.filter((match) => match.playerIds.includes(playerId) || room.game.round === 3 && match.tiebreakKind === "SURVIVAL_TIEBREAK");
 }
 
@@ -40,14 +44,16 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
   const startsAt = now + PRESENTATION_LEAD_MS;
   const perPlayer: Record<string, PresentationEntry[]> = {};
   let longest = 0;
-  for (const { playerId } of room.sessions) {
+  const watching = room.sessions.filter((session) => !session.departed);
+  const hasSpectators = watching.some((session) => room.game.players.find((player) => player.id === session.playerId)?.eliminated);
+  for (const { id: playerId, eliminated } of room.game.players) {
     let offsetMs = 0;
     perPlayer[playerId] = visibleMatchesFor(room, playerId).map((match) => {
       const entry = { matchId: match.id, offsetMs, durationMs: durationOf(match) };
       offsetMs += entry.durationMs;
       return entry;
     });
-    longest = Math.max(longest, offsetMs);
+    if (watching.some((session) => session.playerId === playerId) || (hasSpectators && !eliminated)) longest = Math.max(longest, offsetMs);
   }
   room.presentation = { key, version: PRESENTATION_VERSION, startsAt, endsAt: startsAt + longest, perPlayer };
 }

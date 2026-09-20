@@ -59,7 +59,10 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
   if (room.game.phase === "SURVIVAL_READY") return waiting.filter((id) => room.game.survival?.playerIds.includes(id) && !room.readyIds.includes(id));
   if (room.game.phase === "SHOP") return waiting.filter((id) => !room.endedShopIds.includes(id));
   if (room.game.phase === "AUGMENT") return waiting.filter((id) => room.augmentChoices[id]?.length);
-  return waiting.filter((id) => !room.readyIds.includes(id));
+  // With no surviving humans, the people still watching must see each
+  // showdown/result barrier. They may confirm it or let its timeout advance.
+  const viewers = waiting.length ? waiting : controlledHumanIds(room);
+  return viewers.filter((id) => !room.readyIds.includes(id));
 }
 
 /** A phase has one deadline; another player's confirmation never restarts it. */
@@ -188,6 +191,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     if (room.game.phase !== "SHOP" || me.eliminated || !room.endedShopIds.includes(playerId)) throw new Error("취소할 덱 준비가 없습니다.");
     room.endedShopIds = room.endedShopIds.filter((id) => id !== playerId);
   } else if (action.type === "READY") {
+    if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
     const eligible = activeHumans(room);
     const voters = eligible.length ? eligible : controlledHumanIds(room);
     if (!voters.includes(playerId)) throw new Error("생존자의 진행을 기다리세요.");

@@ -85,6 +85,22 @@ describe("GameRoom in the Cloudflare runtime", () => {
       await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
       if (clients[0].view().phase === "GAME_RESULT") break;
       const phase = clients[0].view().phase;
+      if (clients[0].view().presentation) {
+        // Advance the stored clock past playback AND the result-confirmation
+        // window, then exercise the real alarm/broadcast path (also for spectators).
+        const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+        await runInDurableObject(stub, async (_instance, state) => {
+          const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
+          saved.barrierSince = Date.now() - 120_000;
+          saved.presentation!.startsAt = Date.now() - 240_000;
+          saved.presentation!.endsAt = Date.now() - 120_000;
+          await state.storage.put("snapshot:v1", saved);
+        });
+        await evictDurableObject(stub);
+        await runInDurableObject(stub, (instance) => instance.alarm());
+        await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision > revision)));
+        continue;
+      }
       if (phase === "OPEN_DRAFT") {
         const draft = clients[0].view().draft!;
         const picker = clients.find((c) => c.view().me.playerId === draft.currentPlayerId);
@@ -106,7 +122,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
       }
       for (const client of clients) {
         const view = client.view();
-        if (!view.me.alive) continue;
+        if (!view.me.alive && clients.some((c) => c.view().me.alive)) continue;
         if (phase === "SHOP") {
           while (client.view().me.ownedCards.length < client.view().me.handLimit) {
             expect(await client.send({ type: "BUY_CARD", cardId: client.view().me.shopCards[0].card.id })).toMatchObject({ type: "ACK" });
