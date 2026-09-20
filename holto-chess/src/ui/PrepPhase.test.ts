@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PrepRoundHeader } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 
 describe("getPrepPresentation", () => {
@@ -28,5 +31,14 @@ describe("getPrepPresentation", () => {
     expect(getPrepPresentation(1, "SHOP")).toBeNull();
     expect(getPrepPresentation(3, "DECK_SELECT")).toBeNull();
     expect(getPrepPresentation(5, "GAME_RESULT")).toBeNull();
+  });
+
+  it("keeps prep rules inside the title rulebook instead of the header", () => {
+    const prep = getPrepPresentation(3, "SHOP")!;
+    const html = renderToStaticMarkup(createElement(PrepRoundHeader, { prep, phaseLabel: "상점" }));
+    expect(html).not.toContain("ROUND 02 COMPLETE");
+    expect(html).not.toContain("PREP PHASE");
+    expect(html).toContain("OMAHA DOUBLE GAME 규칙 보기");
+    expect(html).toContain("정확히 홀카드 2장 + 보드 3장 사용");
   });
 });

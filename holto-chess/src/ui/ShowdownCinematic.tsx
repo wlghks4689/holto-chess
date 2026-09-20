@@ -202,7 +202,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         })}</div>
       </div>;
     })}</div>}
-    <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? final ? "승점 정산 완료" : "보상 지급 완료" : final && frame.phase === "FINAL_WINNER" ? "1위 확정" : final && frame.phase === "FINAL_PLACE" ? `${frame.finalPlace}위 확정` : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? finalHeading.kicker : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}
+    <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? final ? "승점 정산 완료" : "" : final && frame.phase === "FINAL_WINNER" ? "1위 확정" : final && frame.phase === "FINAL_PLACE" ? `${frame.finalPlace}위 확정` : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? finalHeading.kicker : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}
       {frame.phase === "COMPLETE" && !synced && <button className="primary" onClick={onComplete}>결과 확인 →</button>}</footer>
   </section>;
 }

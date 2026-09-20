@@ -96,6 +96,7 @@ describe("cinematic initial rendering", () => {
       expect(renderPhase(phase).match(/WIN/g)).toHaveLength(1);
       expect(renderPhase(phase).match(/class="cinema-victory"/g)).toHaveLength(2);
     }
+    expect(renderPhase("COMPLETE")).not.toContain("보상 지급 완료");
   });
   it("pre-mounts RUN 2 face-down during the RUN 1 result beat", () => {
     const runTwice: MatchView = { ...match, id: "run-twice", round: 2, participantIds: ["p1", "p2"],

@@ -3,9 +3,10 @@ import { GameOverviewGuide } from "./GameOverviewGuide";
 import { useCinematicMotion } from "./useCinematicMotion";
 import "./start-screen.css";
 
-type MenuOverlay = "guide" | "settings" | null;
+export type StartMode = "single" | "multi";
+type MenuOverlay = "mode" | "guide" | "settings" | null;
 
-export function StartScreen({ onStart }: { onStart: () => void }) {
+export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void }) {
   const motion = useCinematicMotion();
   const [overlay, setOverlay] = useState<MenuOverlay>(null);
   const modal = useRef<HTMLDivElement>(null);
@@ -38,9 +39,9 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
   return <main className="start-screen">
     <div className="start-content" inert={overlay !== null}>
       <div className="start-main">
-        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1 aria-label="PORENA"><span>POREN</span><span className="start-title-accent">A</span></h1><div className="start-title-line" /><p className="start-tagline">최강의 패를 조합하여 아레나에서 승리하라</p></header>
+        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.png" alt="PORENA" /></h1><div className="start-title-line" /><p className="start-tagline">최강의 패를 조합하여 아레나에서 승리하라</p></header>
         <div className="start-menu" aria-label="메인 메뉴">
-          <button type="button" className="start-menu-primary" onClick={onStart}><span>시작하기</span></button>
+          <button type="button" className="start-menu-primary" onClick={() => setOverlay("mode")}><span>시작하기</span></button>
           <button type="button" onClick={() => setOverlay("guide")}>게임 설명</button>
           <button type="button" onClick={() => setOverlay("settings")}>환경 설정</button>
         </div>
@@ -51,7 +52,13 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
       </footer>
     </div>
     {overlay && <div ref={modal} className="start-overlay">
-      {overlay === "guide" ? <GameOverviewGuide onClose={() => setOverlay(null)} /> :
+      {overlay === "mode" ? <div className="start-mode-backdrop"><section className="start-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="start-mode-title">
+        <header><div><small>SELECT PLAY MODE</small><h2 id="start-mode-title">플레이 방식 선택</h2></div><button type="button" aria-label="플레이 방식 선택 닫기" onClick={() => setOverlay(null)}>×</button></header>
+        <div className="start-mode-options">
+          <button type="button" onClick={() => onStart("single")}><span>SINGLE PLAY</span><strong>싱글 플레이</strong><small>나 혼자 AI 7명과 바로 시작합니다.</small><i>→</i></button>
+          <button type="button" onClick={() => onStart("multi")}><span>MULTIPLAYER</span><strong>멀티 플레이</strong><small>방을 만들거나 다른 플레이어의 방에 참가합니다.</small><i>→</i></button>
+        </div>
+      </section></div> : overlay === "guide" ? <GameOverviewGuide onClose={() => setOverlay(null)} /> :
         <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="start-settings-title">
           <header><div><small>PREFERENCES</small><h2 id="start-settings-title">환경 설정</h2></div><button type="button" aria-label="환경 설정 닫기" onClick={() => setOverlay(null)}>×</button></header>
           <fieldset><legend>게임 연출</legend><label>카드 회전·쇼다운 애니메이션<input type="checkbox" role="switch" checked={motion.enabled} onChange={(event) => motion.setEnabled(event.target.checked)} /></label><p className="start-settings-note">기본값은 켜짐입니다. 끄면 카드 회전·화면 이동·메이드 연출의 움직임이 줄어듭니다. 공개 순서와 게임 진행 시간은 유지됩니다. 설정은 이 브라우저에 자동 저장됩니다.</p></fieldset>

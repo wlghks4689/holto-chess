@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Round } from "../game/types";
 import type { PrepPresentation } from "./prepPresentation";
 
@@ -23,12 +23,18 @@ export function PrepRoundHeader({ prep, phaseLabel, phaseDetail }: {
   phaseLabel: string;
   phaseDetail?: ReactNode;
 }) {
+  const [rulesOpen, setRulesOpen] = useState(false);
   return <header className="round-header prep-round-header">
     <div className="prep-heading-copy">
-      <div className="prep-status-line"><span className="round-number">ROUND {String(prep.completedRound).padStart(2, "0")} COMPLETE</span><b>PREP PHASE</b></div>
       <h1>PREPARE FOR ROUND {String(prep.targetRound).padStart(2, "0")}</h1>
-      <h2>{prep.title}</h2>
-      <ul className="prep-rule-list">{prep.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul>
+      <div className={`prep-title-row ${rulesOpen ? "is-open" : ""}`}>
+        <h2>{prep.title}</h2>
+        <button className="prep-rule-trigger" type="button" aria-label={`${prep.title} 규칙 보기`} aria-expanded={rulesOpen} onClick={() => setRulesOpen((open) => !open)}>?</button>
+        <section className="prep-rule-popover" role="dialog" aria-label={`${prep.title} 룰북`}>
+          <header><span>ROUND {String(prep.targetRound).padStart(2, "0")} RULEBOOK</span><b>{prep.title}</b></header>
+          <ul>{prep.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul>
+        </section>
+      </div>
     </div>
     <div className="phase-badge"><small>CURRENT PHASE</small><b>{phaseLabel}</b><span>PREPARING R{String(prep.targetRound).padStart(2, "0")}</span>{phaseDetail}</div>
   </header>;

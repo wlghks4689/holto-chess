@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createGame, prepareShowdown, resolvePrimary, startNextRound, leaveRoundResult, autoPickDraft, openDraft, lockRunLoadouts, pickDraftCard, setRunLoadout } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { createMatchView } from "../game/matchView";
-import { OpenDraftPanel, RunLoadoutPanel } from "./OpenDraft";
+import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import { ShowdownCinematic } from "./ShowdownCinematic";
 import type { GameAction } from "../shared/protocol";
 
@@ -22,6 +22,7 @@ function fixture(round: 2 | 4) {
 }
 export function DraftPreview() {
   const [game, setGame] = useState(() => fixture(2));
+  const draftPickIndex = game.draft?.picks.length ?? 0;
   const viewer = game.draft?.order[game.draft.picks.length]?.playerId ?? "p1";
   const view = createPlayerView({ schema:1, roomId:"PREVIEW", revision:0, status:"PLAYING", game, sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[], augmentChoices:{} },viewer);
   const send = (a: GameAction) => {
@@ -31,8 +32,8 @@ export function DraftPreview() {
   };
   if(game.phase==="ROUND_RESULT") return <ShowdownCinematic key={game.roundResults[0]!.id} match={createMatchView(game,game.roundResults[0]!)} profiles={game.players.map((p)=>({playerId:p.id,name:p.name,points:p.points,alive:!p.eliminated}))} viewerId={viewer} controls onComplete={()=>setGame(fixture(2))} />;
   return <main className="page-shell"><h1>LOCAL DRAFT PREVIEW</h1><div className="room-controls"><button onClick={()=>setGame(fixture(2))}>R2</button><button onClick={()=>setGame(fixture(4))}>R4</button><button disabled={!["DRAFT_ORDER","OPEN_DRAFT"].includes(game.phase)} onClick={()=>setGame((s)=>s.phase==="DRAFT_ORDER"?openDraft(s):autoPickDraft(s))}>다음 선택</button></div>
-    {["DRAFT_ORDER", "OPEN_DRAFT"].includes(game.phase) && <OpenDraftPanel view={view} send={send} disabled={false} seconds={20} />}
-    {game.phase==="RUN_LOADOUT" && <RunLoadoutPanel view={view} send={send} disabled={false} seconds={60} />}
+    {["DRAFT_ORDER", "OPEN_DRAFT"].includes(game.phase) && <TimedOpenDraftPanel key={`${game.phase}:${draftPickIndex}`} view={view} send={send} disabled={false} seconds={null} durationSeconds={game.phase === "DRAFT_ORDER" ? 5 : 20} />}
+    {game.phase==="RUN_LOADOUT" && <TimedRunLoadoutPanel key={game.phase} view={view} send={send} disabled={false} seconds={null} durationSeconds={60} />}
     {game.phase==="SHOP" && <p>상점 준비 완료 · 보유 {view.me.ownedCards.length}장 · 진열 {view.me.shopCards.length}장</p>}
   </main>;
 }

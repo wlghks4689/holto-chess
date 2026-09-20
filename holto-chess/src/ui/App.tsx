@@ -26,7 +26,7 @@ import { preloadFinalArena } from "./finalShowdownPresentation";
 import { preloadShowdownStage } from "./showdownStage";
 import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
-import { OpenDraftPanel, RunLoadoutPanel } from "./OpenDraft";
+import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import type { GameAction } from "../shared/protocol";
 
 const displayPoints = (value: number) => Number(value.toFixed(2));
@@ -47,12 +47,12 @@ const PHASE_LABEL: Record<Phase, string> = {
 
 function PoolMeter({ state }: { state: PorenaGameState }) {
   const counts = state.ownershipCardPool.reduce((acc, entry) => ({ ...acc, [entry.state]: acc[entry.state] + 1 }), { AVAILABLE: 0, RESERVED_IN_SHOP: 0, OWNED: 0 });
+  const assignedCount = counts.RESERVED_IN_SHOP + counts.OWNED;
   const valid = (() => { try { return assertPoolIntegrity(state); } catch { return false; } })();
   return <div className="pool-meter">
     <span className={`integrity ${valid ? "ok" : "bad"}`}>{valid ? "✓ 52 UNIQUE" : "! POOL ERROR"}</span>
     <span><i className="dot available" /> 남은 카드 {counts.AVAILABLE}</span>
-    <span><i className="dot reserved" /> 예약 {counts.RESERVED_IN_SHOP}</span>
-    <span><i className="dot owned" /> 플레이어 소유 {counts.OWNED}</span>
+    <span title="보유 카드와 각 플레이어의 상점에 배정된 카드를 포함합니다"><i className="dot owned" /> 플레이어 소유 {assignedCount}</span>
   </div>;
 }
 
@@ -201,8 +201,8 @@ export function App() {
       {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
       <PoolMeter state={state} />
       <PlayerStrip state={state} />
-      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <OpenDraftPanel view={draftView} send={draftAction} disabled={false} seconds={null} />}
-      {state.phase === "RUN_LOADOUT" && <RunLoadoutPanel view={draftView} send={draftAction} disabled={false} seconds={null} />}
+      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 5 : 20} />}
+      {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={60} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
