@@ -85,7 +85,9 @@
 .start-settings select { background:#152e3a; color:#b6c9d3; padding:6px; }
 .start-settings .start-settings-note { font-size:11px; }
 @media(max-width:600px) {
-  .start-screen { background-position:52% center; }
+  /* The table gems sit at the artwork's horizontal midpoint. Keep the
+     covered artwork on the same 50% axis as the title and menu. */
+  .start-screen { background-position:center center; }
   .start-screen::before { background:linear-gradient(180deg,#020b145c,transparent 31%,transparent 58%,#020b14c9),radial-gradient(ellipse 72% 32% at 50% 34%,#020b149e,transparent); }
   .start-content { padding:20px 18px; }
   .start-main { width:calc(100% - 36px); }
