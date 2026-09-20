@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>PORENA</title>
+  <path d="M32 3.5c2.2 0 4.2.8 5.8 2.4l20.3 20.3a8.2 8.2 0 0 1 0 11.6L37.8 58.1a8.2 8.2 0 0 1-11.6 0L5.9 37.8a8.2 8.2 0 0 1 0-11.6L26.2 5.9A8.2 8.2 0 0 1 32 3.5Z" fill="#071824" stroke="#2f7786" stroke-width="2"/>
+  <path d="m21.5 38.5 13-13h7.2a4.8 4.8 0 1 1 0 9.6h-7.1" fill="none" stroke="#75eee8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m27.2 32.8 4 4" fill="none" stroke="#75eee8" stroke-width="4.6" stroke-linecap="round"/>
+</svg>
