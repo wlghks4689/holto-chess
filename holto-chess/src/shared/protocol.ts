@@ -48,6 +48,22 @@ export type PresentationEntry = { matchId: string; offsetMs: number; durationMs:
 export type PresentationView = { version: number; startsAt: number; endsAt: number; matches: PresentationEntry[] };
 export type RoundSummaryRow ={ playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number; eliminated: boolean };
 export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round };
+export type PrivatePlayerView = {
+  playerId: string; stackBB: number; points: number; alive: boolean;
+  ownedCards: Card[]; shopCards: { card: Card; price: number }[];
+  selectedCardIds: string[]; augments: Augment[]; augmentChoices: Augment[];
+  loadoutSlots?: (string | null)[];
+  handLimit: number; shopSize: number; shopLocked: boolean; lockedShopCardIds: string[]; purchases: number;
+  purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
+  rerollsUsed: number; rerollLimit: number;
+};
+export type SpectatorPlayerView = {
+  playerId: string;
+  me: PrivatePlayerView;
+  matches: MatchView[];
+  roundHistory: MatchView[];
+  presentation?: PresentationView;
+};
 export type PlayerView = {
   survival?: { playerIds: string[]; eliminateCount: number };
   draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]> };
@@ -62,15 +78,9 @@ export type PlayerView = {
   barrierEndsAt?: number;
   /** Seats this phase is still waiting on. */
   waitingOn: string[];
-  me: {
-    playerId: string; stackBB: number; points: number; alive: boolean;
-    ownedCards: Card[]; shopCards: { card: Card; price: number }[];
-    selectedCardIds: string[]; augments: Augment[]; augmentChoices: Augment[];
-    loadoutSlots?: (string | null)[];
-    handLimit: number; shopSize: number; shopLocked: boolean; lockedShopCardIds: string[]; purchases: number;
-    purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
-    rerollsUsed: number; rerollLimit: number;
-  };
+  me: PrivatePlayerView;
+  /** Read-only private perspectives, sent only to an eliminated seat. */
+  spectatorViews?: SpectatorPlayerView[];
   players: PublicPlayer[];
   matches: MatchView[];
   roundSummary?: RoundSummaryRow[];

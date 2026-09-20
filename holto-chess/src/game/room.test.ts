@@ -53,6 +53,20 @@ describe("server room authority and projections", () => {
     view.me.ownedCards[0].rank = 2;
     expect(r).not.toHaveProperty("me");
   });
+  it("exposes read-only live player perspectives only after the viewer is eliminated", () => {
+    const r = start();
+    expect(createPlayerView(r, "p1").spectatorViews).toBeUndefined();
+
+    r.game.players[0].eliminated = true;
+    const view = createPlayerView(r, "p1");
+    expect(view.spectatorViews?.map((candidate) => candidate.playerId)).toEqual(
+      r.game.players.filter((player) => !player.eliminated).map((player) => player.id),
+    );
+    const playerTwo = view.spectatorViews?.find((candidate) => candidate.playerId === "p2");
+    expect(playerTwo?.me.ownedCards.map((card) => card.id)).toEqual(r.game.players[1].ownedCardIds);
+    expect(playerTwo?.me.shopCards.map(({ card }) => card.id)).toEqual(r.game.players[1].shopCardIds);
+    expect(view.me.playerId).toBe("p1");
+  });
   it.each([2, 3, 8])("completes all five rounds with %i humans using shared rules", (count) => {
     let r = start(count);
     let sawR2 = false; let sawR5 = false;

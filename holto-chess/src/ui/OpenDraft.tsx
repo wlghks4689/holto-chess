@@ -12,7 +12,7 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
   return <section className="open-draft panel" aria-label={`R${view.round} 공개 드래프트`}>
-    <header><small className="draft-kicker">ROUND {view.round} · {ordering ? "DRAFT ORDER" : "OPEN DRAFT"}</small><div className="draft-clock" role="timer"><span>선택 제한</span><strong>{seconds ?? (ordering ? 5 : 20)}</strong><span>초</span></div><h2>{ordering ? "낮은 승점부터 선택합니다" : "공유 아레나에서 한 장을 선택하세요"}</h2></header>
+    <header><small className="draft-kicker">ROUND {view.round} · {ordering ? "DRAFT ORDER" : "OPEN DRAFT"}</small><h2>{ordering ? "낮은 승점부터 선택합니다" : "공유 아레나에서 한 장을 선택하세요"}</h2><div className="draft-clock" role="timer" aria-label={`선택 제한 남은 시간 ${seconds ?? (ordering ? 5 : 20)}초`}><span>선택 제한</span><strong>{seconds ?? (ordering ? 5 : 20)}</strong><span>초</span></div></header>
     <p className="hint">승점 낮은 순 → 동점이면 BB 높은 순 → 완전 동률은 서버 추첨 · 선택 제한 20초</p>
     {view.round === 4 && <div><small>내 보유 카드 · 상대에게 비공개</small><div className="card-row">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
