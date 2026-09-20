@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { GameAction, MatchView, PlayerView, ServerMessage, SessionCredential } from "../shared/protocol";
 import { CinematicGate } from "./ShowdownCinematic";
+import { invitedRoom } from "./roomInvite";
 import { ShopCard } from "./ShopCard";
 import { CardView } from "./CardView";
 import { ShowdownHand } from "./ShowdownHand";
@@ -75,7 +76,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   useEffect(() => { if (view?.round === 5) preloadFinalArena(); else preloadShowdownStage(view?.round); }, [view?.round]);
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState("");
-  const [roomCode, setRoomCode] = useState("");
+  const [roomCode, setRoomCode] = useState(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ?? "");
   const [nickname, setNickname] = useState(() => localStorage.getItem("porena-nickname") ?? "플레이어");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<GameAction["type"] | false>(false);
@@ -174,6 +175,15 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     localStorage.setItem("porena-nickname", nickname.trim());
     setBusy(true); setError("");
     try {
+      if (!create) {
+        const previous = storedSessions().find((session) => session.roomId === roomCode.trim().toUpperCase());
+        if (previous) {
+          const check = await fetch(`/api/rooms/${previous.roomId}/session`, { method: "POST", headers: { "X-Porena-Session": previous.token } });
+          if (check.ok) { resume(previous); return; }
+          if ([401, 404, 410].includes(check.status)) forgetSession(previous.roomId);
+          else throw new Error("기존 좌석을 확인할 수 없습니다. 잠시 후 다시 시도하세요.");
+        }
+      }
       const response = await fetch(create ? "/api/rooms" : `/api/rooms/${roomCode.trim().toUpperCase()}/join`, { method: "POST" });
       if (!response.ok) throw new Error(response.status === 429 ? "요청이 많습니다. 잠시 후 다시 시도하세요." : response.status === 404 ? "방을 찾을 수 없습니다." : "방이 시작되었거나 입장할 수 없습니다.");
       const session = await response.json() as SessionCredential;

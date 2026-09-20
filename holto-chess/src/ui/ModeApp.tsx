@@ -1,12 +1,13 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { OnlineApp } from "./OnlineApp";
+import { invitedRoom } from "./roomInvite";
 import { StartScreen, type StartMode } from "./StartScreen";
 const loadLocalApp = () => import("./App");
 const FxPreview = lazy(() => import("./FxPreview").then((module) => ({ default: module.FxPreview })));
 const LocalApp = lazy(() => loadLocalApp().then((module) => ({ default: module.App })));
 const DraftPreview = lazy(() => import("./DraftPreview").then((m) => ({ default: m.DraftPreview })));
 export function ModeApp() {
-  const [mode, setMode] = useState<StartMode | null>(null);
+  const [mode, setMode] = useState<StartMode | null>(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ? "multi" : null);
   useEffect(() => {
     if (mode === "single") void loadLocalApp();
   }, [mode]);

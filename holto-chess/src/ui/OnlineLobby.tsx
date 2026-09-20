@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { PlayerView, SessionCredential } from "../shared/protocol";
 import { MatchHistoryPage } from "./MatchHistory";
 import { OnlineEntryFrame } from "./OnlineEntryFrame";
+import { invitedRoom, roomInviteUrl } from "./roomInvite";
 export { OnlineEntryFrame } from "./OnlineEntryFrame";
 
 export function MultiplayerLobby({ nickname, onNickname, roomCode, onRoomCode, busy, error, sessions, onJoin, onResume, onHome }: {
@@ -9,7 +10,7 @@ export function MultiplayerLobby({ nickname, onNickname, roomCode, onRoomCode, b
   busy: boolean; error: string; sessions: SessionCredential[]; onJoin: (create: boolean) => void;
   onResume: (session: SessionCredential) => void; onHome: () => void;
 }) {
-  const [panel, setPanel] = useState<"create" | "join" | "history" | null>(null);
+  const [panel, setPanel] = useState<"create" | "join" | "history" | null>(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ? "join" : null);
   if (panel === "history") return <MatchHistoryPage onBack={() => setPanel(null)} />;
   return <OnlineEntryFrame title="멀티플레이 로비" eyebrow="MULTIPLAYER">
     <p className="entry-description">다른 플레이어와 아레나에 참가하세요.</p>
@@ -41,9 +42,14 @@ export function RoomWaitingRoom({ view, status, connected, pending, error, onRea
     try { await navigator.clipboard.writeText(view.roomId); setCopyFeedback("방 코드가 복사되었습니다."); }
     catch { setCopyFeedback("복사할 수 없습니다. 위 방 코드를 직접 선택해 복사해 주세요."); }
   };
+  const inviteUrl = roomInviteUrl(typeof location === "undefined" ? "https://porena.kr" : location.origin, view.roomId);
+  const copyInvite = async () => {
+    try { await navigator.clipboard.writeText(inviteUrl); setCopyFeedback("초대 링크가 복사되었습니다."); }
+    catch { setCopyFeedback("아래 초대 링크를 직접 선택해 복사해 주세요."); }
+  };
   return <OnlineEntryFrame title="방 대기실" eyebrow="PRIVATE ARENA">
     <div className="waiting-connection" role="status">{status}</div>
-    <section className="waiting-code" aria-label="초대 코드"><span>ROOM CODE</span><strong data-testid="room-id">{view.roomId}</strong><button className="secondary" onClick={() => void copy()}>코드 복사</button><p role="status">{copyFeedback || "함께할 플레이어에게 방 코드를 알려주세요."}</p></section>
+    <section className="waiting-code" aria-label="초대 코드"><span>ROOM CODE</span><strong data-testid="room-id">{view.roomId}</strong><button className="secondary" onClick={() => void copy()}>코드 복사</button><button className="secondary" onClick={() => void copyInvite()}>초대 링크 복사</button><input className="invite-link" aria-label="초대 링크" readOnly value={inviteUrl} onFocus={(event) => event.target.select()} /><p role="status">{copyFeedback || "초대 링크를 보내면 방 코드 입력 없이 참가할 수 있습니다."}</p></section>
     <section className="waiting-players" aria-label="참가자"><h2>PLAYERS <span>{humans.length} / {view.capacity}</span></h2><ul>{humans.map((player) => <li key={player.playerId}><span className={player.connected ? "waiting-dot connected" : "waiting-dot"} aria-label={player.connected ? "접속 중" : "연결 끊김"} /><b>{player.name}{player.playerId === view.me.playerId && <small>나</small>}</b><span className={player.ready ? "ready" : ""}>{player.ready ? "READY" : "WAITING"}</span></li>)}</ul></section>
     {error && <p className="room-error" role="alert">{error}</p>}
     <div className="waiting-actions"><button className="primary" disabled={!connected || pending || ready} onClick={onReady}>{ready ? "✓ 준비 완료" : "READY · 준비 완료"}</button><p>{ready ? "다른 사용자의 준비를 기다리고 있습니다." : "최소 2명이 참가하고 모든 참가자가 준비하면 자동으로 시작합니다."}</p><small>게임 시작 시 빈 좌석은 AI 플레이어가 채웁니다.</small></div>

@@ -1,5 +1,7 @@
 .mode-switch{position:fixed;right:16px;bottom:14px;z-index:90;display:flex;gap:6px;justify-content:center;padding:5px;border:1px solid rgba(103,203,220,.18);border-radius:8px;background:rgba(3,10,20,.72);backdrop-filter:blur(12px);box-shadow:0 12px 30px rgba(0,0,0,.22)}
 .mode-switch .secondary{padding:7px 9px;font:500 9px DM Mono;letter-spacing:.04em}
+.waiting-code>.secondary{margin:4px}
+.invite-link{display:block;width:100%;min-width:0;margin-top:12px;padding:10px;border:1px solid #305466;border-radius:6px;background:#071522;color:#bde6ed;font:12px/1.5 monospace}
 .local-loading-screen{min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 30%,#153c50 0,#07111f 58%)}
 .local-loading-screen div{display:grid;gap:12px;text-align:center;color:#bcd0c5}
 .local-loading-screen span{color:var(--mint);font:500 10px DM Mono;letter-spacing:.18em}
