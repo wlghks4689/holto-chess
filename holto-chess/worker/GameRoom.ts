@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, type RoomSnapshot } from "../src/game/room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, resumeSession, type RoomSnapshot } from "../src/game/room";
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 
@@ -158,6 +158,9 @@ export class GameRoom extends DurableObject<Env> {
             next.revision++;
             await this.commit(next);
           }
+          // Coming back from a leave (or a dropped connection) takes the seat back from the bot.
+          const resumed = resumeSession(this.room, session.playerId, Date.now());
+          if (resumed) { await this.commit(resumed); await this.rescheduleAlarm(); }
           for (const old of this.ctx.getWebSockets()) {
             if (old !== ws && (old.deserializeAttachment() as Attachment | null)?.playerId === session.playerId) old.close(4001, "Session connected elsewhere");
           }

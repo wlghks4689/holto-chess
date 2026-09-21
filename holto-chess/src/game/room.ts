@@ -157,6 +157,20 @@ function startRematch(room: RoomSnapshot): void {
   room.presentation = undefined;
 }
 
+/**
+ * A seat that left keeps playing through the bot. Reconnecting with the same session hands control
+ * back from the round in progress, and whatever the bot did while they were away stands. Returns
+ * null when the seat never left, so callers can skip the commit.
+ */
+export function resumeSession(source: RoomSnapshot, playerId: string, now = Date.now()): RoomSnapshot | null {
+  if (!source.sessions.find((session) => session.playerId === playerId)?.departed) return null;
+  const room = structuredClone(source);
+  room.sessions.find((session) => session.playerId === playerId)!.departed = false;
+  refreshBarrier(room, now);
+  room.revision++;
+  return room;
+}
+
 export function applyRoomAction(source: RoomSnapshot, playerId: string, action: GameAction, expectedTurn: string, now = Date.now()): RoomSnapshot {
   const current = source.sessions.find((s) => s.playerId === playerId);
   if (!current) throw new Error("세션이 없습니다.");

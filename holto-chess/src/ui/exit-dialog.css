@@ -1,0 +1,14 @@
+.exit-dialog-backdrop{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;background:rgba(2,8,16,.72);backdrop-filter:blur(6px)}
+.exit-dialog{width:min(100%,430px);display:grid;gap:10px;padding:26px 24px 22px;text-align:left}
+.exit-dialog h2{margin:0;font-size:22px;letter-spacing:.01em}
+.exit-dialog p{margin:0;color:#b6cdd6;font-size:13px;line-height:1.7}
+.exit-dialog .exit-dialog-hint{color:#8aa7b2;font-size:12px}
+.exit-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.exit-dialog-actions button{min-height:46px}
+.nav-exit{padding:8px 14px;font-size:11px;letter-spacing:.1em;white-space:nowrap}
+@media(max-width:620px){
+  .exit-dialog{padding:20px 16px 18px}
+  .exit-dialog h2{font-size:19px}
+  .exit-dialog-actions{grid-template-columns:1fr}
+  .nav-exit{padding:7px 10px;font-size:10px}
+}

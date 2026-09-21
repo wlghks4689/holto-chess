@@ -22,6 +22,7 @@ import { createRoundSummary, roundMatches } from "../game/roundSummary";
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 import { preloadFinalArena } from "./finalShowdownPresentation";
+import { ExitGameDialog } from "./ExitGameDialog";
 import { preloadShowdownStage } from "./showdownStage";
 import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
@@ -152,6 +153,7 @@ export function App({ onHome }: { onHome: () => void }) {
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
+  const [exiting, setExiting] = useState(false);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
   const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
@@ -169,7 +171,8 @@ export function App({ onHome }: { onHome: () => void }) {
   const reset = () => { setGameVersion((value) => value + 1); setState(createGame()); };
   return <CinematicGate key={gameVersion} controls matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
-    <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
+    <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>나가기</button></nav>
+      {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className="page-shell">
       {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.phase === "GAME_RESULT" ? "TOURNAMENT COMPLETE" : state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
       <PoolMeter state={state} />
