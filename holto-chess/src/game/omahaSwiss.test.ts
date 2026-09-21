@@ -28,6 +28,44 @@ function prepared(seed = 100) {
 }
 
 describe("R3 Omaha Swiss", () => {
+  it("uses only two holes preflop and exact 2+3 after the flop in public snapshots", () => {
+    const before = entry();
+    before.round = 3; before.phase = "SHOWDOWN_PRIMARY";
+    const desired = ["5h", "Ah", "5s", "5d"];
+    // Swap ownership to reproduce the reported hand without corrupting the pool.
+    const me = before.players[0];
+    for (let index = 0; index < desired.length; index++) {
+      const wanted = desired[index];
+      if (me.ownedCardIds.includes(wanted)) continue;
+      const replaced = me.ownedCardIds.find((id) => !desired.includes(id))!;
+      const owner = before.players.find((player) => player.ownedCardIds.includes(wanted));
+      const targetEntry = before.ownershipCardPool.find((entry) => entry.card.id === wanted)!;
+      const oldEntry = before.ownershipCardPool.find((entry) => entry.card.id === replaced)!;
+      if (owner) {
+        owner.ownedCardIds[owner.ownedCardIds.indexOf(wanted)] = replaced;
+        oldEntry.ownerPlayerId = owner.id;
+      } else {
+        oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId;
+      }
+      me.ownedCardIds[me.ownedCardIds.indexOf(replaced)] = wanted;
+      targetEntry.state = "OWNED"; targetEntry.ownerPlayerId = me.id;
+    }
+    expect(assertPoolIntegrity(before)).toBe(true);
+    const after = resolvePrimary(before);
+    for (const match of after.roundResults.filter((m) => m.playerIds.includes(me.id))) {
+      const snapshots = createMatchView(after, match).streetSnapshots![0];
+      const preflop = snapshots[0].results.find((result) => result.playerId === me.id)!;
+      expect(preflop).toMatchObject({ category: "PAIR", kickers: [5] });
+      expect(preflop.usedCardIds).toHaveLength(2);
+      for (const snapshot of snapshots.slice(1)) {
+        const result = snapshot.results.find((entry) => entry.playerId === me.id)!;
+        expect(result.usedCardIds.filter((id) => desired.includes(id))).toHaveLength(2);
+        expect(result.usedCardIds.filter((id) => !desired.includes(id))).toHaveLength(3);
+        const visible = match.boards[0].slice(0, snapshot.street === "FLOP" ? 3 : snapshot.street === "TURN" ? 4 : 5);
+        expect(result.usedCardIds.every((id) => desired.includes(id) || visible.some((card) => card.id === id))).toBe(true);
+      }
+    }
+  });
   it("restores three authoritative matches on reconnect without exposing other tables or server seeds", () => {
     let room = addSession(createRoom("ABCDEF", 100), "one").room;
     room = addSession(room, "two").room;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { assertPoolIntegrity } from "../game/cardPool";
+import { assertPoolIntegrity, ownershipCounts } from "../game/cardPool";
 import { BALANCE, purchaseLimitFor, rerollLimitFor } from "../game/config";
 import {
   beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, finalStandings, leaveRoundResult,
@@ -29,9 +29,8 @@ import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import type { GameAction } from "../shared/protocol";
 import { useLocalCountdown } from "./useLocalCountdown";
 import { playerEventFeed } from "./playerEventFeed";
-import { compactHandName } from "./handLabel";
-
-const displayPoints = (value: number) => Number(value.toFixed(2));
+import { FinalStandingRow } from "./FinalStandingRow";
+const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
   1: { title: "TWO HAND", rule: "홀 2 + 매치별 보드 5 · Hold’em", cap: 2 },
@@ -48,13 +47,12 @@ const PHASE_LABEL: Record<Phase, string> = {
 };
 
 function PoolMeter({ state }: { state: PorenaGameState }) {
-  const counts = state.ownershipCardPool.reduce((acc, entry) => ({ ...acc, [entry.state]: acc[entry.state] + 1 }), { AVAILABLE: 0, RESERVED_IN_SHOP: 0, OWNED: 0 });
-  const assignedCount = counts.RESERVED_IN_SHOP + counts.OWNED;
+  const counts = ownershipCounts(state);
   const valid = (() => { try { return assertPoolIntegrity(state); } catch { return false; } })();
   return <div className="pool-meter">
     <span className={`integrity ${valid ? "ok" : "bad"}`}>{valid ? "✓ 52 UNIQUE" : "! POOL ERROR"}</span>
-    <span><i className="dot available" /> 남은 카드 {counts.AVAILABLE}</span>
-    <span title="보유 카드와 각 플레이어의 상점에 배정된 카드를 포함합니다"><i className="dot owned" /> 플레이어 소유 {assignedCount}</span>
+    <span title="미보유 카드 전체: 상점 예약 카드 포함"><i className="dot available" /> 남은 카드 {counts.remaining}</span>
+    <span title="각 플레이어가 현재 보유 중인 카드만 집계합니다"><i className="dot owned" /> 플레이어 보유 {counts.owned}</span>
   </div>;
 }
 
@@ -66,13 +64,13 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
     purchaseLimit, handLimit: cap });
   return <section className="shop-layout">
     <div className="inventory panel">
-      <header><div><span className="eyebrow">PRIVATE INVENTORY</span><h2>내 카드 <em>{me.ownedCardIds.length} / {cap}</em></h2></div><div className="stat-block"><small>사용 BB</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
+      <header><div><span className="eyebrow">PRIVATE INVENTORY</span><h2>내 카드 <em>{me.ownedCardIds.length} / {cap}</em></h2></div><div className="stat-block"><small>현재 스택</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
       <div className="card-row owned-row">{me.ownedCardIds.map((id) => <CardView key={id} card={getCard(state, id)} onClick={canSell ? () => act((s) => sellCard(s, me.id, id)) : undefined} footer={canSell ? "판매" : "판매 불가"} />)}
         {Array.from({ length: Math.max(0, cap - me.ownedCardIds.length) }, (_, i) => <div className="empty-card" key={i}><span>+</span><small>EMPTY</small></div>)}</div>
       <p className="hint">{canSell ? `카드를 누르면 기준가의 ${me.augments.some((a) => a.id === "sell_bonus") ? "80" : "60"}%에 판매합니다. 판매 후에도 라운드 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p>
     </div>
     <div className="market panel">
-      <header><div><span className="eyebrow">TWO CARD DEAL</span><h2>카드 마켓 <em>{me.shopCardIds.length} / {BALANCE.baseShopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
+      <header><div><h2>카드 마켓 <em>{me.shopCardIds.length} / {BALANCE.baseShopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
       <div className="card-row market-row">{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
       <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button><span className="hint">{allShopCardsLocked ? "모든 카드가 잠겨 리롤할 수 없습니다." : "카드별 잠금 3BB · 해제 무료"}</span></div>
@@ -118,7 +116,7 @@ function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Po
 
 function FinalPanel({ state }: { state: PorenaGameState }) {
   const standings = finalStandings(state);
-  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row, index) => <div className={`standing podium-${row.placement} ${index === 0 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`} key={row.playerId}><strong>{row.placement}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b>{row.eliminatedRound ? <small>R{row.eliminatedRound} 탈락</small> : null}</span><span>{displayPoints(row.points)}<small>승점</small></span><span>{row.handScore}<small>{compactHandName(row.hand?.displayName ?? "") || "족보 없음"}</small></span><span>{row.stackScore}<small>{displayPoints(row.stackBB)}BB</small></span><em>{displayPoints(row.total)} P</em><i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}<small>RANK</small></i></div>)}</div></section>;
+  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={state.players.find((p) => p.id === row.playerId)?.name ?? row.playerId} />)}</div></section>;
 }
 
 function EventLog({ state }: { state: PorenaGameState }) {
@@ -143,7 +141,8 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
 
 export function App({ onHome }: { onHome: () => void }) {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
-  const resultSecondsLeft = useLocalCountdown(state.phase === "ROUND_RESULT" ? 30 : 0);
+  const localResultSecondsLeft = useLocalCountdown(state.phase === "ROUND_RESULT" && !pauseLocalResultTimer ? 30 : 0);
+  const resultSecondsLeft = pauseLocalResultTimer ? null : localResultSecondsLeft;
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
   useEffect(() => {
@@ -154,7 +153,7 @@ export function App({ onHome }: { onHome: () => void }) {
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId]);
   useEffect(() => {
-    if (state.phase !== "ROUND_RESULT") return;
+    if (state.phase !== "ROUND_RESULT" || pauseLocalResultTimer) return;
     const timer = setTimeout(() => setState((current) => current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current), 30_000);
     return () => clearTimeout(timer);
   }, [state.phase, state.round]);

@@ -22,7 +22,7 @@ export function MultiplayerLobby({ nickname, onNickname, roomCode, onRoomCode, b
     {panel && <form id="room-entry-form" className="entry-form" onSubmit={(event) => { event.preventDefault(); if (!busy) onJoin(panel === "create"); }}>
       <h2>{panel === "create" ? "새 아레나 만들기" : "방 참가하기"}</h2>
       {panel === "join" && <label>방 코드<input autoFocus aria-label="방 코드" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="ABCDEF" maxLength={6} pattern="[A-Z2-9]{6}" required value={roomCode} disabled={busy} onChange={(e) => onRoomCode(e.target.value.toUpperCase())} /><small>초대받은 6자리 코드를 입력하세요.</small></label>}
-      <label>닉네임<input autoFocus={panel === "create"} aria-label="닉네임" autoComplete="nickname" maxLength={16} required placeholder="플레이어" value={nickname} disabled={busy} onChange={(e) => onNickname(e.target.value)} /></label>
+      <label>닉네임<input autoFocus={panel === "create"} aria-label="닉네임" autoComplete="nickname" maxLength={8} required placeholder="플레이어" value={nickname} disabled={busy} onChange={(e) => onNickname(e.target.value)} /></label>
       <div className="entry-form-actions"><button className="primary" type="submit" disabled={busy || (panel === "join" && !/^[A-Z2-9]{6}$/.test(roomCode.trim()))}>{busy ? "입장 중…" : panel === "create" ? "방 만들기" : "참가하기"}</button><button className="secondary" type="button" disabled={busy} onClick={() => setPanel(null)}>취소</button></div>
     </form>}
     {error && <p className="room-error" role="alert">{error}</p>}

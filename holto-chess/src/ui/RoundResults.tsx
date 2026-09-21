@@ -4,7 +4,7 @@ import type { RoundSummaryRow } from "../shared/protocol";
 import { countdownUrgency, formatCountdown } from "./countdown";
 
 function HandCards({ row }: { row: RoundSummaryRow }) {
-  return <div className="summary-hand">{row.cards.map((card) => <span key={card.id} className={card.suit === "h" || card.suit === "d" ? "red" : ""}>{cardLabel(card)}</span>)}</div>;
+  return <div className="summary-hand" data-count={row.cards.length}>{row.cards.map((card) => { const label = cardLabel(card); return <span key={card.id} aria-label={label} className={card.suit === "h" || card.suit === "d" ? "red" : ""}><b className="summary-card-rank">{label.slice(0, -1)}</b><i className="summary-card-suit">{label.slice(-1)}</i></span>; })}</div>;
 }
 
 function SummaryTable({ rows, viewerId }: { rows: RoundSummaryRow[]; viewerId: string }) {
@@ -21,6 +21,15 @@ function RankMovement({ row }: { row: RoundSummaryRow }) {
   const delta = row.previousRank - row.rank;
   if (!delta) return <span className="rank-movement is-still">—</span>;
   return <span className={`rank-movement ${delta > 0 ? "is-up" : "is-down"}`}>{delta > 0 ? "↑" : "↓"}{Math.abs(delta)}</span>;
+}
+
+function ChipStackIcon() {
+  return <svg className="leaderboard-chip-icon" viewBox="0 0 32 32" aria-hidden="true">
+    <ellipse cx="16" cy="8" rx="10" ry="5" />
+    <path d="M6 8v5c0 2.8 4.5 5 10 5s10-2.2 10-5V8" />
+    <path d="M6 13v5c0 2.8 4.5 5 10 5s10-2.2 10-5v-5" />
+    <path d="M6 18v5c0 2.8 4.5 5 10 5s10-2.2 10-5v-5" />
+  </svg>;
 }
 
 function Leaderboard({ rows, viewerId }: { rows: RoundSummaryRow[]; viewerId: string }) {
@@ -49,15 +58,15 @@ function Leaderboard({ rows, viewerId }: { rows: RoundSummaryRow[]; viewerId: st
 
   const byId = new Map(rows.map((row) => [row.playerId, row]));
   return <div className="leaderboard-table-wrap"><table className="leaderboard-table">
-    <thead><tr><th>순위</th><th>변동</th><th>플레이어</th><th>공개 핸드</th><th>이번 라운드 전적</th><th>획득 승점</th><th>누적 승점</th></tr></thead>
+    <thead><tr><th className="leaderboard-rank-head">순위</th><th className="leaderboard-movement-head">변동</th><th className="leaderboard-player-head">플레이어</th><th className="leaderboard-hand-head">핸드</th><th className="leaderboard-record-head">이번 라운드 전적</th><th className="leaderboard-stack-head">보유 BB</th><th className="leaderboard-total-head">누적 승점</th></tr></thead>
     <tbody>{order.map((id) => byId.get(id)).filter((row): row is RoundSummaryRow => !!row).map((row) => <tr key={row.playerId} ref={(element) => { if (element) rowRefs.current.set(row.playerId, element); else rowRefs.current.delete(row.playerId); }} className={`${row.playerId === viewerId ? "is-me " : ""}${row.eliminated ? "is-eliminated" : ""}`}>
-      <td className="leaderboard-rank"><strong>{row.rank}</strong><small>위</small></td>
-      <td><RankMovement row={row} /></td>
-      <th scope="row"><span className="leaderboard-name">{row.name}</span>{row.playerId === viewerId && <small>YOU</small>}{row.eliminated && <small className="eliminated-label">탈락</small>}<em>{row.stackBB}BB</em></th>
-      <td><HandCards row={row} /></td>
+      <td className={`leaderboard-rank ${row.rank <= 3 ? `place-${row.rank}` : "place-rest"}`}><span className="placement-rank"><strong>{row.rank}</strong><small>위</small></span></td>
+      <td className="leaderboard-movement"><RankMovement row={row} /></td>
+      <th className="leaderboard-player" scope="row"><span className="leaderboard-identity"><span className="leaderboard-name">{row.name}</span>{row.playerId === viewerId && <small>YOU</small>}{row.eliminated && <small className="eliminated-label">탈락</small>}</span><span className="mobile-record">{row.wins}승 {row.draws}무 {row.losses}패</span></th>
+      <td className="leaderboard-hand"><HandCards row={row} /></td>
       <td className="summary-record">{row.wins}승 {row.draws}무 {row.losses}패</td>
-      <td className="summary-points">+{row.points}P</td>
-      <td className="summary-total">{row.totalPoints}P</td>
+      <td className="leaderboard-stack"><ChipStackIcon /><span><strong>{row.stackBB}</strong><small>BB</small></span></td>
+      <td className={`summary-total ${row.points > 0 ? "has-gain" : "no-gain"}`} aria-label={`누적 승점 ${row.totalPoints}점`}><span className="score-gain" aria-hidden="true">+{row.points}P</span><strong className="score-total">{row.totalPoints}P</strong></td>
     </tr>)}</tbody>
   </table></div>;
 }
@@ -76,7 +85,7 @@ export function RoundResults({ round, rows, viewerId, showBrackets = false, seco
       {showBrackets ? <div className="round-bracket-grid">{bracketSections.map((section) => <section className={`round-bracket is-${section.bracket}`} key={section.bracket}>
         <header><div><span>{section.bracket === "winner" ? "WINNER BRACKET" : "SURVIVAL BRACKET"}</span><h3>{section.title}</h3></div><small>{section.note}</small></header>
         <SummaryTable rows={rows.filter((row) => row.bracket === section.bracket)} viewerId={viewerId} />
-      </section>)}</div> : <><div className="leaderboard-context"><span>정렬 기준: 누적 승점 &gt; 보유 BB &gt; 좌석 순서</span><b>{round === 1 ? "R2 드래프트 순서는 이 순위를 기준으로 결정됩니다" : "다음 단계의 시드·드래프트·컷 기준에 반영됩니다"}</b></div><Leaderboard key={rows.map((row) => `${row.playerId}:${row.rank}:${row.previousRank ?? "new"}:${row.totalPoints}:${row.stackBB}`).join("|")} rows={rows} viewerId={viewerId} /></>}
+      </section>)}</div> : <Leaderboard key={rows.map((row) => `${row.playerId}:${row.rank}:${row.previousRank ?? "new"}:${row.totalPoints}:${row.stackBB}`).join("|")} rows={rows} viewerId={viewerId} />}
     </div>
     <details className="personal-history panel"><summary>내 매치 내용 · 히스토리 <span>펼쳐보기</span></summary><div className="matches">{children}</div></details>
   </section>;

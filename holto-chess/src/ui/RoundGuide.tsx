@@ -1,5 +1,6 @@
 import type { Card, Rank, Suit } from "../core/poker/cards";
 import type { Round } from "../game/types";
+import { ROUND_POINTS } from "../game/config";
 import { CardView } from "./CardView";
 
 type Guide = {
@@ -14,8 +15,8 @@ type Guide = {
 const GUIDES: Record<Round, Guide> = {
   1: { kicker: "TEXAS HOLD'EM · SWISS 3 MATCHES", title: "Classic Hold'em", summary: "홀카드 2장으로 상대와 총 3번 경기합니다. 탈락 없이 모두 다음 라운드로 진출합니다.", steps: ["기본 카드 1장과 상점 카드 1장으로 홀카드 2장 완성", "같은 핸드로 3경기 진행 · 매 경기 새로운 상대와 대결", "보드 5장과 홀카드로 가장 좋은 BEST5를 만들어 승부"], scoring: "승리 +3 Point · Split +1 Point · 패배 +0 Point", caution: "텍사스 홀덤 규칙으로 승부합니다. 첫 경기는 무작위로 매칭하고, 이후에는 비슷한 성적의 상대와 대결하는 스위스 대진 방식으로 진행합니다." },
   2: { kicker: "OPEN DRAFT · SPLIT HAND", title: "RUN IT TWICE", summary: "기존 두 장을 공개하고 8장 공개 풀에서 한 장을 구매합니다. 낮은 승점부터 선택하며, 한 사람당 20초입니다.", steps: ["공개 드래프트로 3장 완성", "60초 안에 대표 카드 + RUN별 보조 카드 배치", "대표 카드 유지 · 보조 카드만 교체하여 RUN 2"], scoring: "RUN별 승리 +4P · Split +2P · 패배 +0P · 전원 생존", caution: "두 플레이어의 보유 6장을 제외한 46장으로 중복 없는 두 보드를 만듭니다. 세 장 모두 사용하며 RUN 시작 후 변경 불가. Split은 BB 0, 연승·연패 모두 초기화합니다." },
-  3: { kicker: "OMAHA SWISS", title: "Omaha Swiss Stage", summary: "같은 홀카드 4장을 유지하며 독립 보드로 Swiss 3경기를 진행합니다.", steps: ["Match 1: R3 진입 시 누적 승점·BB 순 시드 인접 매칭", "Match 2·3: Swiss Score가 가까운 상대와 재매칭을 피해 대결", "매 경기 홀 2장 + 보드 3장으로 BEST5"], scoring: "매치 승리 +4P · Split +2P · 3승 최대 +12P", caution: "Omaha는 정확히 홀카드 2장과 보드 3장을 사용합니다." },
-  4: { kicker: "OPEN DRAFT · BEST FIVE", title: "Best Five of Ten.", summary: "16장 공개 풀에서 누적 승점이 낮은 순으로 한 장씩 구매합니다. 상대의 보유 카드는 비공개입니다.", steps: ["6명 순차 드래프트 · 홀카드 5장 완성", "개인 상점 2장 · 리롤 2회 · 구매 3회", "홀 5장 + 보드 5장 중 자유 BEST5"], scoring: "1차전 승리 +10P · Split +5P · 생존전 패자 탈락", caution: "보유 한도는 5장입니다. 상점에서 교체 구매하려면 먼저 판매하세요. 드래프트 구매는 상점 구매 횟수와 별도입니다." },
+  3: { kicker: "OMAHA SWISS", title: "Omaha Swiss Stage", summary: "홀카드 4장을 보유하고, 매 경기 그중 정확히 2장과 독립 보드 3장으로 Swiss 3경기를 진행합니다.", steps: ["Match 1: R3 진입 시 누적 승점·BB 순 시드 인접 매칭", "Match 2·3: Swiss Score가 가까운 상대와 재매칭을 피해 대결", "홀카드 4장 중 정확히 2장 + 보드 5장 중 정확히 3장으로 BEST5"], scoring: "매치 승리 +4P · Split +2P · 3승 최대 +12P", caution: "Omaha는 홀카드 4장을 보유하고 정확히 2장, 보드에서 정확히 3장을 사용합니다." },
+  4: { kicker: "OPEN DRAFT · BEST FIVE", title: "Best Five of Ten.", summary: "16장 공개 풀에서 누적 승점이 낮은 순으로 한 장씩 구매합니다. 상대의 보유 카드는 비공개입니다.", steps: ["6명 순차 드래프트 · 홀카드 5장 완성", "개인 상점 2장 · 리롤 2회 · 구매 3회", "홀 5장 + 보드 5장 중 자유 BEST5"], scoring: `1차전 승리 +${ROUND_POINTS.r4Primary.win}P · Split +${ROUND_POINTS.r4Primary.split}P · 승자조 1/2/3위 +${ROUND_POINTS.r4WinnerGroup.first}/+${ROUND_POINTS.r4WinnerGroup.second}/+${ROUND_POINTS.r4WinnerGroup.third}P · 기본 BB는 1위만 20BB (연승·연패 보너스 적용) · 패자조 BB·승점 보상 없음, 패자 탈락`, caution: "보유 한도는 5장입니다. 상점에서 교체 구매하려면 먼저 판매하세요. 드래프트 구매는 상점 구매 횟수와 별도입니다." },
   5: { kicker: "THE LAST HAND", title: "The Ultimate Five.", summary: "커뮤니티 카드 없이 보유한 7장의 카드 중 최고의 족보 5장으로 승부합니다.", steps: ["상점에서 최종 7장 구성", "각자의 7장 중 BEST5 공개", "누적 승점·족보·스택을 합산"], scoring: "R5 배치 승점 20 / 12 / 5 / 3P", caution: "7장 중 가장 강한 5장만 최종 족보로 인정됩니다. 최종 순위는 누적 승점·족보 점수·보유 BB를 합산해 결정합니다." },
 };
 
@@ -31,7 +32,7 @@ function Cards({ ids, used }: { ids: string[]; used?: string[] }) {
 
 function OmahaExample() {
   return <section className="omaha-example" aria-label="오마하 규칙 예시">
-    <div className="guide-example-side"><small>홀카드 · 반드시 2장</small><Cards ids={["2d", "2c"]} /></div>
+    <div className="guide-example-side"><small>홀카드 4장 · 정확히 2장 사용</small><Cards ids={["2d", "2c", "Ah", "9s"]} used={["2d", "2c"]} /></div>
     <b className="guide-plus">+</b>
     <div className="guide-example-side"><small>보드 · 반드시 3장</small><Cards ids={["3s", "5s", "4c", "Jh", "6c"]} used={["Jh", "6c", "5s"]} /></div>
     <div className="guide-verdict"><span>가능한 BEST5</span><strong>2 원페어</strong><em>2♦ · 2♣ · J♥ · 6♣ · 5♠</em></div>

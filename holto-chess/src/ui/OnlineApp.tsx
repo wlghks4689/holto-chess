@@ -30,6 +30,7 @@ const ACTION_TIMEOUT_MS = 10_000;
 const titles = ["", "TWO HAND", "RUN IT TWICE", "OMAHA SWISS", "BEST FIVE", "THE LAST HAND"];
 const phases: Record<string, string> = { LOBBY: "입장 대기", SHOP: "상점", SHOWDOWN_PRIMARY: "1차 쇼다운 준비", GROUP_ASSIGNMENT: "그룹 배정", SHOWDOWN_SECONDARY: "2차 쇼다운 준비", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "다음 라운드", GAME_RESULT: "최종 결과" };
 Object.assign(phases, { DRAFT_ORDER: "드래프트 순서 공개", OPEN_DRAFT: "공개 드래프트", RUN_LOADOUT: "RUN 카드 배치", SURVIVAL_READY: "탈락선 생존 타이브레이크" });
+const storedNickname = () => [...(localStorage.getItem("porena-nickname") ?? "플레이어")].slice(0, 8).join("");
 
 function OnlineMatch({ match, view }: { match: MatchView; view: PlayerView }) {
   const name = (id: string) => view.players.find((p) => p.playerId === id)?.name ?? id;
@@ -71,7 +72,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState("");
   const [roomCode, setRoomCode] = useState(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ?? "");
-  const [nickname, setNickname] = useState(() => localStorage.getItem("porena-nickname") ?? "플레이어");
+  const [nickname, setNickname] = useState(storedNickname);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<GameAction["type"] | false>(false);
   const [connectionKey, setConnectionKey] = useState(0);
@@ -120,7 +121,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
       setStatus("Connecting"); clearPending();
       const ws = new WebSocket(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/rooms/${credential.roomId}`);
       socket.current = ws;
-      ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: localStorage.getItem("porena-nickname") ?? "플레이어" }));
+      ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: storedNickname() }));
       ws.onmessage = (event) => {
         if (disposed) return;
         const message = JSON.parse(event.data) as ServerMessage;
@@ -165,7 +166,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   }, [credential, connectionKey, serverClock]);
 
   const join = async (create: boolean) => {
-    if (!/^[\p{L}\p{N} _-]{1,16}$/u.test(nickname.trim())) { setError("닉네임은 문자·숫자 1~16자로 입력하세요."); return; }
+    if (!/^[\p{L}\p{N} _-]{1,8}$/u.test(nickname.trim())) { setError("닉네임은 문자·숫자 1~8자로 입력하세요."); return; }
     localStorage.setItem("porena-nickname", nickname.trim());
     setBusy(true); setError("");
     try {
@@ -252,7 +253,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         {["DRAFT_ORDER", "OPEN_DRAFT"].includes(displayView.phase) && <OpenDraftPanel view={displayView} send={send} disabled={interactionDisabled} seconds={secondsLeft} />}
         {displayView.phase === "RUN_LOADOUT" && <RunLoadoutPanel view={displayView} send={send} disabled={interactionDisabled} seconds={secondsLeft} />}
         {displayView.phase === "SURVIVAL_READY" && displayView.survival && <section className="panel"><h2>누적 승점 탈락선 동률</h2><p>{displayView.survival.playerIds.map((id) => displayView.players.find((p) => p.playerId === id)?.name).join(" · ")}</p><strong>{displayView.survival.playerIds.length - displayView.survival.eliminateCount}명 생존 · {displayView.survival.eliminateCount}명 탈락</strong><p>보유 4장 중 정확히 2장 + 새 보드 3장으로 판정합니다. 승점·BB 보상은 없습니다. 다른 플레이어는 관전합니다.</p></section>}
-        {displayView.phase === "SHOP" && displayView.me.alive && <><section className="shop-layout"><div className="inventory panel"><header><h2>{isSpectatingPlayer ? `${observedName} 카드` : "내 카드"} <em>{displayView.me.ownedCards.length} / {displayView.me.handLimit}</em></h2><div className="stat-block"><strong>{displayView.me.stackBB}<i>BB</i></strong></div></header><div className="card-row owned-row">{displayView.me.ownedCards.map((card) => <CardView key={card.id} card={card} onClick={!interactionDisabled && !displayView.me.committed && canSell ? () => send({ type: "SELL_CARD", cardId: card.id }) : undefined} footer={isSpectatingPlayer ? undefined : canSell ? "판매" : "판매 불가"} />)}<EmptyHandSlots count={displayView.me.ownedCards.length} limit={displayView.me.handLimit} /></div><p className="hint">{isSpectatingPlayer ? "관전 화면에서는 카드를 조작할 수 없습니다." : canSell ? `판매 환급 ${displayView.me.sellPercent}% · 판매 후 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p></div><div className="market panel"><header><div><span className="eyebrow">TWO CARD DEAL</span><h2>카드 마켓</h2></div><span className="purchase-count">구매 {displayView.me.purchases} / {displayView.me.purchaseLimit}</span></header><div className="card-row market-row">{displayView.me.shopCards.map(({ card, price }, index) => <ShopCard key={card.id} dealIndex={index} card={card} price={price} locked={displayView.me.lockedShopCardIds?.includes(card.id) ?? false} disabled={interactionDisabled || displayView.me.committed} onBuy={() => send({ type: "BUY_CARD", cardId: card.id })} onLock={() => send({ type: "LOCK_SHOP", cardId: card.id })} />)}</div><div className="market-actions"><button className="secondary" disabled={interactionDisabled || displayView.me.committed || allShopCardsLocked || displayView.me.rerollsUsed >= displayView.me.rerollLimit || displayView.me.stackBB < displayView.me.rerollCost} onClick={() => send({ type: "REROLL" })}>{pending === "REROLL" ? "REFRESHING…" : `리롤 ${displayView.me.rerollCost}BB`} · {displayView.me.rerollsUsed} / {displayView.me.rerollLimit}</button><span className="hint">{allShopCardsLocked ? "모든 카드가 잠겨 리롤할 수 없습니다." : "카드별 잠금 3BB · 해제 무료"}</span></div></div></section>
+        {displayView.phase === "SHOP" && displayView.me.alive && <><section className="shop-layout"><div className="inventory panel"><header><h2>{isSpectatingPlayer ? `${observedName} 카드` : "내 카드"} <em>{displayView.me.ownedCards.length} / {displayView.me.handLimit}</em></h2><div className="stat-block"><small>현재 스택</small><strong>{displayView.me.stackBB}<i>BB</i></strong></div></header><div className="card-row owned-row">{displayView.me.ownedCards.map((card) => <CardView key={card.id} card={card} onClick={!interactionDisabled && !displayView.me.committed && canSell ? () => send({ type: "SELL_CARD", cardId: card.id }) : undefined} footer={isSpectatingPlayer ? undefined : canSell ? "판매" : "판매 불가"} />)}<EmptyHandSlots count={displayView.me.ownedCards.length} limit={displayView.me.handLimit} /></div><p className="hint">{isSpectatingPlayer ? "관전 화면에서는 카드를 조작할 수 없습니다." : canSell ? `판매 환급 ${displayView.me.sellPercent}% · 판매 후 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p></div><div className="market panel"><header><div><h2>카드 마켓</h2></div><span className="purchase-count">구매 {displayView.me.purchases} / {displayView.me.purchaseLimit}</span></header><div className="card-row market-row">{displayView.me.shopCards.map(({ card, price }, index) => <ShopCard key={card.id} dealIndex={index} card={card} price={price} locked={displayView.me.lockedShopCardIds?.includes(card.id) ?? false} disabled={interactionDisabled || displayView.me.committed} onBuy={() => send({ type: "BUY_CARD", cardId: card.id })} onLock={() => send({ type: "LOCK_SHOP", cardId: card.id })} />)}</div><div className="market-actions"><button className="secondary" disabled={interactionDisabled || displayView.me.committed || allShopCardsLocked || displayView.me.rerollsUsed >= displayView.me.rerollLimit || displayView.me.stackBB < displayView.me.rerollCost} onClick={() => send({ type: "REROLL" })}>{pending === "REROLL" ? "REFRESHING…" : `리롤 ${displayView.me.rerollCost}BB`} · {displayView.me.rerollsUsed} / {displayView.me.rerollLimit}</button><span className="hint">{allShopCardsLocked ? "모든 카드가 잠겨 리롤할 수 없습니다." : "카드별 잠금 3BB · 해제 무료"}</span></div></div></section>
           {(displayView.round === 2) && <Selection key={`${displayView.round}:${displayView.me.playerId}:${displayView.me.ownedCards.map((c) => c.id).join()}`} view={displayView} send={send} disabled={interactionDisabled || displayView.me.committed} />}
           <div className="action-bar shop-ready-bar">
             <div className="shop-ready-copy"><p>{displayView.me.committed

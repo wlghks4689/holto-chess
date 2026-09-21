@@ -148,12 +148,13 @@ describe("PORENA engine", () => {
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? value : 0));
         } else if (round === 4 && match.stage === "primary") {
           const scoringWinners = match.regulationWinnerIds ?? match.winnerIds;
-          const value = match.regulationWinnerIds ? 5 : 10;
+          const value = match.regulationWinnerIds ? 5 : 6;
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(scoringWinners.includes(id) ? value : 0));
         } else if (round === 4 && match.group === "winner") {
-          match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? 5 : 0));
+          const prizes: Record<number, number> = { 1: 10, 2: 5, 3: 3 };
+          match.results.forEach((result) => expect(rewards[result.playerId]).toBe(prizes[result.place] ?? 0));
         } else if (round === 4 && match.group === "loser") {
-          match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? 2 : 0));
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(0));
         } else {
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(0));
         }

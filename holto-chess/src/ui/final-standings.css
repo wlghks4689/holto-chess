@@ -1,0 +1,47 @@
+.final-panel:has(.final-standing){padding:clamp(14px,2.4vw,30px);overflow:visible}
+.final-standing.standing{position:relative;grid-template-columns:62px minmax(82px,1fr) minmax(185px,2fr) repeat(3,minmax(46px,.55fr)) 76px 40px;gap:10px;padding:10px;min-height:104px;border-radius:14px;text-align:center;background:linear-gradient(120deg,#0b2633,#04121e)}
+.final-standing:has(.final-score-popover:not([hidden])){z-index:10}
+.final-rank-panel{position:relative;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #426374;border-radius:10px;color:#ecfaff;background:linear-gradient(150deg,#173645,#061722);overflow:hidden}
+.final-rank-panel strong{font:700 30px 'DM Mono',sans-serif;z-index:1}
+.final-rank-panel strong small{font:700 11px sans-serif;color:inherit;margin-left:2px}
+.final-rank-ornament{font-size:16px;line-height:20px;min-height:4px}
+.podium-1 .final-rank-panel{color:#ffe799;border:2px solid #f8d970;box-shadow:0 0 18px #f0c74366,inset 0 0 15px #efb73844;outline:1px solid #b28a37;outline-offset:3px}
+.podium-1 .final-rank-ornament{font-size:24px;text-shadow:0 0 12px #ffd464}
+.podium-2 .final-rank-panel{color:#e1f3ff;border:2px solid #b9d2e6;box-shadow:0 0 10px #b9d2e640,inset 0 0 10px #b9d2e626}
+.podium-3 .final-rank-panel{color:#e8ae87;border-color:#c58b62;box-shadow:inset 0 0 8px #c58b622b}
+.podium-1 .final-rank-panel::after,.podium-2 .final-rank-panel::after{content:"";position:absolute;inset:-80%;background:linear-gradient(115deg,transparent 43%,#fff7ce55 50%,transparent 57%);animation:rank-luster 5s ease-in-out infinite;pointer-events:none}
+.podium-2 .final-rank-panel::after{opacity:.4;animation-duration:8s}
+@keyframes rank-luster{0%,65%{transform:translateX(-65%)}100%{transform:translateX(65%)}}
+.final-player-name{min-width:0;text-align:left;padding-left:4px;font-size:15px;overflow-wrap:anywhere}
+.final-hand{--made-color:#66e5db;display:flex;align-items:center;justify-content:center;gap:3px;min-width:0;padding:7px 0}
+.final-hand.made-flush{--made-color:#45ccff}.final-hand.made-full-house{--made-color:#c398ff}.final-hand.made-quads{--made-color:#ff859e}.final-hand.made-straight-flush,.final-hand.made-royal{--made-color:#ffe078}
+.final-mini-card{display:flex;flex:0 1 36px;min-width:0;height:53px;flex-direction:column;align-items:center;justify-content:center;background:#e9f5ef;border:1px solid #c6e4e1;border-radius:5px;color:#122820;line-height:1.05}
+.final-mini-card b{font-size:15px}.final-mini-card i{font-size:20px;font-style:normal}.final-mini-card.red{color:#e63a53}
+.final-mini-card.is-best{border-color:var(--made-color);box-shadow:0 0 8px color-mix(in srgb,var(--made-color) 65%,transparent),inset 0 0 5px #fff}
+.final-mini-card.is-unused{opacity:.43}
+.final-mini-card.is-card-back{border:1px solid #3e7e94;background:repeating-linear-gradient(45deg,transparent 0 5px,#4ba0bb18 5px 6px),linear-gradient(145deg,#153f54,#071c2c);box-shadow:inset 0 0 0 2px #0a2232,inset 0 0 0 3px #39768b;color:#6ab2c6;opacity:1}
+.final-mini-card.is-card-back i{font-size:20px;text-shadow:0 0 8px #56c9e955}
+.final-standing .final-score-part{font:600 16px 'DM Mono',sans-serif;gap:5px;grid-column:auto;grid-row:auto}
+.final-standing small{color:#9fb9c6;font-size:9px}
+.final-total{position:relative;min-width:0}
+.final-total>button{width:100%;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid #4bc8d8;border-radius:9px;background:linear-gradient(130deg,#123d4c,#061923);color:#79f1f0;font:700 19px 'DM Mono',sans-serif;cursor:pointer;padding:6px}
+.final-total>button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.final-score-popover{position:absolute;right:0;top:calc(100% + 12px);width:220px;padding:15px;text-align:left;border:1px solid #6acbd4;border-radius:12px;background:#0b2635;box-shadow:0 12px 35px #000a;color:#eafaff;z-index:20}
+.final-score-popover[hidden]{display:none}
+.final-score-popover::before{content:"";position:absolute;right:25px;top:-7px;width:12px;height:12px;border-left:1px solid #6acbd4;border-top:1px solid #6acbd4;background:#0b2635;transform:rotate(45deg)}
+.final-score-popover>b{display:block;margin-bottom:12px;color:#7ef1e9;font-size:13px}.final-score-popover>span{display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-top:8px}.final-score-popover>small{display:block;margin-top:3px}.final-score-popover hr{border:0;border-top:1px solid #426374;margin-top:12px}
+.final-standing .rank-point{grid-column:auto;grid-row:auto;text-align:center;font-size:14px}
+@media(max-width:1000px){.final-standing.standing{grid-template-columns:52px minmax(78px,.9fr) minmax(170px,1.8fr) repeat(3,42px) 66px 34px;gap:6px;padding:8px}.final-standing .final-score-part{font-size:14px}.final-player-name{font-size:13px}}
+@media(max-width:760px){
+ .final-standing.standing{grid-template-columns:54px minmax(0,1fr) 68px;grid-template-rows:auto auto;gap:5px 10px;min-height:125px;padding:10px 8px}
+ .final-standing .final-rank-panel{grid-column:1;grid-row:1/3}
+ .final-standing .final-player-name{grid-column:2;grid-row:1;font-size:16px;padding:3px 0 0 4px}
+ .final-standing .final-hand{grid-column:2;grid-row:2;gap:3px;padding:6px 0;align-self:center}
+ .final-standing .final-score-part{display:none}
+ .final-standing .final-total{grid-column:3;grid-row:2}
+ .final-standing .rank-point{grid-column:3;grid-row:1;font-size:13px}
+ .final-mini-card{flex-basis:40px;height:54px}.final-mini-card b{font-size:14px}.final-mini-card i{font-size:18px}
+ .final-total>button{font-size:18px}
+}
+@media(max-width:410px){.final-standing.standing{grid-template-columns:44px minmax(0,1fr) 58px;gap:4px 6px;padding:8px 6px}.final-rank-panel strong{font-size:26px}.final-standing .final-player-name{font-size:15px}.final-hand{gap:2px!important}.final-mini-card{height:48px;border-radius:4px}.final-mini-card b{font-size:12px}.final-mini-card i{font-size:16px}.final-total>button{font-size:16px}.final-total>button small{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.final-rank-panel::after{animation:none!important}}

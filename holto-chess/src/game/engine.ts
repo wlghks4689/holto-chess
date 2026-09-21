@@ -1,5 +1,5 @@
 import { shuffle, type Card } from "../core/poker/cards";
-import { compareHands, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
+import { compareHands, evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
@@ -341,15 +341,19 @@ function resolveParticipants(
 
 function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: number, awardIds: readonly string[] = match.winnerIds): void {
   match.pointAwards = Object.fromEntries(match.playerIds.map((id) => [id, awardIds.includes(id) ? pointValue : 0]));
+  if (state.round === 4 && match.group === "winner") {
+    const prizes: Record<number, number> = { 1: BALANCE.points.r4WinnerGroup.first, 2: BALANCE.points.r4WinnerGroup.second, 3: BALANCE.points.r4WinnerGroup.third };
+    match.pointAwards = Object.fromEntries(match.results.map((result) => [result.playerId, prizes[result.place] ?? 0]));
+  }
   match.pointAwardDetails = Object.fromEntries(match.playerIds.map((id) => {
-    const awarded = awardIds.includes(id);
     const context = match.regulationWinnerIds ? "정규 결과 SPLIT" : match.group === "loser" ? "생존 결정" : match.group === "winner" ? "Winner Group" : "경기 결과";
-    return [id, `${context} · ${awarded ? "+" + pointValue : "+0"}P`];
+    const placement = state.round === 4 && match.group === "winner" ? ` ${match.results.find((result) => result.playerId === id)!.place}위` : "";
+    return [id, `${context}${placement} · +${match.pointAwards![id]}P`];
   }));
   for (const playerId of match.playerIds) {
     const player = playerById(state, playerId); const won = awardIds.includes(playerId);
     if (state.round === 4 && match.group === "loser") {
-      const bb = won ? 20 : 0;
+      const bb = 0;
       player.stackBB += bb;
       player.points += won ? pointValue : 0;
       player.winStreak = won ? player.winStreak + 1 : 0;
@@ -372,8 +376,9 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
       const base = state.round === 1 ? 10 : BALANCE.winRewardBB; const streakBonus = state.round === 1 ? 0 : player.winStreak * BALANCE.winStreakStepBB;
       player.stackBB += base + streakBonus + bonus;
       match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연승 ${streakBonus}` : ""}${bonus ? ` + 증강 ${bonus}` : ""}`;
-      player.winStreak += 1; player.loseStreak = 0; player.points += pointValue;
+      player.winStreak += 1; player.loseStreak = 0; player.points += match.pointAwards[playerId]!;
     } else { const base = state.round === 1 ? 15 : 0; const streakBonus = state.round === 1 ? player.loseStreak * 5 : player.loseStreak * BALANCE.loseStreakStepBB; player.stackBB += base + streakBonus; match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연패 ${streakBonus}` : ""}`; player.loseStreak += 1; player.winStreak = 0; }
+    if (!won) player.points += match.pointAwards[playerId]!;
   }
 }
 
@@ -432,7 +437,7 @@ function streetHandFor(state: PorenaGameState, playerId: string, board: Card[], 
   const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
     : player.selectedCardIds;
   const owned = cardsFor(state, state.round === 2 ? selected : player.ownedCardIds);
-  if (state.round === 3 && board.length >= 3) return findBestOmaha(owned, board);
+  if (state.round === 3) return board.length === 0 ? evaluateOmahaPreflop(owned) : findBestOmaha(owned, board);
   const candidates = [...owned, ...board];
   return candidates.length >= 5 ? findBestFive(candidates) : evaluatePartial(candidates);
 }
@@ -788,7 +793,11 @@ export function finalStandings(state: PorenaGameState) {
     const augmentBonus = (hand?.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0)
       + (hand && player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
     const handScore = baseHandScore + augmentBonus; const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
+    const lastMatch = [...state.matches].reverse().find((match) => match.revealedCardIds[player.id]?.length);
+    const cardIds = player.ownedCardIds.length ? player.ownedCardIds : lastMatch?.revealedCardIds[player.id];
+    const cards = cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
     return { playerId: player.id, points, handScore, stackScore, total: points + handScore + stackScore, hand,
+      cards, usedCardIds: hand?.bestFive.map((card) => card.id) ?? [],
       finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
   }).sort((a, b) => b.total - a.total || a.finalPlace - b.finalPlace
     || (b.eliminatedRound ?? 6) - (a.eliminatedRound ?? 6)

@@ -92,7 +92,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const results = final ? match.results : match.boardResults[frame.boardIndex] ?? [];
   const streetIndex = displayedStreetIndex(frame.phase);
   const streetSnapshot = match.streetSnapshots?.[frame.boardIndex]?.[streetIndex];
-  const streetName = ["프리플랍", "플랍", "턴", "리버"][streetIndex];
+  const streetName = match.round === 3 && streetIndex === 0 ? "프리플랍 · 홀 2장 기준" : ["프리플랍", "플랍", "턴", "리버"][streetIndex];
   const winners = final ? finalWinnerStage ? match.winnerIds : [] : flags.result ? match.winnerIds : match.boardWinnerIds[frame.boardIndex] ?? [];
   const focus = results.find((r) => r.playerId === focusId) ?? results.find((r) => winners.includes(r.playerId)) ?? results[0];
   const board = match.boards[frame.boardIndex] ?? [];

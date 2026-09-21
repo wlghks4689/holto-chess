@@ -93,6 +93,17 @@ export function findBestFive(cards: readonly Card[]): HandValue {
   return best!;
 }
 
+/** Pre-board display only: Omaha can use two hole cards, never trips/quads from four holes. */
+export function evaluateOmahaPreflop(holes: readonly Card[]): HandValue {
+  if (holes.length !== 4) throw new Error("Omaha preflop requires four hole cards");
+  let best: HandValue | null = null;
+  for (const pair of combinations(holes, 2)) {
+    const candidate = evaluatePartial(pair);
+    if (!best || compareHands(candidate, best) > 0) best = candidate;
+  }
+  return best!;
+}
+
 /** Omaha: exactly two owned cards and exactly three board cards. */
 export function findBestOmaha(holes: readonly Card[], board: readonly Card[]): HandValue {
   if (holes.length < 2 || board.length < 3) throw new Error("Omaha requires at least two hole and three board cards");

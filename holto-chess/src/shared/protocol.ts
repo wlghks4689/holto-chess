@@ -56,7 +56,7 @@ export type RoundSummaryRow = {
   totalPoints: number; stackBB: number; rank: number; previousRank?: number;
   eliminated: boolean; bracket?: "winner" | "loser";
 };
-export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round };
+export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
 export type PrivatePlayerView = {
   playerId: string; stackBB: number; points: number; alive: boolean;
   ownedCards: Card[]; shopCards: { card: Card; price: number }[];
@@ -112,7 +112,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   const string = (key: string, pattern: RegExp) => typeof v[key] === "string" && pattern.test(v[key] as string);
   if (v.type === "JOIN_ROOM") {
     if (Object.keys(v).some((k) => !["type", "token", "nickname"].includes(k)) || !string("token", /^[a-f0-9]{64}$/)) throw new Error("잘못된 세션입니다.");
-    if (v.nickname !== undefined && (typeof v.nickname !== "string" || !/^[\p{L}\p{N} _-]{1,16}$/u.test(v.nickname.trim()))) throw new Error("닉네임은 문자·숫자 1~16자로 입력하세요.");
+    if (v.nickname !== undefined && (typeof v.nickname !== "string" || !/^[\p{L}\p{N} _-]{1,8}$/u.test(v.nickname.trim()))) throw new Error("닉네임은 문자·숫자 1~8자로 입력하세요.");
     return { type: "JOIN_ROOM", token: v.token as string, ...(typeof v.nickname === "string" ? { nickname: v.nickname.trim() } : {}) };
   }
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+$/)) throw new Error("명령 식별자가 필요합니다.");

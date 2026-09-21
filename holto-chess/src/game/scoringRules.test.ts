@@ -15,14 +15,14 @@ describe("central round point rules", () => {
   it("6. R2 loser bracket survivor is +2", () => expect(ROUND_POINTS.r2LoserBracket.survive).toBe(2));
   it("7. each R3 Omaha Swiss win is +4", () => expect(ROUND_POINTS.r3.gameWin).toBe(4));
   it("8. each R3 Omaha game split is +2 each", () => expect(ROUND_POINTS.r3.gameSplit).toBe(2));
-  it("9. R4 primary win is +10", () => expect(ROUND_POINTS.r4Primary.win).toBe(10));
+  it("9. R4 primary win is +6", () => expect(ROUND_POINTS.r4Primary.win).toBe(6));
   it("10. R4 primary split is +5 and has no decider award key", () => {
     expect(ROUND_POINTS.r4Primary.split).toBe(5);
     expect(ROUND_POINTS.r4Primary.groupDeciderBonus).toBe(0);
   });
-  it("11. R4 winner-group sole first is +5", () => expect(ROUND_POINTS.r4WinnerGroup.first).toBe(5));
+  it("11. R4 winner-group placements are 10 / 5 / 3", () => expect(ROUND_POINTS.r4WinnerGroup).toMatchObject({ first: 10, second: 5, third: 3 }));
   it("12. winner tiebreak has no independent point award", () => expect(ROUND_POINTS.r4WinnerGroup.tiebreakBonus).toBe(0));
-  it("13. R4 loser-group survival is +2", () => expect(ROUND_POINTS.r4LoserGroup.survive).toBe(2));
+  it("13. R4 loser-group survival has no points", () => expect(ROUND_POINTS.r4LoserGroup.survive).toBe(0));
   it("14. survival tiebreak has no independent point award", () => expect(ROUND_POINTS.r4LoserGroup.tiebreakBonus).toBe(0));
   it("15. R5 placement ladder is 20 / 12 / 5 / 3", () => expect(FINAL_ROUND_PLACEMENT_POINTS).toEqual({ 1: 20, 2: 12, 3: 5, 4: 3 }));
 });

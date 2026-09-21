@@ -14,7 +14,7 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
   return <section className="open-draft panel" aria-label={`R${view.round} 공개 드래프트`}>
     <header><small className="draft-kicker">ROUND {view.round} · {ordering ? "선택 순서 안내" : "공개 드래프트"}</small><h2>{ordering ? "낮은 순위부터 카드를 선택합니다" : "공개 카드 한 장을 선택하세요"}</h2><div className="draft-clock" role="timer" aria-label={`선택 제한 남은 시간 ${seconds ?? (ordering ? 5 : 20)}초`}><span>남은 시간</span><strong>{seconds ?? (ordering ? 5 : 20)}</strong><span>초</span></div></header>
     <p className="draft-rule"><span>승점이 낮은 순서</span><i>→</i><span>동점이면 BB가 높은 순서</span><i>→</i><span>완전 동률은 서버 추첨</span></p>
-    {view.round === 4 && <div><small>내 보유 카드 · 상대에게 비공개</small><div className="card-row">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
+    {view.round === 4 && <div className="draft-private-inventory"><small>내 보유 카드 · 상대에게 비공개</small><div className="card-row centered">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
       <b>{String(index + 1).padStart(2, "0")}</b><span>{name(entry.playerId)}</span><small>{entry.points}P · {entry.stackBB}BB</small>
       <div className="draft-hand">{draft.publicHands?.[entry.playerId]

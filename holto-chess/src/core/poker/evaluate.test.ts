@@ -1,10 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck, type Card, type Rank, type Suit } from "./cards";
-import { compareHands, evaluateFive, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers } from "./evaluate";
+import { compareHands, evaluateFive, evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers } from "./evaluate";
 
 const c = (rank: Rank, suit: Suit): Card => ({ id: `${rank}${suit}`, rank, suit });
 
 describe("poker core", () => {
+  it("limits Omaha preflop labels to the best two hole cards", () => {
+    const examples = [
+      { holes: [c(5, "h"), c(14, "h"), c(5, "s"), c(5, "d")], category: "PAIR", kickers: [5] },
+      { holes: [c(5, "h"), c(5, "c"), c(5, "s"), c(5, "d")], category: "PAIR", kickers: [5] },
+      { holes: [c(3, "h"), c(14, "s"), c(3, "d"), c(14, "c")], category: "PAIR", kickers: [14] },
+      { holes: [c(14, "h"), c(13, "h"), c(12, "h"), c(11, "h")], category: "HIGH_CARD", kickers: [14, 13] },
+    ];
+    for (const { holes, category, kickers } of examples) {
+      const hand = evaluateOmahaPreflop(holes);
+      expect(hand).toMatchObject({ category, kickers });
+      expect(hand.bestFive).toHaveLength(2);
+      expect(hand.bestFive.every((card) => holes.includes(card))).toBe(true);
+    }
+  });
   it("creates 52 unique cards", () => expect(new Set(makeDeck().map((card) => card.id)).size).toBe(52));
 
   it("recognizes a wheel and royal flush", () => {

@@ -60,7 +60,7 @@ describe("current R4 loser bracket review", () => {
     expect(new Set(match.highCardDraw!.draws.map((draw) => draw.rank)).size).toBe(3);
     expect(match.winnerIds).toEqual(["p3"]);
     const rewards = Object.fromEntries(match.rewards!.map((reward) => [reward.playerId, reward]));
-    expect(rewards.p3).toMatchObject({ deltaBB: 20, deltaPoints: 2, outcome: "SURVIVED" });
+    expect(rewards.p3).toMatchObject({ deltaBB: 0, deltaPoints: 0, outcome: "SURVIVED" });
     expect(rewards.p1).toMatchObject({ deltaBB: 0, deltaPoints: 0, outcome: "ELIMINATED" });
     expect(rewards.p2).toMatchObject({ deltaBB: 0, deltaPoints: 0, outcome: "ELIMINATED" });
     expect(result.players.filter((player) => !player.eliminated)).toHaveLength(4);

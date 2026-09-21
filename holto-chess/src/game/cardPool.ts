@@ -5,6 +5,14 @@ export function createOwnershipPool(): PoolCard[] {
   return makeDeck().map((card) => ({ card, state: "AVAILABLE" }));
 }
 
+/** Shop reservations are not owned until purchased, so they remain in the meter. */
+export function ownershipCounts(state: PorenaGameState) {
+  return {
+    remaining: state.ownershipCardPool.filter((entry) => entry.state !== "OWNED").length,
+    owned: state.players.reduce((total, player) => total + player.ownedCardIds.length, 0),
+  };
+}
+
 export function assertPoolIntegrity(state: PorenaGameState): true {
   if (state.ownershipCardPool.length !== 52) throw new Error("Card pool must contain exactly 52 entries");
   const ids = new Set(state.ownershipCardPool.map((entry) => entry.card.id));

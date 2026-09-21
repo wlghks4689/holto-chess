@@ -6,6 +6,7 @@ import { createPlayerView } from "../game/playerView";
 import { FinalResultsPanel } from "./FinalResultsPanel";
 import { loadSavedFinalResults, makeSavedFinalResult, saveFinalResult } from "./finalResultArchive";
 import { MatchHistoryPage } from "./MatchHistory";
+import { FinalStandingRow } from "./FinalStandingRow";
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -27,6 +28,18 @@ function finalView() {
 }
 
 describe("final result panel", () => {
+  it("conceals only eliminated players below fourth place", () => {
+    const row = { ...finalView().standings[0], cards: [{ id: "Ah", rank: 14 as const, suit: "h" as const }], usedCardIds: ["Ah"] };
+    for (const placement of [4, 5, 8]) {
+      const html = renderToStaticMarkup(createElement(FinalStandingRow, { row: { ...row, placement, eliminatedRound: 3 }, name: "테스트" }));
+      expect(html.includes("is-card-back")).toBe(placement > 4);
+      expect(html.includes("is-best")).toBe(placement === 4);
+      if (placement > 4) expect(html).not.toContain("A♥");
+    }
+    const finalist = renderToStaticMarkup(createElement(FinalStandingRow, { row: { ...row, placement: 5 }, name: "결승 참가자" }));
+    expect(finalist).not.toContain("is-card-back");
+    expect(finalist).toContain("is-best");
+  });
   beforeEach(() => vi.stubGlobal("localStorage", new MemoryStorage()));
 
   it("places the hand name under hand score and final BB under stack score without FINAL", () => {
@@ -35,7 +48,7 @@ describe("final result panel", () => {
     expect(html).toContain("19<small>로열 플러시</small>");
     expect(html).not.toContain("로열 스트레이트 플러시");
     expect(html).toContain("22<small>229BB</small>");
-    expect(html).toContain("R5 탈락");
+    expect(html).not.toContain("R5 탈락");
     expect(html).not.toContain("FINAL");
     expect(html).toContain("이 기기에 결과 저장");
   });
