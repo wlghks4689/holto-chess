@@ -1,4 +1,4 @@
-.start-screen { min-height:100svh; position:relative; isolation:isolate; overflow:hidden; background:#050c17 url('/assets/start/battlefield.png') center center / cover no-repeat; color:#e7f6ff; }
+.start-screen { min-height:100svh; position:relative; isolation:isolate; overflow:hidden; background:#050c17 url('/assets/start/battlefield.webp') center center / cover no-repeat; color:#e7f6ff; }
 /* Portrait phones and tablets crop ~74% of the 16:9 backdrop's width, so they get the portrait
    artwork instead. Both are covered height-first, so the title (29%) and menu (70%) still land on
    the sky and on the table. */

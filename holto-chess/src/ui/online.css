@@ -8,7 +8,7 @@
 .local-loading-screen b{font-size:15px}
 
 .arena-lobby{min-height:100svh;position:relative;isolation:isolate;background:#030914}
-.arena-lobby::before{z-index:-1;opacity:1;mask-image:none;background:linear-gradient(180deg,rgba(2,7,17,.46),rgba(2,8,18,.72) 54%,rgba(2,7,15,.94)),radial-gradient(ellipse at 50% 44%,transparent 0,rgba(2,7,17,.7) 78%),url('/assets/start/battlefield.png') center 42% / cover no-repeat fixed}
+.arena-lobby::before{z-index:-1;opacity:1;mask-image:none;background:linear-gradient(180deg,rgba(2,7,17,.46),rgba(2,8,18,.72) 54%,rgba(2,7,15,.94)),radial-gradient(ellipse at 50% 44%,transparent 0,rgba(2,7,17,.7) 78%),url('/assets/start/battlefield.webp') center 42% / cover no-repeat fixed}
 .arena-lobby>.page-shell{display:grid;place-items:start center;min-height:calc(100svh - 78px);padding-top:clamp(56px,9vh,112px)}
 .room-panel{width:min(100%,840px);padding:clamp(22px,4vw,38px);margin-bottom:24px;overflow:hidden}.room-panel p{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
 .room-panel-heading{position:relative;display:flex!important;align-items:flex-start!important;margin-bottom:28px!important;padding-bottom:22px;border-bottom:1px solid var(--line)}
@@ -29,7 +29,7 @@
 .action-bar p{font-size:11px;color:#91aa9e}.secondary:disabled,.augment-grid button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:639px){.arena-lobby::before{background-position:56% center;background-attachment:scroll}.arena-lobby>.page-shell{padding-top:28px}.room-panel{padding:20px 16px}.room-panel-heading{margin-bottom:20px!important}.room-panel-mark{font-size:64px}.lobby-console{grid-template-columns:1fr;gap:16px;padding:15px}.nickname-field input{max-width:100%}.room-controls{display:grid;grid-template-columns:1fr}.room-controls input{max-width:none;width:100%}.room-controls .primary,.room-controls .secondary{width:100%}.resume-list button{width:100%}.spectator-banner{top:62px;align-items:stretch;flex-direction:column}.spectator-banner>div:first-child{justify-content:center}.spectator-picker{justify-content:center}.spectator-picker button{flex:1 1 auto}}
 @media(max-width:620px){.survivors b{font-size:12px}.action-bar{flex-wrap:wrap}.mode-switch+main .action-bar{bottom:62px}.room-controls .primary{min-width:130px}.mode-switch{right:8px;bottom:8px}.mode-switch .secondary{font-size:8px}}
-.online-entry{min-height:100svh;display:grid;place-items:center;padding:48px 20px;background:linear-gradient(180deg,#050d17c9,#050d17f5),url('/assets/start/battlefield.png') center / cover fixed,#050d17}
+.online-entry{min-height:100svh;display:grid;place-items:center;padding:48px 20px;background:linear-gradient(180deg,#050d17c9,#050d17f5),url('/assets/start/battlefield.webp') center / cover fixed,#050d17}
 .entry-panel{width:min(100%,620px);min-width:0;padding:clamp(22px,5vw,48px);border:1px solid #284351;border-radius:20px;background:linear-gradient(145deg,rgba(17,34,47,.96),rgba(5,15,26,.98));box-shadow:0 24px 80px #0005}
 .entry-heading{display:flex;flex-direction:column;gap:12px}.entry-brand{font:700 18px DM Mono;letter-spacing:.3em;color:#dceff3;margin-bottom:20px}.entry-heading h1{font-size:clamp(26px,5vw,36px);margin:0;letter-spacing:-.04em}.entry-description{color:#a0b6c3;line-height:1.7;margin:16px 0 28px}
 .entry-choices{display:grid;gap:12px}.entry-choices button{display:flex;align-items:center;justify-content:space-between;min-height:64px;text-align:left;padding:18px 22px;font-size:16px}.entry-choices .secondary span{font-size:11px;color:#91a9b7}
