@@ -152,6 +152,8 @@ describe("PORENA engine", () => {
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(scoringWinners.includes(id) ? value : 0));
         } else if (round === 4 && match.group === "winner") {
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? 5 : 0));
+        } else if (round === 4 && match.group === "loser") {
+          match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? 2 : 0));
         } else {
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(0));
         }

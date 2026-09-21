@@ -20,7 +20,7 @@ function finalView() {
   view.players[0].name = "지팡스키";
   view.players[1].name = "클럽 레이븐";
   view.standings = [
-    { playerId: "p1", points: 58, handScore: 19, stackScore: 22, stackBB: 229, total: 99, displayName: "풀하우스", finalPlace: 1, placement: 1, rankPoints: 8 },
+    { playerId: "p1", points: 58, handScore: 19, stackScore: 22, stackBB: 229, total: 99, displayName: "로열 스트레이트 플러시", finalPlace: 1, placement: 1, rankPoints: 8 },
     { playerId: opponentId, points: 39, handScore: 15, stackScore: 19, stackBB: 198, total: 73, displayName: "투페어", finalPlace: 2, placement: 2, rankPoints: 4, eliminatedRound: 5 },
   ];
   return view;
@@ -32,7 +32,8 @@ describe("final result panel", () => {
   it("places the hand name under hand score and final BB under stack score without FINAL", () => {
     const html = renderToStaticMarkup(createElement(FinalResultsPanel, { view: finalView() }));
     expect(html).toContain("지팡스키");
-    expect(html).toContain("19<small>풀하우스</small>");
+    expect(html).toContain("19<small>로열 플러시</small>");
+    expect(html).not.toContain("로열 스트레이트 플러시");
     expect(html).toContain("22<small>229BB</small>");
     expect(html).toContain("R5 탈락");
     expect(html).not.toContain("FINAL");
@@ -46,7 +47,7 @@ describe("final result panel", () => {
     const saved = loadSavedFinalResults();
     expect(saved).toHaveLength(1);
     expect(saved[0].savedAt).toBe("2026-09-20T02:00:00.000Z");
-    expect(saved[0].standings[0]).toMatchObject({ name: "지팡스키", handName: "풀하우스", stackBB: 229 });
+    expect(saved[0].standings[0]).toMatchObject({ name: "지팡스키", handName: "로열 스트레이트 플러시", stackBB: 229 });
     const history = renderToStaticMarkup(createElement(MatchHistoryPage, { onBack: () => {} }));
     expect(history).toContain("대전 기록");
     expect(history).toContain("지팡스키");

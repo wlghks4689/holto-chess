@@ -10,7 +10,7 @@ describe("poker core", () => {
   it("recognizes a wheel and royal flush", () => {
     expect(evaluateFive([c(14, "s"), c(2, "h"), c(3, "c"), c(4, "d"), c(5, "s")]).kickers).toEqual([5]);
     expect(evaluateFive([c(10, "h"), c(11, "h"), c(12, "h"), c(13, "h"), c(14, "h")])).toMatchObject({
-      category: "ROYAL_FLUSH", categoryRank: 10, displayName: "로열 스트레이트 플러시",
+      category: "ROYAL_FLUSH", categoryRank: 10, displayName: "로열 플러시",
     });
   });
 

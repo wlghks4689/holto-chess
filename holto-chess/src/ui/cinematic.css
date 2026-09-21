@@ -14,7 +14,7 @@
 .cinema-staged .cinema-seat.cinema-winner{background:rgba(18,48,35,.92)}
 .cinema-staged .cinema-run-timeline{background:rgba(4,16,14,.82)}
 .cinema-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 28px}
-.cinema-heading .eyebrow{font-size:11px}
+.cinema-heading .eyebrow{color:#9bd9e8;font-size:13px;font-weight:650;text-shadow:0 1px 8px rgba(0,0,0,.9),0 0 10px rgba(77,220,240,.22)}
 .cinema-heading h2{margin:8px 0;font-size:clamp(18px,3vw,30px);letter-spacing:.06em}
 .cinema-controls{display:flex;align-items:center;gap:10px;font-size:11px}
 .cinema-controls select{background:#102a1e;color:#e7f5ed;border:1px solid #375344;border-radius:4px;padding:5px}
@@ -112,8 +112,8 @@
 .cinema-profile .player-avatar{flex-shrink:0}
 .cinema-current-points{color:var(--mint);font:600 11px DM Mono;font-style:normal;white-space:nowrap}
 .cinema-rank-badge{display:inline-flex;align-items:center;gap:5px;min-height:25px;padding:2px 8px;border:1px solid #3a7568;border-radius:999px;background:rgba(7,31,27,.8);color:#c8e9dd;font:600 10px DM Mono;white-space:nowrap;box-shadow:inset 0 0 12px rgba(104,238,203,.06)}
-.cinema-rank-badge small{color:#81aa9d;font-size:8px;letter-spacing:.04em}.cinema-rank-badge b{color:var(--mint);font-size:12px}.cinema-rank-badge i{padding:1px 4px;border-radius:4px;background:#26483e;color:#a9d4c5;font-size:8px;font-style:normal}.cinema-rank-badge em{color:#8db5a7;font-size:9px;font-style:normal}
-.cinema-rank-badge[data-rank="1"]{border-color:#cdb75e;background:rgba(61,51,18,.58);box-shadow:0 0 12px rgba(232,207,104,.12)}.cinema-rank-badge[data-rank="1"] b{color:#f1d977}.cinema-rank-badge[data-rank="1"] small,.cinema-rank-badge[data-rank="1"] em{color:#cfc38d}
+.cinema-rank-badge small{color:#81aa9d;font-size:10px;letter-spacing:.04em}.cinema-rank-badge b{color:var(--mint);font-size:12px}.cinema-rank-badge i{padding:1px 4px;border-radius:4px;background:#26483e;color:#a9d4c5;font-size:8px;font-style:normal}
+.cinema-rank-badge[data-rank="1"]{border-color:#cdb75e;background:rgba(61,51,18,.58);box-shadow:0 0 12px rgba(232,207,104,.12)}.cinema-rank-badge[data-rank="1"] b{color:#f1d977}.cinema-rank-badge[data-rank="1"] small{color:#cfc38d}
 .cinema-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(132,245,182,.45);border-radius:50%;background:rgba(4,22,16,.9);color:#a2ffd0;font:800 16px Manrope;letter-spacing:.06em;text-shadow:0 0 22px #4ffea9;box-shadow:0 0 24px rgba(79,254,169,.16)}
 .cinema-intro .cinema-vs-reveal .cinema-flip-inner{animation:cinema-vs-card-reveal .38s cubic-bezier(.3,.65,.25,1) var(--flip-delay,0ms) both}
 .cinema-intro .cinema-seat{animation:cinema-seat-enter .4s ease-out both}
@@ -198,6 +198,7 @@
 .cinema .cinema-made-fx.made-straight-flush .cinema-made strong,.cinema .cinema-made-fx.made-straight-flush .cinema-victory{width:fit-content;max-width:100%;margin-inline:auto;background:var(--fx-sf-spectrum);background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 10px rgba(125,211,252,.58))}
 .cinema .cinema-seat.cinema-made-fx.made-royal{--made-color:#e2efff;border-color:#dceafa;background:var(--fx-royal-panel);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 0 26px rgba(181,211,250,.28)}
 .cinema .cinema-made-fx.made-royal .cinema-made strong,.cinema .cinema-made-fx.made-royal .cinema-victory{color:#f2f8ff;text-shadow:0 0 10px rgba(255,255,255,.8),0 0 26px rgba(170,209,255,.58)}
+.cinema .cinema-made-fx.made-royal .cinema-victory.place-1{color:#f4d77f;text-shadow:0 0 12px rgba(244,215,127,.6),0 0 24px rgba(206,153,48,.35);box-shadow:0 0 16px rgba(244,215,127,.25)}
 .cinema .cinema-seat.cinema-made-fx:is(.made-straight-flush,.made-royal).cinema-trailing{border-color:color-mix(in srgb,var(--made-color) 38%,#365345);background:#081710;box-shadow:none}
 .cinema-street-made{margin:14px 0 4px;min-height:48px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
 .cinema-street-made small,.cinema-street-made strong,.cinema-street-made em{display:block;font-style:normal}

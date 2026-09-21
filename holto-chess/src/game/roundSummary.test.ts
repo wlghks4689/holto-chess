@@ -19,7 +19,11 @@ it("summarizes all Swiss matches without exposing unrevealed cards or boards", (
     expect(row.points).toBe(row.wins * 3 + row.draws);
     expect(row.cards.map((c) => c.id)).toEqual(result.players.find((p) => p.id === row.playerId)!.ownedCardIds);
     expect(row).not.toHaveProperty("boards");
+    const player = result.players.find((p) => p.id === row.playerId)!;
+    expect(row.totalPoints).toBe(player.points);
+    expect(row.stackBB).toBe(player.stackBB);
   }
+  expect(rows.map((row) => row.rank)).toEqual(rows.map((_, index) => index + 1));
   result.players[0]!.ownedCardIds = [];
   expect(createRoundSummary(result).find((row) => row.playerId === result.players[0]!.id)!.cards).toHaveLength(2);
   result.winnerGroup = result.players.slice(0, 4).map((player) => player.id);

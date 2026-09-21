@@ -1,6 +1,10 @@
 import { rankToChar, type Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 
+export function compactHandName(name: string): string {
+  return name === "로열 스트레이트 플러시" ? "로열 플러시" : name;
+}
+
 export type DetailedHandLabel = { title: string; kicker?: string };
 
 const ranks = (values: readonly number[]) => values.map(rankToChar).join(", ");
@@ -27,6 +31,6 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
     };
     case "QUADS": return withKicker(`${rankToChar(made)} 포카드`, [second].filter(Boolean));
     case "STRAIGHT_FLUSH": return { title: `${rankToChar(made)} 하이 스트레이트 플러시` };
-    case "ROYAL_FLUSH": return { title: "로열 스트레이트 플러시" };
+    case "ROYAL_FLUSH": return { title: "로열 플러시" };
   }
 }

@@ -48,7 +48,14 @@ export type MatchView = {
 export type PresentationEntry = { matchId: string; offsetMs: number; durationMs: number };
 /** Server-clock schedule for the current showdown set: same startsAt/endsAt for every seat. */
 export type PresentationView = { version: number; startsAt: number; endsAt: number; matches: PresentationEntry[] };
-export type RoundSummaryRow ={ playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number; points: number; eliminated: boolean; bracket?: "winner" | "loser" };
+export type RoundSummaryRow = {
+  playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number;
+  /** Points earned in this round only. */
+  points: number;
+  /** Tournament totals used by the visible leaderboard ordering. */
+  totalPoints: number; stackBB: number; rank: number; previousRank?: number;
+  eliminated: boolean; bracket?: "winner" | "loser";
+};
 export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round };
 export type PrivatePlayerView = {
   playerId: string; stackBB: number; points: number; alive: boolean;

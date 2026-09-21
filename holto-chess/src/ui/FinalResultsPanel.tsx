@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FinalStandingView, PlayerView } from "../shared/protocol";
 import { loadSavedFinalResults, makeSavedFinalResult, saveFinalResult } from "./finalResultArchive";
+import { compactHandName } from "./handLabel";
 
 const display = (value: number) => Number(value.toFixed(2));
 
@@ -9,7 +10,7 @@ function StandingRow({ row, name }: { row: FinalStandingView; name: string }) {
     <strong>{row.placement}</strong>
     <span><b>{name}</b>{row.eliminatedRound ? <small>R{row.eliminatedRound} 탈락</small> : null}</span>
     <span>{display(row.points)}<small>승점</small></span>
-    <span>{row.handScore}<small>{row.displayName || "족보 없음"}</small></span>
+    <span>{row.handScore}<small>{compactHandName(row.displayName) || "족보 없음"}</small></span>
     <span>{row.stackScore}<small>{display(row.stackBB)}BB</small></span>
     <em>{display(row.total)} P</em>
     <i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}<small>RANK</small></i>

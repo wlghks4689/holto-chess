@@ -27,6 +27,9 @@ import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts
 import { createPlayerView } from "../game/playerView";
 import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import type { GameAction } from "../shared/protocol";
+import { useLocalCountdown } from "./useLocalCountdown";
+import { playerEventFeed } from "./playerEventFeed";
+import { compactHandName } from "./handLabel";
 
 const displayPoints = (value: number) => Number(value.toFixed(2));
 
@@ -53,31 +56,6 @@ function PoolMeter({ state }: { state: PorenaGameState }) {
     <span><i className="dot available" /> 남은 카드 {counts.AVAILABLE}</span>
     <span title="보유 카드와 각 플레이어의 상점에 배정된 카드를 포함합니다"><i className="dot owned" /> 플레이어 소유 {assignedCount}</span>
   </div>;
-}
-
-function PlayerStrip({ state }: { state: PorenaGameState }) {
-  const [open, setOpen] = useState(false);
-  const me = state.players.find((player) => player.id === "p1") ?? state.players[0]!;
-  const rankedPlayers = [...state.players].sort((left, right) => {
-    return right.points - left.points || right.stackBB - left.stackBB || left.name.localeCompare(right.name, "ko");
-  });
-  return <section className={`player-scoreboard ${open ? "is-open" : ""}`}>
-    <button className="player-score-summary" type="button" aria-expanded={open} aria-controls="player-score-drawer" onClick={() => setOpen((value) => !value)}>
-      <span className="player-avatar">♔</span>
-      <span><b>{me.name}</b><small>{me.eliminated ? `R${me.eliminatedRound} OUT` : `${me.stackBB}BB · ${displayPoints(me.points)}P`}</small></span>
-      <em>{open ? "접기" : "전체 순위"}<i>{open ? "↑" : "↓"}</i></em>
-    </button>
-    <button className="player-score-backdrop" type="button" tabIndex={open ? 0 : -1} aria-label="플레이어 스코어 닫기" onClick={() => setOpen(false)} />
-    <div className="player-score-drawer" id="player-score-drawer" role="dialog" aria-modal="true" aria-label="승점 순위표">
-      <header><span>LIVE STANDINGS</span><b>승점 순위</b><button type="button" aria-label="닫기" onClick={() => setOpen(false)}>×</button></header>
-      <p>현재 승점순 · 동점 시 보유 BB순 (최종 순위와 다를 수 있습니다)</p>
-      <div className="chip-count-list">{rankedPlayers.map((player, index) => <div key={player.id} className={`chip-count-row ${player.id === "p1" ? "me" : ""} ${player.eliminated ? "out" : ""}`}>
-        <span className="chip-count-rank">{String(index + 1).padStart(2, "0")}</span>
-        <strong>{player.name}</strong>
-        <span className="chip-count-stats"><b>{displayPoints(player.stackBB)} BB</b><i>승점 {displayPoints(player.points)}점</i></span>
-      </div>)}</div>
-    </div>
-  </section>;
 }
 
 function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
@@ -129,9 +107,9 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
   </article>;
 }
 
-function ShowdownPanel({ state }: { state: PorenaGameState }) {
+function ShowdownPanel({ state, secondsLeft }: { state: PorenaGameState; secondsLeft: number | null }) {
   if (!state.roundResults.length) return <section className="arena-empty panel"><span className="arena-mark">♞</span><h2>쇼다운 준비 완료</h2><p>각 매치는 참가자가 소유한 모든 카드를 제외한 독립 Showdown Deck으로 진행됩니다.</p></section>;
-  return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
+  return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"} secondsLeft={state.phase === "ROUND_RESULT" ? secondsLeft : null}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
 }
 
 function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
@@ -140,7 +118,12 @@ function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Po
 
 function FinalPanel({ state }: { state: PorenaGameState }) {
   const standings = finalStandings(state);
-  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row, index) => <div className={`standing podium-${row.placement} ${index === 0 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`} key={row.playerId}><strong>{row.placement}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b>{row.eliminatedRound ? <small>R{row.eliminatedRound} 탈락</small> : null}</span><span>{displayPoints(row.points)}<small>승점</small></span><span>{row.handScore}<small>{row.hand?.displayName || "족보 없음"}</small></span><span>{row.stackScore}<small>{displayPoints(row.stackBB)}BB</small></span><em>{displayPoints(row.total)} P</em><i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}<small>RANK</small></i></div>)}</div></section>;
+  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row, index) => <div className={`standing podium-${row.placement} ${index === 0 ? "champion" : ""} ${row.eliminatedRound ? "eliminated" : ""}`} key={row.playerId}><strong>{row.placement}</strong><span><b>{state.players.find((p) => p.id === row.playerId)?.name}</b>{row.eliminatedRound ? <small>R{row.eliminatedRound} 탈락</small> : null}</span><span>{displayPoints(row.points)}<small>승점</small></span><span>{row.handScore}<small>{compactHandName(row.hand?.displayName ?? "") || "족보 없음"}</small></span><span>{row.stackScore}<small>{displayPoints(row.stackBB)}BB</small></span><em>{displayPoints(row.total)} P</em><i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}<small>RANK</small></i></div>)}</div></section>;
+}
+
+function EventLog({ state }: { state: PorenaGameState }) {
+  const entries = playerEventFeed(state, "p1");
+  return <details className="event-log"><summary><span><i className="eyebrow">PLAYER LOG</i><b>내 최근 이벤트</b></span><em>{entries.length}개 · 펼쳐보기</em></summary><div className="event-log-drawer">{entries.map((entry) => <p key={entry.id} className={entry.tone}>{entry.message}</p>)}</div></details>;
 }
 
 function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void; reset: () => void }) {
@@ -154,12 +137,13 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   if (state.phase === "ROUND_RESULT") { label = state.round === 2 || state.round === 4 ? "증강 드래프트" : "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} 상점으로`; fn = startNextRound; }
   const requiredSelection = 2;
-  if (!fn && !me.eliminated) return null;
+  if (state.phase === "GAME_RESULT" || (!fn && !me.eliminated)) return null;
   return <div className="action-bar"><div><small>NEXT ACTION</small><b>{fn ? label : "탈락"}</b></div>{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
 }
 
-export function App() {
+export function App({ onHome }: { onHome: () => void }) {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
+  const resultSecondsLeft = useLocalCountdown(state.phase === "ROUND_RESULT" ? 30 : 0);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
   useEffect(() => {
@@ -169,6 +153,11 @@ export function App() {
     const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s) : phase === "RUN_LOADOUT" ? resolvePrimary(lockRunLoadouts(s)) : autoPickDraft(s)), delay);
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId]);
+  useEffect(() => {
+    if (state.phase !== "ROUND_RESULT") return;
+    const timer = setTimeout(() => setState((current) => current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current), 30_000);
+    return () => clearTimeout(timer);
+  }, [state.phase, state.round]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
@@ -184,24 +173,25 @@ export function App() {
     if (a.type === "RUN_LOADOUT") act((s) => setRunLoadout(s, "p1", a.cardIds));
     if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
+  const reset = () => { setGameVersion((value) => value + 1); setState(createGame()); };
   return <CinematicGate key={gameVersion} controls matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><main className="game-arena">
     {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
     <nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">
-      {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
+      {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.phase === "GAME_RESULT" ? "TOURNAMENT COMPLETE" : state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
       <PoolMeter state={state} />
-      <PlayerStrip state={state} />
       {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 5 : draftPickerId === "p1" ? 20 : 1} />}
       {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={60} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
-      {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} /> : null}
+      {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={resultSecondsLeft} /> : null}
       {state.phase === "AUGMENT" ? <AugmentPanel state={state} act={act} /> : null}
       {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다. 탈락자의 카드는 공용 풀로 반환됩니다.</p></section> : null}
       {state.phase === "GAME_RESULT" ? <FinalPanel state={state} /> : null}
-      <ActionBar state={state} act={act} reset={() => { setGameVersion((value) => value + 1); setState(createGame()); }} />
-      <section className="event-log"><header><span className="eyebrow">MATCH FEED</span><b>최근 이벤트</b></header>{state.logs.map((entry) => <p key={entry.id} className={entry.tone}><i>0{entry.id}</i>{entry.message}</p>)}</section>
+      {state.phase === "GAME_RESULT" && <section className="final-exit-actions" aria-label="최종 결과 다음 작업"><button className="primary" onClick={reset}>새 게임 시작 <span>↻</span></button><button className="secondary" onClick={onHome}>홈으로 <span>→</span></button></section>}
+      <ActionBar state={state} act={act} reset={reset} />
+      <EventLog state={state} />
     </div>
   </main></CinematicGate>;
 }

@@ -222,7 +222,7 @@ export function prepareShowdown(source: PorenaGameState, humanIds: readonly stri
   if (humans.some((p) => p.ownedCardIds.length < BALANCE.handLimits[state.round])) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
   const requiredSelection = state.round === 2 ? 2 : 0;
   if (requiredSelection && humans.some((p) => p.selectedCardIds.length !== requiredSelection)) { state.phase = "DECK_SELECT"; return state; }
-  state.phase = "SHOWDOWN_PRIMARY"; log(state, `R${state.round} 쇼다운 준비 완료`); assertPoolIntegrity(state); return state;
+  state.phase = "SHOWDOWN_PRIMARY"; assertPoolIntegrity(state); return state;
 }
 
 export function confirmSelection(source: PorenaGameState): PorenaGameState {
@@ -348,6 +348,15 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
   }));
   for (const playerId of match.playerIds) {
     const player = playerById(state, playerId); const won = awardIds.includes(playerId);
+    if (state.round === 4 && match.group === "loser") {
+      const bb = won ? 20 : 0;
+      player.stackBB += bb;
+      player.points += won ? pointValue : 0;
+      player.winStreak = won ? player.winStreak + 1 : 0;
+      player.loseStreak = won ? 0 : player.loseStreak + 1;
+      match.pointAwardDetails![playerId] += ` · +${bb}BB`;
+      continue;
+    }
     if (state.round === 3) {
       const split = match.winnerIds.length > 1;
       const bb = split ? 0 : won ? 10 : 15 + player.loseStreak * 5;
@@ -609,7 +618,7 @@ export function resolveSurvival(source: PorenaGameState): PorenaGameState {
 
 export function beginSecondary(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source); if (state.phase !== "GROUP_ASSIGNMENT") throw new Error("그룹 배정 단계가 아닙니다.");
-  state.phase = "SHOWDOWN_SECONDARY"; log(state, "새 매치별 보드로 2차전을 시작합니다."); return state;
+  state.phase = "SHOWDOWN_SECONDARY"; return state;
 }
 
 function eliminate(state: PorenaGameState, ids: string[]): void {
@@ -708,7 +717,7 @@ export function startNextRound(source: PorenaGameState): PorenaGameState {
     };
     state.phase = "DRAFT_ORDER";
   } else for (const player of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, player);
-  log(state, `R${state.round} 시작 · 생존자 기본 수입 +${BALANCE.roundIncomeBB}BB`, "economy"); assertPoolIntegrity(state); return state;
+  assertPoolIntegrity(state); return state;
 }
 
 export function openDraft(source: PorenaGameState): PorenaGameState {

@@ -18,5 +18,5 @@ export function ModeApp() {
   }
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>드래프트 준비 중…</p>}><DraftPreview /></Suspense>;
   if (!mode) return <StartScreen onStart={setMode} />;
-  return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>MULTIPLAYER</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>SINGLE / AI</button></div>}{mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>AI 아레나를 준비하고 있습니다.</b></div></main>}><LocalApp /></Suspense> : <OnlineApp onHome={() => setMode(null)} />}</>;
+  return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>MULTIPLAYER</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>SINGLE / AI</button></div>}{mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>AI 아레나를 준비하고 있습니다.</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <OnlineApp onHome={() => setMode(null)} />}</>;
 }

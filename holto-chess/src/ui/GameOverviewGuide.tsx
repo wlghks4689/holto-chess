@@ -10,7 +10,7 @@ const HAND_SCORES = [
   ["풀하우스", BALANCE.handScores.FULL_HOUSE],
   ["포카드", BALANCE.handScores.QUADS],
   ["스트레이트 플러시", BALANCE.handScores.STRAIGHT_FLUSH],
-  ["로열 스트레이트 플러시", BALANCE.handScores.ROYAL_FLUSH],
+  ["로열 플러시", BALANCE.handScores.ROYAL_FLUSH],
 ] as const;
 
 const ROUND_ROWS = [

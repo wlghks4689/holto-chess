@@ -36,15 +36,21 @@ describe("cinematic initial rendering", () => {
     expect(visibleFinalHand(cards, 7)?.category).toBe("FULL_HOUSE");
   });
   it("shows the Swiss matchday and pre-match record without leaking later points", () => {
-    const swiss: MatchView = { ...match, round: 1, matchday: 2, participantIds: ["p1", "p2"],
+    const swiss: MatchView = { ...match, round: 3, matchday: 2, participantIds: ["p1", "p2"],
       swissBefore: { p1: { wins: 1, draws: 0, losses: 0, score: 1 } },
-      swissAfter: { p1: { wins: 2, draws: 0, losses: 0, score: 2 } },
+      swissAfter: { p1: { wins: 2, draws: 0, losses: 0, score: 2 } }, standingsBefore: { p1: 3, p2: 0 }, standingsAfterRuns: [{ p1: 6, p2: 0 }],
       rewards: [{ playerId: "p1", beforeBB: 50, afterBB: 70, deltaBB: 20, beforePoints: 3, afterPoints: 6, deltaPoints: 3, outcome: "SURVIVED" }] };
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {} }));
     expect(html).toContain("MATCH 2/3");
     expect(html).toContain('<p class="swiss-record">1W 0D 0L</p>');
     expect(html).toContain('<em class="cinema-current-points">POINT 3</em>');
     expect(html).not.toContain("2W 0D 0L");
+    const resultAt = cinematicTimeline(swiss).find((entry) => entry.phase === "RESULT")!.at;
+    const resultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: resultAt }));
+    expect(resultHtml).toContain('<p class="swiss-record">2W 0D 0L</p>');
+    expect(resultHtml).toContain('<em class="cinema-current-points">POINT 6</em>');
+    expect(resultHtml).not.toContain("SWISS PAIRING");
+    expect(resultHtml).not.toContain("R3 +");
   });
   it("shows all four final players with 28 card backs, without leaking the result", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {} }));
@@ -65,9 +71,10 @@ describe("cinematic initial rendering", () => {
   it("renders cumulative point standings as explicit rank badges with shared places", () => {
     const ranked: MatchView = { ...match, standingsBefore: { p1: 12, p2: 8, p3: 8, p4: 3 } };
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: ranked, profiles, viewerId: "p1", onComplete: () => {} }));
-    expect(html).toContain('aria-label="현재 승점 순위 1위, 12점"');
-    expect(html.match(/aria-label="현재 승점 순위 공동 2위, 8점"/g)).toHaveLength(2);
-    expect(html).toContain('class="cinema-rank-badge" data-rank="4" aria-label="현재 승점 순위 4위, 3점"');
+    expect(html).toContain('aria-label="현재 승점 순위 1위"');
+    expect(html.match(/aria-label="현재 승점 순위 공동 2위"/g)).toHaveLength(2);
+    expect(html).toContain('class="cinema-rank-badge" data-rank="4" aria-label="현재 승점 순위 4위"');
+    expect(html).not.toMatch(/cinema-rank-badge[^>]*>[^<]*<small>현재 순위<\/small><b>\d+위<\/b>[^<]*<em>/);
     expect(html).not.toContain("TIE");
   });
   it("uses persistent two-faced slots for heads-up hole cards and boards", () => {
@@ -114,7 +121,7 @@ describe("cinematic initial rendering", () => {
       winnerIds: ["p1"], boards: [deck.slice(10, 15)], boardResults: [[]], boardWinnerIds: [["p1"]], results: [], runoutCount: 1,
       revealedCards: { p1: deck.slice(0, 5), p2: deck.slice(5, 10) },
       rewards: [
-        { playerId: "p1", beforeBB: 20, afterBB: 40, deltaBB: 20, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "SURVIVED", detail: "생존 결정 · +0P · BB 20" },
+        { playerId: "p1", beforeBB: 20, afterBB: 40, deltaBB: 20, beforePoints: 0, afterPoints: 2, deltaPoints: 2, outcome: "SURVIVED", detail: "생존 결정 · +2P · BB 20" },
         { playerId: "p2", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED", detail: "생존 결정 · +0P · BB 0" },
       ] };
     const rewardAt = cinematicTimeline(survival).find((entry) => entry.phase === "REWARD")!.at;
@@ -123,8 +130,9 @@ describe("cinematic initial rendering", () => {
     expect(html).toContain('cinema-status-stamp is-eliminated">탈락');
     expect(html).not.toContain("생존 결정");
     expect(html).toContain("+ 20BB");
-    expect(html).toContain("+ 0P 획득");
-    expect(html).not.toContain("+0P · BB 20");
+    expect(html).toContain("+ 2P 획득");
+    expect(html.match(/class="cinema-reward"/g)).toHaveLength(1);
+    expect(html).not.toContain("+ 0P 획득");
     const regularMatch = { ...survival, id: "regular", group: undefined };
     const regularHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: regularMatch, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(regularHtml).toContain('cinema-status-stamp is-eliminated">탈락');
@@ -151,8 +159,10 @@ describe("cinematic initial rendering", () => {
       const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...omaha, gameNumber: undefined, matchday, swissAfter: { p1: swiss, p2: swiss } }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
       expect(html).toContain("OMAHA SWISS");
       expect(html).toContain(`MATCH ${matchday}/3`);
-      expect(html).toContain(matchday === 1 ? "SEED GROUP" : "SWISS PAIRING");
-      expect(html).toContain("R3 +6P");
+      expect(html).toContain('<p class="swiss-record">1W 1D 1L</p>');
+      expect(html).not.toContain("SEED GROUP");
+      expect(html).not.toContain("SWISS PAIRING");
+      expect(html).not.toContain("R3 +6P");
       expect(html.includes("cinema-status-stamp is-eliminated")).toBe(matchday === 3);
     }
   });
@@ -161,7 +171,7 @@ describe("cinematic initial rendering", () => {
       winnerIds: ["p1"], boards: [deck.slice(15, 20)], boardResults: [[]], boardWinnerIds: [["p1"]], results: [], runoutCount: 1,
       revealedCards: { p1: deck.slice(0, 5), p2: deck.slice(5, 10), p3: deck.slice(10, 15) },
       rewards: [
-        { playerId: "p1", beforeBB: 20, afterBB: 40, deltaBB: 20, beforePoints: 0, afterPoints: 3, deltaPoints: 3, outcome: "SURVIVED" },
+        { playerId: "p1", beforeBB: 20, afterBB: 40, deltaBB: 20, beforePoints: 0, afterPoints: 2, deltaPoints: 2, outcome: "SURVIVED" },
         { playerId: "p2", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED" },
         { playerId: "p3", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED" },
       ] };
@@ -169,11 +179,20 @@ describe("cinematic initial rendering", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: threeWay, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(html.match(/cinema-status-stamp is-survived/g)).toHaveLength(1);
     expect(html.match(/cinema-status-stamp is-eliminated/g)).toHaveLength(2);
+    expect(html.match(/class="cinema-reward"/g)).toHaveLength(1);
+    expect(html).toContain("+ 20BB");
+    expect(html).toContain("+ 2P 획득");
+    expect(html).not.toContain("+ 0P 획득");
   });
   it("offers speed and skip only when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));
     expect(html).toContain("Skip Cinematic");
     expect(html).toContain("Animation Speed");
+  });
+  it("removes the redundant settlement status line from the final reward", () => {
+    const rewardAt = cinematicTimeline(match).find((entry) => entry.phase === "REWARD")!.at;
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(html).not.toContain("승점 정산 완료");
   });
   it("keeps scoreboard and logs out of the DOM until the result presentation is dismissed", () => {
     const html = renderToStaticMarkup(createElement(CinematicGate, {

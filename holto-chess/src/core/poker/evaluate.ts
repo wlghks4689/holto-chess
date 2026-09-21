@@ -11,7 +11,7 @@ const CATEGORY_RANK: Record<HandCategory, number> = {
 const CATEGORY_NAME: Record<HandCategory, string> = {
   HIGH_CARD: "하이카드", PAIR: "원페어", TWO_PAIR: "투페어", TRIPS: "트립스",
   STRAIGHT: "스트레이트", FLUSH: "플러시", FULL_HOUSE: "풀하우스",
-  QUADS: "포카드", STRAIGHT_FLUSH: "스트레이트 플러시", ROYAL_FLUSH: "로열 스트레이트 플러시",
+  QUADS: "포카드", STRAIGHT_FLUSH: "스트레이트 플러시", ROYAL_FLUSH: "로열 플러시",
 };
 
 function value(category: HandCategory, kickers: number[], cards: Card[]): HandValue {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../core/poker/cards";
-import { detailedHandLabel } from "./handLabel";
+import { compactHandName, detailedHandLabel } from "./handLabel";
 
 const card = (id: string, rank: Card["rank"]): Card => ({ id, rank, suit: "s" });
 
@@ -17,7 +17,11 @@ describe("detailed showdown labels", () => {
 
   it("names a royal flush explicitly instead of A-high straight flush", () => {
     expect(detailedHandLabel("ROYAL_FLUSH", [14], [], []))
-      .toEqual({ title: "로열 스트레이트 플러시" });
+      .toEqual({ title: "로열 플러시" });
+  });
+
+  it("shortens the legacy persisted royal-flush label", () => {
+    expect(compactHandName("로열 스트레이트 플러시")).toBe("로열 플러시");
   });
 
   it("spells out all five ranks for a full house instead of leaving an empty kicker line", () => {

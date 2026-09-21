@@ -29,7 +29,7 @@ const SAMPLE_HANDS: Record<string, string[]> = {
   "풀하우스": ["Qh", "Qd", "Qc", "9s", "9h"],
   "포카드": ["Qh", "Qd", "Qc", "Qs", "9h"],
   "스트레이트 플러시": ["9h", "8h", "7h", "6h", "5h"],
-  "로열 스트레이트 플러시": ["Ah", "Kh", "Qh", "Jh", "Th"],
+  "로열 플러시": ["Ah", "Kh", "Qh", "Jh", "Th"],
 };
 
 type Context = "cinema" | "recap";

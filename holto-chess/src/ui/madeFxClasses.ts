@@ -23,7 +23,7 @@ export function cinemaSeatClass({ tone, placement, made, leading }: {
 /** Every made-hand tone the palette distinguishes, weakest first. */
 export const MADE_TONE_SAMPLES = [
   "하이카드", "원페어", "투페어", "트립스",
-  "스트레이트", "플러시", "풀하우스", "포카드", "스트레이트 플러시", "로열 스트레이트 플러시",
+  "스트레이트", "플러시", "풀하우스", "포카드", "스트레이트 플러시", "로열 플러시",
 ] as const;
 
 /** Tones that carry a dedicated effect; the rest fall back to the default ring. */

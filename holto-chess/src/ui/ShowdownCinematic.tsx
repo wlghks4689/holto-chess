@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { MatchView, PresentationView, RevealedHand } from "../shared/protocol";
-import { ROUND_POINTS } from "../game/config";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
@@ -139,9 +138,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const won = winners.includes(id);
       const cards = cardsForRun(id);
       const label = result ? labelFor(id, result) : undefined;
-      const swiss = (flags.reward ? match.swissAfter : match.swissBefore)?.[id];
-      const ledger = match.rewards.find((reward) => reward.playerId === id);
+      const swiss = (flags.result ? match.swissAfter : match.swissBefore)?.[id];
       const reward = (match.runRewards?.[frame.boardIndex] ?? match.rewards).find((r) => r.playerId === id);
+      const showReward = !(match.round === 4 && match.group === "loser" && reward?.outcome === "ELIMINATED");
       // Do not reveal the round's final elimination before Swiss Match 3.
       // Retain Game 2 gating only for already-resolved legacy snapshots.
       const eliminationResultReady = match.round !== 3 || (match.matchday ? match.matchday === 3 : match.gameNumber !== 1);
@@ -164,10 +163,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           : { stage: "pending", tag: "HAND READ", title: "—", detail: undefined };
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
-        {swiss && <p className="swiss-record">{match.round === 3 ? `R3 · ${match.matchday === 1 ? "SEED GROUP" : "SWISS PAIRING"} · ` : ""}{swiss.wins}W {swiss.draws}D {swiss.losses}L{match.round === 3 ? ` · R3 +${swiss.wins * ROUND_POINTS.r3.gameWin + swiss.draws * ROUND_POINTS.r3.gameSplit}P` : ""}</p>}
+        {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
-          {match.round >= 2 && currentRank !== undefined && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 승점 순위 ${tiedOnPoints ? "공동 " : ""}${currentRank}위, ${currentPoints}점`}><small>현재 순위</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}<em>{currentPoints}P</em></span>}
-          {swiss && <em className="cinema-current-points">POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</em>}
+          {match.round >= 2 && currentRank !== undefined && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 승점 순위 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재 순위</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}</span>}
+          {swiss && currentPoints !== undefined && <em className="cinema-current-points">POINT {currentPoints}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
           {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
           {!final && (flags.result || flags.runResult) && !survivalOutcome && <span className="cinema-victory" key="outcome">{(flags.runResult || match.runCards) ? `RUN ${frame.boardIndex + 1} · ${won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}` : won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
@@ -188,7 +187,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {!final && flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {flags.glow && board.length > 0 && result && <button className="cinema-focus" aria-pressed={focus?.playerId === id} onClick={() => setFocusId(id)}>BEST 5 확인{match.round === 3 ? " · 홀 2 + 보드 3" : ""}</button>}
-        {(flags.reward || flags.runResult && match.runRewards) && reward && <div className="cinema-reward">{final
+        {(flags.reward || flags.runResult && match.runRewards) && reward && showReward && <div className="cinema-reward">{final
           ? <strong>{ordinalPlace(result?.place)} PLACE REWARD <i>·</i> {reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))} POINT</strong>
           : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> {reward.deltaPoints >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaPoints).toFixed(2))}P 획득</strong>}</div>}
       </div>;
@@ -214,8 +213,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         })}</div>
       </div>;
     })}</div>}
-    <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? final ? "승점 정산 완료" : "" : final && frame.phase === "FINAL_WINNER" ? "1위 확정" : final && frame.phase === "FINAL_PLACE" ? `${frame.finalPlace}위 확정` : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? finalHeading.kicker : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}
-      {frame.phase === "COMPLETE" && !synced && <button className="primary" onClick={onComplete}>결과 확인 →</button>}</footer>
+    <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? "" : final && frame.phase === "FINAL_WINNER" ? "1위 확정" : final && frame.phase === "FINAL_PLACE" ? `${frame.finalPlace}위 확정` : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? finalHeading.kicker : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}
+      {frame.phase === "COMPLETE" && !synced && <button className="primary" onClick={onComplete}>{final ? "최종 결과 확인 →" : "결과 확인 →"}</button>}</footer>
   </section>;
 }
 

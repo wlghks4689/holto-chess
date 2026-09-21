@@ -13,7 +13,7 @@ export const ROUND_POINTS = {
   r3: { gameWin: 4, gameSplit: 2 },
   r4Primary: { win: 10, split: 5, groupDeciderBonus: 0 },
   r4WinnerGroup: { first: 5, tiebreakBonus: 0 },
-  r4LoserGroup: { survive: 0, tiebreakBonus: 0 },
+  r4LoserGroup: { survive: 2, tiebreakBonus: 0 },
 } as const;
 
 export const BALANCE = {
