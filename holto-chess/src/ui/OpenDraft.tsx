@@ -3,6 +3,7 @@ import { CardBack, CardView } from "./CardView";
 import { useLocalCountdown } from "./useLocalCountdown";
 import "./open-draft.css";
 import { R2DraftArena } from "./R2DraftArena";
+import { PhaseTimer } from "./PhaseTimer";
 
 export function OpenDraftPanel({ view, send, disabled, seconds }: {
   view: PlayerView; send: (action: GameAction) => void; disabled: boolean; seconds: number | null;
@@ -14,7 +15,7 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
   return <section className="open-draft panel" aria-label={`R${view.round} 공개 드래프트`}>
-    <header><small className="draft-kicker">ROUND {view.round} · {ordering ? "선택 순서 안내" : "공개 드래프트"}</small><h2>{ordering ? "낮은 순위부터 카드를 선택합니다" : "공개 카드 한 장을 선택하세요"}</h2><div className="draft-clock" role="timer" aria-label={`선택 제한 남은 시간 ${seconds ?? (ordering ? 5 : 20)}초`}><span>남은 시간</span><strong>{seconds ?? (ordering ? 5 : 20)}</strong><span>초</span></div></header>
+    <header><small className="draft-kicker">ROUND {view.round} · {ordering ? "선택 순서 안내" : "공개 드래프트"}</small><h2>{ordering ? "낮은 순위부터 카드를 선택합니다" : "공개 카드 한 장을 선택하세요"}</h2><PhaseTimer className="draft-clock" seconds={seconds ?? (ordering ? 5 : 20)} ariaLabel={`선택 제한 남은 시간 ${seconds ?? (ordering ? 5 : 20)}초`} /></header>
     <p className="draft-rule"><span>승점이 낮은 순서</span><i>→</i><span>동점이면 BB가 높은 순서</span><i>→</i><span>완전 동률은 서버 추첨</span></p>
     {view.round === 4 && <div className="draft-private-inventory"><small>내 보유 카드 · 상대에게 비공개</small><div className="card-row centered">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
@@ -48,12 +49,12 @@ export function RunLoadoutPanel({ view, send, disabled, seconds }: {
     if (previous >= 0) [next[slot], next[previous]] = [next[previous]!, next[slot]!];
     send({ type: "RUN_LOADOUT", cardIds: next });
   };
-  return <section className="panel run-loadout"><small>RUN LOADOUT · 세 장 모두 사용</small><h2>대표 카드와 두 RUN을 설계하세요</h2>
+  return <section className="panel run-loadout"><h2>대표 카드와 두 RUN을 설계하세요</h2>
     <div className="run-loadout-slots">{["ANCHOR · 두 RUN 공통", "RUN 1 · 보조 카드", "RUN 2 · 보조 카드"].map((label, index) => <label key={label}><b>{label}</b>
       {owned.find((c) => c.id === ids[index]) && <CardView card={owned.find((c) => c.id === ids[index])!} />}
       <select aria-label={label} disabled={disabled || ready} value={ids[index]} onChange={(e) => change(index, e.target.value)}>{owned.map((c) => <option value={c.id} key={c.id}>{c.id}</option>)}</select>
     </label>)}</div><p>대표 카드는 유지하고 보조 카드만 교체합니다. RUN 시작 후에는 변경할 수 없습니다.</p>
-    <div className="action-bar run-loadout-action"><p>시간이 끝나면 미완성 배치는 자동으로 완성됩니다.</p><button className="primary" disabled={disabled || ready} onClick={() => send({ type: "LOCK_RUN_LOADOUT" })}>{ready ? "LOADOUT LOCKED" : "배치 확정 · 준비 완료"}<strong className="run-loadout-timer" role="timer">{seconds ?? 60}초</strong></button></div>
+    <div className="action-bar run-loadout-action"><p>시간이 끝나면 미완성 배치는 자동으로 완성됩니다.</p><PhaseTimer seconds={seconds ?? 60} ariaLabel={`배치 확정 남은 시간 ${seconds ?? 60}초`} /><button className="primary" disabled={disabled || ready} onClick={() => send({ type: "LOCK_RUN_LOADOUT" })}>{ready ? "LOADOUT LOCKED" : "배치 확정 · 준비 완료"}</button></div>
   </section>;
 }
 

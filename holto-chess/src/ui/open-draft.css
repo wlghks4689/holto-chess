@@ -2,11 +2,7 @@
 .panel.open-draft>header { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:auto auto; align-items:center; gap:5px 24px; margin-bottom:7px; padding:4px 16px 14px; border-bottom:1px solid #21424d; }
 .draft-kicker { grid-column:1; grid-row:1; color:#79ddd8; font:600 11px/1.3 DM Mono; letter-spacing:.12em; }
 .open-draft>header h2 { grid-column:1; grid-row:2; margin:0; font-size:clamp(20px,2.5vw,28px); line-height:1.15; }
-.draft-clock { grid-column:2; grid-row:1/3; display:grid; grid-template-columns:1fr auto; align-items:end; justify-items:end; column-gap:5px; min-width:112px; border:1px solid rgba(111,238,221,.5); border-radius:8px; padding:8px 12px 7px; background:linear-gradient(145deg,rgba(20,76,83,.84),rgba(3,22,31,.95)); box-shadow:0 0 18px rgba(83,220,214,.13),inset 0 1px rgba(210,255,252,.08); color:#d8ecec; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.draft-clock strong { grid-column:1; grid-row:2; color:#fff; font:800 34px/.9 DM Mono; letter-spacing:-.06em; text-shadow:0 0 13px rgba(111,238,221,.42); }
-.draft-clock span { color:#a8d2d5; font:700 11px/1 DM Mono; letter-spacing:.06em; }
-.draft-clock span:first-child { grid-column:1/-1; grid-row:1; margin-bottom:4px; }
-.draft-clock span:last-child { grid-column:2; grid-row:2; padding-bottom:2px; }
+.draft-clock { grid-column:2; grid-row:1/3; }
 .draft-rule { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:2px 16px 10px; color:#8aaab1; font:600 10px/1.4 DM Mono; }
 .draft-rule span { border:1px solid rgba(103,203,220,.16); border-radius:999px; padding:5px 9px; background:rgba(4,23,31,.55); }
 .draft-rule i { color:#5fbdbd; font-style:normal; }
@@ -23,8 +19,9 @@
 .draft-acquired { animation:draft-acquire .45s ease-out; }
 @keyframes draft-acquire { from { opacity:0; transform:translateY(-24px) scale(.8); } to { opacity:1; transform:none; } }
 .draft-arena { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); align-items:start; gap:12px 8px; padding:24px 16px 20px; border-radius:24px; background:radial-gradient(ellipse at 50% 30%,#16404b,#071821 72%); border:1px solid #36727d; margin:8px 0 16px; }
-.draft-offer { display:grid; grid-template-rows:112px 19px minmax(28px,auto); align-items:start; justify-items:center; gap:5px; min-width:0; }
-.draft-offer .playing-card { align-self:start; }
+.draft-offer { display:grid; grid-template-rows:75px 19px minmax(28px,auto); align-items:start; justify-items:center; gap:5px; min-width:0; }
+.draft-offer .playing-card { align-self:start;width:53px;height:75px;border-radius:7px; }
+.draft-offer .card-rank{font-size:19px}.draft-offer .card-suit{font-size:25px}
 .draft-price { min-width:48px; padding:5px 8px;border:1px solid #315b66;border-radius:999px;background:#061821;color:#b9e8e5;text-align:center;font:700 12px/1 DM Mono;white-space:nowrap; }
 .draft-offer.claimed { opacity:.42; }
 .draft-offer>small { display:flex; align-items:flex-start; justify-content:center; width:100%; min-height:28px; text-align:center; font-size:10px; line-height:1.35; overflow-wrap:anywhere; }
@@ -41,9 +38,8 @@
 .run-loadout-slots select { background:#102d38; color:white; padding:8px; width:100%; }
 .run-loadout-action>p { margin:0; color:#7896a4; font-size:11px; line-height:1.55; }
 .run-loadout-action>.primary { display:flex; align-items:center; justify-content:center; gap:15px; }
-.run-loadout-timer { min-width:42px; padding-left:15px; border-left:1px solid rgba(4,33,35,.28); color:#06262b; font:800 14px/1 DM Mono; font-variant-numeric:tabular-nums; }
-@media(max-width:700px) { .open-draft { padding-top:14px; } .panel.open-draft>header { gap:5px 10px; padding:3px 12px 12px; } .draft-kicker { font-size:9px; } .open-draft>header h2 { font-size:18px; } .draft-clock { min-width:96px;padding:7px 10px 6px; } .draft-clock strong { font-size:32px; } .draft-clock span { font-size:10px; } .draft-rule { gap:5px;margin-inline:12px;font-size:9px}.draft-rule span{padding:4px 7px}.draft-order { grid-template-columns:repeat(2,minmax(0,1fr)); } .draft-arena { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 6px; padding:16px 8px 14px; border-radius:18px; } .draft-offer { grid-template-rows:76px 22px 28px; gap:4px; } .draft-arena .playing-card { width:52px; height:76px; min-width:0; } .draft-price { min-width:44px;padding:4px 6px;font-size:11px; } .draft-offer>small { font-size:9px; } .run-loadout-slots { gap:5px; } .run-loadout-slots .playing-card { width:54px; height:76px; min-width:0; } }
+@media(max-width:700px) { .open-draft { padding-top:14px; } .panel.open-draft>header { gap:5px 10px; padding:3px 12px 12px; } .draft-kicker { font-size:9px; } .open-draft>header h2 { font-size:18px; } .draft-rule { gap:5px;margin-inline:12px;font-size:9px}.draft-rule span{padding:4px 7px}.draft-order { grid-template-columns:repeat(2,minmax(0,1fr)); } .draft-arena { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 6px; padding:16px 8px 14px; border-radius:18px; } .draft-offer { grid-template-rows:76px 22px 28px; gap:4px; } .draft-arena .playing-card { width:52px; height:76px; min-width:0; } .draft-price { min-width:44px;padding:4px 6px;font-size:11px; } .draft-offer>small { font-size:9px; } .run-loadout-slots { gap:5px; } .run-loadout-slots .playing-card { width:54px; height:76px; min-width:0; } }
 @media(max-width:520px){.draft-rule i{display:none}.draft-rule span{flex:1 1 100%;text-align:center}}
-@media(max-width:420px) { .panel.open-draft>header { grid-template-columns:minmax(0,1fr) 88px; gap:4px 8px; } .draft-kicker{white-space:normal;line-height:1.2}.open-draft>header h2{font-size:16px;line-height:1.2}.draft-clock{min-width:88px;padding-inline:8px}.draft-clock strong{font-size:30px} }
+@media(max-width:420px) { .panel.open-draft>header { grid-template-columns:minmax(0,1fr) 88px; gap:4px 8px; } .draft-kicker{white-space:normal;line-height:1.2}.open-draft>header h2{font-size:16px;line-height:1.2} }
 @media(max-width:620px) { .run-loadout-action { align-items:stretch; } .run-loadout-action>p { display:block; width:100%; text-align:center; font-size:10px; } .run-loadout-action>.primary { width:100%; } }
 @media(prefers-reduced-motion:reduce) { .draft-acquired { animation:none; } }

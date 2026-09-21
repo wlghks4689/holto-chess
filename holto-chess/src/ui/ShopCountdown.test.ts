@@ -17,15 +17,13 @@ describe("shop countdown", () => {
     expect([11, 10, 6, 5, 0].map(countdownUrgency)).toEqual(["normal", "warning", "warning", "critical", "critical"]);
   });
 
-  it("explains the auto-commit only while the player can still act", () => {
+  it("uses the shared phase timer presentation", () => {
     const open = renderToStaticMarkup(createElement(ShopCountdown, { endsAt: 60_000, totalMs: 60_000, now: 18_000, committed: false }));
     expect(open).toContain("상점 종료까지");
-    expect(open).toContain("0:42");
-    expect(open).toContain("AI가 자동 확정");
-    expect(open).toContain("--countdown-ratio:0.7");
+    expect(open).toContain("phase-timer is-normal shop-countdown");
+    expect(open).toContain("<strong>42<i>초</i></strong>");
     const done = renderToStaticMarkup(createElement(ShopCountdown, { endsAt: 60_000, totalMs: 60_000, now: 55_500, committed: true }));
     expect(done).toContain("다른 플레이어 상점 종료까지");
     expect(done).toContain("is-critical");
-    expect(done).not.toContain("AI가 자동 확정");
   });
 });

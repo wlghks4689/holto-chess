@@ -35,9 +35,11 @@ describe("getPrepPresentation", () => {
 
   it("keeps prep rules inside the title rulebook instead of the header", () => {
     const prep = getPrepPresentation(3, "SHOP")!;
-    const html = renderToStaticMarkup(createElement(PrepRoundHeader, { prep, phaseLabel: "상점" }));
+    const html = renderToStaticMarkup(createElement(PrepRoundHeader, { prep }));
     expect(html).not.toContain("ROUND 02 COMPLETE");
     expect(html).not.toContain("PREP PHASE");
+    expect(html).not.toContain("CURRENT PHASE");
+    expect(html).not.toContain("PREPARING R03");
     expect(html).toContain("OMAHA SWISS 규칙 보기");
     expect(html).toContain("정확히 홀카드 2장 + 보드 3장 사용");
   });
