@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { assertPoolIntegrity, ownershipCounts } from "../game/cardPool";
 import { BALANCE, purchaseLimitFor, rerollLimitFor } from "../game/config";
 import {
@@ -27,7 +27,7 @@ import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts
 import { createPlayerView } from "../game/playerView";
 import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import type { GameAction } from "../shared/protocol";
-import { useLocalCountdown } from "./useLocalCountdown";
+import { LocalResultWindow } from "./LocalResultWindow";
 import { playerEventFeed } from "./playerEventFeed";
 import { FinalStandingRow } from "./FinalStandingRow";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
@@ -141,8 +141,7 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
 
 export function App({ onHome }: { onHome: () => void }) {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
-  const localResultSecondsLeft = useLocalCountdown(state.phase === "ROUND_RESULT" && !pauseLocalResultTimer ? 30 : 0);
-  const resultSecondsLeft = pauseLocalResultTimer ? null : localResultSecondsLeft;
+  const expireResult = useCallback(() => setState((current) => current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current), []);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
   useEffect(() => {
@@ -152,11 +151,6 @@ export function App({ onHome }: { onHome: () => void }) {
     const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s) : phase === "RUN_LOADOUT" ? resolvePrimary(lockRunLoadouts(s)) : autoPickDraft(s)), delay);
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId]);
-  useEffect(() => {
-    if (state.phase !== "ROUND_RESULT" || pauseLocalResultTimer) return;
-    const timer = setTimeout(() => setState((current) => current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current), 30_000);
-    return () => clearTimeout(timer);
-  }, [state.phase, state.round]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
@@ -173,7 +167,7 @@ export function App({ onHome }: { onHome: () => void }) {
     if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
   const reset = () => { setGameVersion((value) => value + 1); setState(createGame()); };
-  return <CinematicGate key={gameVersion} controls matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><main className="game-arena">
+  return <CinematicGate key={gameVersion} controls matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
     <nav><a className="brand" href="#top"><span>P</span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></nav>
     <div id="top" className="page-shell">
@@ -192,5 +186,5 @@ export function App({ onHome }: { onHome: () => void }) {
       <ActionBar state={state} act={act} reset={reset} />
       <EventLog state={state} />
     </div>
-  </main></CinematicGate>;
+  </main>}</LocalResultWindow></CinematicGate>;
 }
