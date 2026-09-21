@@ -131,6 +131,45 @@ describe("cinematic initial rendering", () => {
     expect(regularHtml).not.toContain("is-survived");
     expect(regularHtml).toContain("WIN");
   });
+  it("defers R3 elimination stamps until Omaha Game 2", () => {
+    const omaha: MatchView = { ...match, id: "omaha", round: 3, gameNumber: 1, participantIds: ["p1", "p2"],
+      winnerIds: ["p1"], boards: [deck.slice(10, 15)], boardResults: [[]], boardWinnerIds: [["p1"]], results: [], runoutCount: 1,
+      revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) },
+      rewards: [
+        { playerId: "p1", beforeBB: 20, afterBB: 40, deltaBB: 20, beforePoints: 0, afterPoints: 3, deltaPoints: 3, outcome: "SURVIVED" },
+        { playerId: "p2", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED" },
+      ] };
+    const rewardAt = cinematicTimeline(omaha).find((entry) => entry.phase === "REWARD")!.at;
+    const game1Html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: omaha, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(game1Html).not.toContain("cinema-status-stamp");
+    expect(game1Html).toContain("LOSS");
+
+    const game2Html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...omaha, gameNumber: 2 }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(game2Html).toContain('cinema-status-stamp is-eliminated">탈락');
+    for (const matchday of [1, 2, 3]) {
+      const swiss = { wins: 1, draws: 1, losses: 1, score: 1.5 };
+      const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...omaha, gameNumber: undefined, matchday, swissAfter: { p1: swiss, p2: swiss } }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+      expect(html).toContain("OMAHA SWISS");
+      expect(html).toContain(`MATCH ${matchday}/3`);
+      expect(html).toContain(matchday === 1 ? "SEED GROUP" : "SWISS PAIRING");
+      expect(html).toContain("R3 +6P");
+      expect(html.includes("cinema-status-stamp is-eliminated")).toBe(matchday === 3);
+    }
+  });
+  it("shows one survivor and two elimination stamps in the R4 loser three-way", () => {
+    const threeWay: MatchView = { ...match, id: "r4-loser-three-way", round: 4, group: "loser", participantIds: ["p1", "p2", "p3"],
+      winnerIds: ["p1"], boards: [deck.slice(15, 20)], boardResults: [[]], boardWinnerIds: [["p1"]], results: [], runoutCount: 1,
+      revealedCards: { p1: deck.slice(0, 5), p2: deck.slice(5, 10), p3: deck.slice(10, 15) },
+      rewards: [
+        { playerId: "p1", beforeBB: 20, afterBB: 40, deltaBB: 20, beforePoints: 0, afterPoints: 3, deltaPoints: 3, outcome: "SURVIVED" },
+        { playerId: "p2", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED" },
+        { playerId: "p3", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED" },
+      ] };
+    const rewardAt = cinematicTimeline(threeWay).find((entry) => entry.phase === "REWARD")!.at;
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: threeWay, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(html.match(/cinema-status-stamp is-survived/g)).toHaveLength(1);
+    expect(html.match(/cinema-status-stamp is-eliminated/g)).toHaveLength(2);
+  });
   it("offers speed and skip only when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));
     expect(html).toContain("Skip Cinematic");

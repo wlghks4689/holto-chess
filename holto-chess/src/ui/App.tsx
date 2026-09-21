@@ -21,7 +21,6 @@ import { RoundResults } from "./RoundResults";
 import { createRoundSummary, roundMatches } from "../game/roundSummary";
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
-import { LoadoutSockets } from "./LoadoutSockets";
 import { preloadFinalArena } from "./finalShowdownPresentation";
 import { preloadShowdownStage } from "./showdownStage";
 import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
@@ -34,7 +33,7 @@ const displayPoints = (value: number) => Number(value.toFixed(2));
 const ROUND_COPY = {
   1: { title: "TWO HAND", rule: "홀 2 + 매치별 보드 5 · Hold’em", cap: 2 },
   2: { title: "RUN IT TWICE", rule: "3장 중 2장 선택 · 매치별 두 보드", cap: 3 },
-  3: { title: "OMAHA DOUBLE", rule: "4장을 2장씩 분할 · 독립 보드 2게임", cap: 4 },
+  3: { title: "OMAHA SWISS", rule: "보유 4장 · Swiss 3경기 · 홀 2 + 보드 3", cap: 4 },
   4: { title: "BEST FIVE", rule: "홀 5 + 보드 5 중 자유 BEST 5", cap: 5 },
   5: { title: "THE LAST HAND", rule: "커뮤니티 보드 없이 보유 7장", cap: 7 },
 } as const;
@@ -103,26 +102,15 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
   </section>;
 }
 
-/** Replays an ordered loadout through the engine's own toggle, so selection rules stay in one place. */
-function applyLoadout(source: PorenaGameState, playerId: string, selection: string[] | null): PorenaGameState {
-  let state = source;
-  for (const id of [...state.players.find((p) => p.id === playerId)!.selectedCardIds]) state = toggleSelectedCard(state, playerId, id);
-  for (const id of selection ?? []) state = toggleSelectedCard(state, playerId, id);
-  return state;
-}
-
 function SelectPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
   const me = state.players[0]!;
-  const r3 = state.round === 3;
-  if (r3) return <section className="panel select-panel"><span className="eyebrow">ROUND 3 · LOADOUT</span><h2>Game 1과 Game 2 소켓에 카드를 배치하세요</h2><p>게임마다 2장씩 사용합니다. 두 게임은 서로 다른 보드로 진행됩니다.</p>
-    <LoadoutSockets cards={me.ownedCardIds.map((id) => getCard(state, id))} selectedCardIds={me.selectedCardIds} onChange={(selection) => act((s) => applyLoadout(s, me.id, selection))} /></section>;
-  return <section className="panel select-panel"><span className="eyebrow">ROUND {state.round} · LOADOUT</span><h2>{r3 ? "Game 1과 Game 2에 사용할 카드를 순서대로 선택하세요" : "Run It Twice에 사용할 2장을 선택하세요"}</h2><p>{r3 ? "먼저 고른 2장은 Game 1, 다음 2장은 Game 2에 배정됩니다. 두 게임은 서로 다른 보드로 진행됩니다." : "선택하지 않은 카드는 계속 소유합니다. 두 보드와 Sudden Death에서도 같은 홀카드를 사용합니다."}</p><div className="card-row centered">{me.ownedCardIds.map((id) => { const index = me.selectedCardIds.indexOf(id); const footer = index < 0 ? "선택" : r3 ? index < 2 ? "GAME 1" : "GAME 2" : "선택됨"; return <CardView key={id} card={getCard(state, id)} selected={index >= 0} onClick={() => act((s) => toggleSelectedCard(s, me.id, id))} footer={footer} />; })}</div></section>;
+  return <section className="panel select-panel"><span className="eyebrow">ROUND 2 · LOADOUT</span><h2>Run It Twice에 사용할 2장을 선택하세요</h2><p>선택하지 않은 카드는 계속 소유합니다. 두 보드와 Sudden Death에서도 같은 홀카드를 사용합니다.</p><div className="card-row centered">{me.ownedCardIds.map((id) => { const chosen = me.selectedCardIds.includes(id); return <CardView key={id} card={getCard(state, id)} selected={chosen} onClick={() => act((s) => toggleSelectedCard(s, me.id, id))} footer={chosen ? "선택됨" : "선택"} />; })}</div></section>;
 }
 
 function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; match: MatchResult; matchNumber: number }) {
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
   const winnerNames = match.winnerIds.map((id) => state.players.find((p) => p.id === id)!.name).join(", ");
-  const stageLabel = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : match.stage === "final" ? "최종전" : match.group === "winner" ? "승자조" : match.group === "loser" ? "생존전" : match.stage === "secondary" ? "2차전" : "1차전";
+  const stageLabel = match.matchday ? `MATCH ${match.matchday}/3 · ${state.round === 3 && match.matchday === 1 ? "SEED GROUP" : "SWISS PAIRING"}` : match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : match.stage === "final" ? "최종전" : match.group === "winner" ? "승자조" : match.group === "loser" ? "생존전" : match.stage === "secondary" ? "2차전" : "1차전";
   const outcomeLabel = match.stage === "final" ? "최종 1위" : match.group === "loser" ? "생존" : "승리";
   return <article className="match-card">
     {match.highCardDraw && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
@@ -143,7 +131,7 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
 
 function ShowdownPanel({ state }: { state: PorenaGameState }) {
   if (!state.roundResults.length) return <section className="arena-empty panel"><span className="arena-mark">♞</span><h2>쇼다운 준비 완료</h2><p>각 매치는 참가자가 소유한 모든 카드를 제외한 독립 Showdown Deck으로 진행됩니다.</p></section>;
-  return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1">{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
+  return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
 }
 
 function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
@@ -158,14 +146,14 @@ function FinalPanel({ state }: { state: PorenaGameState }) {
 function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void; reset: () => void }) {
   const me = state.players[0]!; let label = "계속"; let fn: ((s: PorenaGameState) => PorenaGameState) | null = null;
   if (state.phase === "SHOP") { label = `구성 확정 · R${state.round} 쇼다운`; fn = prepareShowdown; }
-  if (state.phase === "DECK_SELECT") { const required = state.round === 3 ? 4 : 2; label = `선택 확정 (${me.selectedCardIds.length}/${required})`; fn = confirmSelection; }
+  if (state.phase === "DECK_SELECT") { label = `선택 확정 (${me.selectedCardIds.length}/2)`; fn = confirmSelection; }
   if (state.phase === "SHOWDOWN_PRIMARY") { label = state.round === 5 ? "The Last Hand 공개" : "1차 쇼다운 공개"; fn = resolvePrimary; }
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
   if (state.phase === "SHOWDOWN_SECONDARY") { label = "새 매치 보드 공개"; fn = resolveSecondary; }
   if (state.phase === "SURVIVAL_READY") { label = "생존 타이브레이크 시작"; fn = resolveSurvival; }
   if (state.phase === "ROUND_RESULT") { label = state.round === 2 || state.round === 4 ? "증강 드래프트" : "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} 상점으로`; fn = startNextRound; }
-  const requiredSelection = state.round === 3 ? 4 : 2;
+  const requiredSelection = 2;
   if (!fn && !me.eliminated) return null;
   return <div className="action-bar"><div><small>NEXT ACTION</small><b>{fn ? label : "탈락"}</b></div>{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
 }

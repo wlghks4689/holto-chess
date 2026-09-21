@@ -7,7 +7,6 @@ import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
 import type { Augment, PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
-import { fillSlots, normalizeSlots } from "../shared/loadoutSlots";
 import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
 
 // Server-only snapshot. Never use this type as a network payload.
@@ -230,23 +229,14 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
       case "REROLL": room.game = rerollShop(room.game, playerId); break;
       case "LOCK_SHOP": room.game = toggleShopLock(room.game, playerId, action.cardId); break;
       case "SELECT_CARDS":
-        { const required = room.game.round === 2 ? 2 : room.game.round === 3 ? 4 : 0;
+        { const required = room.game.round === 2 ? 2 : 0;
         if (!required || (room.game.round === 2 ? action.cardIds.length > required : action.cardIds.length !== required) || new Set(action.cardIds).size !== action.cardIds.length || action.cardIds.some((id) => !me.ownedCardIds.includes(id))) throw new Error(`보유 카드 ${required || 2}장을 선택하세요.`); }
         me.selectedCardIds = [...action.cardIds];
-        if (room.game.round === 3) { room.loadoutDrafts ??= {}; room.loadoutDrafts[playerId] = [...action.cardIds]; }
         break;
-      case "SELECT_LOADOUT": {
-        if (room.game.round !== 3 || action.slots.length !== 4 || action.slots.some((id) => id !== null && !me.ownedCardIds.includes(id)) || new Set(action.slots.filter(Boolean)).size !== action.slots.filter(Boolean).length) throw new Error("내 보유 카드만 서로 다른 소켓에 배치하세요.");
-        room.loadoutDrafts ??= {};
-        room.loadoutDrafts[playerId] = [...action.slots];
-        me.selectedCardIds = action.slots.every((id): id is string => !!id) ? [...action.slots] : [];
-        break;
-      }
+      case "SELECT_LOADOUT": throw new Error("R3는 보유 4장을 모두 사용합니다. 분할 배치는 지원하지 않습니다.");
       case "END_SHOP_PHASE":
-        if (room.game.round === 3) me.selectedCardIds = fillSlots(room.loadoutDrafts?.[playerId] ?? me.selectedCardIds, me.ownedCardIds);
         if (me.ownedCardIds.length !== BALANCE.handLimits[room.game.round]) throw new Error(`카드 ${BALANCE.handLimits[room.game.round]}장이 필요합니다.`);
         if (room.game.round === 2 && me.selectedCardIds.length !== 2) throw new Error("출전 카드 2장을 선택하세요.");
-        if (room.game.round === 3 && me.selectedCardIds.length !== 4) throw new Error("Game 1·2용 카드 4장을 나누세요.");
         room.endedShopIds.push(playerId);
         if (activeHumans(room).every((id) => room.endedShopIds.includes(id))) room.game = prepareShowdown(room.game, controlledHumanIds(room));
         break;
@@ -273,18 +263,10 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   if (room.game.phase === "OPEN_DRAFT") {
     room.game = autoPickDraft(room.game);
   } else if (room.game.phase === "SHOP") {
-    // Complete missing sockets without letting the timeout bot reshuffle a complete human hand.
+    // Preserve complete human Omaha hands when the shop timer expires.
     const loadoutOnly = room.game.round === 3 ? pending.filter((id) => room.game.players.find((p) => p.id === id)!.ownedCardIds.length === BALANCE.handLimits[3]) : [];
-    for (const id of loadoutOnly) {
-      const player = room.game.players.find((p) => p.id === id)!;
-      player.selectedCardIds = fillSlots(room.loadoutDrafts?.[id] ?? player.selectedCardIds, player.ownedCardIds);
-    }
     // Excluding them from the human list hands their shop to the existing bot.
     room.game = prepareShowdown(room.game, controlledHumanIds(room).filter((id) => !pending.includes(id) || loadoutOnly.includes(id)));
-    if (room.game.round === 3) for (const id of pending.filter((id) => !loadoutOnly.includes(id))) {
-      const player = room.game.players.find((p) => p.id === id)!;
-      player.selectedCardIds = fillSlots(normalizeSlots(room.loadoutDrafts?.[id] ?? [], player.ownedCardIds), player.ownedCardIds);
-    }
     for (const id of pending) if (!room.endedShopIds.includes(id)) room.endedShopIds.push(id);
   } else if (room.game.phase === "AUGMENT") {
     for (const id of pending) {

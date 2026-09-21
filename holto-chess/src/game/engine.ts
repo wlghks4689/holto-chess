@@ -155,9 +155,10 @@ export function toggleShopLock(source: PorenaGameState, playerId: string, cardId
 
 export function toggleSelectedCard(source: PorenaGameState, playerId: string, cardId: string): PorenaGameState {
   const state = structuredClone(source); const player = playerById(state, playerId);
+  if (state.round !== 2) throw new Error("카드 선택은 R2에서만 사용합니다.");
   if (!player.ownedCardIds.includes(cardId)) throw new Error("보유 카드만 선택할 수 있습니다.");
   if (player.selectedCardIds.includes(cardId)) player.selectedCardIds = player.selectedCardIds.filter((id) => id !== cardId);
-  else if (player.selectedCardIds.length < (state.round === 3 ? 4 : 2)) player.selectedCardIds.push(cardId);
+  else if (player.selectedCardIds.length < 2) player.selectedCardIds.push(cardId);
   return state;
 }
 
@@ -219,23 +220,23 @@ export function prepareShowdown(source: PorenaGameState, humanIds: readonly stri
   const state = structuredClone(source); aiPrepare(state, humanIds);
   const humans = humanIds.map((id) => playerById(state, id)).filter((p) => !p.eliminated);
   if (humans.some((p) => p.ownedCardIds.length < BALANCE.handLimits[state.round])) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
-  const requiredSelection = state.round === 2 ? 2 : state.round === 3 ? 4 : 0;
+  const requiredSelection = state.round === 2 ? 2 : 0;
   if (requiredSelection && humans.some((p) => p.selectedCardIds.length !== requiredSelection)) { state.phase = "DECK_SELECT"; return state; }
   state.phase = "SHOWDOWN_PRIMARY"; log(state, `R${state.round} 쇼다운 준비 완료`); assertPoolIntegrity(state); return state;
 }
 
 export function confirmSelection(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source); const human = playerById(state, "p1");
-  const required = state.round === 2 ? 2 : state.round === 3 ? 4 : 0;
+  const required = state.round === 2 ? 2 : 0;
   if (!required || human.selectedCardIds.length !== required) throw new Error(`R${state.round} 출전 카드를 올바르게 나누세요.`);
-  state.phase = "SHOWDOWN_PRIMARY"; log(state, state.round === 3 ? "R3 홀카드를 Game 1·2로 분할했습니다." : "R2 홀카드 2장을 확정했습니다."); return state;
+  state.phase = "SHOWDOWN_PRIMARY"; log(state, "R2 홀카드 2장을 확정했습니다."); return state;
 }
 
 function handFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
   const player = playerById(state, playerId);
   const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
-    : state.round === 3 && gameNumber ? player.selectedCardIds.slice((gameNumber - 1) * 2, gameNumber * 2) : player.selectedCardIds;
-  const owned = cardsFor(state, state.round === 2 || state.round === 3 ? selected : player.ownedCardIds);
+    : player.selectedCardIds;
+  const owned = cardsFor(state, state.round === 2 ? selected : player.ownedCardIds);
   if (state.round === 3) return findBestOmaha(owned, board);
   if (state.round === 5) return findBestFive(owned);
   return findBestFive([...owned, ...board]);
@@ -326,8 +327,7 @@ function resolveParticipants(
   const revealedCardIds = Object.fromEntries(playerIds.map((id) => {
     const p = playerById(state, id);
     const ids = state.round === 2 && state.rulesVersion === 2 ? [p.selectedCardIds[0]!, p.selectedCardIds[gameNumber ?? 1]!]
-      : state.round === 2 ? p.selectedCardIds : state.round === 3 && gameNumber
-      ? p.selectedCardIds.slice((gameNumber - 1) * 2, gameNumber * 2) : p.ownedCardIds;
+      : state.round === 2 ? p.selectedCardIds : p.ownedCardIds;
     return [id, [...ids]];
   }));
   if (highCardDraw) results = results.map((result) => ({
@@ -348,6 +348,16 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
   }));
   for (const playerId of match.playerIds) {
     const player = playerById(state, playerId); const won = awardIds.includes(playerId);
+    if (state.round === 3) {
+      const split = match.winnerIds.length > 1;
+      const bb = split ? 0 : won ? 10 : 15 + player.loseStreak * 5;
+      player.stackBB += bb;
+      player.points += won ? pointValue : 0;
+      player.winStreak = split || !won ? 0 : player.winStreak + 1;
+      player.loseStreak = split || won ? 0 : player.loseStreak + 1;
+      match.pointAwardDetails![playerId] += ` · +${bb}BB`;
+      continue;
+    }
     if (won) {
       const bonus = player.augments.some((augment) => augment.id === "win_bonus") ? 5 : 0;
       const base = state.round === 1 ? 10 : BALANCE.winRewardBB; const streakBonus = state.round === 1 ? 0 : player.winStreak * BALANCE.winStreakStepBB;
@@ -411,8 +421,8 @@ function captureRewards(before: PorenaGameState, after: PorenaGameState, matches
 function streetHandFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
   const player = playerById(state, playerId);
   const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
-    : state.round === 3 && gameNumber ? player.selectedCardIds.slice((gameNumber - 1) * 2, gameNumber * 2) : player.selectedCardIds;
-  const owned = cardsFor(state, state.round === 2 || state.round === 3 ? selected : player.ownedCardIds);
+    : player.selectedCardIds;
+  const owned = cardsFor(state, state.round === 2 ? selected : player.ownedCardIds);
   if (state.round === 3 && board.length >= 3) return findBestOmaha(owned, board);
   const candidates = [...owned, ...board];
   return candidates.length >= 5 ? findBestFive(candidates) : evaluatePartial(candidates);
@@ -429,22 +439,30 @@ function streetSnapshotsFor(state: PorenaGameState, playerIds: string[], board: 
   });
 }
 
+function seedOmaha(state: PorenaGameState): string[] {
+  return shuffle(state.players.filter((p) => !p.eliminated), () => nextRandom(state))
+    .sort((a, b) => b.points - a.points || b.stackBB - a.stackBB).map((p) => p.id);
+}
+
 export function resolvePrimary(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source);
   if (state.phase !== "SHOWDOWN_PRIMARY") throw new Error("1차 쇼다운 단계가 아닙니다.");
   const alive = shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
-  if (state.round === 1) {
+  if (state.round === 1 || state.round === 3) {
+    const omaha = state.round === 3;
+    // R3 entry freezes Point/BB seeding before shopping; fallback supports older snapshots.
+    const seeds = omaha ? state.r3Seeds ?? seedOmaha(state) : alive;
     const records = Object.fromEntries(alive.map((id) => [id, emptySwissRecord()]));
     const history: string[][] = [];
     const matches: MatchResult[] = [];
     for (let day = 1; day <= 3; day++) {
-      const pairs = day === 1 ? pair(alive) : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
+      const pairs = day === 1 ? pair(seeds) : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
       for (const ids of pairs) {
         const match = resolveParticipants(state, ids, 1, "primary", false);
         match.matchday = day;
         match.swissBefore = Object.fromEntries(ids.map((id) => [id, { ...records[id]! }]));
         const split = match.winnerIds.length > 1;
-        rewardMatchWithLedger(state, match, split ? BALANCE.points.r1.split : BALANCE.points.r1.win);
+        rewardMatchWithLedger(state, match, omaha ? split ? BALANCE.points.r3.gameSplit : BALANCE.points.r3.gameWin : split ? BALANCE.points.r1.split : BALANCE.points.r1.win);
         for (const id of ids) {
           const record = records[id]!;
           if (split) { record.draws++; record.score += 0.5; }
@@ -457,22 +475,25 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
     }
     state.matches.push(...matches); state.roundResults = matches;
     state.phase = "ROUND_RESULT";
-    log(state, "R1 스위스 3경기 종료 · 승리 3P / Split 1P · 전원 생존", "win");
+    if (omaha && state.rulesVersion === 2) {
+      assignSurvivalBoundary(state);
+      for (const match of matches.filter((m) => m.matchday === 3)) for (const reward of match.rewards ?? []) {
+        if (playerById(state, reward.playerId).eliminated) reward.outcome = "ELIMINATED";
+      }
+    }
+    log(state, omaha ? "R3 Omaha Swiss 3경기 종료 · 승리 4P / Split 2P · 누적 승점 탈락 판정" : "R1 스위스 3경기 종료 · 승리 3P / Split 1P · 전원 생존", "win");
     return state;
   }
   if (state.round === 2 && state.rulesVersion === 2) return resolveSplitRuns(state, pair(alive));
   const boardCount = state.round === 2 ? 2 : state.round === 5 ? 0 : 1;
   const matches = state.round === 5
     ? [resolveParticipants(state, alive, 0, "final", false)]
-    : state.round === 3
-      ? pair(alive).flatMap((ids) => ([1, 2] as const).map((gameNumber) => resolveParticipants(state, ids, 1, "primary", false, undefined, false, gameNumber)))
     : pair(alive).map((ids) => resolveParticipants(state, ids, boardCount, "primary",
       state.round === 2 || state.round === 4,
       state.round === 4 ? "GROUP_DECIDER" : undefined,
       state.round === 4));
   state.matches.push(...matches); state.roundResults = matches;
   if (state.round === 2) matches.forEach((match) => rewardMatchWithLedger(state, match, BALANCE.points.r2Primary.win));
-  if (state.round === 3) matches.forEach((match) => rewardMatchWithLedger(state, match, match.winnerIds.length > 1 ? BALANCE.points.r3.gameSplit : BALANCE.points.r3.gameWin));
   if (state.round === 4) matches.forEach((match) => {
     const regulationWinners = match.regulationWinnerIds ?? match.winnerIds;
     rewardMatchWithLedger(state, match, match.regulationWinnerIds ? BALANCE.points.r4Primary.split : BALANCE.points.r4Primary.win, regulationWinners);
@@ -489,14 +510,6 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
   else if (state.round === 2 || state.round === 4) { state.phase = "GROUP_ASSIGNMENT"; log(state, `승자조 ${state.winnerGroup.length}명 · 패자조 ${state.loserGroup.length}명`); }
   else {
     state.phase = "ROUND_RESULT";
-    if (state.round === 3 && state.rulesVersion === 2) {
-      assignSurvivalBoundary(state);
-      for (const match of matches) for (const reward of match.rewards ?? []) {
-        if (!playerById(state, reward.playerId).eliminated) continue;
-        reward.outcome = "ELIMINATED";
-        reward.detail = "누적 승점 하위 2명 · R3 탈락";
-      }
-    }
     log(state, `R${state.round} 쇼다운 종료`, "win");
   }
   return state;
@@ -674,6 +687,7 @@ export function startNextRound(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= 5) throw new Error("다음 라운드로 진행할 수 없습니다.");
   state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = []; state.augmentChoices = [];
   delete state.draft; delete state.survival;
+  if (state.round === 3) state.r3Seeds = seedOmaha(state);
   // Street snapshots exist only to drive the showdown cinematic for the round
   // being played. Final scoring reads roundResults and eliminationSnapshot, never
   // history, so past rounds drop the largest field in the persisted snapshot.

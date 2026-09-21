@@ -120,10 +120,11 @@ describe("open draft rules v2", () => {
     const eliminated = g.players.filter((player) => player.eliminated);
     expect(eliminated).toHaveLength(2);
     for (const player of eliminated) {
-      const match = g.roundResults.find((candidate) => candidate.playerIds.includes(player.id));
+      const match = g.roundResults.find((candidate) => candidate.matchday === 3 && candidate.playerIds.includes(player.id));
       expect(match?.rewards?.find((reward) => reward.playerId === player.id)).toMatchObject({
-        outcome: "ELIMINATED", detail: "누적 승점 하위 2명 · R3 탈락",
+        outcome: "ELIMINATED",
       });
+      expect(g.roundResults.filter((m) => m.matchday! < 3).flatMap((m) => m.rewards ?? []).every((r) => r.outcome !== "ELIMINATED")).toBe(true);
     }
   });
   it.each([1,17,303,707,9001])("completes new 8→8→6→4 flow with viable R3 shops and 16-card R4 draft (seed %i)", (seed) => {

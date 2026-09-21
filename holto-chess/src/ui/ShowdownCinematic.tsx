@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { MatchView, PresentationView, RevealedHand } from "../shared/protocol";
+import { ROUND_POINTS } from "../game/config";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
@@ -98,7 +99,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const board = match.boards[frame.boardIndex] ?? [];
   const ids = showdownSeatOrder(match.participantIds, viewerId);
   const name = (id: string) => profiles.find((p) => p.playerId === id)?.name ?? id;
-  const title = match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : final ? "FINAL SHOWDOWN" : multi ? match.group === "winner" ? "WINNER SHOWDOWN" : "SURVIVAL SHOWDOWN" : "SHOWDOWN";
+  const title = match.round === 3 && match.matchday ? "OMAHA SWISS" : match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : final ? "FINAL SHOWDOWN" : multi ? match.group === "winner" ? "WINNER SHOWDOWN" : "SURVIVAL SHOWDOWN" : "SHOWDOWN";
   const runLabel = frame.boardIndex >= match.runoutCount ? `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${frame.boardIndex - match.runoutCount + 1}`
     : match.runoutCount > 1 ? `RUN ${frame.boardIndex + 1}` : "COMMUNITY BOARD";
   // Mount the next run/decider during the current result beat, while every card is still closed.
@@ -141,7 +142,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const swiss = (flags.reward ? match.swissAfter : match.swissBefore)?.[id];
       const ledger = match.rewards.find((reward) => reward.playerId === id);
       const reward = (match.runRewards?.[frame.boardIndex] ?? match.rewards).find((r) => r.playerId === id);
-      const survivalOutcome = flags.result && (reward?.outcome === "ELIMINATED" || match.group === "loser" && reward?.outcome === "SURVIVED") ? reward.outcome : undefined;
+      // Do not reveal the round's final elimination before Swiss Match 3.
+      // Retain Game 2 gating only for already-resolved legacy snapshots.
+      const eliminationResultReady = match.round !== 3 || (match.matchday ? match.matchday === 3 : match.gameNumber !== 1);
+      const survivalOutcome = flags.result && eliminationResultReady && (reward?.outcome === "ELIMINATED" || match.group === "loser" && reward?.outcome === "SURVIVED") ? reward.outcome : undefined;
       const tone = flags.glow && result ? madeTone(result.displayName) : "default";
       const currentPlaceVisible = final && frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && !!result && result.place >= frame.finalPlace;
       const placementClass = final ? finalWinnerStage ? won ? "cinema-winner" : "cinema-loser" : currentPlaceVisible ? "cinema-final-resolved" : "" : flags.profile ? won ? "cinema-winner" : "cinema-loser" : "";
@@ -160,7 +164,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           : { stage: "pending", tag: "HAND READ", title: "—", detail: undefined };
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
-        {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
+        {swiss && <p className="swiss-record">{match.round === 3 ? `R3 · ${match.matchday === 1 ? "SEED GROUP" : "SWISS PAIRING"} · ` : ""}{swiss.wins}W {swiss.draws}D {swiss.losses}L{match.round === 3 ? ` · R3 +${swiss.wins * ROUND_POINTS.r3.gameWin + swiss.draws * ROUND_POINTS.r3.gameSplit}P` : ""}</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
           {match.round >= 2 && currentRank !== undefined && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 승점 순위 ${tiedOnPoints ? "공동 " : ""}${currentRank}위, ${currentPoints}점`}><small>현재 순위</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}<em>{currentPoints}P</em></span>}
           {swiss && <em className="cinema-current-points">POINT {flags.reward ? ledger?.afterPoints : ledger?.beforePoints}</em>}

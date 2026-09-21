@@ -22,7 +22,7 @@ describe("strategic bot planner", () => {
     expect(ranked[0]!.plan.equity).toBeGreaterThan(ranked[1]!.plan.equity);
   });
 
-  it("selects the strongest non-overlapping cards for R2 and partitions all four cards for R3", () => {
+  it("selects R2 cards and retains all four cards for Omaha Swiss", () => {
     expect(new Set(bestBotSelection(2, [card("As"), card("Ah"), card("2c")]))).toEqual(new Set(["As", "Ah"]));
     const split = bestBotSelection(3, [card("As"), card("Kh"), card("Qh"), card("Js")]);
     expect(split).toHaveLength(4);

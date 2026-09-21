@@ -6,11 +6,11 @@ const PREP_COPY: Record<Exclude<Round, 1>, { title: string; rules: string[] }> =
     rules: ["8장 공개 풀 드래프트", "대표 카드 + RUN별 보조 카드", "RUN별 독립 승점", "탈락 없이 전원 진출"],
   },
   3: {
-    title: "OMAHA DOUBLE GAME",
+    title: "OMAHA SWISS",
     rules: [
       "홀카드 4장",
-      "겹치지 않는 2장 + 2장으로 두 게임 구성",
-      "두 번의 Omaha 게임",
+      "동일한 4장으로 모든 매치 진행",
+      "세 번의 Swiss 매치",
       "게임마다 새로운 보드",
       "정확히 홀카드 2장 + 보드 3장 사용",
     ],

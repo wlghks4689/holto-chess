@@ -26,33 +26,31 @@ describe("one-click online loadout", () => {
     expect(toggleSlot(slots, owned, 2)).toEqual([null, null, null, null]);
     expect(fillSlots(slots, owned)).toEqual(["Kh", "Qc", "As", "Jd"]);
   });
-  it("persists partial placement privately and completes empty sockets when time expires", () => {
-    let room = round3();
+  it("rejects retired R3 split placements and does not expose loadout sockets", () => {
+    const room = round3();
     const owned = [...room.game.players[0].ownedCardIds];
     const slots = [null, null, owned[2], null];
-    room = act(room, { type: "SELECT_LOADOUT", slots });
-    expect(createPlayerView(room, "p1").me.loadoutSlots).toEqual(slots);
+    expect(() => act(room, { type: "SELECT_LOADOUT", slots })).toThrow(/분할/);
+    expect(createPlayerView(room, "p1").me.loadoutSlots).toBeUndefined();
     expect(createPlayerView(room, "p2").me.loadoutSlots).toBeUndefined();
-    expect(barrierDeadline(room)).toBe(61_000);
-    const next = forceBarrier(room, 61_000)!;
+    const next = forceBarrier(room, barrierDeadline(room)!)!;
     expect(next.game.phase).toBe("SHOWDOWN_PRIMARY");
     expect(next.game.players[0].ownedCardIds).toEqual(owned);
-    expect(next.game.players[0].selectedCardIds).toEqual(fillSlots(slots, owned));
-    expect(new Set(next.game.players[0].selectedCardIds).size).toBe(4);
+    expect(next.game.players[0].ownedCardIds).toHaveLength(4);
   });
-  it("fills empty sockets on ready without requiring a save button", () => {
+  it("accepts ready with all four owned cards and no selection", () => {
     let room = round3();
-    room = act(room, { type: "SELECT_LOADOUT", slots: [null, null, null, null] });
+    const owned = [...room.game.players[0].ownedCardIds];
     room = act(room, { type: "END_SHOP_PHASE" });
     expect(room.endedShopIds).toContain("p1");
-    expect(room.game.players[0].selectedCardIds).toHaveLength(4);
+    expect(room.game.players[0].ownedCardIds).toEqual(owned);
   });
-  it("auto-assigns all four cards on timeout even without a single selection", () => {
+  it("keeps all four cards on timeout without a loadout step", () => {
     const room = round3();
     const next = forceBarrier(room, barrierDeadline(room)!)!;
     expect(next.game.phase).toBe("SHOWDOWN_PRIMARY");
-    expect(next.game.players[0].selectedCardIds).toHaveLength(4);
-    expect(new Set(next.game.players[0].selectedCardIds).size).toBe(4);
+    expect(next.game.players[0].ownedCardIds).toHaveLength(4);
+    expect(new Set(next.game.players[0].ownedCardIds).size).toBe(4);
   });
   it("rejects duplicates, foreign cards, malformed messages, and edits after ready", () => {
     const room = round3(); const card = room.game.players[0].ownedCardIds[0];

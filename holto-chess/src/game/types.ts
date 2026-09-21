@@ -89,6 +89,7 @@ export type MatchResult = {
 export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };
 
 export type PorenaGameState = {
+  r3Seeds?: string[];
   /** Missing in persisted pre-draft games: keep their original rules. */
   rulesVersion?: 1 | 2;
   draft?: OpenDraft;

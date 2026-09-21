@@ -2,9 +2,18 @@ import { makeDeck, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha, type HandCategory, type HandValue } from "../core/poker/evaluate";
 import { BALANCE } from "./config";
 import type { Augment, PlayerState, Round } from "./types";
+import { strategicCardValue, type PreflopStrength } from "./preflopStrength";
 
 type PricedCard = { card: Card; price: number };
-export type BotPlanScore = { equity: number; expectedHandScore: number; potential: number; utility: number };
+export type BotPlanScore = {
+  equity: number;
+  expectedHandScore: number;
+  potential: number;
+  currentRoundStrength?: PreflopStrength;
+  futureAssetValue: number;
+  poolDenialValue: number;
+  utility: number;
+};
 export type BotPlanOptions = {
   /** Version 2 plays R2 as [anchor, run-1 secondary] and [anchor, run-2 secondary]. */
   rulesVersion?: 1 | 2;
@@ -59,20 +68,6 @@ function bestPair(cards: readonly Card[]): Card[] {
   return best;
 }
 
-function bestOmahaSplit(cards: readonly Card[]): [Card[], Card[]] {
-  const partitions: [Card[], Card[]][] = [
-    [[cards[0]!, cards[1]!], [cards[2]!, cards[3]!]],
-    [[cards[0]!, cards[2]!], [cards[1]!, cards[3]!]],
-    [[cards[0]!, cards[3]!], [cards[1]!, cards[2]!]],
-  ];
-  return partitions.sort((a, b) => {
-    const score = (partition: [Card[], Card[]]) => {
-      const values = partition.map(pairScore);
-      return values[0]! + values[1]! + Math.min(...values) * 0.45;
-    };
-    return score(b) - score(a);
-  })[0]!;
-}
 
 /** Low card of every straight window; the wheel counts an ace as one. */
 const STRAIGHT_LOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
@@ -159,7 +154,7 @@ function potentialFor(round: Round, cards: readonly Card[], rulesVersion: 1 | 2,
   if (round === 3) {
     if (cards.length !== 4) return drawPotential(cards, 3);
     // Omaha plays exactly two hole cards with exactly three board cards.
-    return bestOmahaSplit(cards).reduce((sum, half) => sum + drawPotential(half, 3), 0) / 2;
+    return Math.max(...cards.flatMap((card, i) => cards.slice(i + 1).map((other) => [card, other])).map((pair) => drawPotential(pair, 3)));
   }
   if (round === 2) {
     if (cards.length !== 3) return drawPotential(cards, 5);
@@ -217,11 +212,10 @@ function scoreHeadsUp(
     return { result: result / 4, handScore: handScore / 4 };
   }
   if (round === 3) {
-    const heroSplit = bestOmahaSplit(heroCards); const opponentSplit = bestOmahaSplit(opponentCards);
     let result = 0; let handScore = 0;
     for (let game = 0; game < 2; game += 1) {
       const board = deck.slice(game * 5, game * 5 + 5);
-      const hero = findBestOmaha(heroSplit[game]!, board); const opponent = findBestOmaha(opponentSplit[game]!, board);
+      const hero = findBestOmaha(heroCards, board); const opponent = findBestOmaha(opponentCards, board);
       result += compare(hero, opponent); handScore += BALANCE.handScores[hero.category];
     }
     return { result: result / 2, handScore: handScore / 2 };
@@ -253,10 +247,16 @@ export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: n
   }
   equity /= samples; expectedHandScore /= samples;
   const potential = potentialFor(round, cards, rulesVersion, options.runOrder);
+  const strategic = strategicCardValue(round, cards);
   const stackValue = Math.floor(Math.max(0, stackAfter) / BALANCE.stackScoreUnitBB);
+  // Equity remains the primary signal (x100). Preflop and persistent-card value
+  // are bounded tie-break features, deliberately not substitutes for simulation.
   const utility = equity * 100 + expectedHandScore * (round === 5 ? 1.8 : 0.45) + potential * POTENTIAL_WEIGHT
-    + stackValue * (round === 5 ? 1.4 : 0.35);
-  return { equity, expectedHandScore, potential, utility };
+    + stackValue * (round === 5 ? 1.4 : 0.35)
+    + (strategic.currentRoundStrength?.score ?? 0) * 0.02
+    + strategic.futureAssetValue * 0.015
+    + strategic.poolDenialValue * 0.01;
+  return { equity, expectedHandScore, potential, ...strategic, utility };
 }
 
 export function rankBotPurchases(round: Round, player: PlayerState, ownedCards: readonly Card[], options: readonly PricedCard[], context: BotPlanOptions = {}): (PricedCard & { plan: BotPlanScore })[] {
@@ -291,7 +291,7 @@ export function shouldBotReroll(round: Round, player: PlayerState, best: (Priced
 
 export function bestBotSelection(round: Round, cards: readonly Card[]): string[] {
   if (round === 2) return bestPair(cards).map((card) => card.id);
-  if (round === 3) return bestOmahaSplit(cards).flat().map((card) => card.id);
+  if (round === 3) return cards.map((card) => card.id);
   return [];
 }
 

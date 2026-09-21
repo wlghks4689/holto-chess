@@ -106,8 +106,8 @@ describe("server room authority and projections", () => {
             r = act(r, s.playerId, { type: "BUY_CARD", cardId: v.me.shopCards[0].card.id });
             v = createPlayerView(r, s.playerId);
           }
-          if (r.game.round === 2 || r.game.round === 3) {
-            const required = r.game.round === 3 ? 4 : 2;
+          if (r.game.round === 2) {
+            const required = 2;
             r = act(r, s.playerId, { type: "SELECT_CARDS", cardIds: v.me.ownedCards.slice(0, required).map((c) => c.id) });
           }
           r = act(r, s.playerId, { type: "END_SHOP_PHASE" });

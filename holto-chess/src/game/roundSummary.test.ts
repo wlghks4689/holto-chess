@@ -22,6 +22,11 @@ it("summarizes all Swiss matches without exposing unrevealed cards or boards", (
   }
   result.players[0]!.ownedCardIds = [];
   expect(createRoundSummary(result).find((row) => row.playerId === result.players[0]!.id)!.cards).toHaveLength(2);
+  result.winnerGroup = result.players.slice(0, 4).map((player) => player.id);
+  result.loserGroup = result.players.slice(4).map((player) => player.id);
+  const bracketRows = createRoundSummary(result);
+  expect(bracketRows.filter((row) => row.bracket === "winner")).toHaveLength(4);
+  expect(bracketRows.filter((row) => row.bracket === "loser")).toHaveLength(4);
   result.round = 2;
   expect(createRoundSummary(result)).toEqual([]);
 });

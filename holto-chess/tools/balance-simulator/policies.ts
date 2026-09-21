@@ -68,24 +68,3 @@ export function assignPolicies(playerIds: string[], policies: PolicyName[], mode
   const random = () => { value ^= value << 13; value ^= value >>> 17; value ^= value << 5; return (value >>> 0) / 4294967296; };
   return Object.fromEntries(playerIds.map((id, index) => [id, mode === "fixed" ? policies[index % policies.length]! : policies[Math.floor(random() * policies.length)]!]));
 }
-
-/**
- * R3 splits the four owned cards into Game 1 and Game 2 pairs. The engine reads
- * selectedCardIds[0..1] as Game 1 and [2..3] as Game 2, so the returned order matters.
- */
-export function selectR3Cards(state: PorenaGameState, player: PlayerState, policy: PolicyName): string[] {
-  const owned = player.ownedCardIds.map((id) => ({ id, card: getCard(state, id) }));
-  if (owned.length !== 4) return owned.map((entry) => entry.id);
-  const pairScore = (a: typeof owned[number], b: typeof owned[number]) =>
-    policyScore(policy, a.card, [b.card], 0) + policyScore(policy, b.card, [a.card], 0);
-  const splits: [number, number, number, number][] = [[0, 1, 2, 3], [0, 2, 1, 3], [0, 3, 1, 2]];
-  let best = splits[0]!;
-  let score = Number.NEGATIVE_INFINITY;
-  for (const split of splits) {
-    // Balance both games instead of stacking one: the weaker game still has to be played.
-    const games = [pairScore(owned[split[0]]!, owned[split[1]]!), pairScore(owned[split[2]]!, owned[split[3]]!)];
-    const value = Math.min(...games) * 2 + Math.max(...games);
-    if (value > score) { score = value; best = split; }
-  }
-  return best.map((index) => owned[index]!.id);
-}

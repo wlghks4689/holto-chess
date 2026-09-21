@@ -17,7 +17,6 @@ function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerV
     ownedCards: player.ownedCardIds.map((id) => getCard(g, id)),
     shopCards: player.shopCardIds.map((id) => ({ card: getCard(g, id), price: getCardPrice(g, player.id, id) })),
     selectedCardIds: [...player.selectedCardIds], augments: player.augments.map(publicAugment),
-    ...(g.round === 3 && room.loadoutDrafts?.[player.id] ? { loadoutSlots: [...room.loadoutDrafts[player.id]] } : {}),
     augmentChoices: (room.augmentChoices[player.id] ?? []).map(publicAugment),
     handLimit: BALANCE.handLimits[g.round], shopSize: g.rulesVersion === 2 ? regularShopSizeFor(g.round) : player.shopSize,
     shopLocked: false, lockedShopCardIds: [...(player.lockedShopCardIds ?? [])],

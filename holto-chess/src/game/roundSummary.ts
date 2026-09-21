@@ -17,6 +17,7 @@ export function createRoundSummary(state: PorenaGameState): RoundSummaryRow[] {
     const draws = outcomes.filter((ids) => ids.length > 1 && ids.includes(player.id)).length;
     return [{ playerId: player.id, name: player.name, cards: cardIds.map((id) => ({ ...state.ownershipCardPool.find((entry) => entry.card.id === id)!.card })),
       wins, draws, losses: outcomes.length - wins - draws, eliminated: player.eliminated,
+      bracket: state.winnerGroup.includes(player.id) ? "winner" as const : state.loserGroup.includes(player.id) ? "loser" as const : undefined,
       points: played.reduce((sum, match) => sum + (match.rewards?.find((reward) => reward.playerId === player.id)?.deltaPoints ?? match.pointAwards?.[player.id] ?? 0), 0) }];
   }).sort((a, b) => b.points - a.points || b.wins - a.wins || b.draws - a.draws);
 }
