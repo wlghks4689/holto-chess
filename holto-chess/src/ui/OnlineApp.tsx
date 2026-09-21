@@ -18,6 +18,7 @@ import { createServerClock } from "./serverClock";
 import { ShopCountdown } from "./ShopCountdown";
 import { formatCountdown } from "./countdown";
 import { preloadFinalArena } from "./finalShowdownPresentation";
+import { ExitGameDialog } from "./ExitGameDialog";
 import { preloadShowdownStage } from "./showdownStage";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { FinalResultsPanel } from "./FinalResultsPanel";
@@ -145,7 +146,8 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         }
         if (message.type === "ACK" && pendingRequest.current?.id === message.requestId) {
           if (pendingRequest.current.type === "LEAVE_ROOM") {
-            forgetSession(credential.roomId);
+            // The seat stays ours: the bot plays it until we reconnect, so keep the session listed.
+            rememberSession(credential);
             clearPending(); setCredential(null); setView(null); setStatus("Disconnected"); setError(""); setResumable(storedSessions());
           } else pendingRequest.current.revision = message.revision;
         }
@@ -205,6 +207,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const leaveRoom = () => {
     send({ type: "LEAVE_ROOM" });
   };
+  const [exiting, setExiting] = useState(false);
   const resume = (session: SessionCredential) => {
     rememberSession(session);
     setError(""); setView(null); setCredential(session);
@@ -242,7 +245,8 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   if (screen === "waiting") return <RoomWaitingRoom view={view} status={statusLabel} connected={status === "Connected"} pending={!!pending} error={error} onReady={() => send({ type: "READY" })} onLeave={leaveRoom} onRetry={() => setConnectionKey((n) => n + 1)} onReturn={returnToLobby} />;
   if (!displayView) return null;
   const observedName = displayView.players.find((player) => player.playerId === displayView.me.playerId)?.name;
-  return <CinematicGate key={`${credential?.roomId ?? "lobby"}:${displayView.me.playerId}`} matches={displayView.matches} profiles={displayView.players} viewerId={displayView.me.playerId} presentation={displayView.presentation} clock={serverClock}><main className={displayView.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}><nav><button className="brand brand-home" type="button" onClick={onHome} aria-label="PORENA 메인 화면으로 이동"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></button>{displayView.phase !== "LOBBY" ? <RoundProgress round={displayView.round} prep={null} /> : <span />}<div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div></nav>
+  return <CinematicGate key={`${credential?.roomId ?? "lobby"}:${displayView.me.playerId}`} matches={displayView.matches} profiles={displayView.players} viewerId={displayView.me.playerId} presentation={displayView.presentation} clock={serverClock}><main className={displayView.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}><nav><button className="brand brand-home" type="button" onClick={onHome} aria-label="PORENA 메인 화면으로 이동"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></button>{displayView.phase !== "LOBBY" ? <RoundProgress round={displayView.round} prep={null} /> : <span />}<div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div><button type="button" className="secondary nav-exit" disabled={!!pending} onClick={() => setExiting(true)}>나가기</button></nav>
+      {exiting && <ExitGameDialog mode="multi" busy={!!pending} onCancel={() => setExiting(false)} onConfirm={() => { setExiting(false); leaveRoom(); }} />}
     <div className="page-shell" id="top">
       {error && <p className="room-error" role="alert">{error}</p>}
       {status !== "Connected" && <div className="entry-recovery" role="status"><span>{statusLabel}</span><button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>연결 다시 시도</button><button className="secondary" onClick={returnToLobby}>로비로 돌아가기 · 방 유지</button></div>}
