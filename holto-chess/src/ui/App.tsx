@@ -147,7 +147,7 @@ export function App({ onHome }: { onHome: () => void }) {
   useEffect(() => {
     const phase = state.phase;
     if (!["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(phase)) return;
-    const delay = phase === "DRAFT_ORDER" ? 5000 : phase === "RUN_LOADOUT" ? 60000 : draftPickerId === "p1" ? 20000 : 650;
+    const delay = phase === "DRAFT_ORDER" ? 0 : phase === "RUN_LOADOUT" ? 60000 : draftPickerId === "p1" ? 20000 : 650;
     const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s) : phase === "RUN_LOADOUT" ? resolvePrimary(lockRunLoadouts(s)) : autoPickDraft(s)), delay);
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId]);
@@ -173,7 +173,7 @@ export function App({ onHome }: { onHome: () => void }) {
     <div id="top" className="page-shell">
       {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.phase === "GAME_RESULT" ? "TOURNAMENT COMPLETE" : state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
       <PoolMeter state={state} />
-      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 5 : draftPickerId === "p1" ? 20 : 1} />}
+      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 0 : draftPickerId === "p1" ? 20 : 1} />}
       {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={60} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}

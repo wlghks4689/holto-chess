@@ -720,12 +720,14 @@ export function startNextRound(source: PorenaGameState): PorenaGameState {
       cardIds: shuffle(available, () => nextRandom(state)).slice(0, count).map((entry) => entry.card.id),
       order: alive.sort((a, b) => a.points - b.points || b.stackBB - a.stackBB).map((p) => ({ playerId: p.id, points: p.points, stackBB: p.stackBB })), picks: [],
     };
-    state.phase = "DRAFT_ORDER";
+    state.phase = "OPEN_DRAFT";
   } else for (const player of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, player);
   assertPoolIntegrity(state); return state;
 }
 
 export function openDraft(source: PorenaGameState): PorenaGameState {
+  // Compatibility for callers and persisted games from the former order-preview phase.
+  if (source.phase === "OPEN_DRAFT" && source.draft) return structuredClone(source);
   if (source.phase !== "DRAFT_ORDER" || !source.draft) throw new Error("드래프트 순서 공개 단계가 아닙니다.");
   return { ...structuredClone(source), phase: "OPEN_DRAFT" };
 }

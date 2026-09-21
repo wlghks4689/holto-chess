@@ -47,12 +47,14 @@ describe("open draft rules v2", () => {
       expect(assertPoolIntegrity(result)).toBe(true);
     } finally { spy.mockRestore(); }
   });
-  it("creates exactly eight AVAILABLE cards, releases previous shop locks, and exposes order before picking", () => {
-    const g = r2(); expect(g.phase).toBe("DRAFT_ORDER"); expect(g.draft!.cardIds).toHaveLength(8);
+  it("creates eight AVAILABLE cards and allows immediate picking without an order-preview wait", () => {
+    const g = r2(); expect(g.phase).toBe("OPEN_DRAFT"); expect(g.draft!.cardIds).toHaveLength(8);
     expect(new Set(g.draft!.cardIds).size).toBe(8);
     for (const id of g.draft!.cardIds) expect(g.ownershipCardPool.find((e) => e.card.id === id)!.state).toBe("AVAILABLE");
     expect(g.players.flatMap((p) => p.shopCardIds)).toHaveLength(0);
-    expect(() => pickDraftCard(g, g.draft!.order[0]!.playerId, g.draft!.cardIds[0]!)).toThrow();
+    const picked = pickDraftCard(g, g.draft!.order[0]!.playerId, g.draft!.cardIds[0]!);
+    expect(picked.draft!.picks).toHaveLength(1);
+    expect(assertPoolIntegrity(picked)).toBe(true);
     expect(assertPoolIntegrity(g)).toBe(true);
   });
   it("orders actual points ascending, BB descending only within ties; seed reproduces full ties", () => {
@@ -136,7 +138,7 @@ describe("open draft rules v2", () => {
     g = resolvePrimary(prepareShowdown(g, []));
     if (g.survival) { g = leaveRoundResult(g); g = resolveSurvival(g); }
     expect(g.players.filter((p) => !p.eliminated)).toHaveLength(6);
-    g = next(g); expect(g.draft!.cardIds).toHaveLength(16);
+    g = next(g); expect(g.phase).toBe("OPEN_DRAFT"); expect(g.draft!.cardIds).toHaveLength(16);
     expect(g.ownershipCardPool.filter((e) => e.state === "AVAILABLE")).toHaveLength(28);
     g = drafted(g); expect(g.phase).toBe("SHOP");
     const alive = g.players.filter((p) => !p.eliminated);

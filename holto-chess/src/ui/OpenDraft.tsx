@@ -2,12 +2,14 @@ import type { GameAction, PlayerView } from "../shared/protocol";
 import { CardBack, CardView } from "./CardView";
 import { useLocalCountdown } from "./useLocalCountdown";
 import "./open-draft.css";
+import { R2DraftArena } from "./R2DraftArena";
 
 export function OpenDraftPanel({ view, send, disabled, seconds }: {
   view: PlayerView; send: (action: GameAction) => void; disabled: boolean; seconds: number | null;
 }) {
   const draft = view.draft;
   if (!draft) return null;
+  if (view.round === 2) return <R2DraftArena view={view} send={send} disabled={disabled} seconds={seconds} />;
   const name = (id: string) => view.players.find((p) => p.playerId === id)?.name ?? id;
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
