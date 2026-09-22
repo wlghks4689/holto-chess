@@ -34,3 +34,21 @@ it("rejects insufficient funds and foreign cards, and clears purchased or releas
   expect(locked.players[0].lockedShopCardIds).toEqual([]);
   expect(assertPoolIntegrity(locked)).toBe(true);
 });
+
+it("rerolls an empty market slot when the remaining offer is locked", () => {
+  let state = createGameCurrent(44);
+  const player = state.players[0];
+  const lockedId = player.shopCardIds[0];
+  const purchasedId = player.shopCardIds[1];
+  state = toggleShopLock(state, player.id, lockedId);
+  state = buyCard(state, player.id, purchasedId);
+  expect(state.players[0].shopCardIds).toEqual([lockedId]);
+
+  state = rerollShop(state, player.id);
+
+  expect(state.players[0].shopCardIds).toHaveLength(2);
+  expect(state.players[0].shopCardIds).toContain(lockedId);
+  expect(state.players[0].shopCardIds).not.toContain(purchasedId);
+  expect(state.players[0].rerollsUsed).toBe(1);
+  expect(assertPoolIntegrity(state)).toBe(true);
+});

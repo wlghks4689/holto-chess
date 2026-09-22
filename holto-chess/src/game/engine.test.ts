@@ -148,7 +148,7 @@ describe("PORENA engine", () => {
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(match.winnerIds.includes(id) ? value : 0));
         } else if (round === 4 && match.stage === "primary") {
           const scoringWinners = match.regulationWinnerIds ?? match.winnerIds;
-          const value = match.regulationWinnerIds ? 5 : 6;
+          const value = match.regulationWinnerIds ? 3 : 6;
           match.playerIds.forEach((id) => expect(rewards[id]).toBe(scoringWinners.includes(id) ? value : 0));
         } else if (round === 4 && match.group === "winner") {
           const prizes: Record<number, number> = { 1: 10, 2: 5, 3: 3 };

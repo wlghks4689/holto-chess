@@ -16,8 +16,8 @@ describe("central round point rules", () => {
   it("7. each R3 Omaha Swiss win is +4", () => expect(ROUND_POINTS.r3.gameWin).toBe(4));
   it("8. each R3 Omaha game split is +2 each", () => expect(ROUND_POINTS.r3.gameSplit).toBe(2));
   it("9. R4 primary win is +6", () => expect(ROUND_POINTS.r4Primary.win).toBe(6));
-  it("10. R4 primary split is +5 and has no decider award key", () => {
-    expect(ROUND_POINTS.r4Primary.split).toBe(5);
+  it("10. R4 primary split is +3 each and has no decider award key", () => {
+    expect(ROUND_POINTS.r4Primary.split).toBe(3);
     expect(ROUND_POINTS.r4Primary.groupDeciderBonus).toBe(0);
   });
   it("11. R4 winner-group placements are 10 / 5 / 3", () => expect(ROUND_POINTS.r4WinnerGroup).toMatchObject({ first: 10, second: 5, third: 3 }));

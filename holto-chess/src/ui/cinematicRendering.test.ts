@@ -116,6 +116,30 @@ describe("cinematic initial rendering", () => {
     expect(html.match(/cinema-board-cards/g)).toHaveLength(2);
     expect(html.match(/cinema-flip-slot/g)).toHaveLength(14);
   });
+  it("dims the losing hole cards in each completed Run It Twice matchup", () => {
+    const runTwice: MatchView = { ...match, id: "run-twice-results", round: 2, participantIds: ["p2", "p1"],
+      boards: [deck.slice(10, 15), deck.slice(15, 20)], boardResults: [[], []], boardWinnerIds: [["p1"], ["p2"]], results: [], runoutCount: 2,
+      revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) },
+      runCards: { p1: [deck.slice(0, 2), deck.slice(0, 1).concat(deck.slice(4, 5))], p2: [deck.slice(2, 4), deck.slice(2, 3).concat(deck.slice(5, 6))] } };
+    const completeAt = cinematicTimeline(runTwice).find((entry) => entry.phase === "COMPLETE")!.at;
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: runTwice, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: completeAt }));
+    const beforeResultAt = cinematicTimeline(runTwice).find((entry) => entry.phase === "RIVER" && entry.boardIndex === 0)!.at;
+    const beforeResultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: runTwice, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: beforeResultAt }));
+    const runOneResultAt = cinematicTimeline(runTwice).find((entry) => entry.phase === "RUN_RESULT" && entry.boardIndex === 0)!.at;
+    const runOneResultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: runTwice, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: runOneResultAt }));
+    expect(beforeResultHtml).not.toContain("cinema-board-matchup");
+    expect(runOneResultHtml.match(/cinema-board-matchup/g)).toHaveLength(1);
+    expect(html.match(/cinema-run-player[^"]*is-loser/g)).toHaveLength(2);
+    expect(html.match(/cinema-run-player[^"]*is-winner/g)).toHaveLength(2);
+    expect(html).toMatch(/cinema-run-player[^"]*is-loser[\s\S]*?playing-card[^"]*dimmed/);
+    expect(html).toMatch(/cinema-run-player[^"]*is-winner[\s\S]*?playing-card[^"]*glow/);
+    expect(html.match(/cinema-board-matchup/g)).toHaveLength(2);
+    expect(html.indexOf("cinema-board-matchup")).toBeLessThan(html.indexOf("cinema-board-cards"));
+    expect(html).toContain('aria-label="Run It Twice 스코어"');
+    expect(html).toContain('<div class="cinema-run-score"><span>p1</span><strong>1 : 1</strong><span>p2</span></div>');
+    expect(html).not.toContain("cinema-run-row");
+    expect(html).not.toContain("BEST 5 확인");
+  });
   it("marks survival outcomes with stamps and keeps rewards to one concise line", () => {
     const survival: MatchView = { ...match, id: "survival", round: 4, group: "loser", participantIds: ["p1", "p2"],
       winnerIds: ["p1"], boards: [deck.slice(10, 15)], boardResults: [[]], boardWinnerIds: [["p1"]], results: [], runoutCount: 1,

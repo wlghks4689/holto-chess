@@ -38,6 +38,10 @@
 .open-draft:has(.draft-arena)>footer { order:3; }
 .open-draft:has(.draft-arena)>.draft-order { order:4; }
 .run-loadout-slots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.run-loadout-pool-stage { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:end; }
+.run-loadout-pool-stage>.pool-loadout-timer { grid-column:3; justify-self:center; margin:0 0 8px; }
+.run-loadout-pool-stage>.pool-meter { grid-column:1 / -1; width:100%; }
+.run-loadout-timer { display:flex; justify-content:flex-end; margin:-2px 0 14px; }
 .run-loadout-slots>label { display:flex; flex-direction:column; align-items:center; gap:14px; padding:20px 8px; border:1px solid #35636d; border-radius:12px; }
 .run-loadout-slots b { font-size:12px; text-align:center; }
 .run-loadout-slots select { background:#102d38; color:white; padding:8px; width:100%; }
@@ -46,5 +50,5 @@
 @media(max-width:700px) { .open-draft { padding-top:14px; } .panel.open-draft>header { gap:5px 10px; padding:3px 12px 12px; } .draft-kicker { font-size:9px; } .open-draft>header h2 { font-size:18px; } .draft-rule { gap:5px;margin-inline:12px;font-size:9px}.draft-rule span{padding:4px 7px}.draft-order { grid-template-columns:repeat(2,minmax(0,1fr)); } .draft-arena { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 6px; padding:16px 8px 14px; border-radius:18px; } .draft-offer { grid-template-rows:76px 22px 28px; gap:4px; } .draft-arena .playing-card { width:52px; height:76px; min-width:0; } .draft-price { min-width:44px;padding:4px 6px;font-size:11px; } .draft-offer>small { font-size:9px; } .run-loadout-slots { gap:5px; } .run-loadout-slots .playing-card { width:54px; height:76px; min-width:0; } }
 @media(max-width:520px){.draft-rule i{display:none}.draft-rule span{flex:1 1 100%;text-align:center}}
 @media(max-width:420px) { .panel.open-draft>header { grid-template-columns:minmax(0,1fr) 88px; gap:4px 8px; } .draft-kicker{white-space:normal;line-height:1.2}.open-draft>header h2{font-size:16px;line-height:1.2} }
-@media(max-width:620px) { .run-loadout-action { align-items:stretch; } .run-loadout-action>p { display:block; width:100%; text-align:center; font-size:10px; } .run-loadout-action>.primary { width:100%; } }
+@media(max-width:620px) { .run-loadout-timer { justify-content:center; margin-bottom:12px; } .run-loadout-action { align-items:stretch; } .run-loadout-action>p { display:block; width:100%; text-align:center; font-size:10px; } .run-loadout-action>.primary { width:100%; } }
 @media(prefers-reduced-motion:reduce) { .draft-acquired,.draft-arena.is-dealing .draft-offer,.draft-arena.is-dealing .draft-deal-origin { animation:none; } }

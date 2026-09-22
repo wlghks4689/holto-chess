@@ -43,14 +43,14 @@ describe("R4 rewards", () => {
     expect(assertPoolIntegrity(after)).toBe(true);
   });
 
-  it("awards 6P for primary wins, preserving 5P splits", () => {
+  it("awards 6P for primary wins and 3P to each regulation split player", () => {
     const before = fixture(17);
     before.phase = "SHOWDOWN_PRIMARY";
     const after = resolvePrimary(before);
     for (const match of after.roundResults) {
       const awardIds = match.regulationWinnerIds ?? match.winnerIds;
       for (const id of match.playerIds) {
-        expect(match.pointAwards![id]).toBe(awardIds.includes(id) ? match.regulationWinnerIds ? 5 : 6 : 0);
+        expect(match.pointAwards![id]).toBe(awardIds.includes(id) ? match.regulationWinnerIds ? 3 : 6 : 0);
       }
     }
   });

@@ -128,9 +128,11 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
 export function rerollShop(source: PorenaGameState, playerId: string): PorenaGameState {
   const state = structuredClone(source); const player = playerById(state, playerId);
   const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+  const targetSize = state.rulesVersion === 2 ? regularShopSizeFor(state.round) : player.shopSize;
+  const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
   if ((player.rerollsUsed ?? 0) >= rerollLimitFor(state.round, state.rulesVersion ?? 1)) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
-  if (player.shopCardIds.length > 0 && player.shopCardIds.every((id) => player.lockedShopCardIds?.includes(id))) throw new Error("모든 상점 카드가 잠겨 있어 리롤할 수 없습니다.");
+  if (targetSize > 0 && lockedCount >= targetSize) throw new Error("모든 상점 카드가 잠겨 있어 리롤할 수 없습니다.");
   assertPoolIntegrity(state);
   releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
   player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;

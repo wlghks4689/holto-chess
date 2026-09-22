@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { assertPoolIntegrity, ownershipCounts } from "../game/cardPool";
-import { BALANCE, purchaseLimitFor, rerollLimitFor } from "../game/config";
+import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../game/config";
 import {
   beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, finalStandings, leaveRoundResult,
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
@@ -26,12 +26,14 @@ import { ExitGameDialog } from "./ExitGameDialog";
 import { preloadShowdownStage } from "./showdownStage";
 import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
-import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
+import { RunLoadoutPanel, TimedOpenDraftPanel } from "./OpenDraft";
 import type { GameAction } from "../shared/protocol";
 import { LocalResultWindow } from "./LocalResultWindow";
 import { playerEventFeed } from "./playerEventFeed";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
+import { useLocalCountdown } from "./useLocalCountdown";
+import { PhaseTimer } from "./PhaseTimer";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
@@ -58,10 +60,22 @@ function PoolMeter({ state }: { state: PorenaGameState }) {
   </div>;
 }
 
+function LocalRunLoadoutStage({ state, view, send }: {
+  state: PorenaGameState; view: ReturnType<typeof createPlayerView>; send: (action: GameAction) => void;
+}) {
+  const seconds = useLocalCountdown(30);
+  return <><div className="run-loadout-pool-stage">
+    <div className="pool-loadout-timer"><PhaseTimer seconds={seconds} ariaLabel={`배치 확정 남은 시간 ${seconds}초`} /></div>
+    <PoolMeter state={state} />
+  </div><RunLoadoutPanel view={view} send={send} disabled={false} seconds={seconds} showTimer={false} /></>;
+}
+
 function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
   const me = state.players[0]!; const cap = BALANCE.handLimits[state.round];
   const purchaseLimit = purchaseLimitFor(state.round); const rerollLimit = rerollLimitFor(state.round);
-  const allShopCardsLocked = me.shopCardIds.length > 0 && me.shopCardIds.every((id) => me.lockedShopCardIds?.includes(id));
+  const shopSize = state.rulesVersion === 2 ? regularShopSizeFor(state.round) : me.shopSize;
+  const lockedShopCardCount = me.shopCardIds.filter((id) => me.lockedShopCardIds?.includes(id)).length;
+  const allShopCardsLocked = shopSize > 0 && lockedShopCardCount >= shopSize;
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
     purchaseLimit, handLimit: cap });
   return <section className="shop-layout">
@@ -71,7 +85,7 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
         {Array.from({ length: Math.max(0, cap - me.ownedCardIds.length) }, (_, i) => <div className="empty-card" key={i}><span>+</span><small>EMPTY</small></div>)}</div>
     </div>
     <div className="market panel">
-      <header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">{me.shopCardIds.length} / {BALANCE.baseShopSize}</strong></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
+      <header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">{me.shopCardIds.length} / {shopSize}</strong></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
       <div className="card-row market-row">{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
       <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button><span className="hint">{allShopCardsLocked ? "모든 카드가 잠겨 리롤할 수 없습니다." : "카드별 잠금 3BB · 해제 무료"}</span></div>
@@ -140,11 +154,17 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
 
 export function App({ onHome }: { onHome: () => void }) {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
+  const [exiting, setExiting] = useState(false);
+  const [gameVersion, setGameVersion] = useState(0);
+  const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
   const expireResult = useCallback(() => setState((current) => current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current), []);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
+  const guideKey = `${gameVersion}:${state.round}`;
+  const guideOpen = dismissedGuide !== guideKey;
   useEffect(() => {
     const phase = state.phase;
+    if (guideOpen) return;
     if (!["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
     const delay = phase === "DRAFT_ORDER" ? BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN
       : phase === "RUN_LOADOUT" ? BARRIER_TIMEOUT_MS.RUN_LOADOUT
@@ -156,17 +176,13 @@ export function App({ onHome }: { onHome: () => void }) {
       : phase === "SHOWDOWN_SECONDARY" ? resolveSecondary(s)
       : autoPickDraft(s)), delay);
     return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex, draftPickerId]);
+  }, [state.phase, draftPickIndex, draftPickerId, guideOpen]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
-  const [exiting, setExiting] = useState(false);
-  const [gameVersion, setGameVersion] = useState(0);
-  const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
   const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(fn(state)); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
   const round = ROUND_COPY[state.round]; const alive = state.players.filter((player) => !player.eliminated).length;
   const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
   const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
-  const guideKey = `${gameVersion}:${state.round}`;
   const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [], augmentChoices: {} }, "p1");
   const draftAction = (a: GameAction) => {
     if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId));
@@ -175,14 +191,13 @@ export function App({ onHome }: { onHome: () => void }) {
   };
   const reset = () => { setGameVersion((value) => value + 1); setState(createGame()); };
   return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
-    {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
+    {guideOpen ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
     <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>나가기</button></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""}`}>
       {prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div></header>}
-      <PoolMeter state={state} />
-      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
-      {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={30} />}
+      {state.phase === "RUN_LOADOUT" ? <LocalRunLoadoutStage key={state.phase} state={state} view={draftView} send={draftAction} /> : <PoolMeter state={state} />}
+      {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createGame as createGameCurrent, resolveSecondary } from "./engine";
+import { createGame as createGameCurrent, resolvePrimary, resolveSecondary } from "./engine";
 import { createMatchView } from "./matchView";
 import { cinematicTimeline } from "../shared/presentationTimeline";
 import { createElement } from "react";
@@ -19,6 +19,24 @@ vi.mock("./showdownDeck", async (importOriginal) => {
 function createGame(...args: Parameters<typeof createGameCurrent>) { return createGameCurrent(args[0], args[1], 1); }
 
 describe("bounded high-card decider", () => {
+  it("awards both R4 regulation split players 3P but sends only the decider winner to Winner Group", () => {
+    const game = createGame(2026);
+    game.round = 4; game.phase = "SHOWDOWN_PRIMARY";
+    game.players.slice(6).forEach((player) => { player.eliminated = true; });
+
+    const result = resolvePrimary(game);
+
+    expect(result.roundResults).toHaveLength(3);
+    for (const match of result.roundResults) {
+      expect(match.regulationWinnerIds).toHaveLength(2);
+      expect(match.regulationWinnerIds!.map((id) => match.pointAwards![id])).toEqual([3, 3]);
+      expect(match.winnerIds).toHaveLength(1);
+      expect(match.highCardDraw?.winnerId).toBe(match.winnerIds[0]);
+    }
+    expect(result.winnerGroup).toHaveLength(3);
+    expect(result.loserGroup).toHaveLength(3);
+  });
+
   it("bounds R2 run-it-twice to four boards and reproduces a persisted seeded result", () => {
     const game = createGame(404);
     game.round = 2; game.phase = "SHOWDOWN_SECONDARY";
