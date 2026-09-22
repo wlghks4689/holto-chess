@@ -71,11 +71,22 @@ describe("cinematic initial rendering", () => {
   it("renders cumulative point standings as explicit rank badges with shared places", () => {
     const ranked: MatchView = { ...match, standingsBefore: { p1: 12, p2: 8, p3: 8, p4: 3 } };
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: ranked, profiles, viewerId: "p1", onComplete: () => {} }));
-    expect(html).toContain('aria-label="현재 승점 순위 1위"');
-    expect(html.match(/aria-label="현재 승점 순위 공동 2위"/g)).toHaveLength(2);
-    expect(html).toContain('class="cinema-rank-badge" data-rank="4" aria-label="현재 승점 순위 4위"');
-    expect(html).not.toMatch(/cinema-rank-badge[^>]*>[^<]*<small>현재 순위<\/small><b>\d+위<\/b>[^<]*<em>/);
+    expect(html).toContain('aria-label="현재 1위"');
+    expect(html.match(/aria-label="현재 공동 2위"/g)).toHaveLength(2);
+    expect(html).toContain('class="cinema-rank-badge" data-rank="4" aria-label="현재 4위"');
+    expect(html).toContain("<small>현재</small><b>1위</b>");
+    expect(html).not.toContain("현재 순위");
     expect(html).not.toContain("TIE");
+  });
+  it("keeps eliminated survival-tiebreak players in the visible risk ranking", () => {
+    const riskProfiles = Array.from({ length: 8 }, (_, index) => ({
+      playerId: `p${index + 1}`, name: `p${index + 1}`, points: 8 - index, alive: index < 6,
+    }));
+    const tiebreak: MatchView = { ...match, id: "survival-tiebreak", round: 3, stage: "secondary", group: "loser",
+      participantIds: ["p7", "p8"], tiebreakKind: "SURVIVAL_TIEBREAK", revealedCards: { p7: [], p8: [] } };
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: tiebreak, profiles: riskProfiles, viewerId: "p7", onComplete: () => {} }));
+    expect(html).toContain('data-rank="7" aria-label="현재 7위"');
+    expect(html).toContain('data-rank="8" aria-label="현재 8위"');
   });
   it("uses persistent two-faced slots for heads-up hole cards and boards", () => {
     const board = deck.slice(10, 15);

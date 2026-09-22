@@ -4,6 +4,15 @@ import { describe, expect, it } from "vitest";
 import { RoundGuide } from "./RoundGuide";
 
 describe("round guide", () => {
+  it("describes the R2 round itself and omits the redundant display notice", () => {
+    const html = renderToStaticMarkup(createElement(RoundGuide, { round: 2, onClose: () => undefined, secondsLeft: 17 }));
+
+    expect(html).toContain("대표 카드 한 장을 두 RUN에 공통으로 사용");
+    expect(html).not.toContain("기존 두 장을 공개하고 8장 공개 풀");
+    expect(html).toContain("남은 시간 17초");
+    expect(html).not.toContain("라운드가 시작될 때");
+  });
+
   it("shows all four R3 Omaha hole cards and explains the exact 2+3 rule", () => {
     const html = renderToStaticMarkup(createElement(RoundGuide, { round: 3, onClose: () => undefined }));
 

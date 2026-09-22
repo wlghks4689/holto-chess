@@ -33,7 +33,7 @@
 .cinema-run-result{text-align:right;font-size:11px}.cinema-run-row.active{color:#d8ebe1}.cinema-run-row.active .cinema-run-matchup>strong{color:var(--mint);text-shadow:0 0 8px rgba(132,245,182,.55)}
 .cinema-run-row.complete{color:#9fc4b1}.cinema-run-row.complete .cinema-run-result{color:var(--mint)}.cinema-run-row.tiebreak{min-height:38px;color:#e3b957}.cinema-run-tiebreak-copy{text-align:center;color:#9f8c62}
 .cinema-run-score{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:18px;text-align:center;color:#b9d2c7;font:700 13px Manrope}
-.cinema-run-score strong{min-width:82px;color:var(--mint);font:800 30px/1 DM Mono;letter-spacing:.08em;text-shadow:0 0 16px rgba(132,245,182,.3)}.cinema-run-score span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cinema-run-score span:first-child{text-align:right}.cinema-run-score span:last-child{text-align:left}
+.cinema-run-score strong{min-width:82px;color:var(--mint);font:800 30px/1 DM Mono;letter-spacing:.08em;text-shadow:0 0 16px rgba(132,245,182,.3)}.cinema-run-score span{overflow:hidden;text-align:center;text-overflow:ellipsis;white-space:nowrap}
 .cinema-seats{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px}
 .cinema-multi .cinema-seats{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .cinema-final .cinema-seats{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -119,6 +119,7 @@
 .cinema-rank-badge{display:inline-flex;align-items:center;gap:5px;min-height:25px;padding:2px 8px;border:1px solid #3a7568;border-radius:999px;background:rgba(7,31,27,.8);color:#c8e9dd;font:600 10px DM Mono;white-space:nowrap;box-shadow:inset 0 0 12px rgba(104,238,203,.06)}
 .cinema-rank-badge small{color:#81aa9d;font-size:10px;letter-spacing:.04em}.cinema-rank-badge b{color:var(--mint);font-size:12px}.cinema-rank-badge i{padding:1px 4px;border-radius:4px;background:#26483e;color:#a9d4c5;font-size:8px;font-style:normal}
 .cinema-rank-badge[data-rank="1"]{border-color:#cdb75e;background:rgba(61,51,18,.58);box-shadow:0 0 12px rgba(232,207,104,.12)}.cinema-rank-badge[data-rank="1"] b{color:#f1d977}.cinema-rank-badge[data-rank="1"] small{color:#cfc38d}
+.cinema-rank-badge:is([data-rank="7"],[data-rank="8"]){border-color:#9f3f47;background:rgba(72,17,23,.76);box-shadow:0 0 14px rgba(239,68,68,.18),inset 0 0 12px rgba(248,113,113,.08)}.cinema-rank-badge:is([data-rank="7"],[data-rank="8"]) small{color:#e89ba0}.cinema-rank-badge:is([data-rank="7"],[data-rank="8"]) b{color:#ff727c}
 .cinema-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(132,245,182,.45);border-radius:50%;background:rgba(4,22,16,.9);color:#a2ffd0;font:800 16px Manrope;letter-spacing:.06em;text-shadow:0 0 22px #4ffea9;box-shadow:0 0 24px rgba(79,254,169,.16)}
 .cinema-intro .cinema-vs-reveal .cinema-flip-inner{animation:cinema-vs-card-reveal .38s cubic-bezier(.3,.65,.25,1) var(--flip-delay,0ms) both}
 .cinema-intro .cinema-seat{animation:cinema-seat-enter .4s ease-out both}
@@ -149,7 +150,7 @@
 .cinema-loser .cinema-profile{opacity:.65}
 .cinema-victory{display:block;width:100%;color:var(--made-color);font:800 15px Manrope;letter-spacing:.12em;animation:cinema-seat-enter .3s ease-out both}
 .cinema-loser .cinema-victory{color:#90a398}
-.cinema-made{margin:18px 0 8px;color:var(--made-color);animation:cinema-seat-enter .24s ease-out both}
+.cinema-made{display:flex;min-height:58px;flex-direction:column;align-items:center;justify-content:center;margin:18px 0 8px;color:var(--made-color);animation:cinema-seat-enter .24s ease-out both}
 .cinema-made strong{display:block;font-size:clamp(15px,2.2vw,22px);line-height:1.4;overflow-wrap:anywhere;text-shadow:0 0 12px color-mix(in srgb,var(--made-color) 45%,transparent)}
 .cinema-made small{display:block;font:500 10px DM Mono;color:#adc4b8;margin-top:5px}
 .cinema-made-fx{isolation:isolate;overflow:hidden;--fx-peak:.9}
@@ -202,7 +203,8 @@
 /* Persistent identity, including after the one-shot orbit has finished.
    These outrank generic/final-table winner colors without changing other hands. */
 .cinema .cinema-seat.cinema-made-fx.made-straight-flush{--made-color:#a5f3fc;border-color:transparent;background:linear-gradient(#142333,#142333) padding-box,var(--fx-sf-spectrum) border-box}
-.cinema .cinema-made-fx.made-straight-flush .cinema-made strong,.cinema .cinema-made-fx.made-straight-flush .cinema-victory{width:fit-content;max-width:100%;margin-inline:auto;background:var(--fx-sf-spectrum);background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 10px rgba(125,211,252,.58))}
+.cinema .cinema-made-fx.made-straight-flush .cinema-made strong,.cinema .cinema-made-fx.made-straight-flush .cinema-final-read strong,.cinema .cinema-made-fx.made-straight-flush .cinema-victory{width:fit-content;max-width:100%;margin-inline:auto;background:var(--fx-sf-spectrum);background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-fill-color:transparent;text-shadow:none;filter:drop-shadow(0 0 10px rgba(125,211,252,.58))}
+.cinema .cinema-made-fx.made-straight-flush .cinema-final-read em{color:#c7f4ff;text-shadow:0 0 9px rgba(125,211,252,.48)}
 .cinema.cinema-final .cinema-made-fx.made-straight-flush .cinema-victory{margin-inline:auto 0}
 .cinema .cinema-seat.cinema-made-fx.made-royal{--made-color:#e2efff;border-color:#dceafa;background:var(--fx-royal-panel);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 0 26px rgba(181,211,250,.28)}
 .cinema .cinema-made-fx.made-royal .cinema-made strong,.cinema .cinema-made-fx.made-royal .cinema-victory{color:#f2f8ff;text-shadow:0 0 10px rgba(255,255,255,.8),0 0 26px rgba(170,209,255,.58)}

@@ -17,9 +17,12 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
   const withKicker = (title: string, values: readonly number[]): DetailedHandLabel => values.length
     ? { title, kicker: `KICKER ${ranks(values)}` }
     : { title };
-  const royalCards = playerCards
+  const madeCards = playerCards
     .filter((card) => usedCardIds.includes(card.id))
     .sort((a, b) => b.rank - a.rank);
+  const straightFlushCards = madeCards.length === 5 && made === 5
+    ? [14, 2, 3, 4, 5].map((rank) => madeCards.find((card) => card.rank === rank)).filter((card): card is Card => !!card)
+    : madeCards;
 
   switch (category) {
     case "HIGH_CARD": return withKicker(`${rankToChar(made)} 하이`, [second, ...rest].filter(Boolean));
@@ -33,9 +36,11 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
       kicker: [made, made, made, second, second].map(rankToChar).join("-"),
     };
     case "QUADS": return withKicker(`${rankToChar(made)} 포카드`, [second].filter(Boolean));
-    case "STRAIGHT_FLUSH": return { title: `${rankToChar(made)} 하이 스트레이트 플러시` };
-    case "ROYAL_FLUSH": return royalCards.length === 5
-      ? { title: "로열 플러시", kicker: royalCards.map(cardLabel).join(" ") }
+    case "STRAIGHT_FLUSH": return straightFlushCards.length === 5
+      ? { title: `${rankToChar(made)} 하이 스트레이트 플러시`, kicker: straightFlushCards.map(cardLabel).join(" ") }
+      : { title: `${rankToChar(made)} 하이 스트레이트 플러시` };
+    case "ROYAL_FLUSH": return madeCards.length === 5
+      ? { title: "로열 플러시", kicker: madeCards.map(cardLabel).join(" ") }
       : { title: "로열 플러시" };
   }
 }

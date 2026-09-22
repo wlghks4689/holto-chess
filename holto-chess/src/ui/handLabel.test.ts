@@ -29,6 +29,15 @@ describe("detailed showdown labels", () => {
       .toEqual({ title: "로열 플러시", kicker: expected });
   });
 
+  it.each([
+    ["h", "A♥ 2♥ 3♥ 4♥ 5♥"], ["s", "A♠ 2♠ 3♠ 4♠ 5♠"],
+    ["d", "A♦ 2♦ 3♦ 4♦ 5♦"], ["c", "A♣ 2♣ 3♣ 4♣ 5♣"],
+  ] as const)("shows the five-card %s wheel straight flush under its hand name", (suit, expected) => {
+    const cards = [14, 2, 3, 4, 5].map((rank) => ({ id: `${rank}${suit}`, rank: rank as Card["rank"], suit }));
+    expect(detailedHandLabel("STRAIGHT_FLUSH", [5], cards, cards.map(({ id }) => id)))
+      .toEqual({ title: "5 하이 스트레이트 플러시", kicker: expected });
+  });
+
   it("shortens the legacy persisted royal-flush label", () => {
     expect(compactHandName("로열 스트레이트 플러시")).toBe("로열 플러시");
   });

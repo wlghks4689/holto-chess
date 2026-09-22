@@ -114,7 +114,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
   const labelFor = (id: string, result: RevealedHand) => detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds);
   const rankPoints = match.standingsAfterRuns?.[frame.boardIndex - (flags.result || flags.runResult || flags.reward ? 0 : 1)] ?? match.standingsBefore
-    ?? Object.fromEntries(profiles.filter((p) => p.alive !== false).map((p) => [p.playerId, p.points ?? 0]));
+    ?? Object.fromEntries(profiles.map((p) => [p.playerId, p.points ?? 0]));
   const finalHeading = finalHeadingCopy(frame);
   const nextBatch = final ? finalNextBatch(frame.phase) : undefined;
   const phaseMs = (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
@@ -166,7 +166,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
-          {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 승점 순위 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재 순위</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}</span>}
+          {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}</span>}
           {swiss && currentPoints !== undefined && <em className="cinema-current-points">POINT {currentPoints}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
           {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
