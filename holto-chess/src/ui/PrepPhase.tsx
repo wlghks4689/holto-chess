@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { Round } from "../game/types";
 import type { PrepPresentation } from "./prepPresentation";
 
@@ -18,11 +18,7 @@ export function RoundProgress({ round, prep }: { round: Round; prep: PrepPresent
   </div>;
 }
 
-export function PrepRoundHeader({ prep, phaseLabel, phaseDetail }: {
-  prep: PrepPresentation;
-  phaseLabel: string;
-  phaseDetail?: ReactNode;
-}) {
+export function PrepRoundHeader({ prep }: { prep: PrepPresentation }) {
   const [rulesOpen, setRulesOpen] = useState(false);
   return <header className="round-header prep-round-header">
     <div className="prep-heading-copy">
@@ -36,6 +32,5 @@ export function PrepRoundHeader({ prep, phaseLabel, phaseDetail }: {
         </section>
       </div>
     </div>
-    <div className="phase-badge"><small>CURRENT PHASE</small><b>{phaseLabel}</b><span>PREPARING R{String(prep.targetRound).padStart(2, "0")}</span>{phaseDetail}</div>
   </header>;
 }

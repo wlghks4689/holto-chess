@@ -1,17 +1,13 @@
-.shop-countdown{--countdown-color:var(--mint,#84f5b6);display:grid;grid-template-columns:auto auto;align-items:baseline;justify-content:start;column-gap:10px;row-gap:5px;min-width:0;padding:4px 16px;border-left:1px solid rgba(132,245,182,.18);color:var(--countdown-color)}
-.shop-countdown small{grid-column:1;color:#8fb0a0;font:600 10px DM Mono;letter-spacing:.08em;white-space:nowrap}
-.shop-countdown strong{grid-column:2;grid-row:1 / span 2;font:800 30px/1 Manrope;font-variant-numeric:tabular-nums;letter-spacing:.01em;text-align:right}
-.shop-countdown-bar{grid-column:1;grid-row:2;position:relative;display:block;width:120px;height:4px;border-radius:2px;background:rgba(132,245,182,.14);overflow:hidden}
-.shop-countdown-bar b{position:absolute;inset:0;transform-origin:left center;transform:scaleX(var(--countdown-ratio,1));background:currentColor;border-radius:inherit;transition:transform .3s linear}
-.shop-countdown em{grid-column:1 / -1;max-width:220px;color:#7f9c8f;font:500 10px DM Mono;font-style:normal}
-.shop-countdown.is-warning{--countdown-color:#f5c86a}
-.shop-countdown.is-critical{--countdown-color:#ff7a7a}
-.shop-countdown.is-critical strong{animation:shop-countdown-pulse 1s ease-in-out infinite}
+.phase-timer{display:grid;grid-template-columns:1fr auto;align-items:end;justify-items:end;column-gap:5px;min-width:112px;border:1px solid rgba(111,238,221,.5);border-radius:8px;padding:8px 12px 7px;background:linear-gradient(145deg,rgba(20,76,83,.84),rgba(3,22,31,.95));box-shadow:0 0 18px rgba(83,220,214,.13),inset 0 1px rgba(210,255,252,.08);color:#d8ecec;font-variant-numeric:tabular-nums;white-space:nowrap}
+.phase-timer>span{grid-column:1/-1;grid-row:1;margin-bottom:4px;color:#a8d2d5;font:700 11px/1 DM Mono;letter-spacing:.06em}
+.phase-timer strong{grid-column:1/-1;grid-row:2;color:#fff;font:800 34px/.9 DM Mono;letter-spacing:-.06em;text-shadow:0 0 13px rgba(111,238,221,.42)}
+.phase-timer strong i{margin-left:5px;color:#a8d2d5;font:700 11px/1 DM Mono;font-style:normal;letter-spacing:.06em}
+.phase-timer.is-warning{border-color:rgba(245,200,106,.7)}.phase-timer.is-warning strong{color:#f5c86a}
+.phase-timer.is-critical{border-color:rgba(255,122,122,.8)}.phase-timer.is-critical strong{color:#ff8e86;animation:shop-countdown-pulse 1s ease-in-out infinite}
 @keyframes shop-countdown-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.06)}}
 @media(max-width:620px){
-  .shop-countdown{width:100%;box-sizing:border-box;border-left:0;padding:0 0 8px;grid-template-columns:1fr auto}
-  .shop-countdown-bar{width:100%}
-  .shop-countdown strong{font-size:24px}
-  .shop-countdown em{white-space:normal}
+  .phase-timer{min-width:88px;padding:7px 9px 6px}
+  .phase-timer strong{font-size:30px}
+  .phase-timer>span,.phase-timer strong i{font-size:10px}
 }
-@media(prefers-reduced-motion:reduce){.shop-countdown.is-critical strong{animation:none}.shop-countdown-bar b{transition:none}}
+@media(prefers-reduced-motion:reduce){.phase-timer.is-critical strong{animation:none}}

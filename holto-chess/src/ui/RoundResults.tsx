@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cardLabel } from "../core/poker/cards";
 import type { RoundSummaryRow } from "../shared/protocol";
-import { countdownUrgency, formatCountdown } from "./countdown";
+import { PhaseTimer } from "./PhaseTimer";
 
 function HandCards({ row }: { row: RoundSummaryRow }) {
   return <div className="summary-hand" data-count={row.cards.length}>{row.cards.map((card) => { const label = cardLabel(card); return <span key={card.id} aria-label={label} className={card.suit === "h" || card.suit === "d" ? "red" : ""}><b className="summary-card-rank">{label.slice(0, -1)}</b><i className="summary-card-suit">{label.slice(-1)}</i></span>; })}</div>;
@@ -80,7 +80,7 @@ export function RoundResults({ round, rows, viewerId, showBrackets = false, seco
   return <section className="round-results">
     <div className="round-overview panel">
       <header className="round-result-heading"><div><span className="eyebrow">ROUND {round} · RESULT</span><h2>{showBrackets ? "브래킷 배정" : "순위표"}</h2><p>{showBrackets ? "MATCH 1 결과에 따른 다음 경기 그룹입니다" : "이번 라운드 종료 기준 누적 승점 순위입니다"}</p></div>
-        {!showBrackets && secondsLeft !== null && <div className={`result-deadline is-${countdownUrgency(secondsLeft)}`} role="timer" aria-label={`순위표 남은 시간 ${secondsLeft}초`}><small>자동 진행</small><strong>{formatCountdown(secondsLeft)}</strong><span>최대 30초</span></div>}
+        {!showBrackets && secondsLeft !== null && <PhaseTimer className="result-deadline" seconds={secondsLeft} ariaLabel={`순위표 남은 시간 ${secondsLeft}초`} />}
       </header>
       {showBrackets ? <div className="round-bracket-grid">{bracketSections.map((section) => <section className={`round-bracket is-${section.bracket}`} key={section.bracket}>
         <header><div><span>{section.bracket === "winner" ? "WINNER BRACKET" : "SURVIVAL BRACKET"}</span><h3>{section.title}</h3></div><small>{section.note}</small></header>

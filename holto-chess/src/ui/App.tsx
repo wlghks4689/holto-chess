@@ -51,9 +51,9 @@ function PoolMeter({ state }: { state: PorenaGameState }) {
   const counts = ownershipCounts(state);
   const valid = (() => { try { return assertPoolIntegrity(state); } catch { return false; } })();
   return <div className="pool-meter">
-    <span className={`integrity ${valid ? "ok" : "bad"}`}>{valid ? "✓ 52 UNIQUE" : "! POOL ERROR"}</span>
-    <span title="미보유 카드 전체: 상점 예약 카드 포함"><i className="dot available" /> 남은 카드 {counts.remaining}</span>
-    <span title="각 플레이어가 현재 보유 중인 카드만 집계합니다"><i className="dot owned" /> 플레이어 보유 {counts.owned}</span>
+    <span className={`integrity ${valid ? "ok" : "bad"}`}><i className="pool-icon cards" aria-hidden="true" /><span><strong>{valid ? "52" : "!"} <em>{valid ? "UNIQUE" : "POOL ERROR"}</em></strong></span></span>
+    <span title="미보유 카드 전체: 상점 예약 카드 포함"><i className="pool-icon deck" aria-hidden="true" /><span><strong>남은 카드 <em>{counts.remaining}</em></strong></span></span>
+    <span title="각 플레이어가 현재 보유 중인 카드만 집계합니다"><i className="pool-icon player" aria-hidden="true" /><span><strong>플레이어 보유 <em>{counts.owned}</em></strong></span></span>
   </div>;
 }
 
@@ -65,13 +65,12 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
     purchaseLimit, handLimit: cap });
   return <section className="shop-layout">
     <div className="inventory panel">
-      <header><div><span className="eyebrow">PRIVATE INVENTORY</span><h2>내 카드 <em>{me.ownedCardIds.length} / {cap}</em></h2></div><div className="stat-block"><small>현재 스택</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
+      <header><div className="shop-heading"><h2>내 카드</h2><strong className="shop-count">{me.ownedCardIds.length} / {cap}</strong></div><div className="stat-block"><small>스택 :</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
       <div className="card-row owned-row">{me.ownedCardIds.map((id) => <CardView key={id} card={getCard(state, id)} onClick={canSell ? () => act((s) => sellCard(s, me.id, id)) : undefined} footer={canSell ? "판매" : "판매 불가"} />)}
         {Array.from({ length: Math.max(0, cap - me.ownedCardIds.length) }, (_, i) => <div className="empty-card" key={i}><span>+</span><small>EMPTY</small></div>)}</div>
-      <p className="hint">{canSell ? `카드를 누르면 기준가의 ${me.augments.some((a) => a.id === "sell_bonus") ? "80" : "60"}%에 판매합니다. 판매 후에도 라운드 구매 횟수는 복구되지 않습니다.` : "남은 구매 횟수로 필수 보유 장수를 복구할 수 없어 더 이상 판매할 수 없습니다."}</p>
     </div>
     <div className="market panel">
-      <header><div><h2>카드 마켓 <em>{me.shopCardIds.length} / {BALANCE.baseShopSize}</em></h2></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
+      <header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">{me.shopCardIds.length} / {BALANCE.baseShopSize}</strong></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
       <div className="card-row market-row">{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
       <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button><span className="hint">{allShopCardsLocked ? "모든 카드가 잠겨 리롤할 수 없습니다." : "카드별 잠금 3BB · 해제 무료"}</span></div>
@@ -137,7 +136,7 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} 상점으로`; fn = startNextRound; }
   const requiredSelection = 2;
   if (state.phase === "GAME_RESULT" || (!fn && !me.eliminated)) return null;
-  return <div className="action-bar"><div><small>NEXT ACTION</small><b>{fn ? label : "탈락"}</b></div>{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
+  return <div className="action-bar action-only">{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
 }
 
 export function App({ onHome }: { onHome: () => void }) {
@@ -169,12 +168,12 @@ export function App({ onHome }: { onHome: () => void }) {
     if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
   const reset = () => { setGameVersion((value) => value + 1); setState(createGame()); };
-  return <CinematicGate key={gameVersion} controls matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
+  return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {dismissedGuide !== guideKey ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
     <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>나가기</button></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
-    <div id="top" className="page-shell">
-      {prep ? <PrepRoundHeader prep={prep} phaseLabel={PHASE_LABEL[state.phase]} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><small>CURRENT PHASE</small><b>{PHASE_LABEL[state.phase]}</b><span>{state.phase === "GAME_RESULT" ? "TOURNAMENT COMPLETE" : state.round === 5 ? "COMMUNITY OFF" : "MATCH-SCOPED BOARD"}</span></div></header>}
+    <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""}`}>
+      {prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div></header>}
       <PoolMeter state={state} />
       {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 0 : draftPickerId === "p1" ? 20 : 1} />}
       {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={60} />}

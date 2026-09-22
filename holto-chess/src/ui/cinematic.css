@@ -46,20 +46,20 @@
 .cinema-arena-enter .cinema-heading-copy{opacity:0;animation:none}
 .cinema-arena-enter .cinema-seats,.cinema-arena-enter .cinema-footer{opacity:0}
 @media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) .cinema-final-arena img{transform:scale(var(--arena-scale))!important}.cinema:not(.cinema-motion-enabled) .cinema-final-arena i{opacity:1!important}}
-.cinema-final-heading{position:relative;z-index:2;justify-content:center;text-align:center;margin-bottom:24px}
-.cinema-final-heading>div:first-child{max-width:760px}.cinema-final-heading h2{font-size:clamp(28px,5vw,52px);line-height:1;margin:12px 0;letter-spacing:-.035em}
+.cinema-final-heading{position:relative;z-index:2;align-items:center;justify-content:center;text-align:center;margin-bottom:24px}
+.cinema-final-heading>div:first-child{width:100%;max-width:760px;margin-inline:auto;text-align:center}.cinema-final-heading h2{font-size:clamp(28px,5vw,52px);line-height:1;margin:0;letter-spacing:-.035em;text-align:center}
 .cinema-final-heading p{margin:0;color:#7f9d94;font:500 10px DM Mono;letter-spacing:.12em;text-transform:uppercase}
 .cinema-final-heading .cinema-controls{position:absolute;right:0;top:0}
 .cinema-final .cinema-seats{position:relative;z-index:2;gap:22px}
 .cinema-final .cinema-seat{min-height:150px;text-align:left;background:rgba(4,17,24,.8);border-color:#1d5b53;padding:17px 18px}
 .cinema-final .cinema-profile{justify-content:flex-start;margin-bottom:14px;font-size:14px}
-.cinema-final .cinema-hole-cards{justify-content:flex-start}
+.cinema-final .cinema-hole-cards{justify-content:center}
 /* R5 hand panel: mounted once per seat, only its copy is swapped (soft fade + small rise). */
-.cinema-final-read{border-top:1px solid rgba(93,163,150,.25);margin:13px 0 0;padding-top:11px;min-height:44px;text-align:left;color:var(--made-color);transition:color .4s ease,border-color .4s ease}
-.cinema-final-read-copy{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 12px;animation:cinema-soft-in calc(320ms * var(--final-beat,1)) ease-out both}
-.cinema-final-read small{grid-column:1;grid-row:1;color:#70b9ad;font:500 9px DM Mono;letter-spacing:.13em}
-.cinema-final-read strong{grid-column:2;grid-row:1 / span 2;font-size:clamp(14px,2vw,20px);text-align:right}
-.cinema-final-read em{grid-column:1;grid-row:2;color:#8aa79e;font:500 9px DM Mono;font-style:normal}
+.cinema-final-read{border-top:1px solid rgba(93,163,150,.25);margin:13px 0 0;padding-top:11px;min-height:52px;text-align:center;color:var(--made-color);transition:color .4s ease,border-color .4s ease}
+.cinema-final-read-copy{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;animation:cinema-soft-in calc(320ms * var(--final-beat,1)) ease-out both}
+.cinema-final-read small{color:#70b9ad;font:500 9px DM Mono;letter-spacing:.13em}
+.cinema-final-read strong{font-size:clamp(15px,2.2vw,22px);line-height:1.25;text-align:center}
+.cinema-final-read em{color:#8aa79e;font:500 9px DM Mono;font-style:normal;text-align:center}
 .cinema-final-read.is-pending strong{color:#3f6259}
 .cinema-final-read.is-final{border-top-color:color-mix(in srgb,var(--made-color) 45%,transparent)}
 .cinema-final-read.is-final small{color:var(--made-color)}
@@ -101,7 +101,7 @@
 .cinema-final .cinema-victory.place-2{color:#dfe7ee;text-shadow:0 0 10px rgba(223,231,238,.4);box-shadow:0 0 14px rgba(223,231,238,.16)}
 .cinema-final .cinema-victory.place-3{color:#df9d62;text-shadow:0 0 10px rgba(223,157,98,.4);box-shadow:0 0 14px rgba(223,157,98,.16)}
 .cinema-final .cinema-victory.place-4{color:#8ba59d}
-.cinema-final .cinema-reward{text-align:left}.cinema-final .cinema-reward strong{text-align:left;color:#f4d77f}
+.cinema-final .cinema-reward{text-align:center}.cinema-final .cinema-reward strong{display:flex;align-items:center;justify-content:center;gap:4px;text-align:center;color:#f4d77f}
 .cinema-status-stamp{position:relative;flex-shrink:0;width:auto;margin-left:auto;padding:3px 10px 2px;border:3px double currentColor;border-radius:7px;background:color-mix(in srgb,currentColor 9%,transparent);font:800 16px/1.2 Manrope;letter-spacing:.1em;transform:rotate(-6deg);transform-origin:50% 60%;animation:cinema-stamp-drop calc(560ms * var(--final-beat,1)) cubic-bezier(.5,0,.75,.2) both}
 .cinema-status-stamp::after{content:"";position:absolute;inset:-3px;border:2px solid currentColor;border-radius:9px;opacity:0;pointer-events:none;animation:cinema-stamp-ring calc(560ms * var(--final-beat,1)) ease-out both}
 .cinema-status-stamp.is-survived{color:#79ffae;text-shadow:0 0 12px rgba(121,255,174,.5);box-shadow:0 0 16px rgba(121,255,174,.22)}
@@ -270,18 +270,20 @@
   .cinema-hole-cards .playing-card.compact .card-rank{font-size:13px}
   .cinema-hole-cards .playing-card.compact .card-suit{font-size:19px}
   .cinema-final .cinema-seats{gap:8px}
-  .cinema-final-heading{padding-top:42px}.cinema-final-heading .cinema-controls{left:0;right:0;top:0;justify-content:space-between}
+  .cinema-final-heading{align-items:center;padding-top:42px}.cinema-final-heading .cinema-controls{left:0;right:0;top:0;justify-content:space-between}
   .cinema-final-heading h2{font-size:clamp(24px,8vw,34px)}
   .cinema-final .cinema-seat,.cinema-final.cinema-intro .cinema-seat{min-height:124px;padding:12px 7px}
   .cinema-final .cinema-profile{font-size:11px}
   .cinema-final .cinema-victory{padding:2px 6px 1px;border-width:2px;font-size:11px}
-  .cinema-final-read{padding-top:8px;margin-top:9px;min-height:38px}.cinema-final-read-copy{gap:3px 5px}
-  .cinema-final-read strong{font-size:11px}
+  .cinema-final-read{padding-top:8px;margin-top:9px;min-height:44px}.cinema-final-read-copy{gap:3px}
+  .cinema-final-read strong{font-size:15px}
   .cinema-final .playing-card.compact{width:clamp(15px,4.2vw,25px);height:clamp(27px,6.6vw,39px);border-radius:4px;padding:2px}
   .cinema-final .playing-card.compact .card-rank{font-size:11px}
   .cinema-final .playing-card.compact .card-suit{font-size:14px}
+  .cinema-final .playing-card.card-back span{font-size:10px}
   .cinema-final .cinema-hole-cards{gap:2px}
-  .cinema-final .cinema-reward b{font-size:12px}
+  .cinema-final .cinema-reward strong{flex-direction:column;gap:0;white-space:normal;line-height:1.35}
+  .cinema-final .cinema-reward strong i{display:none}
 }
 @media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) *:not(.fx-motion-preview *){animation:none!important;transition:none!important}.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::before,.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::after{animation:none!important;opacity:0}}
 /* Server-synced playback: a large clock jump lands on the current frame instead of replaying every transition. */

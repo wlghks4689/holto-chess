@@ -193,6 +193,9 @@ describe("cinematic initial rendering", () => {
     const rewardAt = cinematicTimeline(match).find((entry) => entry.phase === "REWARD")!.at;
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(html).not.toContain("승점 정산 완료");
+    expect(html).not.toContain("POINT SETTLEMENT");
+    expect(html).not.toContain("FINAL BEST 5");
+    expect(html).toContain("SHOWDOWN RESULTS");
   });
   it("keeps scoreboard and logs out of the DOM until the result presentation is dismissed", () => {
     const html = renderToStaticMarkup(createElement(CinematicGate, {

@@ -121,7 +121,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms`, "--final-beat": `${1 / speed}`, "--phase-duration": `${phaseMs / speed}ms` } as CSSProperties}>
-    <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}><span className="eyebrow" key={final ? finalHeading.kicker : undefined}>{final ? finalHeading.kicker : `ROUND ${match.round} · MATCH ${match.matchday ? `${match.matchday}/3` : match.matchNumber}`}</span><h2>{final ? finalHeading.title : title}</h2></div>
+    <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : match.matchNumber}</span>}<h2>{final ? finalHeading.title : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} name={name} />}
@@ -157,7 +157,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const currentRank = currentPoints === undefined ? undefined : 1 + Object.values(rankPoints).filter((points) => points > currentPoints).length;
       const tiedOnPoints = currentPoints === undefined ? false : Object.values(rankPoints).filter((points) => points === currentPoints).length > 1;
       const read = !final ? undefined : readStage.kind === "final" && label
-        ? { stage: "final", tag: "FINAL BEST 5", title: label.title, detail: label.kicker }
+        ? { stage: "final", tag: undefined, title: label.title, detail: label.kicker }
         : interimLabel
           ? { stage: `current-${readCards}`, tag: readCards === 3 ? "CURRENT READ · 3 CARDS" : "CURRENT BEST · 5 CARDS", title: interimLabel.title, detail: interimLabel.kicker }
           : { stage: "pending", tag: "HAND READ", title: "—", detail: undefined };
@@ -165,7 +165,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
-          {match.round >= 2 && currentRank !== undefined && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 승점 순위 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재 순위</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}</span>}
+          {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 승점 순위 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재 순위</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}</span>}
           {swiss && currentPoints !== undefined && <em className="cinema-current-points">POINT {currentPoints}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
           {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
@@ -183,12 +183,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             className={intro ? "cinema-vs-reveal" : ""} style={intro ? { "--flip-delay": `${cardIndex * 200}ms` } as CSSProperties : undefined} key={match.runCards ? cardIndex : card.id} />;
         })}</div>
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
-          <div className="cinema-final-read-copy" key={read.stage}><small>{read.tag}</small><strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
+          <div className="cinema-final-read-copy" key={read.stage}>{read.tag && <small>{read.tag}</small>}<strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
         {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {!final && flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {flags.glow && board.length > 0 && result && <button className="cinema-focus" aria-pressed={focus?.playerId === id} onClick={() => setFocusId(id)}>BEST 5 확인{match.round === 3 ? " · 홀 2 + 보드 3" : ""}</button>}
         {(flags.reward || flags.runResult && match.runRewards) && reward && showReward && <div className="cinema-reward">{final
-          ? <strong>{ordinalPlace(result?.place)} PLACE REWARD <i>·</i> {reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))} POINT</strong>
+          ? <strong><span>{ordinalPlace(result?.place)} PLACE REWARD</span><i>·</i><span>{reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))} POINT</span></strong>
           : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> {reward.deltaPoints >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaPoints).toFixed(2))}P 획득</strong>}</div>}
       </div>;
     })}</div>
