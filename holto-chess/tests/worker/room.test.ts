@@ -3,7 +3,7 @@ import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
 import type { GameAction, PlayerView, ServerMessage, SessionCredential } from "../../src/shared/protocol";
 import type { RoomSnapshot } from "../../src/game/room";
-import { assertPoolIntegrity } from "../../src/game/cardPool";
+import { assertPoolIntegrity, releasePlayerCards } from "../../src/game/cardPool";
 
 const origin = "https://porena.test";
 const sockets: WebSocket[] = [];
@@ -42,6 +42,41 @@ async function connect(s: SessionCredential) {
   return { ws, messages, wait, view, send };
 }
 describe("GameRoom in the Cloudflare runtime", () => {
+  it("persists and broadcasts an empty-hand timeout forfeit, including after reconnect", async () => {
+    const a = await session(); const b = await session(a.roomId);
+    const clients = await Promise.all([a, b].map(connect));
+    await Promise.all(clients.map((client) => client.send({ type: "READY" })));
+    const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+    // The legal spending sequence is covered by the engine/room regression.
+    // Here exercise storage re-entry, real alarms, serialization and reconnect.
+    await runInDurableObject(stub, async (_instance, state) => {
+      const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
+      const player = saved.game.players.find((p) => p.id === a.playerId)!;
+      releasePlayerCards(saved.game, player); player.stackBB = 0;
+      saved.barrierSince = Date.now() - 120_000;
+      expect(assertPoolIntegrity(saved.game)).toBe(true);
+      await state.storage.put("snapshot:v1", saved);
+    });
+    await evictDurableObject(stub);
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    await clients[0].wait((m) => m.type === "PLAYER_VIEW" && m.payload.phase === "SHOWDOWN_PRIMARY");
+    await runInDurableObject(stub, async (_instance, state) => {
+      const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
+      saved.barrierSince = Date.now() - 120_000;
+      await state.storage.put("snapshot:v1", saved);
+    });
+    await evictDurableObject(stub);
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    await Promise.all(clients.map((client) => client.wait((m) => m.type === "PLAYER_VIEW" && m.payload.phase === "ROUND_RESULT")));
+    const saved = (await runInDurableObject(stub, (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1")))!;
+    expect(saved.game.players.find((p) => p.id === a.playerId)).toMatchObject({ stackBB: 0, points: 0, ownedCardIds: [] });
+    expect(saved.game.roundResults.filter((match) => match.playerIds.includes(a.playerId)).every((match) =>
+      match.results.find((r) => r.playerId === a.playerId)!.hand.displayName === "몰수패")).toBe(true);
+    const reconnected = await connect(a);
+    expect(reconnected.view().me).toEqual(clients[0].view().me);
+    expect(reconnected.view().phase).toBe("ROUND_RESULT");
+    expect(assertPoolIntegrity(saved.game)).toBe(true);
+  });
   it("limits connection attempts and expires old room snapshots", async () => {
     const headers = { Origin: origin, "CF-Connecting-IP": "192.0.2.92" };
     for (let i = 0; i < 120; i++) {

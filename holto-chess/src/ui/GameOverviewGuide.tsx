@@ -17,7 +17,7 @@ const ROUND_ROWS = [
   { round: "R1", cards: "사용 카드 : 2장", format: "홀덤 · 스위스 3경기", points: `경기 승 ${ROUND_POINTS.r1.win}P · Split ${ROUND_POINTS.r1.split}P`, result: "전원 생존" },
   { round: "R2", cards: "대표 카드 + RUN별 보조 카드 · 3장 모두 사용", format: "8장 공개 드래프트 · Run It Twice", points: `RUN별 승 ${ROUND_POINTS.r2Run.win}P · Split ${ROUND_POINTS.r2Run.split}P`, result: "전원 생존" },
   { round: "R3", cards: "사용 카드 : 보유 4장 중 정확히 2장", format: "오마하 Swiss · 3매치", points: `매치별 승 ${ROUND_POINTS.r3.gameWin}P · Split ${ROUND_POINTS.r3.gameSplit}P`, result: "누적 승점 하위 2명 탈락" },
-  { round: "R4", cards: "사용 카드 : 5장", format: "10장 중 BEST5", points: `1차 승 ${ROUND_POINTS.r4Primary.win}P · Split ${ROUND_POINTS.r4Primary.split}P · 승자조 1/2/3위 ${ROUND_POINTS.r4WinnerGroup.first}/${ROUND_POINTS.r4WinnerGroup.second}/${ROUND_POINTS.r4WinnerGroup.third}P · 기본 BB는 1위만 20BB (연승·연패 보너스 적용) · 패자조 보상 없음`, result: "2명 탈락" },
+  { round: "R4", cards: "사용 카드 : 5장", format: "10장 중 BEST5", points: `1차 승 ${ROUND_POINTS.r4Primary.win}P · Split ${ROUND_POINTS.r4Primary.split}P · 승자조 1/2/3위 ${ROUND_POINTS.r4WinnerGroup.first}/${ROUND_POINTS.r4WinnerGroup.second}/${ROUND_POINTS.r4WinnerGroup.third}P (공동 2위는 각 ${ROUND_POINTS.r4WinnerGroup.tiedSecond}P) · 기본 BB는 1위만 20BB (연승·연패 보너스 적용) · 패자조 보상 없음`, result: "2명 탈락" },
   { round: "R5", cards: "사용 카드 : 7장 중 5장", format: "보드 없는 결승", points: `배치 ${FINAL_ROUND_PLACEMENT_POINTS[1]} / ${FINAL_ROUND_PLACEMENT_POINTS[2]} / ${FINAL_ROUND_PLACEMENT_POINTS[3]} / ${FINAL_ROUND_PLACEMENT_POINTS[4]}P`, result: "최종 집계" },
 ] as const;
 

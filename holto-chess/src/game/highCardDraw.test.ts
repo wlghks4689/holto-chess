@@ -5,6 +5,8 @@ import { cinematicTimeline } from "../shared/presentationTimeline";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ShowdownCinematic } from "../ui/ShowdownCinematic";
+import { assertPoolIntegrity, releasePlayerCards } from "./cardPool";
+import { BALANCE } from "./config";
 
 // A royal board forces every player to share the best five, exercising the cap.
 vi.mock("./showdownDeck", async (importOriginal) => {
@@ -18,11 +20,26 @@ vi.mock("./showdownDeck", async (importOriginal) => {
 // Regression coverage for persisted games created before the open-draft rules.
 function createGame(...args: Parameters<typeof createGameCurrent>) { return createGameCurrent(args[0], args[1], 1); }
 
+function fillLegalHands(game: ReturnType<typeof createGameCurrent>) {
+  for (const player of game.players) releasePlayerCards(game, player);
+  for (const player of game.players.filter((p) => !p.eliminated)) {
+    // The old fixture left one R1 card in later rounds. That now correctly forfeits;
+    // give this tie test complete hands disjoint from its forced royal board.
+    const entries = game.ownershipCardPool.filter((entry) => entry.state === "AVAILABLE" && !(entry.card.suit === "s" && entry.card.rank >= 10));
+    for (const entry of entries.slice(0, BALANCE.handLimits[game.round])) {
+      entry.state = "OWNED"; entry.ownerPlayerId = player.id; player.ownedCardIds.push(entry.card.id);
+    }
+    player.selectedCardIds = player.ownedCardIds.slice(0, 2);
+  }
+  expect(assertPoolIntegrity(game)).toBe(true);
+}
+
 describe("bounded high-card decider", () => {
   it("awards both R4 regulation split players 3P but sends only the decider winner to Winner Group", () => {
     const game = createGame(2026);
     game.round = 4; game.phase = "SHOWDOWN_PRIMARY";
     game.players.slice(6).forEach((player) => { player.eliminated = true; });
+    fillLegalHands(game);
 
     const result = resolvePrimary(game);
 
@@ -40,9 +57,9 @@ describe("bounded high-card decider", () => {
   it("bounds R2 run-it-twice to four boards and reproduces a persisted seeded result", () => {
     const game = createGame(404);
     game.round = 2; game.phase = "SHOWDOWN_SECONDARY";
-    for (const player of game.players) player.selectedCardIds = [...player.ownedCardIds];
     game.winnerGroup = ["p1", "p2", "p3", "p4"];
     game.loserGroup = ["p5", "p6", "p7", "p8"];
+    fillLegalHands(game);
     const result = resolveSecondary(game);
     expect(resolveSecondary(game)).toEqual(result);
     for (const match of result.roundResults) {
@@ -56,6 +73,7 @@ describe("bounded high-card decider", () => {
   it("ends forced ties after two boards, eliminates exactly three and presents the warning before ranks", () => {
     const game = createGame(303);
     game.round = 4; game.phase = "SHOWDOWN_SECONDARY";
+    fillLegalHands(game);
     game.winnerGroup = ["p1", "p2", "p3", "p4"];
     game.loserGroup = ["p5", "p6", "p7", "p8"];
     const result = resolveSecondary(game);

@@ -290,7 +290,7 @@ export function shouldBotReroll(round: Round, player: PlayerState, best: (Priced
 }
 
 export function bestBotSelection(round: Round, cards: readonly Card[]): string[] {
-  if (round === 2) return bestPair(cards).map((card) => card.id);
+  if (round === 2) return (cards.length < 2 ? cards : bestPair(cards)).map((card) => card.id);
   if (round === 3) return cards.map((card) => card.id);
   return [];
 }
