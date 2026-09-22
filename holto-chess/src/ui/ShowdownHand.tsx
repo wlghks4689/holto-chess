@@ -10,7 +10,7 @@ export function ShowdownHand({ cards, usedCardIds, winner, displayName, category
   cards: Card[]; usedCardIds: readonly string[]; winner: boolean; displayName: string;
   category: HandCategory; kickers: readonly number[];
 }) {
-  const label = detailedHandLabel(category, kickers, cards, usedCardIds);
+  const label = displayName === "몰수패" ? { title: "몰수패", kicker: "보유 카드 부족" } : detailedHandLabel(category, kickers, cards, usedCardIds);
   const usesFiveCards = usedCardIds.length >= 5;
   return <div className={`showdown-hand ${usesFiveCards ? "uses-five-cards" : ""} made-${madeTone(displayName)}`}>
     <div className="card-row mini">{cards.map((card) => <CardView key={card.id} card={card} compact

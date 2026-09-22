@@ -234,7 +234,26 @@ export function confirmSelection(source: PorenaGameState): PorenaGameState {
   state.phase = "SHOWDOWN_PRIMARY"; log(state, "R2 홀카드 2장을 확정했습니다."); return state;
 }
 
+/** A missing required hand loses to every legal hand, even a board-only royal.
+ * Keep actual ownership/revealed cards unchanged; never mint a recovery card. */
+function forfeitHand(): HandValue {
+  return { category: "HIGH_CARD", categoryRank: 0, kickers: [], bestFive: [], displayName: "몰수패" };
+}
+
+function lacksRequiredCards(state: PorenaGameState, playerId: string): boolean {
+  return playerById(state, playerId).ownedCardIds.length < BALANCE.handLimits[state.round];
+}
+
+function shownCardIds(state: PorenaGameState, playerId: string, gameNumber?: 1 | 2): string[] {
+  const player = playerById(state, playerId);
+  // An incomplete R2 hand cannot form two legal runs. Show what is actually owned.
+  if (state.round !== 2 || lacksRequiredCards(state, playerId)) return [...player.ownedCardIds];
+  return state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
+    : [...player.selectedCardIds];
+}
+
 function handFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
+  if (lacksRequiredCards(state, playerId)) return forfeitHand();
   const player = playerById(state, playerId);
   const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
     : player.selectedCardIds;
@@ -267,6 +286,7 @@ function resolveParticipants(
   gameNumber?: 1 | 2,
   suppliedBoards?: Card[][],
 ): MatchResult {
+  const forfeited = new Set(playerIds.filter((id) => lacksRequiredCards(state, id)));
   const boards = suppliedBoards ?? encounterBoards(state, playerIds, boardCount);
   const evaluationBoards = boards.length ? boards : [[]];
   const boardRankings = evaluationBoards.map((board) => rankPlayers(playerIds.map((playerId) => ({ playerId, hand: handFor(state, playerId, board, gameNumber) }))));
@@ -279,7 +299,7 @@ function resolveParticipants(
   };
   const boardResults = evaluationBoards.map((board) => resultsForBoard(playerIds, board));
   const streetSnapshots = boards.map((board) => streetSnapshotsFor(state, playerIds, board, gameNumber));
-  const boardWinnerIds = boardRankings.map((ranking) => [...ranking[0]!]);
+  const boardWinnerIds = boardRankings.map((ranking) => ranking[0]!.filter((id) => !forfeited.has(id)));
   let winnerIds: string[];
   let suddenDeathCount = 0;
   let highCardDraw: MatchResult["highCardDraw"];
@@ -288,13 +308,14 @@ function resolveParticipants(
     for (const ranking of boardRankings) if (ranking[0]!.length === 1) wins.set(ranking[0]![0]!, wins.get(ranking[0]![0]!)! + 1);
     const [a, b] = playerIds; const delta = wins.get(a)! - wins.get(b)!;
     winnerIds = delta > 0 ? [a] : delta < 0 ? [b] : [];
-  } else winnerIds = boardRankings[0]![0]!;
+  } else winnerIds = boardWinnerIds[0]!;
   const regulationWinnerIds = preserveRegulationTie && winnerIds.length > 1 ? [...winnerIds] : undefined;
   const tiebreakStartIndex = boards.length;
   while (requireSingleWinner && winnerIds.length !== 1) {
     const tied = winnerIds.length ? winnerIds : playerIds;
-    if (suddenDeathCount >= 2) {
+    if (suddenDeathCount >= 2 || tied.every((id) => forfeited.has(id))) {
       // A separate rank-only deck cannot tie and never changes owned cards.
+      // If everyone forfeited, this chooses bracket advancement only, with no reward.
       const ranks = shuffle(Array.from({ length: 13 }, (_, i) => i + 2), () => nextRandom(state));
       const draws = tied.map((playerId, i) => ({ playerId, rank: ranks[i]! }));
       const winnerId = draws.reduce((best, draw) => draw.rank > best.rank ? draw : best).playerId;
@@ -326,12 +347,7 @@ function resolveParticipants(
       return { ...result, place: winnerIds.includes(playerId) ? 1 : regulationLeaders.has(playerId) ? 2 : regulationPlace };
     });
   }
-  const revealedCardIds = Object.fromEntries(playerIds.map((id) => {
-    const p = playerById(state, id);
-    const ids = state.round === 2 && state.rulesVersion === 2 ? [p.selectedCardIds[0]!, p.selectedCardIds[gameNumber ?? 1]!]
-      : state.round === 2 ? p.selectedCardIds : p.ownedCardIds;
-    return [id, [...ids]];
-  }));
+  const revealedCardIds = Object.fromEntries(playerIds.map((id) => [id, shownCardIds(state, id, gameNumber)]));
   if (highCardDraw) results = results.map((result) => ({
     ...result, place: result.playerId === highCardDraw.winnerId ? 1
       : highCardDraw.draws.some((draw) => draw.playerId === result.playerId) ? 2 : result.place,
@@ -345,15 +361,26 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
   match.pointAwards = Object.fromEntries(match.playerIds.map((id) => [id, awardIds.includes(id) ? pointValue : 0]));
   if (state.round === 4 && match.group === "winner") {
     const prizes: Record<number, number> = { 1: BALANCE.points.r4WinnerGroup.first, 2: BALANCE.points.r4WinnerGroup.second, 3: BALANCE.points.r4WinnerGroup.third };
+    // R4 deciders choose the winner only; a 1/2/2 finish pays each runner-up 3P.
+    if (match.results.filter((result) => result.place === 2).length > 1) prizes[2] = BALANCE.points.r4WinnerGroup.tiedSecond;
     match.pointAwards = Object.fromEntries(match.results.map((result) => [result.playerId, prizes[result.place] ?? 0]));
   }
+  const forfeited = new Set(match.results.filter((result) => result.hand.categoryRank === 0).map((result) => result.playerId));
+  for (const id of forfeited) match.pointAwards[id] = 0;
   match.pointAwardDetails = Object.fromEntries(match.playerIds.map((id) => {
     const context = match.regulationWinnerIds ? "정규 결과 SPLIT" : match.group === "loser" ? "생존 결정" : match.group === "winner" ? "Winner Group" : "경기 결과";
-    const placement = state.round === 4 && match.group === "winner" ? ` ${match.results.find((result) => result.playerId === id)!.place}위` : "";
+    const place = match.results.find((result) => result.playerId === id)!.place;
+    const tied = match.results.filter((result) => result.place === place).length > 1;
+    const placement = state.round === 4 && match.group === "winner" ? ` ${tied ? "공동 " : ""}${place}위` : "";
     return [id, `${context}${placement} · +${match.pointAwards![id]}P`];
   }));
   for (const playerId of match.playerIds) {
     const player = playerById(state, playerId); const won = awardIds.includes(playerId);
+    if (forfeited.has(playerId)) {
+      player.winStreak = 0; player.loseStreak += 1;
+      match.pointAwardDetails![playerId] = `카드 부족 · 몰수패 · +0P · +0BB${match.highCardDraw?.winnerId === playerId ? " · 추첨 진출" : ""}`;
+      continue;
+    }
     if (state.round === 4 && match.group === "loser") {
       const bb = 0;
       player.stackBB += bb;
@@ -398,7 +425,11 @@ function rewardFinalPlacements(state: PorenaGameState, match: MatchResult): void
   // Competition ranking can tie at any place, so every tied group — not just
   // first — shares the prize slots it occupies. Otherwise the 50P ladder inflates.
   const byPlace = new Map<number, PlayerShowdown[]>();
-  for (const result of match.results) byPlace.set(result.place, [...(byPlace.get(result.place) ?? []), result]);
+  for (const result of match.results) {
+    if (result.hand.categoryRank === 0) {
+      awards[result.playerId] = 0; details[result.playerId] = "카드 부족 · 몰수패 · +0P · +0BB";
+    } else byPlace.set(result.place, [...(byPlace.get(result.place) ?? []), result]);
+  }
   for (const [place, group] of [...byPlace].sort(([a], [b]) => a - b)) {
     const prizes = Array.from({ length: group.length }, (_, index) => FINAL_ROUND_PLACEMENT_POINTS[place + index] ?? 0);
     if (group.length === 1) {
@@ -435,6 +466,7 @@ function captureRewards(before: PorenaGameState, after: PorenaGameState, matches
 }
 
 function streetHandFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
+  if (lacksRequiredCards(state, playerId)) return forfeitHand();
   const player = playerById(state, playerId);
   const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
     : player.selectedCardIds;
@@ -636,7 +668,7 @@ function eliminate(state: PorenaGameState, ids: string[]): void {
       round: state.round,
       stackBB: player.stackBB,
       points: player.points,
-      hand: cards.length >= 5 ? findBestFive(cards) : evaluatePartial(cards),
+      hand: cards.length >= 5 ? findBestFive(cards) : cards.length ? evaluatePartial(cards) : forfeitHand(),
     };
     player.eliminated = true; player.eliminatedRound = state.round;
     releasePlayerCards(state, player);
@@ -742,14 +774,12 @@ export function pickDraftCard(source: PorenaGameState, playerId: string, cardId:
   if (!draft.cardIds.includes(cardId) || !entry || entry.state !== "AVAILABLE") throw new Error("선택할 수 없는 카드입니다.");
   const price = discountedPrice(player, entry.card);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
-  if (player.ownedCardIds.length !== BALANCE.handLimits[state.round] - 1) throw new Error("드래프트 보유 장수가 올바르지 않습니다.");
+  // Previous-round forfeits may enter with fewer cards. Draft still grants only one paid card.
+  if (player.ownedCardIds.length >= BALANCE.handLimits[state.round]) throw new Error("드래프트 보유 장수가 올바르지 않습니다.");
   player.stackBB -= price; player.ownedCardIds.push(cardId);
   entry.state = "OWNED"; entry.ownerPlayerId = playerId;
   draft.picks.push({ playerId, cardId, price });
-  if (draft.picks.length === draft.order.length) {
-    state.phase = state.round === 2 ? "RUN_LOADOUT" : "SHOP";
-    if (state.round === 4) for (const p of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, p);
-  }
+  finishDraftIfComplete(state);
   assertPoolIntegrity(state); return state;
 }
 
@@ -760,8 +790,20 @@ export function autoPickDraft(source: PorenaGameState): PorenaGameState {
   const options = source.draft!.cardIds.filter((cardId) => source.ownershipCardPool.find((e) => e.card.id === cardId)?.state === "AVAILABLE")
     .map((cardId) => ({ card: getCard(source, cardId), price: getCardPrice(source, id, cardId) })).filter((o) => o.price <= p.stackBB);
   const best = rankBotPurchases(source.round, p, cardsFor(source, p.ownedCardIds), options, { rulesVersion: source.rulesVersion ?? 2 })[0];
-  if (!best) throw new Error("구매 가능한 드래프트 카드가 없습니다.");
+  if (!best) {
+    const state = structuredClone(source);
+    state.draft!.picks.push({ playerId: id, cardId: null, price: 0 });
+    log(state, `${p.name} · BB 부족으로 드래프트 구매 없이 진행`, "danger");
+    finishDraftIfComplete(state);
+    assertPoolIntegrity(state); return state;
+  }
   return pickDraftCard(source, id, best.card.id);
+}
+
+function finishDraftIfComplete(state: PorenaGameState): void {
+  if (state.draft!.picks.length !== state.draft!.order.length) return;
+  state.phase = state.round === 2 ? "RUN_LOADOUT" : "SHOP";
+  if (state.round === 4) for (const p of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, p);
 }
 
 /** Ordered identities: [anchor, run-one secondary, run-two secondary]. */
@@ -776,7 +818,11 @@ export function lockRunLoadouts(source: PorenaGameState, humanIds: readonly stri
   if (source.phase !== "RUN_LOADOUT") throw new Error("RUN 배치 단계가 아닙니다.");
   const state = structuredClone(source);
   for (const p of state.players.filter((p) => !p.eliminated)) {
-    if (p.ownedCardIds.length !== 3) throw new Error("R2 보유 카드 3장이 필요합니다.");
+    if (p.ownedCardIds.length < 3) {
+      p.selectedCardIds = [...p.ownedCardIds];
+      continue; // No fabricated cards: both runs will resolve as forfeits.
+    }
+    if (p.ownedCardIds.length > 3) throw new Error("R2 보유 카드 3장이 필요합니다.");
     const valid = [...new Set(p.selectedCardIds)].filter((id) => p.ownedCardIds.includes(id));
     // Bots always solve for the anchor. A human who placed nothing gets the same
     // solve rather than owned order; a partial placement stays their own.
@@ -795,7 +841,7 @@ export function finalStandings(state: PorenaGameState) {
     const stackBB = player.eliminationSnapshot?.stackBB ?? player.stackBB;
     const baseHandScore = hand ? BALANCE.handScores[hand.category] : 0;
     const augmentScore = (hand?.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0)
-      + (hand && player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
+      + (hand && hand.categoryRank > 0 && player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
     const handScore = baseHandScore; const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
     const lastMatch = [...state.matches].reverse().find((match) => match.revealedCardIds[player.id]?.length);
     const cardIds = player.ownedCardIds.length ? player.ownedCardIds : lastMatch?.revealedCardIds[player.id];

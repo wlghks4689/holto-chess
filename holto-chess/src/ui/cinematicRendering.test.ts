@@ -19,6 +19,19 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it.each([1, 2, 5] as const)("renders R%i zero-card forfeits through every cinematic frame without a fake hand", (round) => {
+    const forfeited = { playerId: "p1", place: 2, category: "HIGH_CARD" as const, kickers: [], displayName: "몰수패", usedCardIds: [] };
+    const view: MatchView = { ...match, round, participantIds: ["p1", "p2"], winnerIds: ["p2"],
+      revealedCards: { p1: [], p2: deck.slice(0, round === 5 ? 7 : 2) }, results: [forfeited],
+      boards: round === 5 ? [] : [deck.slice(10, 15)], boardResults: [[forfeited]], boardWinnerIds: [["p2"]], runoutCount: round === 5 ? 0 : 1 };
+    let completed = "";
+    for (const frame of cinematicTimeline(view)) {
+      completed = renderToStaticMarkup(createElement(ShowdownCinematic, { match: view, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: frame.at }));
+      expect(completed).not.toContain("0 하이");
+    }
+    expect(completed).toContain("몰수패");
+    expect(completed).toContain("보유 카드 부족");
+  });
   it("keeps the viewer in the left seat for every heads-up phase", () => {
     expect(showdownSeatOrder(["p2", "p1"], "p1")).toEqual(["p1", "p2"]);
     expect(showdownSeatOrder(["p1", "p2"], "p1")).toEqual(["p1", "p2"]);

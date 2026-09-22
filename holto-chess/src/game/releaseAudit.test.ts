@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, turnKey, type RoomSnapshot } from "./room";
-import { assertPoolIntegrity } from "./cardPool";
+import { assertPoolIntegrity, releasePlayerCards } from "./cardPool";
 import { createPlayerView } from "./playerView";
 import type { GameAction } from "../shared/protocol";
 import { createGame, prepareShowdown, resolvePrimary } from "./engine";
@@ -112,8 +112,25 @@ describe("release audit: deadline and stale-action regressions", () => {
   });
 });
 
-describe("release audit: known release blocker (requires economy policy)", () => {
-  it("reproduces legal lock spending leaving an empty hand that crashes timeout showdown", () => {
+describe("release audit: approved timeout forfeit policy", () => {
+  it("keeps an entirely bankrupt room moving through draft, survival, R4 groups and final", () => {
+    let room = started();
+    for (let step = 0; step < 150 && room.game.phase !== "GAME_RESULT"; step++) {
+      if (room.game.phase === "SHOP" || room.game.phase === "OPEN_DRAFT") {
+        for (const player of room.game.players.filter((p) => !p.eliminated)) {
+          if (room.game.phase === "SHOP") releasePlayerCards(room.game, player);
+          player.stackBB = 0;
+        }
+      }
+      room = forceBarrier(room, barrierDeadline(room)!)!;
+      expect(assertPoolIntegrity(room.game)).toBe(true);
+      expect(room.game.players.every((p) => p.points === 0 && p.stackBB >= 0)).toBe(true);
+      for (const session of room.sessions) expect(() => createPlayerView(room, session.playerId)).not.toThrow();
+    }
+    expect(room.game.phase).toBe("GAME_RESULT");
+    expect(room.game.players.filter((p) => !p.eliminated)).toHaveLength(4);
+  });
+  it("finishes the game after legal lock spending leaves an empty hand at timeout", () => {
     let room = started();
     room = act(room, "p1", { type: "SELL_CARD", cardId: room.game.players[0]!.ownedCardIds[0]! });
     const locked = room.game.players[0]!.shopCardIds[0]!;
@@ -126,7 +143,24 @@ describe("release audit: known release blocker (requires economy policy)", () =>
     room = forceBarrier(room, barrierDeadline(room)!)!;
     expect(room.game.phase).toBe("SHOWDOWN_PRIMARY");
     expect(room.game.players[0]!.ownedCardIds).toHaveLength(0);
-    // This assertion documents the unresolved blocker; it does NOT certify this path as healthy.
-    expect(() => forceBarrier(room, barrierDeadline(room)!)).toThrow("Partial hand requires between one and four cards");
+    const before = room.game.players[0]!.stackBB;
+    room = forceBarrier(room, barrierDeadline(room)!)!;
+    const forfeits = room.game.roundResults.filter((match) => match.playerIds.includes("p1"));
+    expect(forfeits).toHaveLength(3);
+    for (const match of forfeits) {
+      expect(match.winnerIds).not.toContain("p1");
+      expect(match.results.find((result) => result.playerId === "p1")!.hand.displayName).toBe("몰수패");
+      expect(match.rewards!.find((reward) => reward.playerId === "p1")).toMatchObject({ deltaBB: 0, deltaPoints: 0 });
+    }
+    expect(room.game.players[0]!.ownedCardIds).toEqual([]);
+    expect(room.game.players[0]!.stackBB).toBe(before);
+    for (let step = 0; step < 120 && room.game.phase !== "GAME_RESULT"; step++) {
+      room = forceBarrier(room, barrierDeadline(room)!)!;
+      expect(assertPoolIntegrity(room.game)).toBe(true);
+      expect(room.game.players.every((player) => player.stackBB >= 0)).toBe(true);
+      expect(() => createPlayerView(room, "p1")).not.toThrow();
+    }
+    expect(room.game.phase).toBe("GAME_RESULT");
+    expect(room.game.players.filter((player) => !player.eliminated)).toHaveLength(4);
   });
 });

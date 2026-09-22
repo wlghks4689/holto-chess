@@ -112,7 +112,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const cardSwitch = frame.phase === "CARD_SWITCH_OUT" || frame.phase === "CARD_SWITCH_IN";
   const runIndex = frame.phase === "CARD_SWITCH_OUT" ? 0 : frame.boardIndex;
   const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
-  const labelFor = (id: string, result: RevealedHand) => detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds);
+  const labelFor = (id: string, result: RevealedHand) => result.displayName === "몰수패" ? { title: "몰수패", kicker: "보유 카드 부족" }
+    : detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds);
   const rankPoints = match.standingsAfterRuns?.[frame.boardIndex - (flags.result || flags.runResult || flags.reward ? 0 : 1)] ?? match.standingsBefore
     ?? Object.fromEntries(profiles.map((p) => [p.playerId, p.points ?? 0]));
   const finalHeading = finalHeadingCopy(frame);
@@ -136,7 +137,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const result = results.find((r) => r.playerId === id);
       const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);
       const streetLabel = streetResult ? labelFor(id, streetResult) : undefined;
-      const won = winners.includes(id);
+      const forfeited = result?.displayName === "몰수패";
+      const won = !forfeited && winners.includes(id);
       const cards = cardsForRun(id);
       const label = result ? labelFor(id, result) : undefined;
       const swiss = (flags.result ? match.swissAfter : match.swissBefore)?.[id];
@@ -152,7 +154,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const made = !!(flags.glow && result);
       const leading = final && !finalWinnerStage ? undefined : won;
       const readCards = readStage.kind === "current" ? readStage.cards : 0;
-      const interimHand = final && readCards ? visibleFinalHand(cards, readCards) : undefined;
+      const interimHand = final && readCards && cards.length >= readCards ? visibleFinalHand(cards, readCards) : undefined;
       const interimLabel = interimHand ? detailedHandLabel(interimHand.category, interimHand.kickers, cards.slice(0, readCards), interimHand.bestFive.map((card) => card.id)) : undefined;
       const currentPoints = rankPoints[id];
       const currentRank = currentPoints === undefined ? undefined : 1 + Object.values(rankPoints).filter((points) => points > currentPoints).length;
