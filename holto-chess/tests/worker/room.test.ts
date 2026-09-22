@@ -7,9 +7,11 @@ import { assertPoolIntegrity } from "../../src/game/cardPool";
 
 const origin = "https://porena.test";
 const sockets: WebSocket[] = [];
+let sessionSequence = 0;
 afterEach(() => { for (const ws of sockets.splice(0)) ws.close(1000); });
 async function session(roomId?: string): Promise<SessionCredential> {
-  const res = await exports.default.fetch(`${origin}/api/rooms${roomId ? `/${roomId}/join` : ""}`, { method: "POST", headers: { Origin: origin } });
+  // Independent visitors keep the expanded suite from exhausting the shared unknown-IP quota.
+  const res = await exports.default.fetch(`${origin}/api/rooms${roomId ? `/${roomId}/join` : ""}`, { method: "POST", headers: { Origin: origin, "CF-Connecting-IP": `192.0.2.${++sessionSequence}` } });
   expect(res.status).toBe(201); return res.json();
 }
 async function connect(s: SessionCredential) {
@@ -76,10 +78,14 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(redirect.status).toBe(301);
     expect(redirect.headers.get("Location")).toBe("https://porena.kr/play?room=ABC234");
   });
-  it("finishes R1–R5 over two sockets, including reconnect and identical final standings", async () => {
-    const a = await session(); const b = await session(a.roomId);
-    const clients = [await connect(a), await connect(b)];
-    for (const client of clients) await client.send({ type: "READY" });
+  it.each([2, 4, 8])("finishes R1–R5 over %i sockets, reconnects in each reached phase and agrees on standings", async (count) => {
+    const a = await session();
+    const credentials = [a];
+    for (let i = 1; i < count; i++) credentials.push(await session(a.roomId));
+    const clients = await Promise.all(credentials.map(connect));
+    const readyReplies = await Promise.all(clients.map((client) => client.send({ type: "READY" })));
+    expect(readyReplies.every((reply) => reply.type === "ACK")).toBe(true);
+    const reconnected = new Set<string>();
     // Automatic Deal-In and match-setup beats are real server phases now, so a
     // complete five-round run needs more transitions than the old ready-only flow.
     for (let step = 0; step < 120; step++) {
@@ -87,6 +93,17 @@ describe("GameRoom in the Cloudflare runtime", () => {
       await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
       if (clients[0].view().phase === "GAME_RESULT") break;
       const phase = clients[0].view().phase;
+      const phaseKey = `${clients[0].view().round}:${phase}`;
+      if (!reconnected.has(phaseKey)) {
+        const before = clients[0].view();
+        const previous = clients[0];
+        clients[0] = await connect(a); // Also exercises replacement of the same session in another tab.
+        previous.ws.close(1000);
+        expect(clients[0].view().me).toEqual(before.me);
+        expect(clients[0].view().barrierEndsAt).toBe(before.barrierEndsAt);
+        expect(clients[0].view().standings).toEqual(before.standings);
+        reconnected.add(phaseKey);
+      }
       if (clients[0].view().presentation) {
         // Advance the stored clock past playback AND the result-confirmation
         // window, then exercise the real alarm/broadcast path (also for spectators).
@@ -136,29 +153,25 @@ describe("GameRoom in the Cloudflare runtime", () => {
       }
       for (const client of clients) {
         const view = client.view();
+        if (view.phase !== phase) break;
         if (!view.me.alive && clients.some((c) => c.view().me.alive)) continue;
         if (phase === "SHOP") {
           while (client.view().me.ownedCards.length < client.view().me.handLimit) {
             expect(await client.send({ type: "BUY_CARD", cardId: client.view().me.shopCards[0].card.id })).toMatchObject({ type: "ACK" });
           }
-          if ([2, 3].includes(view.round)) await client.send({ type: "SELECT_CARDS", cardIds: client.view().me.ownedCards.slice(0, view.round === 2 ? 2 : 4).map((c) => c.id) });
-          await client.send({ type: "END_SHOP_PHASE" });
+          expect(await client.send({ type: "END_SHOP_PHASE" })).toMatchObject({ type: "ACK" });
         } else if (phase === "RUN_LOADOUT") {
           expect(await client.send({ type: "RUN_LOADOUT", cardIds: view.me.ownedCards.map((c) => c.id) })).toMatchObject({ type: "ACK" });
           expect(await client.send({ type: "LOCK_RUN_LOADOUT" })).toMatchObject({ type: "ACK" });
         } else if (phase === "AUGMENT") {
-          await client.send({ type: "SELECT_AUGMENT", augmentId: view.me.augmentChoices[0].id });
-        } else await client.send({ type: "READY" });
-      }
-      if (step === 2) {
-        clients[0].ws.close(1000);
-        clients[0] = await connect(a);
+          expect(await client.send({ type: "SELECT_AUGMENT", augmentId: view.me.augmentChoices[0].id })).toMatchObject({ type: "ACK" });
+        } else if (view.waitingOn.includes(view.me.playerId)) expect(await client.send({ type: "READY" })).toMatchObject({ type: "ACK" });
       }
     }
     const revision = Math.max(...clients.map((c) => c.view().revision));
     await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
     expect(clients[0].view().phase).toBe("GAME_RESULT");
-    expect(clients[1].view().standings).toEqual(clients[0].view().standings);
+    for (const client of clients) expect(client.view().standings).toEqual(clients[0].view().standings);
     expect(clients[0].view().standings).toHaveLength(8);
     const status = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/session`, { method: "POST", headers: { Origin: origin, "X-Porena-Session": a.token } });
     expect(status.status).toBe(410);
@@ -170,13 +183,12 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(expiresAt).toBeGreaterThan(Date.now());
     expect(expiresAt).toBeLessThanOrEqual(Date.now() + 15 * 60 * 1000);
 
-    expect(await clients[0].send({ type: "REMATCH_READY" })).toMatchObject({ type: "ACK" });
-    expect(await clients[1].send({ type: "REMATCH_READY" })).toMatchObject({ type: "ACK" });
+    for (const client of clients) expect(await client.send({ type: "REMATCH_READY" })).toMatchObject({ type: "ACK" });
     await Promise.all(clients.map((client) => client.wait((message) => message.type === "PLAYER_VIEW" && message.payload.phase === "SHOP" && message.payload.round === 1)));
     expect(clients.every((client) => client.view().players.filter((player) => player.human).every((player) => player.alive))).toBe(true);
     const rematchExpiry = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
     expect(rematchExpiry).toBeGreaterThan(Date.now() + 23 * 60 * 60 * 1000);
-  }, 30_000);
+  }, 60_000);
   it("serializes concurrent rerolls, keeps locks, deduplicates lock retries and rejects a burst past the limit", async () => {
     const a = await session(); const b = await session(a.roomId); const c = await session(a.roomId);
     const clients = await Promise.all([connect(a), connect(b), connect(c)]);

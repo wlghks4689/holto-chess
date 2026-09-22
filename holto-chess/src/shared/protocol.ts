@@ -115,7 +115,7 @@ export function parseClientMessage(raw: string): ClientMessage {
     if (v.nickname !== undefined && (typeof v.nickname !== "string" || !/^[\p{L}\p{N} _-]{1,8}$/u.test(v.nickname.trim()))) throw new Error("닉네임은 문자·숫자 1~8자로 입력하세요.");
     return { type: "JOIN_ROOM", token: v.token as string, ...(typeof v.nickname === "string" ? { nickname: v.nickname.trim() } : {}) };
   }
-  if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+$/)) throw new Error("명령 식별자가 필요합니다.");
+  if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+(?::[0-9]+:[0-9]+)?$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
