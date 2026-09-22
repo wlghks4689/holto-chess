@@ -1,4 +1,4 @@
-import { rankToChar, type Card } from "../core/poker/cards";
+import { cardLabel, rankToChar, type Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 
 export function compactHandName(name: string): string {
@@ -17,6 +17,9 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
   const withKicker = (title: string, values: readonly number[]): DetailedHandLabel => values.length
     ? { title, kicker: `KICKER ${ranks(values)}` }
     : { title };
+  const royalCards = playerCards
+    .filter((card) => usedCardIds.includes(card.id))
+    .sort((a, b) => b.rank - a.rank);
 
   switch (category) {
     case "HIGH_CARD": return withKicker(`${rankToChar(made)} 하이`, [second, ...rest].filter(Boolean));
@@ -31,6 +34,8 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
     };
     case "QUADS": return withKicker(`${rankToChar(made)} 포카드`, [second].filter(Boolean));
     case "STRAIGHT_FLUSH": return { title: `${rankToChar(made)} 하이 스트레이트 플러시` };
-    case "ROYAL_FLUSH": return { title: "로열 플러시" };
+    case "ROYAL_FLUSH": return royalCards.length === 5
+      ? { title: "로열 플러시", kicker: royalCards.map(cardLabel).join(" ") }
+      : { title: "로열 플러시" };
   }
 }

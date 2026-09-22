@@ -47,12 +47,14 @@ describe("open draft rules v2", () => {
       expect(assertPoolIntegrity(result)).toBe(true);
     } finally { spy.mockRestore(); }
   });
-  it("creates eight AVAILABLE cards and allows immediate picking without an order-preview wait", () => {
-    const g = r2(); expect(g.phase).toBe("OPEN_DRAFT"); expect(g.draft!.cardIds).toHaveLength(8);
+  it("creates eight AVAILABLE cards, shows the synchronized deal-in, then allows picking", () => {
+    const g = r2(); expect(g.phase).toBe("DRAFT_ORDER"); expect(g.draft!.cardIds).toHaveLength(8);
     expect(new Set(g.draft!.cardIds).size).toBe(8);
     for (const id of g.draft!.cardIds) expect(g.ownershipCardPool.find((e) => e.card.id === id)!.state).toBe("AVAILABLE");
     expect(g.players.flatMap((p) => p.shopCardIds)).toHaveLength(0);
-    const picked = pickDraftCard(g, g.draft!.order[0]!.playerId, g.draft!.cardIds[0]!);
+    expect(() => pickDraftCard(g, g.draft!.order[0]!.playerId, g.draft!.cardIds[0]!)).toThrow();
+    const opened = openDraft(g);
+    const picked = pickDraftCard(opened, opened.draft!.order[0]!.playerId, opened.draft!.cardIds[0]!);
     expect(picked.draft!.picks).toHaveLength(1);
     expect(assertPoolIntegrity(picked)).toBe(true);
     expect(assertPoolIntegrity(g)).toBe(true);
@@ -138,7 +140,7 @@ describe("open draft rules v2", () => {
     g = resolvePrimary(prepareShowdown(g, []));
     if (g.survival) { g = leaveRoundResult(g); g = resolveSurvival(g); }
     expect(g.players.filter((p) => !p.eliminated)).toHaveLength(6);
-    g = next(g); expect(g.phase).toBe("OPEN_DRAFT"); expect(g.draft!.cardIds).toHaveLength(16);
+    g = next(g); expect(g.phase).toBe("DRAFT_ORDER"); expect(g.draft!.cardIds).toHaveLength(16);
     expect(g.ownershipCardPool.filter((e) => e.state === "AVAILABLE")).toHaveLength(28);
     g = drafted(g); expect(g.phase).toBe("SHOP");
     const alive = g.players.filter((p) => !p.eliminated);
@@ -166,15 +168,29 @@ function roomAtDraft() {
   return room;
 }
 describe("draft authority, timeouts and privacy", () => {
+  it("holds every client on the shared three-second deal-in before opening picks", () => {
+    let room = addSession(createRoom("DEALIN", 303), "one").room;
+    room = addSession(room, "two").room;
+    room.status = "PLAYING";
+    room.game = r2();
+    room.barrierSince = 1_000;
+    expect(room.game.phase).toBe("DRAFT_ORDER");
+    expect(barrierDeadline(room)).toBe(4_000);
+    expect(() => applyRoomAction(room, "p1", { type: "READY" }, turnKey(room), 2_000)).toThrow(/자동/);
+    expect(forceBarrier(room, 3_999)).toBeNull();
+    room = forceBarrier(room, 4_000)!;
+    expect(room.game.phase).toBe("OPEN_DRAFT");
+    expect(room.game.draft!.picks).toHaveLength(0);
+  });
   it("keeps the human 20-second deadline and advances bot picks after a short beat", () => {
     let room = roomAtDraft(); expect(barrierDeadline(room)).toBe(21000);
     expect(forceBarrier(room,20999)).toBeNull();
     room = forceBarrier(room,21000)!; expect(room.game.draft!.picks).toHaveLength(1);
-    expect(barrierDeadline(room)).toBe(21650); expect(forceBarrier(room,21649)).toBeNull();
+    expect(barrierDeadline(room)).toBe(22800); expect(forceBarrier(room,22799)).toBeNull();
     room = structuredClone(room);
     while(room.game.phase==="OPEN_DRAFT") room=forceBarrier(room,barrierDeadline(room)!)!;
     expect(room.game.phase).toBe("RUN_LOADOUT");
-    expect(barrierDeadline(room)!-room.barrierSince!).toBe(60000);
+    expect(barrierDeadline(room)!-room.barrierSince!).toBe(30000);
     room=forceBarrier(room,barrierDeadline(room)!)!; expect(room.game.phase).toBe("SHOWDOWN_PRIMARY");
     expect(room.game.players.every((p)=>p.selectedCardIds.length===3)).toBe(true);
   });

@@ -20,6 +20,15 @@ describe("detailed showdown labels", () => {
       .toEqual({ title: "로열 플러시" });
   });
 
+  it.each([
+    ["h", "A♥ K♥ Q♥ J♥ T♥"], ["s", "A♠ K♠ Q♠ J♠ T♠"],
+    ["d", "A♦ K♦ Q♦ J♦ T♦"], ["c", "A♣ K♣ Q♣ J♣ T♣"],
+  ] as const)("shows the five-card %s royal flush under its hand name", (suit, expected) => {
+    const cards = [14, 13, 12, 11, 10].map((rank) => ({ id: `${rank}${suit}`, rank: rank as Card["rank"], suit }));
+    expect(detailedHandLabel("ROYAL_FLUSH", [14], cards, cards.map(({ id }) => id)))
+      .toEqual({ title: "로열 플러시", kicker: expected });
+  });
+
   it("shortens the legacy persisted royal-flush label", () => {
     expect(compactHandName("로열 스트레이트 플러시")).toBe("로열 플러시");
   });

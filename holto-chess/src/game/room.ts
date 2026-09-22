@@ -46,6 +46,7 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
 const BARRIER_PHASES = ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "AUGMENT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
+const AUTOMATIC_PRESENTATION_PHASES = ["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
 
 /** Who the current barrier is still waiting on. Empty means nothing is blocked. */
 export function pendingBarrierIds(room: RoomSnapshot): string[] {
@@ -81,7 +82,7 @@ export function barrierDeadline(room: RoomSnapshot): number | undefined {
   if (room.barrierSince === undefined) return undefined;
   const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId : undefined;
   const botDraftTurn = !!draftPicker && !activeHumans(room).includes(draftPicker);
-  return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + (botDraftTurn ? 650 : barrierTimeoutMs(room.game.phase));
+  return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + (botDraftTurn ? BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : barrierTimeoutMs(room.game.phase));
 }
 export function addSession(source: RoomSnapshot, tokenHash: string): { room: RoomSnapshot; playerId: string } {
   if (source.status !== "LOBBY" || source.sessions.length >= 8) throw new Error("입장할 수 없는 방입니다.");
@@ -209,6 +210,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const voters = eligible.length ? eligible : controlledHumanIds(room);
     if (!voters.includes(playerId)) throw new Error("생존자의 진행을 기다리세요.");
     if (["OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "AUGMENT", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
+    if (AUTOMATIC_PRESENTATION_PHASES.includes(room.game.phase)) throw new Error("공통 연출이 끝나면 자동으로 진행됩니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     if (allReady(voters)) advanceReadyBarrier(room);
   } else if (action.type === "DRAFT_PICK") {

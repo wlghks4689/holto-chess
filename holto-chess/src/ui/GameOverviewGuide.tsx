@@ -83,6 +83,7 @@ export function GameOverviewGuide({ onClose }: { onClose: () => void }) {
           <div className="victory-formula" aria-label="최종 점수 공식">
             <span><b>누적 승점</b><small>R1–R5</small></span><i>+</i>
             <span><b>족보 점수</b><small>최종 BEST5</small></span><i>+</i>
+            <span><b>증강 보너스</b><small>보유 증강</small></span><i>+</i>
             <span><b>⌊BB ÷ 10⌋</b><small>남은 자금</small></span><i>=</i>
             <strong>총점 1위<br /><small>우승</small></strong>
           </div>

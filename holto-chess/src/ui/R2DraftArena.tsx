@@ -29,9 +29,10 @@ export function R2DraftArena({ view, send, disabled, seconds }: {
     return () => window.clearTimeout(timer);
   }, [dealing, poolKey]);
   const name = (id: string) => view.players.find((player) => player.playerId === id)?.name ?? id;
+  const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = draft.currentPlayerId === view.me.playerId;
   return <section className={`panel r2-draft ${dealing ? "is-dealing" : "is-dealt"}`} aria-label="R2 공개 드래프트">
-    <header className="r2-draft-heading"><div><small>ROUND 2 · 공개 드래프트</small><h2>공개 카드 한 장을 선택하세요</h2></div><PhaseTimer className="r2-clock" seconds={seconds ?? 20} ariaLabel={`남은 시간 ${seconds ?? 20}초`} /></header>
+    <header className="r2-draft-heading"><div><small>ROUND 2 · DRAFT PHASE</small><h2>{ordering ? "공개 드래프트" : "공개 카드 한 장을 선택하세요"}</h2></div>{(ordering || myTurn) && <PhaseTimer className="r2-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={`${ordering ? "Deal-In" : "선택"} 남은 시간 ${seconds ?? (ordering ? 3 : 20)}초`} />}</header>
     <p className="r2-draft-rule">승점 낮은 순 → 동점 시 BB 높은 순 → 완전 동률 서버 추첨</p>
     <div className="r2-draft-layout">
       <aside className="r2-order-panel" aria-label="드래프트 선택 순서"><h3>DRAFT ORDER <small>선택 순서</small></h3><ol className="r2-order">{draft.order.map((entry, index) => {
@@ -43,18 +44,18 @@ export function R2DraftArena({ view, send, disabled, seconds }: {
         </li>;
       })}</ol></aside>
       <div className="r2-stage">
-        <div className="r2-current" aria-live="polite"><small>현재 선택 차례</small><strong>{draft.currentPlayerId ? name(draft.currentPlayerId) : "선택 완료"}{myTurn ? " · 내 차례" : ""}</strong></div>
+        {!ordering && <div className="r2-current" aria-live="polite"><small>현재 선택 차례</small><strong>{draft.currentPlayerId ? name(draft.currentPlayerId) : "선택 완료"}{myTurn ? " · 내 차례" : ""}</strong></div>}
         <div className="r2-arena" ref={arena} aria-label="공용 카드 8장" aria-busy={dealing}>
           <div className="r2-deal-origin" aria-hidden="true">◇</div>
           {draft.cards.map(({ card, price, claimedBy }, index) => {
             const enabled = canPickR2Card(view, price, claimedBy, disabled, dealing);
             const pick = () => { if (enabled) send({ type: "DRAFT_PICK", cardId: card.id }); };
             return <div key={card.id} className={`r2-card-slot ${claimedBy ? "is-claimed" : ""}`} style={{ "--deal-delay": `${150 + index * 90}ms`, "--arc": `${Math.abs(index - 3.5) ** 2 * 2.6}px` } as CSSProperties}>
-              <div className="r2-offer"><CardView card={card} onClick={enabled ? pick : undefined} /><button type="button" className="r2-price" disabled={!enabled} onClick={pick} aria-label={`${card.id} ${price}BB 구매`}>{price} BB</button><small className="r2-card-status">{claimedBy ? `✓ ${name(claimedBy)}` : dealing ? "배치 중" : view.me.stackBB < price ? "BB 부족" : myTurn && !disabled ? "선택 가능" : "차례 대기"}</small></div>
+              <div className="r2-offer"><CardView card={card} onClick={enabled ? pick : undefined} /><button type="button" className="r2-price" disabled={!enabled} onClick={pick} aria-label={`${card.id} ${price}BB 구매`}>{price} BB</button>{!ordering && !dealing && <small className="r2-card-status">{claimedBy ? `✓ ${name(claimedBy)}` : view.me.stackBB < price ? "BB 부족" : myTurn && !disabled ? "선택 가능" : "차례 대기"}</small>}</div>
             </div>;
           })}
         </div>
-        <p className="r2-auto-hint">시간이 끝나면 남은 카드 중 한 장을 자동 구매합니다.</p>
+        {!ordering && <p className="r2-auto-hint">시간이 끝나면 남은 카드 중 한 장을 자동 구매합니다.</p>}
       </div>
     </div>
   </section>;

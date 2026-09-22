@@ -18,7 +18,12 @@
 .draft-hand .card-rank,.draft-hand .card-suit { font-size:12px!important; }
 .draft-acquired { animation:draft-acquire .45s ease-out; }
 @keyframes draft-acquire { from { opacity:0; transform:translateY(-24px) scale(.8); } to { opacity:1; transform:none; } }
-.draft-arena { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); align-items:start; gap:12px 8px; padding:24px 16px 20px; border-radius:24px; background:radial-gradient(ellipse at 50% 30%,#16404b,#071821 72%); border:1px solid #36727d; margin:8px 0 16px; }
+@keyframes draft-origin-pulse { 0%{opacity:0;transform:translate(-50%,-50%) scale(.55)} 38%{opacity:1;filter:drop-shadow(0 0 18px #67eee3)} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.25)} }
+@keyframes draft-deal-in { 0%{opacity:0;transform:translateY(-54px) scale(.56)} 72%{opacity:1;transform:translateY(0) scale(1.05)} 100%{opacity:1;transform:none} }
+.draft-arena { position:relative; display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); align-items:start; gap:12px 8px; padding:24px 16px 20px; border-radius:24px; background:radial-gradient(ellipse at 50% 30%,#16404b,#071821 72%); border:1px solid #36727d; margin:8px 0 16px; }
+.draft-deal-origin { position:absolute; inset:50% auto auto 50%; z-index:0; color:#70eee7; font-size:48px; line-height:1; opacity:0; transform:translate(-50%,-50%); pointer-events:none; }
+.draft-arena.is-dealing .draft-deal-origin { animation:draft-origin-pulse .55s ease-out both; }
+.draft-arena.is-dealing .draft-offer { animation:draft-deal-in .58s cubic-bezier(.2,.85,.25,1.15) var(--deal-delay) both; pointer-events:none; }
 .draft-offer { display:grid; grid-template-rows:75px 19px minmax(28px,auto); align-items:start; justify-items:center; gap:5px; min-width:0; }
 .draft-offer .playing-card { align-self:start;width:53px;height:75px;border-radius:7px; }
 .draft-offer .card-rank{font-size:19px}.draft-offer .card-suit{font-size:25px}
@@ -42,4 +47,4 @@
 @media(max-width:520px){.draft-rule i{display:none}.draft-rule span{flex:1 1 100%;text-align:center}}
 @media(max-width:420px) { .panel.open-draft>header { grid-template-columns:minmax(0,1fr) 88px; gap:4px 8px; } .draft-kicker{white-space:normal;line-height:1.2}.open-draft>header h2{font-size:16px;line-height:1.2} }
 @media(max-width:620px) { .run-loadout-action { align-items:stretch; } .run-loadout-action>p { display:block; width:100%; text-align:center; font-size:10px; } .run-loadout-action>.primary { width:100%; } }
-@media(prefers-reduced-motion:reduce) { .draft-acquired { animation:none; } }
+@media(prefers-reduced-motion:reduce) { .draft-acquired,.draft-arena.is-dealing .draft-offer,.draft-arena.is-dealing .draft-deal-origin { animation:none; } }

@@ -51,7 +51,7 @@ describe("barrier liveness", () => {
     const bothDone = finishShop(oneDone, "p2", T0 + 50_000);
     expect(bothDone.game.phase).toBe("SHOWDOWN_PRIMARY");
     expect(pendingBarrierIds(bothDone).sort()).toEqual(["p1", "p2"]);
-    expect(barrierDeadline(bothDone)).toBe(T0 + 50_000 + BARRIER_TIMEOUT_MS.DEFAULT);
+    expect(barrierDeadline(bothDone)).toBe(T0 + 50_000 + BARRIER_TIMEOUT_MS.MATCH_SETUP);
 
     let finished = bothDone;
     for (let step = 0; step < 40 && finished.game.phase !== "GAME_RESULT"; step++) {
@@ -74,14 +74,14 @@ describe("barrier liveness", () => {
 
   it("reserves viewing time for results while retaining short ready barriers", () => {
     expect(barrierTimeoutMs("ROUND_RESULT")).toBe(30_000);
-    expect(barrierTimeoutMs("GROUP_ASSIGNMENT")).toBe(30_000);
+    expect(barrierTimeoutMs("GROUP_ASSIGNMENT")).toBe(10_000);
     const shop = started();
     expect(shop.game.phase).toBe("SHOP");
     expect(barrierTimeoutMs(shop.game.phase)).toBe(60_000);
     const ready = finishShop(finishShop(shop, "p1"), "p2");
     expect(ready.game.phase).toBe("SHOWDOWN_PRIMARY");
-    expect(barrierTimeoutMs(ready.game.phase)).toBe(30_000);
-    expect(barrierDeadline(ready)).toBe(T0 + 30_000);
+    expect(barrierTimeoutMs(ready.game.phase)).toBe(3_000);
+    expect(barrierDeadline(ready)).toBe(T0 + 3_000);
   });
 
   it("a silent player cannot strand the shop: the bot finishes their seat", () => {
@@ -97,12 +97,10 @@ describe("barrier liveness", () => {
     expect(forced.sessions.find((s) => s.playerId === "p2")!.departed).toBeFalsy();
   });
 
-  it("a silent player cannot strand a ready barrier", () => {
-    let room = finishShop(finishShop(started(), "p1"), "p2");
+  it("automatically advances a match setup barrier and rejects manual READY", () => {
+    const room = finishShop(finishShop(started(), "p1"), "p2");
     expect(room.game.phase).toBe("SHOWDOWN_PRIMARY");
-    room = act(room, "p1", { type: "READY" });
-    expect(pendingBarrierIds(room)).toEqual(["p2"]);
-
+    expect(() => act(room, "p1", { type: "READY" })).toThrow(/자동/);
     const forced = forceBarrier(room, T0 + barrierTimeoutMs(room.game.phase))!;
     expect(forced.game.phase).not.toBe("SHOWDOWN_PRIMARY");
     expect(forced.readyIds).toEqual([]);
@@ -191,7 +189,7 @@ describe("shop ready barrier", () => {
 
     room = finishShop(room, "p2", early);
     expect(room.game.phase).toBe("SHOWDOWN_PRIMARY");
-    expect(barrierDeadline(room)).toBe(early + BARRIER_TIMEOUT_MS.DEFAULT);
+    expect(barrierDeadline(room)).toBe(early + BARRIER_TIMEOUT_MS.MATCH_SETUP);
   });
 
   it("reports shop readiness per player so the count is visible to everyone", () => {

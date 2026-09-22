@@ -30,7 +30,8 @@ import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import type { GameAction } from "../shared/protocol";
 import { LocalResultWindow } from "./LocalResultWindow";
 import { playerEventFeed } from "./playerEventFeed";
-import { FinalStandingRow } from "./FinalStandingRow";
+import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
+import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
@@ -43,8 +44,8 @@ const ROUND_COPY = {
 
 const PHASE_LABEL: Record<Phase, string> = {
   DRAFT_ORDER: "드래프트 순서 공개", OPEN_DRAFT: "공개 드래프트", RUN_LOADOUT: "RUN 카드 배치", SURVIVAL_READY: "생존 타이브레이크",
-  SHOP: "상점", DECK_SELECT: "출전 카드 선택", SHOWDOWN_PRIMARY: "1차 쇼다운", GROUP_ASSIGNMENT: "그룹 배정",
-  SHOWDOWN_SECONDARY: "2차 쇼다운", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
+  SHOP: "상점", DECK_SELECT: "출전 카드 선택", SHOWDOWN_PRIMARY: "VS · 전장 준비", GROUP_ASSIGNMENT: "그룹 배정",
+  SHOWDOWN_SECONDARY: "2차전 VS · 전장 준비", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
 };
 
 function PoolMeter({ state }: { state: PorenaGameState }) {
@@ -116,7 +117,7 @@ function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Po
 
 function FinalPanel({ state }: { state: PorenaGameState }) {
   const standings = finalStandings(state);
-  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><p className="formula">누적 승점 + 족보 점수 + ⌊보유 BB ÷ 10⌋ · 탈락자는 탈락 시점 기준</p><div className="standings">{standings.map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={state.players.find((p) => p.id === row.playerId)?.name ?? row.playerId} />)}</div></section>;
+  return <section className="final-panel panel"><span className="eyebrow">FINAL SCORE</span><h2>{state.players.find((p) => p.id === standings[0]?.playerId)?.name} 우승</h2><div className="standings"><FinalStandingsHeader />{standings.map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={state.players.find((p) => p.id === row.playerId)?.name ?? row.playerId} />)}</div></section>;
 }
 
 function EventLog({ state }: { state: PorenaGameState }) {
@@ -128,9 +129,7 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   const me = state.players[0]!; let label = "계속"; let fn: ((s: PorenaGameState) => PorenaGameState) | null = null;
   if (state.phase === "SHOP") { label = `구성 확정 · R${state.round} 쇼다운`; fn = prepareShowdown; }
   if (state.phase === "DECK_SELECT") { label = `선택 확정 (${me.selectedCardIds.length}/2)`; fn = confirmSelection; }
-  if (state.phase === "SHOWDOWN_PRIMARY") { label = state.round === 5 ? "The Last Hand 공개" : "1차 쇼다운 공개"; fn = resolvePrimary; }
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
-  if (state.phase === "SHOWDOWN_SECONDARY") { label = "새 매치 보드 공개"; fn = resolveSecondary; }
   if (state.phase === "SURVIVAL_READY") { label = "생존 타이브레이크 시작"; fn = resolveSurvival; }
   if (state.phase === "ROUND_RESULT") { label = state.round === 2 || state.round === 4 ? "증강 드래프트" : "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} 상점으로`; fn = startNextRound; }
@@ -146,16 +145,23 @@ export function App({ onHome }: { onHome: () => void }) {
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
   useEffect(() => {
     const phase = state.phase;
-    if (!["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(phase)) return;
-    const delay = phase === "DRAFT_ORDER" ? 0 : phase === "RUN_LOADOUT" ? 60000 : draftPickerId === "p1" ? 20000 : 650;
-    const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s) : phase === "RUN_LOADOUT" ? resolvePrimary(lockRunLoadouts(s)) : autoPickDraft(s)), delay);
+    if (!["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
+    const delay = phase === "DRAFT_ORDER" ? BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN
+      : phase === "RUN_LOADOUT" ? BARRIER_TIMEOUT_MS.RUN_LOADOUT
+      : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
+      : draftPickerId === "p1" ? 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
+    const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s)
+      : phase === "RUN_LOADOUT" ? lockRunLoadouts(s)
+      : phase === "SHOWDOWN_PRIMARY" ? resolvePrimary(s)
+      : phase === "SHOWDOWN_SECONDARY" ? resolveSecondary(s)
+      : autoPickDraft(s)), delay);
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const [exiting, setExiting] = useState(false);
   const [gameVersion, setGameVersion] = useState(0);
   const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
-  const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { let next = fn(state); if (next.phase === "SHOWDOWN_PRIMARY") next = resolvePrimary(next); else if (next.phase === "SHOWDOWN_SECONDARY") next = resolveSecondary(next); setState(next); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
+  const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(fn(state)); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
   const round = ROUND_COPY[state.round]; const alive = state.players.filter((player) => !player.eliminated).length;
   const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
@@ -175,8 +181,8 @@ export function App({ onHome }: { onHome: () => void }) {
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""}`}>
       {prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div></header>}
       <PoolMeter state={state} />
-      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 0 : draftPickerId === "p1" ? 20 : 1} />}
-      {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={60} />}
+      {["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
+      {state.phase === "RUN_LOADOUT" && <TimedRunLoadoutPanel key={state.phase} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={30} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addSession, applyRoomAction, createRoom as createRoomCurrent, turnKey, type RoomSnapshot } from "./room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom as createRoomCurrent, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 import { createPlayerView } from "./playerView";
 import { parseClientMessage, type GameAction } from "../shared/protocol";
 import { assertPoolIntegrity } from "./cardPool";
@@ -115,6 +115,8 @@ describe("server room authority and projections", () => {
         }
       } else if (r.game.phase === "AUGMENT") {
         for (const s of active) r = act(r, s.playerId, { type: "SELECT_AUGMENT", augmentId: r.augmentChoices[s.playerId][0].id });
+      } else if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(r.game.phase)) {
+        r = forceBarrier(r, barrierDeadline(r)!)!;
       } else {
         for (const s of active.length ? active : r.sessions) r = act(r, s.playerId, { type: "READY" });
       }

@@ -80,7 +80,9 @@ describe("GameRoom in the Cloudflare runtime", () => {
     const a = await session(); const b = await session(a.roomId);
     const clients = [await connect(a), await connect(b)];
     for (const client of clients) await client.send({ type: "READY" });
-    for (let step = 0; step < 80; step++) {
+    // Automatic Deal-In and match-setup beats are real server phases now, so a
+    // complete five-round run needs more transitions than the old ready-only flow.
+    for (let step = 0; step < 120; step++) {
       const revision = Math.max(...clients.map((c) => c.view().revision));
       await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
       if (clients[0].view().phase === "GAME_RESULT") break;
@@ -118,6 +120,18 @@ describe("GameRoom in the Cloudflare runtime", () => {
           await runInDurableObject(stub, (instance) => instance.alarm());
           await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision > revision)));
         }
+        continue;
+      }
+      if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) {
+        const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+        await runInDurableObject(stub, async (_instance, state) => {
+          const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
+          saved.barrierSince = Date.now() - 120_000;
+          await state.storage.put("snapshot:v1", saved);
+        });
+        await evictDurableObject(stub);
+        await runInDurableObject(stub, (instance) => instance.alarm());
+        await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision > revision)));
         continue;
       }
       for (const client of clients) {

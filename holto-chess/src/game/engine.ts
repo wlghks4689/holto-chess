@@ -720,13 +720,13 @@ export function startNextRound(source: PorenaGameState): PorenaGameState {
       cardIds: shuffle(available, () => nextRandom(state)).slice(0, count).map((entry) => entry.card.id),
       order: alive.sort((a, b) => a.points - b.points || b.stackBB - a.stackBB).map((p) => ({ playerId: p.id, points: p.points, stackBB: p.stackBB })), picks: [],
     };
-    state.phase = "OPEN_DRAFT";
+    state.phase = "DRAFT_ORDER";
   } else for (const player of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, player);
   assertPoolIntegrity(state); return state;
 }
 
 export function openDraft(source: PorenaGameState): PorenaGameState {
-  // Compatibility for callers and persisted games from the former order-preview phase.
+  // Idempotence keeps reconnect and preview callers safe after the synchronized deal-in.
   if (source.phase === "OPEN_DRAFT" && source.draft) return structuredClone(source);
   if (source.phase !== "DRAFT_ORDER" || !source.draft) throw new Error("드래프트 순서 공개 단계가 아닙니다.");
   return { ...structuredClone(source), phase: "OPEN_DRAFT" };
@@ -792,13 +792,13 @@ export function finalStandings(state: PorenaGameState) {
     const points = player.eliminationSnapshot?.points ?? player.points;
     const stackBB = player.eliminationSnapshot?.stackBB ?? player.stackBB;
     const baseHandScore = hand ? BALANCE.handScores[hand.category] : 0;
-    const augmentBonus = (hand?.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0)
+    const augmentScore = (hand?.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0)
       + (hand && player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
-    const handScore = baseHandScore + augmentBonus; const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
+    const handScore = baseHandScore; const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
     const lastMatch = [...state.matches].reverse().find((match) => match.revealedCardIds[player.id]?.length);
     const cardIds = player.ownedCardIds.length ? player.ownedCardIds : lastMatch?.revealedCardIds[player.id];
     const cards = cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
-    return { playerId: player.id, points, handScore, stackScore, total: points + handScore + stackScore, hand,
+    return { playerId: player.id, points, handScore, augmentScore, stackScore, total: points + handScore + augmentScore + stackScore, hand,
       cards, usedCardIds: hand?.bestFive.map((card) => card.id) ?? [],
       finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
   }).sort((a, b) => b.total - a.total || a.finalPlace - b.finalPlace

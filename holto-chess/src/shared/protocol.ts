@@ -56,7 +56,7 @@ export type RoundSummaryRow = {
   totalPoints: number; stackBB: number; rank: number; previousRank?: number;
   eliminated: boolean; bracket?: "winner" | "loser";
 };
-export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
+export type FinalStandingView = { playerId: string; points: number; handScore: number; augmentScore?: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
 export type PrivatePlayerView = {
   playerId: string; stackBB: number; points: number; alive: boolean;
   ownedCards: Card[]; shopCards: { card: Card; price: number }[];
