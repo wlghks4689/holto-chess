@@ -12,6 +12,8 @@ import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
   schema: 1; roomId: string; revision: number; status: "LOBBY" | "PLAYING";
+  /** Distinguishes rematches without invalidating persisted pre-audit snapshots. */
+  gameGeneration?: number;
   game: PorenaGameState;
   sessions: { playerId: string; tokenHash: string; requests: string[]; departed?: boolean }[];
   readyIds: string[]; endedShopIds: string[];
@@ -31,7 +33,7 @@ export function createRoom(roomId: string, seed: number, randomMode: "seeded" | 
   return { schema: 1, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [], augmentChoices: {} };
 }
 export function turnKey(room: RoomSnapshot): string {
-  return `${room.game.round}:${room.status === "LOBBY" ? "LOBBY" : room.game.phase}`;
+  return `${room.game.round}:${room.status === "LOBBY" ? "LOBBY" : room.game.phase}:${room.gameGeneration ?? 0}:${room.game.encounterSequence}`;
 }
 export function humanIds(room: RoomSnapshot): string[] { return room.sessions.map((s) => s.playerId); }
 function activeHumans(room: RoomSnapshot): string[] {
@@ -144,6 +146,7 @@ function settleBarrier(room: RoomSnapshot): void {
 }
 
 function startRematch(room: RoomSnapshot): void {
+  room.gameGeneration = (room.gameGeneration ?? 0) + 1;
   const names = Object.fromEntries(room.game.players.map((player) => [player.id, player.name]));
   const seed = (room.game.seed + room.revision + 1) >>> 0 || 1;
   room.game = createGame(seed, room.game.randomMode, room.game.rulesVersion ?? 2);
@@ -177,6 +180,11 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
   if (!current) throw new Error("세션이 없습니다.");
   if (current.departed && action.type !== "LEAVE_ROOM") throw new Error("이미 방에서 나갔습니다. 관전만 가능합니다.");
   if (expectedTurn !== turnKey(source)) throw new Error("단계가 변경되었습니다. 현재 화면에서 다시 시도하세요.");
+  const deadline = barrierDeadline(source);
+  if (source.status === "PLAYING" && ["SHOP", "AUGMENT"].includes(source.game.phase)
+    && action.type !== "LEAVE_ROOM" && deadline !== undefined && now >= deadline) {
+    throw new Error("선택 시간이 끝났습니다. 자동 진행을 기다려 주세요.");
+  }
   const room = structuredClone(source);
   const me = room.game.players.find((p) => p.id === playerId)!;
   const allReady = (ids: string[]) => ids.every((id) => room.readyIds.includes(id));

@@ -270,6 +270,7 @@
   .cinema-run-matchup{gap:4px;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)}.cinema-board-matchup{width:min(250px,100%);margin:-7px auto 16px;padding:0}.cinema-run-player{gap:3px}.cinema-board-matchup .cinema-run-hand .playing-card.compact{width:32px;height:48px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-rank{font-size:13px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-suit{font-size:19px}
   .cinema-table.cinema-headsup .cinema-seats{gap:14px}
   .cinema-seat{padding:12px 5px}
+  .cinema-headsup .cinema-reward strong{font-size:12px;white-space:normal;overflow-wrap:anywhere}
   .cinema-profile{font-size:12px;gap:5px;margin-bottom:12px}
   .cinema-profile .player-avatar{width:23px;height:23px}
   .cinema-headsup .cinema-vs{left:50%;width:34px;height:34px;font-size:11px}

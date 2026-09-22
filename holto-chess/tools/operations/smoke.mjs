@@ -32,8 +32,8 @@ async function connect(credential) {
     if (message.type === "PLAYER_VIEW") view = message.payload;
     else messages.push(message);
   });
-  async function wait(predicate) {
-    const deadline = performance.now() + 20000;
+  async function wait(predicate, timeoutMs = 20000) {
+    const deadline = performance.now() + timeoutMs;
     while (!predicate()) {
       if (failure) throw failure;
       if (ws.readyState === WebSocket.CLOSED) throw new Error("Unexpected socket close");
@@ -63,23 +63,45 @@ async function play(roomNumber) {
   for (let i = 1; i < players; i++) credentials.push(await session(credentials[0].roomId));
   const clients = await Promise.all(credentials.map(connect));
   for (const c of clients) await c.send({ type: "READY" });
-  for (let step = 0; step < 100; step++) {
+  for (let step = 0; step < 160; step++) {
     const revision = Math.max(...clients.map((c) => c.view().revision));
     await Promise.all(clients.map((c) => c.wait(() => c.view().revision >= revision)));
     if (clients[0].view().phase === "GAME_RESULT") break;
     const phase = clients[0].view().phase;
+    console.log(JSON.stringify({ room: roomNumber, step, round: clients[0].view().round, phase }));
+    // v2 presentation phases are server-clock driven, never READY shortcuts.
+    if (clients[0].view().presentation) {
+      const endsAt = clients[0].view().presentation.endsAt;
+      await clients[0].wait(() => Date.now() >= endsAt, Math.max(20000, endsAt - Date.now() + 5000));
+    }
+    if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) {
+      await clients[0].wait(() => clients[0].view().revision > revision);
+      continue;
+    }
+    if (phase === "OPEN_DRAFT") {
+      const picker = clients.find((c) => c.view().me.playerId === clients[0].view().draft.currentPlayerId);
+      if (picker) {
+        const card = picker.view().draft.cards.find((c) => !c.claimedBy && c.price <= picker.view().me.stackBB);
+        assert.ok(card, "Current picker has no affordable card");
+        await picker.send({ type: "DRAFT_PICK", cardId: card.card.id });
+      } else await clients[0].wait(() => clients[0].view().revision > revision);
+      continue;
+    }
     // Parallel across rooms; sequential within a room matches existing game tests.
     for (const c of clients) {
       const v = c.view();
-      if (!v.me.alive) continue;
+      if (v.phase !== phase) break; // A survival barrier can need only a subset of the humans.
+      if (!v.me.alive && clients.some((client) => client.view().me.alive)) continue;
       if (phase === "SHOP") {
         while (c.view().me.ownedCards.length < c.view().me.handLimit) {
           await c.send({ type: "BUY_CARD", cardId: c.view().me.shopCards[0].card.id });
         }
-        if ([2, 3].includes(v.round)) await c.send({ type: "SELECT_CARDS", cardIds: c.view().me.ownedCards.slice(0, v.round === 2 ? 2 : 4).map((card) => card.id) });
         await c.send({ type: "END_SHOP_PHASE" });
+      } else if (phase === "RUN_LOADOUT") {
+        await c.send({ type: "RUN_LOADOUT", cardIds: v.me.ownedCards.map((card) => card.id) });
+        await c.send({ type: "LOCK_RUN_LOADOUT" });
       } else if (phase === "AUGMENT") await c.send({ type: "SELECT_AUGMENT", augmentId: v.me.augmentChoices[0].id });
-      else await c.send({ type: "READY" });
+      else if (v.waitingOn.includes(v.me.playerId)) await c.send({ type: "READY" });
     }
     if (step === 2) {
       const old = clients[0];

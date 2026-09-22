@@ -39,7 +39,8 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   const visible = matchesVisible(room);
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
-    gameId: room.roomId, roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),
+    gameId: room.gameGeneration ? `${room.roomId}:${room.gameGeneration}` : room.roomId,
+    roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),
     serverNow: now, presentation: presentationViewFor(room, viewerPlayerId),
     status: room.status, round: g.round, phase: room.status === "LOBBY" ? "LOBBY" : g.phase,
     ...(g.survival ? { survival: structuredClone(g.survival) } : {}),

@@ -385,11 +385,11 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
 }
 
 function rewardMatchWithLedger(state: PorenaGameState, match: MatchResult, pointValue: number, awardIds: readonly string[] = match.winnerIds): void {
-  if (state.round >= 2) match.standingsBefore = pointSnapshot(state);
+  match.standingsBefore = pointSnapshot(state);
   const before = structuredClone(state);
   rewardMatch(state, match, pointValue, awardIds);
   captureRewards(before, state, [match]);
-  if (state.round >= 2) match.standingsAfterRuns = [pointSnapshot(state)];
+  match.standingsAfterRuns = [pointSnapshot(state)];
 }
 
 function rewardFinalPlacements(state: PorenaGameState, match: MatchResult): void {

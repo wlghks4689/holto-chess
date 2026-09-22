@@ -35,8 +35,8 @@ describe("cinematic initial rendering", () => {
     expect(visibleFinalHand(cards, 5)?.category).toBe("TWO_PAIR");
     expect(visibleFinalHand(cards, 7)?.category).toBe("FULL_HOUSE");
   });
-  it("shows the Swiss matchday and pre-match record without leaking later points", () => {
-    const swiss: MatchView = { ...match, round: 3, matchday: 2, participantIds: ["p1", "p2"],
+  it.each([1, 3] as const)("shows R%i Swiss matchday and pre-match record without leaking later points", (round) => {
+    const swiss: MatchView = { ...match, round, matchday: 2, participantIds: ["p1", "p2"],
       swissBefore: { p1: { wins: 1, draws: 0, losses: 0, score: 1 } },
       swissAfter: { p1: { wins: 2, draws: 0, losses: 0, score: 2 } }, standingsBefore: { p1: 3, p2: 0 }, standingsAfterRuns: [{ p1: 6, p2: 0 }],
       rewards: [{ playerId: "p1", beforeBB: 50, afterBB: 70, deltaBB: 20, beforePoints: 3, afterPoints: 6, deltaPoints: 3, outcome: "SURVIVED" }] };
