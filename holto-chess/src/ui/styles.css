@@ -20,21 +20,22 @@ nav { min-height: 78px; padding: 0 max(24px, calc((100vw - 1240px)/2)); display:
 .brand div { display:flex; flex-direction:column; }
 .brand b { font-size: 15px; letter-spacing: .14em; }
 .brand small, .eyebrow { color: #739989; font: 500 9px DM Mono; letter-spacing: .12em; }
-.round-progress { display: flex; align-items: center; gap: 26px; }
-.round-progress span { position: relative; display: flex; align-items: center; gap: 6px; color: #4e6c5f; }
-.round-progress span:not(:last-child)::after { content:""; position:absolute; width:20px; height:1px; background:#294337; left: 37px; }
-.round-progress i { width: 25px; height: 25px; display: grid; place-items: center; border: 1px solid #294337; border-radius: 50%; font: normal 10px DM Mono; }
-.round-progress small { font: 500 9px DM Mono; }
+.round-progress { display: flex; align-items: center; gap: 24px; padding:6px 10px; border:1px solid rgba(83,157,177,.16); border-radius:999px; background:rgba(4,16,25,.44); }
+.round-progress>.round-step { position: relative; display: flex; align-items: center; gap: 7px; min-width:50px; color: #4e6c5f; }
+.round-progress>.round-step:not(:last-child)::after { content:""; position:absolute; width:18px; height:1px; background:#294337; left:calc(100% + 3px); }
+.round-progress i { width: 25px; height: 25px; flex:none; display: grid; place-items: center; border: 1px solid #294337; border-radius: 50%; font: normal 10px DM Mono; }
+.round-step-copy{display:flex;flex-direction:column;gap:1px;line-height:1}.round-step-copy small{font:500 9px DM Mono}.round-step-copy b{font:700 8px "Noto Sans KR",sans-serif;color:#526d7a;white-space:nowrap}
 .round-progress .active { color: var(--mint); }
 .round-progress .active i { background: var(--mint); color: #082016; box-shadow: 0 0 22px rgba(132,245,182,.25); }
-.round-progress .done { color: #77b998; }
-.round-progress.prep-progress { gap: 34px; }
-.prep-progress span:not(:last-child)::after { width: 28px; left: 41px; }
+.round-progress .active .round-step-copy b{color:#a8fff4}.round-progress .done { color: #77b998; }.round-progress .done .round-step-copy b{color:#67919a}.round-progress .upcoming{opacity:.58}
+.round-progress.prep-progress { gap: 28px; }
+.prep-progress>.round-step:not(:last-child)::after { width:22px; }
 .prep-progress .prep-step i { border-radius: 7px; font-weight: 700; }
-.survivors { justify-self:end; display:flex; gap:10px; align-items:center; }
+.nav-status{justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:3px}.survivors { display:flex; gap:10px; align-items:center; justify-content:flex-end; }
 .survivors small { color:#739989; font:500 9px DM Mono; letter-spacing:.12em; }
 .survivors b { font: 800 24px DM Mono; color:var(--mint); }
 .survivors i { font:normal 12px DM Mono; color:#698a7a; }
+.nav-exit{align-self:flex-end;min-width:62px;padding:4px 10px!important;font-size:9px!important;line-height:1.2}
 .page-shell { width: min(1240px, calc(100% - 48px)); margin: 0 auto; padding: 52px 0 80px; position: relative; }
 .round-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:30px; }
 .round-number { display:block; color:var(--mint); font:500 13px DM Mono; letter-spacing:.16em; margin-bottom:9px; }
@@ -218,7 +219,7 @@ main.game-arena::before{background-image:linear-gradient(180deg,rgba(2,7,17,.44)
 nav{border-color:var(--line);background:rgba(3,10,20,.78);box-shadow:0 10px 34px rgba(0,0,0,.16)}
 .brand>span{color:var(--mint);background:none;box-shadow:none;filter:drop-shadow(0 0 12px rgba(78,218,232,.35))}
 .brand small,.eyebrow,.survivors small{color:#789cae}
-.round-progress span{color:#587386}.round-progress span:not(:last-child)::after{background:#29485d}.round-progress i{border-color:#29485d}.round-progress .done{color:#72a8b7}
+.round-progress>.round-step{color:#587386}.round-progress>.round-step:not(:last-child)::after{background:#29485d}.round-progress i{border-color:#29485d}.round-progress .done{color:#72a8b7}
 .panel,.match-card{border-color:var(--line);background:linear-gradient(145deg,rgba(9,26,42,.82),rgba(4,12,24,.9));box-shadow:inset 0 1px rgba(214,250,255,.025),0 24px 70px rgba(0,0,0,.24);backdrop-filter:blur(14px)}
 .panel h2 em,.hint,.market-empty,.formula{color:#718e9e}
 .round-header p,.phase-badge small,.purchase-count,.action-bar p{color:var(--text-soft)}

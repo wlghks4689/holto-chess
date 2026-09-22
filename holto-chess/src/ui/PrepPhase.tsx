@@ -5,15 +5,15 @@ import type { PrepPresentation } from "./prepPresentation";
 export function RoundProgress({ round, prep }: { round: Round; prep: PrepPresentation | null }) {
   if (prep) {
     return <div className="round-progress prep-progress" aria-label={`R${prep.completedRound} 완료, PREP 활성, 다음 R${prep.targetRound}`}>
-      <span className="done"><i>✓</i><small>R{prep.completedRound}</small></span>
-      <span className="active prep-step"><i>P</i><small>PREP</small></span>
-      <span><i>{prep.targetRound}</i><small>R{prep.targetRound}</small></span>
+      <span className="round-step done"><i>✓</i><span className="round-step-copy"><small>R{prep.completedRound}</small><b>완료</b></span></span>
+      <span className="round-step active prep-step"><i>P</i><span className="round-step-copy"><small>PREP</small><b>준비 중</b></span></span>
+      <span className="round-step upcoming"><i>{prep.targetRound}</i><span className="round-step-copy"><small>R{prep.targetRound}</small><b>다음</b></span></span>
     </div>;
   }
 
   return <div className="round-progress" aria-label={`현재 R${round}`}>
-    {[1, 2, 3, 4, 5].map((value) => <span key={value} className={`${value === round ? "active" : ""} ${value < round ? "done" : ""}`}>
-      <i>{value < round ? "✓" : value}</i><small>R{value}</small>
+    {[1, 2, 3, 4, 5].map((value) => <span key={value} className={`round-step ${value === round ? "active" : value < round ? "done" : "upcoming"}`}>
+      <i>{value < round ? "✓" : value}</i><span className="round-step-copy"><small>R{value}</small><b>{value < round ? "완료" : value === round ? "현재" : "예정"}</b></span>
     </span>)}
   </div>;
 }
