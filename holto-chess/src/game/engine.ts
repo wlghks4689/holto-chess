@@ -295,14 +295,14 @@ export function prepareShowdown(source: PorenaGameState, humanIds: readonly stri
   if (humans.some((p) => p.ownedCardIds.length < BALANCE.handLimits[state.round])) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
   const requiredSelection = state.round === 2 ? 2 : 0;
   if (requiredSelection && humans.some((p) => p.selectedCardIds.length !== requiredSelection)) { state.phase = "DECK_SELECT"; return state; }
-  state.phase = "SHOWDOWN_PRIMARY"; assertPoolIntegrity(state); return state;
+  state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); assertPoolIntegrity(state); return state;
 }
 
 export function confirmSelection(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source); const human = playerById(state, "p1");
   const required = state.round === 2 ? 2 : 0;
   if (!required || human.selectedCardIds.length !== required) throw new Error(`R${state.round} 출전 카드를 올바르게 나누세요.`);
-  state.phase = "SHOWDOWN_PRIMARY"; log(state, "R2 홀카드 2장을 확정했습니다."); return state;
+  state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); log(state, "R2 홀카드 2장을 확정했습니다."); return state;
 }
 
 /** A missing required hand loses to every legal hand, even a board-only royal.
@@ -565,10 +565,17 @@ function seedOmaha(state: PorenaGameState): string[] {
     .sort((a, b) => b.points - a.points || b.stackBB - a.stackBB).map((p) => p.id);
 }
 
+function freezePrimaryPairings(state: PorenaGameState): void {
+  const order = shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
+  state.primaryOrderIds = order;
+  const seats = state.round === 3 ? state.r3Seeds ?? seedOmaha(state) : order;
+  state.primaryPairings = state.round === 5 ? [seats] : pair(seats);
+}
+
 export function resolvePrimary(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source);
   if (state.phase !== "SHOWDOWN_PRIMARY") throw new Error("1차 쇼다운 단계가 아닙니다.");
-  const alive = shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
+  const alive = state.primaryOrderIds ?? shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
   if (state.round === 1 || state.round === 3) {
     const omaha = state.round === 3;
     // R3 entry freezes Point/BB seeding before shopping; fallback supports older snapshots.
@@ -577,7 +584,7 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
     const history: string[][] = [];
     const matches: MatchResult[] = [];
     for (let day = 1; day <= 3; day++) {
-      const pairs = day === 1 ? pair(seeds) : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
+      const pairs = day === 1 ? state.primaryPairings ?? pair(seeds) : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
       for (const ids of pairs) {
         const match = resolveParticipants(state, ids, 1, "primary", false);
         match.matchday = day;
@@ -605,11 +612,11 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
     log(state, omaha ? "R3 Omaha Swiss 3경기 종료 · 승리 4P / Split 2P · 누적 승점 탈락 판정" : "R1 스위스 3경기 종료 · 승리 3P / Split 1P · 전원 생존", "win");
     return state;
   }
-  if (state.round === 2 && state.rulesVersion === 2) return resolveSplitRuns(state, pair(alive));
+  if (state.round === 2 && state.rulesVersion === 2) return resolveSplitRuns(state, state.primaryPairings ?? pair(alive));
   const boardCount = state.round === 2 ? 2 : state.round === 5 ? 0 : 1;
   const matches = state.round === 5
     ? [resolveParticipants(state, alive, 0, "final", false)]
-    : pair(alive).map((ids) => resolveParticipants(state, ids, boardCount, "primary",
+    : (state.primaryPairings ?? pair(alive)).map((ids) => resolveParticipants(state, ids, boardCount, "primary",
       state.round === 2 || state.round === 4,
       state.round === 4 ? "GROUP_DECIDER" : undefined,
       state.round === 4));
@@ -904,7 +911,7 @@ export function lockRunLoadouts(source: PorenaGameState, humanIds: readonly stri
     if (!humanIds.includes(p.id) || !valid.length) p.selectedCardIds = bestRunLoadout(p, cardsFor(state, p.ownedCardIds));
     else p.selectedCardIds = [...valid, ...p.ownedCardIds.filter((id) => !valid.includes(id))];
   }
-  state.phase = "SHOWDOWN_PRIMARY"; return state;
+  state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); return state;
 }
 
 export function finalStandings(state: PorenaGameState) {

@@ -12,8 +12,8 @@ export function FinalResultsPanel({ view }: { view: PlayerView }) {
     try { setSavedResults(saveFinalResult(makeSavedFinalResult(view))); setStorageError(""); }
     catch { setStorageError("브라우저 저장 공간을 사용할 수 없습니다."); }
   };
-  return <section className="panel final-panel">
-    <header className="final-panel-head"><h2>최종 결과</h2><button className="secondary" type="button" onClick={save}>{saved ? "이 기기에 저장됨 ✓" : "이 기기에 결과 저장"}</button></header>
+  return <section className="final-panel">
+    <div className="final-results-tools"><button className="secondary" type="button" onClick={save}>{saved ? "이 기기에 저장됨 ✓" : "이 기기에 결과 저장"}</button></div>
     {storageError && <p className="room-error" role="alert">{storageError}</p>}
     <div className="standings"><FinalStandingsHeader />{view.standings.map((row) => <FinalStandingRow key={row.playerId} row={row} name={view.players.find((player) => player.playerId === row.playerId)?.name ?? row.playerId} />)}</div>
   </section>;

@@ -8,7 +8,7 @@ import "./final-standings.css";
 const display = (value: number) => Number(value.toFixed(2));
 
 export function FinalStandingsHeader() {
-  return <div className="final-standings-head" aria-hidden="true"><span>순위</span><span>닉네임</span><span>BEST 5</span><span>누적 승점</span><span>족보 점수</span><span>스택</span><span>총점</span><span>랭크 점수</span></div>;
+  return <div className="final-standings-head" aria-hidden="true"><span>순위</span><span>닉네임</span><span>BEST 5</span><span>누적<br />승점</span><span>족보<br />점수</span><span>스택</span><span>총점</span><span>랭크<br />점수</span></div>;
 }
 
 export function FinalStandingRow({ row, name }: { row: FinalStandingView; name: string }) {

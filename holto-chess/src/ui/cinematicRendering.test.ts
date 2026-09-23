@@ -110,15 +110,12 @@ describe("cinematic initial rendering", () => {
     const renderPhase = (phase: (typeof timeline)[number]["phase"]) => renderToStaticMarkup(createElement(ShowdownCinematic, {
       match: headsUp, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: timeline.find((entry) => entry.phase === phase)!.at,
     }));
-    const introHtml = renderPhase("VS_INTRO");
     const tableHtml = renderPhase("TABLE_ENTER");
-    for (const phase of ["VS_INTRO", "TABLE_ENTER", "BEST5_GLOW", "RESULT", "REWARD"] as const) {
+    expect(timeline.some((entry) => entry.phase === "VS_INTRO" || entry.phase === "PREFLOP_HAND")).toBe(false);
+    for (const phase of ["TABLE_ENTER", "BEST5_GLOW", "RESULT", "REWARD"] as const) {
       const html = renderPhase(phase);
       expect(html.indexOf('data-player-id="p1"')).toBeLessThan(html.indexOf('data-player-id="p2"'));
     }
-    expect(introHtml.match(/cinema-flip-slot/g)).toHaveLength(4);
-    expect(introHtml.match(/data-open="true"/g)).toHaveLength(4);
-    expect(introHtml.indexOf("cinema-vs")).toBeLessThan(introHtml.indexOf('data-player-id="p1"'));
     expect(tableHtml.match(/cinema-flip-slot/g)).toHaveLength(9);
     expect(tableHtml.match(/cinema-flip-front/g)).toHaveLength(9);
     expect(tableHtml.match(/data-open="true"/g)).toHaveLength(4);
@@ -155,9 +152,12 @@ describe("cinematic initial rendering", () => {
     expect(runOneResultHtml.match(/cinema-board-matchup/g)).toHaveLength(1);
     expect(runOneResultHtml).toMatch(/cinema-run-player[^"]*is-loser[\s\S]*?playing-card[^"]*dimmed/);
     expect(runOneResultHtml).toMatch(/cinema-run-player[^"]*is-winner[\s\S]*?playing-card[^"]*glow/);
-    expect(html).not.toContain("cinema-board-matchup");
+    expect(html.match(/cinema-board-matchup/g)).toHaveLength(1);
     expect(html).toContain("cinema-board complete is-collapsed");
-    expect(html).toContain("RUN 1<b>완료</b>");
+    expect(html).not.toContain("완료");
+    expect(html).toContain("p1 승리");
+    expect(html).toMatch(/cinema-run-player[^"]*is-winner[\s\S]*?playing-card[^"]*glow/);
+    expect(html).toMatch(/cinema-run-player[^"]*is-loser[\s\S]*?playing-card[^"]*dimmed/);
     expect(html.match(/cinema-board-cards/g)).toHaveLength(1);
     expect(html).toContain("RUN 2");
     expect(html).toContain("cinema-seats");

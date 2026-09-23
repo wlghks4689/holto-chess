@@ -22,10 +22,9 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   };
   // R5 only: the Final Arena establishing shot and camera push-in play before the existing intro.
   if (match.round === 5 && !match.boards.length) add("ARENA_ENTER", FINAL_ARENA_ENTER_MS);
-  // Regular rounds get an extra 200ms so the staggered face-up hole-card reveal can settle.
-  // R5 keeps its separate, staged seven-card reveal unchanged.
-  add("VS_INTRO", match.round === 5 ? 1200 : 1400);
-  add("TABLE_ENTER", 400 );  if (match.round === 4 && match.boards.length) add("PREFLOP_HAND", 2000);
+  // The separate match-loading screen now owns the opponent/hand reveal beat.
+  // Enter the table immediately so the board reveal does not repeat that information.
+  add("TABLE_ENTER", 400);
   if (!match.boards.length) {
     if (match.round === 5) {
       // Reveal phases cover the staggered flips (310ms / 320ms / 380ms between cards, 420ms flip,

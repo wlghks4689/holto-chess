@@ -59,11 +59,11 @@ describe("R5 Final Arena entry", () => {
     expect(withArena[0]).toMatchObject({ phase: "ARENA_ENTER", at: 0 });
     expect(FINAL_ARENA_ENTER_MS).toBe(FINAL_ARENA_HOLD_MS + FINAL_ARENA_ZOOM_MS + 300);
     const rest = withArena.slice(1);
-    expect(rest[0]).toMatchObject({ phase: "VS_INTRO", at: FINAL_ARENA_ENTER_MS });
-    // Same phases, same gaps as the established timeline: only shifted by the pre-roll.
+    expect(rest[0]).toMatchObject({ phase: "TABLE_ENTER", at: FINAL_ARENA_ENTER_MS });
+    // The match-loading window already presented the opponents, so the arena flows straight to the table.
     const gaps = rest.slice(1).map((frame, index) => [frame.phase, frame.at - rest[index]!.at]);
     expect(gaps).toEqual([
-      ["TABLE_ENTER", 1200], ["FINAL_FIRST_REVEAL", 400], ["FINAL_FIRST_HAND", 1050], ["FINAL_SECOND_REVEAL", 1400],
+      ["FINAL_FIRST_REVEAL", 400], ["FINAL_FIRST_HAND", 1050], ["FINAL_SECOND_REVEAL", 1400],
       ["FINAL_SECOND_HAND", 750], ["FINAL_LAST_REVEAL", 1400], ["FINAL_SEVEN_SETTLE", 1000], ["BEST5_GLOW", 500],
       ["MADE_HAND", 500], ["FINAL_PLACE", 600], ["FINAL_PLACE", 900], ["FINAL_PLACE", 900], ["FINAL_WINNER", 900],
       ["REWARD", 1300], ["COMPLETE", 1600],
@@ -72,6 +72,6 @@ describe("R5 Final Arena entry", () => {
 
   it("adds the arena shot to R5 only", () => {
     const board = makeDeck().slice(0, 5);
-    for (const round of [1, 2, 3, 4]) expect(cinematicTimeline({ round, boards: [board], revealedCards: {} })[0]!.phase).toBe("VS_INTRO");
+    for (const round of [1, 2, 3, 4]) expect(cinematicTimeline({ round, boards: [board], revealedCards: {} })[0]!.phase).toBe("TABLE_ENTER");
   });
 });
