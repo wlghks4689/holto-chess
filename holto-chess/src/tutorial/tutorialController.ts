@@ -84,7 +84,7 @@ export function sync(session: TutorialSession): TutorialSession {
 }
 
 /** Phases that belong to the player: a carried game is never stepped through one of these for them. */
-const DECISION_PHASES = ["SHOP", "DECK_SELECT", "OPEN_DRAFT", "RUN_LOADOUT", "AUGMENT", "GAME_RESULT"];
+const DECISION_PHASES = ["SHOP", "DECK_SELECT", "OPEN_DRAFT", "RUN_LOADOUT", "GAME_RESULT"];
 
 /**
  * Carries the player's own hand into the next chapter by closing out the round they just finished.

@@ -66,7 +66,7 @@ describe("release audit: deadline and stale-action regressions", () => {
     expect(assertPoolIntegrity(manual.game)).toBe(true);
     expect(assertPoolIntegrity(automatic.game)).toBe(true);
   });
-  it("does not give a live R4 shopper other players' owned cards or augment choices; spectators cannot buy", () => {
+  it("does not give a live R4 shopper other players' owned cards; spectators cannot buy", () => {
     let room = started(8);
     while (!(room.game.round === 4 && room.game.phase === "SHOP")) room = forceBarrier(room, barrierDeadline(room)!)!;
     const alive = room.game.players.filter((player) => !player.eliminated);
@@ -90,10 +90,9 @@ describe("release audit: deadline and stale-action regressions", () => {
     expect(game.roundResults.filter((match) => match.matchday === 1).every((match) =>
       match.playerIds.every((id) => match.standingsBefore![id] === 0))).toBe(true);
   });
-  it.each(["SHOP", "AUGMENT"] as const)("rejects a decision at the exact %s deadline before the alarm runs", (phase) => {
-    let room = started();
-    while (room.game.phase !== phase) room = forceBarrier(room, barrierDeadline(room)!)!;
-    const action: GameAction = phase === "SHOP" ? { type: "REROLL" } : { type: "SELECT_AUGMENT", augmentId: room.augmentChoices.p1![0]!.id };
+  it("rejects a shop decision at the exact deadline before the alarm runs", () => {
+    const room = started();
+    const action: GameAction = { type: "REROLL" };
     const deadline = barrierDeadline(room)!;
     expect(() => act(room, "p1", action, deadline - 100)).not.toThrow();
     expect(() => act(room, "p1", action, deadline)).toThrow(/시간/);

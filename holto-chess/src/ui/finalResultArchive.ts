@@ -10,7 +10,7 @@ export type SavedFinalResult = {
   viewerId: string;
   standings: Array<{
     playerId: string; name: string; placement: number; points: number;
-    handScore: number; augmentScore?: number; handName: string; stackScore: number; stackBB: number;
+    handScore: number; handName: string; stackScore: number; stackBB: number;
     total: number; rankPoints: number; eliminatedRound?: number;
   }>;
 };
@@ -27,7 +27,6 @@ export function makeSavedFinalResult(view: PlayerView, savedAt = new Date().toIS
       placement: row.placement,
       points: row.points,
       handScore: row.handScore,
-      augmentScore: row.augmentScore ?? 0,
       handName: row.displayName,
       stackScore: row.stackScore,
       stackBB: row.stackBB,

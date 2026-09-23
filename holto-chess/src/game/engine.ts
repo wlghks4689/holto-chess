@@ -1,14 +1,13 @@
 import { shuffle, type Card } from "../core/poker/cards";
 import { compareHands, evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
-import { applyAugment, augmentPool } from "./augments";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
-import { bestBotSelection, bestRunLoadout, pickBotAugment, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
+import { bestBotSelection, bestRunLoadout, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { calculateIcm } from "./icm";
 import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
-import type { Augment, PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
+import type { PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
 
 function nextRandom(state: PorenaGameState): number {
   if (state.randomMode === "secure") return crypto.getRandomValues(new Uint32Array(1))[0]! / 4294967296;
@@ -75,25 +74,18 @@ function transferReservedCardToOwned(state: PorenaGameState, player: PlayerState
   delete entry.reservedPlayerId;
 }
 
-function discountedPrice(player: PlayerState, card: Card): number {
-  let price = cardPrice(card.rank);
-  if (player.augments.some((augment) => augment.id === "suit_discount" && augment.suit === card.suit)) price -= 3;
-  if (player.augments.some((augment) => augment.id === "rank_discount") && card.rank <= 9) price -= 2;
-  return Math.max(1, price);
-}
-
 export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2): PorenaGameState {
   seed = (seed >>> 0) || 1;
   const playerNames = ["나", "리버 폭스", "블러프 캣", "스페이드 울프", "턴 샤크", "클럽 레이븐", "다이아 바이퍼", "올인 베어"];
   const players: PlayerState[] = Array.from({ length: BALANCE.playerCount }, (_, index) => ({
     id: `p${index + 1}`, name: playerNames[index]!,
     stackBB: BALANCE.startStackBB, ownedCardIds: [], shopCardIds: [], selectedCardIds: [],
-    shopSize: BALANCE.baseShopSize, purchasesThisRound: 0, rerollsUsed: 0, shopLocked: false, augments: [],
+    shopSize: BALANCE.baseShopSize, purchasesThisRound: 0, rerollsUsed: 0, shopLocked: false,
     points: 0, winStreak: 0, loseStreak: 0, eliminated: false,
   }));
   const state: PorenaGameState = {
     rulesVersion, round: 1, phase: "SHOP", players, ownershipCardPool: createOwnershipPool(), matches: [],
-    winnerGroup: [], loserGroup: [], roundResults: [], augmentChoices: [], encounterSequence: 0, seed, randomMode, logSequence: 0, logs: [],
+    winnerGroup: [], loserGroup: [], roundResults: [], encounterSequence: 0, seed, randomMode, logSequence: 0, logs: [],
   };
   for (const player of players) giveRandomOwnedCard(state, player);
   for (const player of players) reserveShopCards(state, player);
@@ -109,7 +101,7 @@ export function buyCard(source: PorenaGameState, playerId: string, cardId: strin
   if (player.ownedCardIds.length >= BALANCE.handLimits[state.round]) throw new Error("이번 라운드 보유 한도에 도달했습니다.");
   if (player.purchasesThisRound >= purchaseLimitFor(state.round, state.rulesVersion ?? 1)) throw new Error("이번 라운드 구매 횟수를 모두 사용했습니다.");
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
-  const price = discountedPrice(player, entry.card);
+  const price = cardPrice(entry.card.rank);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
   player.stackBB -= price; player.purchasesThisRound += 1;
   transferReservedCardToOwned(state, player, cardId);
@@ -125,7 +117,7 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
     throw new Error("남은 구매 횟수로 필수 보유 카드를 채울 수 없어 판매할 수 없습니다.");
   }
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
-  const rate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
+  const rate = BALANCE.sellRate;
   const refund = Math.floor(cardPrice(entry.card.rank) * rate);
   player.stackBB += refund; player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId); player.selectedCardIds = player.selectedCardIds.filter((id) => id !== cardId);
   entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
@@ -135,7 +127,7 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
 
 export function rerollShop(source: PorenaGameState, playerId: string): PorenaGameState {
   const state = structuredClone(source); const player = playerById(state, playerId);
-  const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+  const cost = BALANCE.rerollCostBB;
   const targetSize = state.rulesVersion === 2 ? regularShopSizeFor(state.round) : player.shopSize;
   const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
@@ -191,27 +183,27 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
   for (const player of state.players.filter((item) => !item.eliminated && !humanIds.includes(item.id))) {
     const ownedCards = () => cardsFor(state, player.ownedCardIds);
     const buy = (cardId: string) => {
-      const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!; const price = discountedPrice(player, entry.card);
+      const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!; const price = cardPrice(entry.card.rank);
       player.stackBB -= price; player.purchasesThisRound += 1;
       transferReservedCardToOwned(state, player, cardId);
     };
     const reroll = () => {
-      const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+      const cost = BALANCE.rerollCostBB;
       player.stackBB -= cost; releaseShop(state, player); reserveShopCards(state, player); player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
     };
     if (policy) {
       const sell = (cardId: string) => {
         const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
-        const rate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
+        const rate = BALANCE.sellRate;
         player.stackBB += Math.floor(cardPrice(entry.card.rank) * rate);
         player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId);
         entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
       };
       for (let step = 0; step < POLICY_STEP_LIMIT; step += 1) {
         const purchaseLimit = purchaseLimitFor(state.round, state.rulesVersion ?? 1);
-        const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+        const rerollCost = BALANCE.rerollCostBB;
         const shopCards = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!.card)
-          .map((card) => ({ card, price: discountedPrice(player, card) }));
+          .map((card) => ({ card, price: cardPrice(card.rank) }));
         const action = policy({
           round: state.round, playerId: player.id, stackBB: player.stackBB, handLimit: limit,
           purchasesLeft: purchaseLimit - player.purchasesThisRound,
@@ -250,9 +242,9 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
     };
     while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state.rulesVersion ?? 1)) {
       const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!)
-        .map((entry) => ({ card: entry.card, price: discountedPrice(player, entry.card) })).filter((entry) => entry.price <= player.stackBB);
+        .map((entry) => ({ card: entry.card, price: cardPrice(entry.card.rank) })).filter((entry) => entry.price <= player.stackBB);
       const ranked = rankBotPurchases(state.round, player, ownedCards(), options, planContext); const best = ranked[0];
-      const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+      const rerollCost = BALANCE.rerollCostBB;
       const missing = limit - player.ownedCardIds.length;
       if (hasRerollableSlot() && player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, best, rerollCost)) { reroll(); continue; }
       if (!best) break;
@@ -266,8 +258,8 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       for (const ownedId of player.ownedCardIds) for (const shopId of player.shopCardIds) {
         const owned = state.ownershipCardPool.find((entry) => entry.card.id === ownedId)!.card;
         const offered = state.ownershipCardPool.find((entry) => entry.card.id === shopId)!.card;
-        const refundRate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
-        const refund = Math.floor(cardPrice(owned.rank) * refundRate); const price = discountedPrice(player, offered);
+        const refundRate = BALANCE.sellRate;
+        const refund = Math.floor(cardPrice(owned.rank) * refundRate); const price = cardPrice(offered.rank);
         if (player.stackBB + refund < price) continue;
         const replacement = ownedCards().filter((card) => card.id !== ownedId).concat(offered);
         const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`, planContext);
@@ -275,11 +267,11 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       }
       if (bestSwap) {
         const oldEntry = state.ownershipCardPool.find((entry) => entry.card.id === bestSwap!.ownedId)!;
-        const refundRate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
+        const refundRate = BALANCE.sellRate;
         player.stackBB += Math.floor(cardPrice(oldEntry.card.rank) * refundRate); player.ownedCardIds = player.ownedCardIds.filter((id) => id !== bestSwap!.ownedId);
         oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId; buy(bestSwap.shopId); continue;
       }
-      const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+      const rerollCost = BALANCE.rerollCostBB;
       if (hasRerollableSlot() && (player.rerollsUsed ?? 0) < rerollLimitFor(state.round, state.rulesVersion ?? 1) && player.stackBB >= rerollCost + 20 && baseline.equity < 0.58) { reroll(); continue; }
       break;
     }
@@ -472,10 +464,9 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
       continue;
     }
     if (won) {
-      const bonus = player.augments.some((augment) => augment.id === "win_bonus") ? 5 : 0;
       const base = state.round === 1 ? 10 : BALANCE.winRewardBB; const streakBonus = state.round === 1 ? 0 : player.winStreak * BALANCE.winStreakStepBB;
-      player.stackBB += base + streakBonus + bonus;
-      match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연승 ${streakBonus}` : ""}${bonus ? ` + 증강 ${bonus}` : ""}`;
+      player.stackBB += base + streakBonus;
+      match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연승 ${streakBonus}` : ""}`;
       player.winStreak += 1; player.loseStreak = 0; player.points += match.pointAwards[playerId]!;
     } else { const base = state.round === 1 ? 15 : 0; const streakBonus = state.round === 1 ? player.loseStreak * 5 : player.loseStreak * BALANCE.loseStreakStepBB; player.stackBB += base + streakBonus; match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연패 ${streakBonus}` : ""}`; player.loseStreak += 1; player.winStreak = 0; }
     if (!won) player.points += match.pointAwards[playerId]!;
@@ -777,45 +768,16 @@ export function resolveSecondary(source: PorenaGameState): PorenaGameState {
   assertPoolIntegrity(state); return state;
 }
 
-export function choicesFor(state: PorenaGameState): Augment[] {
-  return shuffle(augmentPool(state.round), () => nextRandom(state)).slice(0, 3);
-}
-
 export function leaveRoundResult(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source); if (state.phase !== "ROUND_RESULT") throw new Error("라운드 결과 단계가 아닙니다.");
   if (state.survival) { state.phase = "SURVIVAL_READY"; return state; }
-  if (state.round === 2 || state.round === 4) {
-    const human = playerById(state, "p1");
-    if (human.eliminated) {
-      for (const survivor of state.players.filter((player) => !player.eliminated)) {
-        const choices = choicesFor(state);
-        applyAugment(survivor, pickBotAugment(survivor, choices, state.round, cardsFor(state, survivor.ownedCardIds)));
-      }
-      state.phase = "NEXT_ROUND";
-      log(state, "관전 모드 · 생존자 증강 선택 완료");
-    } else {
-      state.phase = "AUGMENT"; state.augmentChoices = choicesFor(state); log(state, `${state.round === 2 ? "첫 번째" : "두 번째"} 증강 선택`);
-    }
-  }
-  else state.phase = "NEXT_ROUND";
+  state.phase = "NEXT_ROUND";
   return state;
-}
-
-export function chooseAugment(source: PorenaGameState, playerId: string, augmentId: string): PorenaGameState {
-  const state = structuredClone(source); const player = playerById(state, playerId);
-  if (state.phase !== "AUGMENT" || player.eliminated) throw new Error("증강을 선택할 수 없습니다.");
-  const augment = state.augmentChoices.find((item) => item.id === augmentId); if (!augment) throw new Error("제시된 증강이 아닙니다.");
-  applyAugment(player, augment);
-  for (const bot of state.players.filter((item) => !item.eliminated && item.id !== playerId)) {
-    const choices = choicesFor(state);
-    applyAugment(bot, pickBotAugment(bot, choices, state.round, cardsFor(state, bot.ownedCardIds)));
-  }
-  state.phase = "NEXT_ROUND"; log(state, `${player.name} · ${augment.name} 획득`, "win"); return state;
 }
 
 export function startNextRound(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= 5) throw new Error("다음 라운드로 진행할 수 없습니다.");
-  state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = []; state.augmentChoices = [];
+  state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = [];
   delete state.draft; delete state.survival;
   if (state.round === 3) state.r3Seeds = seedOmaha(state);
   // Street snapshots exist only to drive the showdown cinematic for the round
@@ -854,7 +816,7 @@ export function pickDraftCard(source: PorenaGameState, playerId: string, cardId:
   const player = playerById(state, playerId);
   const entry = state.ownershipCardPool.find((e) => e.card.id === cardId);
   if (!draft.cardIds.includes(cardId) || !entry || entry.state !== "AVAILABLE") throw new Error("선택할 수 없는 카드입니다.");
-  const price = discountedPrice(player, entry.card);
+  const price = cardPrice(entry.card.rank);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
   // Previous-round forfeits may enter with fewer cards. Draft still grants only one paid card.
   if (player.ownedCardIds.length >= BALANCE.handLimits[state.round]) throw new Error("드래프트 보유 장수가 올바르지 않습니다.");
@@ -921,14 +883,12 @@ export function finalStandings(state: PorenaGameState) {
     const hand = final?.hand ?? player.eliminationSnapshot?.hand;
     const points = player.eliminationSnapshot?.points ?? player.points;
     const stackBB = player.eliminationSnapshot?.stackBB ?? player.stackBB;
-    const baseHandScore = hand ? BALANCE.handScores[hand.category] : 0;
-    const augmentScore = (hand?.category === "PAIR" && player.augments.some((augment) => augment.id === "pair_points") ? 3 : 0)
-      + (hand && hand.categoryRank > 0 && player.augments.some((augment) => augment.id === "r5_hand_bonus") ? 4 : 0);
-    const handScore = baseHandScore; const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
+    const handScore = hand ? BALANCE.handScores[hand.category] : 0;
+    const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
     const lastMatch = [...state.matches].reverse().find((match) => match.revealedCardIds[player.id]?.length);
     const cardIds = player.ownedCardIds.length ? player.ownedCardIds : lastMatch?.revealedCardIds[player.id];
     const cards = cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
-    return { playerId: player.id, points, handScore, augmentScore, stackScore, total: points + handScore + augmentScore + stackScore, hand,
+    return { playerId: player.id, points, handScore, stackScore, total: points + handScore + stackScore, hand,
       cards, usedCardIds: hand?.bestFive.map((card) => card.id) ?? [],
       finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
   }).sort((a, b) => {
@@ -950,4 +910,4 @@ export function finalStandings(state: PorenaGameState) {
 }
 
 export function getCard(state: PorenaGameState, id: string): Card { return state.ownershipCardPool.find((entry) => entry.card.id === id)!.card; }
-export function getCardPrice(state: PorenaGameState, playerId: string, cardId: string): number { return discountedPrice(playerById(state, playerId), getCard(state, cardId)); }
+export function getCardPrice(state: PorenaGameState, playerId: string, cardId: string): number { playerById(state, playerId); return cardPrice(getCard(state, cardId).rank); }

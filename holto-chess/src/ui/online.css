@@ -26,7 +26,7 @@
 .survivors .conn-lobby{color:var(--mint)}
 .resume-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}.resume-list small{width:100%;font:600 9px DM Mono;letter-spacing:.1em;color:#6f94a6}
 .room-error{border:1px solid #9a4740;color:#ffc4bf;padding:14px;border-radius:8px;background:rgba(52,17,23,.76)}
-.action-bar p{font-size:11px;color:#91aa9e}.secondary:disabled,.augment-grid button:disabled{opacity:.45;cursor:not-allowed}
+.action-bar p{font-size:11px;color:#91aa9e}.secondary:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:639px){.arena-lobby::before{background-position:56% center;background-attachment:scroll}.arena-lobby>.page-shell{padding-top:28px}.room-panel{padding:20px 16px}.room-panel-heading{margin-bottom:20px!important}.room-panel-mark{font-size:64px}.lobby-console{grid-template-columns:1fr;gap:16px;padding:15px}.nickname-field input{max-width:100%}.room-controls{display:grid;grid-template-columns:1fr}.room-controls input{max-width:none;width:100%}.room-controls .primary,.room-controls .secondary{width:100%}.resume-list button{width:100%}.spectator-banner{top:62px;align-items:stretch;flex-direction:column}.spectator-banner>div:first-child{justify-content:center}.spectator-picker{justify-content:center}.spectator-picker button{flex:1 1 auto}}
 @media(max-width:620px){.survivors b{font-size:12px}.action-bar{flex-wrap:wrap}.mode-switch+main .action-bar{bottom:62px}.room-controls .primary{min-width:130px}.mode-switch{right:8px;bottom:8px}.mode-switch .secondary{font-size:8px}}
 .online-entry{min-height:100svh;display:grid;place-items:center;padding:48px 20px;background:linear-gradient(180deg,#050d17c9,#050d17f5),url('/assets/start/battlefield.webp') center / cover fixed,#050d17}
@@ -52,7 +52,6 @@
 .game-arena .action-countdown{flex-shrink:0}
 .game-arena .action-bar>.primary{flex-shrink:0;max-width:100%;white-space:normal}
 .game-arena .shop-ready-bar>.shop-countdown{display:grid;flex-shrink:0}
-.augment-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.augment-heading h2{min-width:0}
 @media(max-width:700px){
   .game-arena .phase-ready-bar,.game-arena .shop-ready-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 12px;padding:12px}
   .game-arena .phase-wait-copy,.game-arena .shop-ready-copy{grid-column:1 / -1}

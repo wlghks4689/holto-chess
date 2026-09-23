@@ -2,12 +2,9 @@ import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from ".
 import { finalStandings, getCard, getCardPrice } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
-import type { Augment } from "./types";
 import { createMatchView } from "./matchView";
 import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
-
-function publicAugment(a: Augment): Augment { return { id: a.id, name: a.name, description: a.description, suit: a.suit, category: a.category }; }
 
 function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerView {
   const g = room.game;
@@ -16,14 +13,13 @@ function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerV
     playerId: player.id, stackBB: player.stackBB, points: player.points, alive: !player.eliminated,
     ownedCards: player.ownedCardIds.map((id) => getCard(g, id)),
     shopCards: player.shopCardIds.map((id) => ({ card: getCard(g, id), price: getCardPrice(g, player.id, id) })),
-    selectedCardIds: [...player.selectedCardIds], augments: player.augments.map(publicAugment),
-    augmentChoices: (room.augmentChoices[player.id] ?? []).map(publicAugment),
+    selectedCardIds: [...player.selectedCardIds],
     handLimit: BALANCE.handLimits[g.round], shopSize: g.rulesVersion === 2 ? regularShopSizeFor(g.round) : player.shopSize,
     shopLocked: false, lockedShopCardIds: [...(player.lockedShopCardIds ?? [])],
     purchases: player.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round, g.rulesVersion ?? 1),
     rerollsUsed: player.rerollsUsed ?? 0, rerollLimit: rerollLimitFor(g.round, g.rulesVersion ?? 1),
-    rerollCost: Math.max(0, BALANCE.rerollCostBB - (player.augments.some((a) => a.id === "reroll_discount") ? 2 : 0)),
-    sellPercent: player.augments.some((a) => a.id === "sell_bonus") ? 80 : 60,
+    rerollCost: BALANCE.rerollCostBB,
+    sellPercent: Math.round(BALANCE.sellRate * 100),
     committed: room.endedShopIds.includes(player.id),
   };
 }
@@ -79,11 +75,11 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       roundHistory: visible ? roundMatches(g).filter((match) => match.playerIds.includes(player.id)).map((match, index) => ({ ...createMatchView(g, match), matchNumber: index + 1 })) : [],
       ...(presentationViewFor(room, player.id) ? { presentation: presentationViewFor(room, player.id) } : {}),
     })) } : {}),
-    players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed, publicAugments: p.augments.map(publicAugment) })),
+    players: g.players.map((p) => ({ playerId: p.id, name: p.name, stackBB: p.stackBB, points: p.points, alive: !p.eliminated, human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
     matches: visible ? visibleMatchesFor(room, me.id).map((m) => createMatchView(g, m)) : [],
     roundSummary: visible ? createRoundSummary(g) : [],
     roundHistory: visible ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...createMatchView(g, m), matchNumber: index + 1 })) : [],
-    standings: g.phase === "GAME_RESULT" ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, augmentScore: s.augmentScore, stackScore: s.stackScore, stackBB: s.stackBB, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound, cards: s.cards, usedCardIds: s.usedCardIds })) : [],
+    standings: g.phase === "GAME_RESULT" ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, stackBB: s.stackBB, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound, cards: s.cards, usedCardIds: s.usedCardIds })) : [],
   };
   return structuredClone(view);
 }

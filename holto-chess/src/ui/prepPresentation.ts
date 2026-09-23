@@ -34,13 +34,13 @@ export type PrepPresentation = {
 
 /**
  * PREP is presentation-only: combat completion keeps the old round during
- * AUGMENT/NEXT_ROUND, while the following SHOP already carries the new round.
+ * NEXT_ROUND, while the following SHOP already carries the new round.
  */
 export function getPrepPresentation(round: Round, phase: Phase | "LOBBY"): PrepPresentation | null {
   let completedRound: Round;
   let targetRound: Exclude<Round, 1>;
 
-  if ((phase === "AUGMENT" || phase === "NEXT_ROUND") && round < 5) {
+  if (phase === "NEXT_ROUND" && round < 5) {
     completedRound = round;
     targetRound = (round + 1) as Exclude<Round, 1>;
   } else if (phase === "SHOP" && round > 1) {

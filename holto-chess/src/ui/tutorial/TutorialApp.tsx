@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
 import {
-  beginSecondary, buyCard, chooseAugment, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts, pickDraftCard,
+  beginSecondary, buyCard, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts, pickDraftCard,
   rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound,
   prepareShowdown, finalStandings,
 } from "../../game/engine";
@@ -217,9 +217,9 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
   const me = game.players[0]!;
   const handLimit = BALANCE.handLimits[game.round];
   const shopSize = game.rulesVersion === 2 ? regularShopSizeFor(game.round) : me.shopSize;
-  const rerollCost = Math.max(0, BALANCE.rerollCostBB - (me.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
-  const rerollLimit = rerollLimitFor(game.round, game.rulesVersion ?? 1);
-  const view = createPlayerView({ schema: 1, roomId: "TUTORIAL", revision: 0, status: "PLAYING", game, sessions: [{ playerId: "p1", tokenHash: "tutorial", requests: [] }], readyIds: [], endedShopIds: [], augmentChoices: {} }, "p1");
+  const rerollCost = BALANCE.rerollCostBB;
+  const rerollLimit = rerollLimitFor(game.round);
+  const view = createPlayerView({ schema: 1, roomId: "TUTORIAL", revision: 0, status: "PLAYING", game, sessions: [{ playerId: "p1", tokenHash: "tutorial", requests: [] }], readyIds: [], endedShopIds: [] }, "p1");
   const send = (action: GameAction) => {
     if (action.type === "DRAFT_PICK") act((state) => pickDraftCard(state, "p1", action.cardId));
     if (action.type === "RUN_LOADOUT") act((state) => setRunLoadout(state, "p1", action.cardIds));
@@ -268,12 +268,6 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
     {["DRAFT_ORDER", "OPEN_DRAFT"].includes(game.phase) ? <div data-tutorial-id="draft"><OpenDraftPanel view={view} send={send} disabled={false} seconds={null} /></div> : null}
     {game.phase === "RUN_LOADOUT" ? <div data-tutorial-id="run-loadout"><RunLoadoutPanel view={view} send={send} disabled={false} seconds={null} showTimer={false} /></div> : null}
 
-    {game.phase === "AUGMENT" ? <section className="panel augment-panel" data-tutorial-id="augment">
-      <span className="eyebrow">AUGMENT DRAFT</span><h2>증강 하나를 선택하세요</h2>
-      <div className="augment-grid">{game.augmentChoices.map((augment, index) => <button type="button" key={augment.id} onClick={() => act((state) => chooseAugment(state, "p1", augment.id))}>
-        <span>0{index + 1}</span><b>{augment.name}</b><p>{augment.description}</p><em>선택하기 →</em>
-      </button>)}</div>
-    </section> : null}
 
     {["GROUP_ASSIGNMENT", "ROUND_RESULT"].includes(game.phase) ? <div data-tutorial-id="round-results">
       <RoundResults round={game.round} rows={createRoundSummary(game)} viewerId="p1" showBrackets={game.round === 4 && game.phase === "GROUP_ASSIGNMENT"} secondsLeft={null}>

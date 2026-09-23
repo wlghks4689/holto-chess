@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import * as poker from "../core/poker/evaluate";
-import { autoPickDraft, beginSecondary, buyCard, chooseAugment, createGame, getCardPrice, leaveRoundResult, lockRunLoadouts, openDraft, pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound } from "./engine";
+import { autoPickDraft, beginSecondary, buyCard, createGame, getCardPrice, leaveRoundResult, lockRunLoadouts, openDraft, pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound } from "./engine";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 import { createPlayerView } from "./playerView";
 import { parseClientMessage } from "../shared/protocol";
@@ -16,7 +16,6 @@ function drafted(g = r2()) { g = openDraft(g); while (g.phase === "OPEN_DRAFT") 
 function next(g: ReturnType<typeof createGame>) {
   g = leaveRoundResult(g);
   if (g.phase === "SURVIVAL_READY") g = leaveRoundResult(resolveSurvival(g));
-  if (g.phase === "AUGMENT") g = chooseAugment(g, "p1", g.augmentChoices[0]!.id);
   return startNextRound(g);
 }
 

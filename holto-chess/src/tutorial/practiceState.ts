@@ -1,7 +1,7 @@
 import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
 import { BALANCE, purchaseLimitFor, rerollLimitFor } from "../game/config";
 import {
-  autoPickDraft, beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, getCard, getCardPrice,
+  autoPickDraft, beginSecondary, buyCard, confirmSelection, createGame, getCard, getCardPrice,
   leaveRoundResult, lockRunLoadouts, openDraft, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival,
   setRunLoadout, startNextRound, toggleSelectedCard,
 } from "../game/engine";
@@ -52,7 +52,6 @@ export function autoStep(source: PorenaGameState): PorenaGameState {
     case "SHOWDOWN_SECONDARY": return resolveSecondary(source);
     case "SURVIVAL_READY": return resolveSurvival(source);
     case "ROUND_RESULT": return leaveRoundResult(source);
-    case "AUGMENT": return source.augmentChoices.length ? chooseAugment(source, "p1", source.augmentChoices[0]!.id) : leaveRoundResult(source);
     case "NEXT_ROUND": return startNextRound(source);
     default: throw new Error(`연습 상태를 만들 수 없는 단계입니다: ${source.phase}`);
   }

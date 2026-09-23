@@ -1,6 +1,6 @@
 import { BALANCE } from "../../src/game/config";
 import {
-  beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, finalStandings, getCard,
+  beginSecondary, buyCard, confirmSelection, createGame, finalStandings, getCard,
   getCardPrice, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   startNextRound, toggleSelectedCard,
 } from "../../src/game/engine";
@@ -79,7 +79,7 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
       let rerolls = 0;
       while (rerolls < config.maxRerollsPerPlayerRound && shouldReroll(state, player, policy)) {
         const before = new Set(player.shopCardIds.map((id) => getCard(state, id).rank));
-        const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+        const cost = BALANCE.rerollCostBB;
         state = rerollShop(state, player.id); actionCount += 1; rerolls += 1;
         addEconomy(trace.economy, "rerolls"); addEconomy(trace.roundEconomy[round], "rerolls");
         addEconomy(trace.economy, "rerollSpend", cost); addEconomy(trace.roundEconomy[round], "rerollSpend", cost);
@@ -135,7 +135,6 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
     poolSnapshots.push(poolSnapshot(state));
     if (round === 5) break;
     state = leaveRoundResult(state); actionCount += 1;
-    if (state.phase === "AUGMENT") { state = chooseAugment(state, "p1", state.augmentChoices[0]!.id); actionCount += 1; }
     state = startNextRound(state); actionCount += 1;
     captureShopAppearances(state, rankCounters); poolSnapshots.push(poolSnapshot(state, true));
   }

@@ -2,7 +2,7 @@ import type { PorenaGameState } from "../game/types";
 
 export type PlayerFeedEntry = { id: string; tone: "info" | "win" | "danger" | "economy"; message: string };
 
-const RESULT_PHASES = new Set(["ROUND_RESULT", "AUGMENT", "NEXT_ROUND", "GAME_RESULT"]);
+const RESULT_PHASES = new Set(["ROUND_RESULT", "NEXT_ROUND", "GAME_RESULT"]);
 
 /** Builds a compact, viewer-specific drawer instead of exposing the engine's full diagnostic log. */
 export function playerEventFeed(state: PorenaGameState, playerId: string): PlayerFeedEntry[] {

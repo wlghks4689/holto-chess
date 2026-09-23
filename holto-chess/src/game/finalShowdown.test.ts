@@ -19,21 +19,19 @@ function finalFixture(hands: string[][]) {
 }
 
 describe("four-way last hand", () => {
-  it("keeps category scores fixed and reports augment bonuses separately", () => {
+  it("keeps category scores fixed without extra bonuses", () => {
     const after = resolvePrimary(finalFixture([
       ["As", "Ah", "Kd", "Qc", "Jd", "9c", "8h"],
       ["Ks", "Kh", "Ad", "Qd", "Jc", "8c", "7h"],
       ["2s", "2h", "2d", "Kc", "Qh", "9d", "8d"],
       ["3s", "4h", "5d", "6c", "7s", "Th", "Tc"],
     ]));
-    after.players[0].augments.push({ id: "pair_points", name: "페어 수집가", description: "", category: "PAIR" });
-    after.players[2].augments.push({ id: "r5_hand_bonus", name: "마지막 패", description: "" });
     const byId = Object.fromEntries(finalStandings(after).map((row) => [row.playerId, row]));
-    expect(byId.p1).toMatchObject({ handScore: 1, augmentScore: 3 });
-    expect(byId.p2).toMatchObject({ handScore: 1, augmentScore: 0 });
-    expect(byId.p3).toMatchObject({ handScore: 5, augmentScore: 4 });
-    expect(byId.p4).toMatchObject({ handScore: 8, augmentScore: 0 });
-    for (const row of Object.values(byId)) expect(row.total).toBe(row.points + row.handScore + row.augmentScore + row.stackScore);
+    expect(byId.p1).toMatchObject({ handScore: 1 });
+    expect(byId.p2).toMatchObject({ handScore: 1 });
+    expect(byId.p3).toMatchObject({ handScore: 5 });
+    expect(byId.p4).toMatchObject({ handScore: 8 });
+    for (const row of Object.values(byId)) expect(row.total).toBe(row.points + row.handScore + row.stackScore);
   });
 
   it("publishes seven cards, highlights five, ICM-chops a tied first and keeps the ledger", () => {

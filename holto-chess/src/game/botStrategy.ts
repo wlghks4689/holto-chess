@@ -1,7 +1,7 @@
 import { makeDeck, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha, type HandCategory, type HandValue } from "../core/poker/evaluate";
 import { BALANCE } from "./config";
-import type { Augment, PlayerState, Round } from "./types";
+import type { PlayerState, Round } from "./types";
 import { strategicCardValue, type PreflopStrength } from "./preflopStrength";
 
 type PricedCard = { card: Card; price: number };
@@ -293,25 +293,4 @@ export function bestBotSelection(round: Round, cards: readonly Card[]): string[]
   if (round === 2) return (cards.length < 2 ? cards : bestPair(cards)).map((card) => card.id);
   if (round === 3) return cards.map((card) => card.id);
   return [];
-}
-
-export function pickBotAugment(player: PlayerState, choices: readonly Augment[], round: Round, ownedCards: readonly Card[]): Augment {
-  if (!choices.length) throw new Error("Bot needs at least one augment choice");
-  const roundsLeft = 5 - round;
-  const suitCounts = ownedCards.reduce((counts, card) => counts.set(card.suit, (counts.get(card.suit) ?? 0) + 1), new Map<string, number>());
-  const rankCounts = ownedCards.reduce((counts, card) => counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1), new Map<number, number>());
-  const score = (augment: Augment): number => {
-    switch (augment.id) {
-      case "r5_hand_bonus": return 35;
-      case "win_bonus": return 18 + roundsLeft * 4 + player.winStreak * 2;
-      case "pair_points": return 9 + Math.max(0, ...rankCounts.values()) * 5;
-      case "shop_plus_two": return 12 + roundsLeft * 6 - Math.max(0, player.shopSize - 3) * 4;
-      case "shop_plus_one": return 9 + roundsLeft * 4 - Math.max(0, player.shopSize - 3) * 4;
-      case "reroll_discount": return 10 + roundsLeft * 4;
-      case "sell_bonus": return 8 + roundsLeft * 3;
-      case "rank_discount": return 8 + ownedCards.filter((card) => card.rank <= 9).length * 3 + roundsLeft * 2;
-      case "suit_discount": return 7 + (augment.suit ? suitCounts.get(augment.suit) ?? 0 : 0) * 4 + roundsLeft * 2;
-    }
-  };
-  return [...choices].sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id))[0]!;
 }

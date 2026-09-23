@@ -41,7 +41,7 @@ export function GameOverviewGuide({ onClose }: { onClose: () => void }) {
             <li><i>1</i><div><strong>구매단계</strong><span>게임 내 재화인 BB를 통해 카드를 사고 덱을 조합하세요.</span></div></li>
             <li><i>2</i><div><strong>구성 확정</strong><span>이번 라운드에 사용할 카드 선택</span></div></li>
             <li><i>3</i><div><strong>쇼다운</strong><span>각 라운드 규칙에 따라서 승패-생존 결정</span></div></li>
-            <li><i>4</i><div><strong>보상과 다음 라운드</strong><span>승점·BB 획득, R2·R4 뒤 증강 선택</span></div></li>
+            <li><i>4</i><div><strong>보상과 다음 라운드</strong><span>승점·BB 획득 후 다음 라운드 진행</span></div></li>
           </ol>
         </section>
 
@@ -83,7 +83,6 @@ export function GameOverviewGuide({ onClose }: { onClose: () => void }) {
           <div className="victory-formula" aria-label="최종 점수 공식">
             <span><b>누적 승점</b><small>R1–R5</small></span><i>+</i>
             <span><b>족보 점수</b><small>최종 BEST5</small></span><i>+</i>
-            <span><b>증강 보너스</b><small>보유 증강</small></span><i>+</i>
             <span><b>⌊BB ÷ 10⌋</b><small>남은 자금</small></span><i>=</i>
             <strong>총점 1위<br /><small>우승</small></strong>
           </div>
