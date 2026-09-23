@@ -2,9 +2,14 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
-import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 
 describe("showdown preparation presentation", () => {
+  it("keeps the final round on its transition instead of a matchup screen", () => {
+    const html = renderToStaticMarkup(createElement(FinalRoundTransition));
+    expect(html).toContain("최종전 준비 중");
+    expect(html).not.toContain("매칭 로딩창");
+  });
   it("uses a player-versus-player loading composition without the old literal phase label", () => {
     const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, {
       round: 3, playerName: "나", seconds: 3, matchup: {

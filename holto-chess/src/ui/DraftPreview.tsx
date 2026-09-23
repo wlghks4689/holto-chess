@@ -5,7 +5,7 @@ import { createPlayerView } from "../game/playerView";
 import { createMatchView } from "../game/matchView";
 import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import { ShowdownCinematic } from "./ShowdownCinematic";
-import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { RoundGuide } from "./RoundGuide";
 import { ShopCard } from "./ShopCard";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
@@ -82,6 +82,7 @@ function DraftFixturePreview() {
 export function DraftPreview() {
   const params = new URLSearchParams(location.search);
   if (params.get("showdownPrep") === "3") return <MultiwayShowdownPrepPreview />;
+  if (params.get("showdownPrep") === "4") return <main className="game-arena"><div className="page-shell"><FinalRoundTransition /></div></main>;
   if (params.has("showdownPrep")) return <ShowdownPrepPreview />;
   if (params.has("roundGuide")) return <RoundGuide round={params.get("roundGuide") === "1" ? 1 : 2} onClose={() => undefined} />;
   if (params.has("shopStyle")) return <ShopStylePreview />;
