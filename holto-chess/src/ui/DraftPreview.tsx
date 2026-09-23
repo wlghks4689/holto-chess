@@ -4,6 +4,9 @@ import { createPlayerView } from "../game/playerView";
 import { createMatchView } from "../game/matchView";
 import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import { ShowdownCinematic } from "./ShowdownCinematic";
+import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { RoundGuide } from "./RoundGuide";
+import { ShopCard } from "./ShopCard";
 import type { GameAction } from "../shared/protocol";
 
 /** Development-only fixture gallery; never connected to a real room. */
@@ -20,7 +23,13 @@ function fixture(round: 2 | 4) {
   }
   return game;
 }
-export function DraftPreview() {
+function ShowdownPrepPreview() {
+  return <main className="page-shell"><header className="round-header"><div><span className="eyebrow">ROUND 02</span><h1>RUN IT TWICE</h1></div></header><ShowdownPrepPanel round={2} playerName="나" seconds={3} /></main>;
+}
+function ShopStylePreview() {
+  return <main className="game-arena"><div className="page-shell shop-page"><header className="round-header"><div><span className="round-number">ROUND 01</span><h1>TWO HAND</h1></div></header><section className="shop-layout"><div className="market panel"><header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">2 / 2</strong></div><span className="purchase-count">구매 0 / 2</span></header><div className="card-row market-row"><ShopCard card={{ id:"6d", rank:6, suit:"d" }} price={6} locked={false} onBuy={() => undefined} onLock={() => undefined} /><ShopCard card={{ id:"2s", rank:2, suit:"s" }} price={5} locked={false} dealIndex={1} onBuy={() => undefined} onLock={() => undefined} /></div></div></section></div></main>;
+}
+function DraftFixturePreview() {
   const [game, setGame] = useState(() => fixture(2));
   const draftPickIndex = game.draft?.picks.length ?? 0;
   const viewer = game.draft?.order[game.draft.picks.length]?.playerId ?? "p1";
@@ -36,4 +45,11 @@ export function DraftPreview() {
     {game.phase==="RUN_LOADOUT" && <TimedRunLoadoutPanel key={game.phase} view={view} send={send} disabled={false} seconds={null} durationSeconds={30} />}
     {game.phase==="SHOP" && <p>상점 준비 완료 · 보유 {view.me.ownedCards.length}장 · 진열 {view.me.shopCards.length}장</p>}
   </main>;
+}
+export function DraftPreview() {
+  const params = new URLSearchParams(location.search);
+  if (params.has("showdownPrep")) return <ShowdownPrepPreview />;
+  if (params.has("roundGuide")) return <RoundGuide round={params.get("roundGuide") === "1" ? 1 : 2} onClose={() => undefined} />;
+  if (params.has("shopStyle")) return <ShopStylePreview />;
+  return <DraftFixturePreview />;
 }

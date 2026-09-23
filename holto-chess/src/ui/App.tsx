@@ -33,6 +33,7 @@ import { playerEventFeed } from "./playerEventFeed";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { useLocalCountdown } from "./useLocalCountdown";
+import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
@@ -45,8 +46,8 @@ const ROUND_COPY = {
 
 const PHASE_LABEL: Record<Phase, string> = {
   DRAFT_ORDER: "드래프트 순서 공개", OPEN_DRAFT: "공개 드래프트", RUN_LOADOUT: "RUN 카드 배치", SURVIVAL_READY: "생존 타이브레이크",
-  SHOP: "상점", DECK_SELECT: "출전 카드 선택", SHOWDOWN_PRIMARY: "VS · 전장 준비", GROUP_ASSIGNMENT: "그룹 배정",
-  SHOWDOWN_SECONDARY: "2차전 VS · 전장 준비", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
+  SHOP: "상점", DECK_SELECT: "출전 카드 선택", SHOWDOWN_PRIMARY: "", GROUP_ASSIGNMENT: "그룹 배정",
+  SHOWDOWN_SECONDARY: "", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
 };
 
 function PoolMeter({ state }: { state: PorenaGameState }) {
@@ -64,6 +65,12 @@ function LocalRunLoadoutStage({ view, send }: {
 }) {
   const seconds = useLocalCountdown(30);
   return <RunLoadoutPanel view={view} send={send} disabled={false} seconds={seconds} />;
+}
+
+function LocalShowdownPrep({ state }: { state: PorenaGameState }) {
+  const seconds = useLocalCountdown(BARRIER_TIMEOUT_MS.MATCH_SETUP / 1000);
+  const playerName = state.players.find((player) => player.id === "p1")?.name ?? "나";
+  return <ShowdownPrepPanel round={state.round} playerName={playerName} seconds={seconds} secondary={state.phase === "SHOWDOWN_SECONDARY"} />;
 }
 
 function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
@@ -117,7 +124,8 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
 }
 
 function ShowdownPanel({ state, secondsLeft }: { state: PorenaGameState; secondsLeft: number | null }) {
-  if (!state.roundResults.length) return <section className="arena-empty panel"><span className="arena-mark">♞</span><h2>쇼다운 준비 완료</h2><p>각 매치는 참가자가 소유한 모든 카드를 제외한 독립 Showdown Deck으로 진행됩니다.</p></section>;
+  if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return <LocalShowdownPrep state={state} />;
+  if (!state.roundResults.length) return null;
   return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"} secondsLeft={state.phase === "ROUND_RESULT" ? secondsLeft : null}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
 }
 
@@ -191,7 +199,7 @@ export function App({ onHome }: { onHome: () => void }) {
     <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>나가기</button></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""}`}>
-      {prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div></header>}
+      {prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div>{PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div>}</header>}
       {state.phase === "SHOP" && <PoolMeter state={state} />}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} />}
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
