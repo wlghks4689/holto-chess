@@ -227,7 +227,7 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
   };
   return <main className="tutorial-arena">
     <header className="tutorial-header">
-      <div><span className="eyebrow">처음이라면 · 길라잡이</span><h1>{chapterId}/5 · {chapterTitle}</h1></div>
+      <div><span className="eyebrow">체험 · 길라잡이</span><h1>{chapterId}/5 · {chapterTitle}</h1></div>
       <div className="tutorial-stats" data-tutorial-id="stack">
         <span><small>BB</small><b>{me.stackBB}</b></span>
         <span><small>POINT</small><b>{me.points}</b></span>
