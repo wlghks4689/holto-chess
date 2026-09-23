@@ -1,0 +1,62 @@
+.tutorial-screen{min-height:100vh;padding-bottom:220px}
+.tutorial-arena{max-width:1100px;margin:0 auto;padding:24px 16px 40px;display:grid;gap:18px}
+.tutorial-header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.tutorial-header h1{margin:4px 0 0;font-size:clamp(20px,3vw,28px)}
+.tutorial-stats{display:flex;gap:18px}
+.tutorial-stats span{display:grid;justify-items:end}
+.tutorial-stats small{font:500 10px DM Mono;letter-spacing:.12em;color:#8aa7b2}
+.tutorial-stats b{font-size:20px}
+.tutorial-note{margin:0;padding:10px 14px;border-radius:10px;background:rgba(44,208,190,.08);color:#9fe3d8;font-size:13px}
+.tutorial-muted{color:#8aa7b2;font-size:12px;line-height:1.7}
+.tutorial-error{color:#ff9d9d;font-size:13px}
+.tutorial-inventory header,.tutorial-shop header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.tutorial-owned{display:grid;gap:6px;justify-items:center}
+.tutorial-sell{padding:4px 10px;font-size:11px;min-height:0;width:auto}
+
+/* Four bands around the target instead of one overlay with a hole: nothing under them is blocked. */
+.tutorial-spotlight{position:fixed;inset:0;z-index:40;pointer-events:none}
+.tutorial-spotlight i{position:fixed;background:rgba(3,10,18,.68);transition:all .18s ease-out}
+.tutorial-spotlight b{position:fixed;border-radius:14px;border:2px solid rgba(70,226,206,.9);box-shadow:0 0 0 3px rgba(70,226,206,.16),0 0 26px rgba(70,226,206,.32);transition:all .18s ease-out}
+
+.tutorial-coach{position:fixed;z-index:50;width:min(380px,calc(100vw - 32px));display:grid;gap:8px;padding:18px 18px 14px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(10,26,34,.97),rgba(6,18,25,.97));border:1px solid rgba(70,226,206,.28);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.tutorial-coach header{display:grid;gap:6px}
+.tutorial-coach header small{font:500 10px DM Mono;letter-spacing:.14em;color:#6fd8c6}
+.tutorial-goal{font-size:12px;color:#d6f3ec;background:rgba(70,226,206,.12);padding:6px 10px;border-radius:8px}
+.tutorial-coach h2{margin:2px 0 0;font-size:18px;line-height:1.4}
+.tutorial-coach p{margin:0;color:#c3d9e0;font-size:13px;line-height:1.75}
+.tutorial-coach details{margin-top:2px}
+.tutorial-coach summary{cursor:pointer;font-size:12px;color:#6fd8c6}
+.tutorial-coach-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.tutorial-coach-actions button{min-height:44px;width:auto;flex:1 1 140px;padding:0 14px;font-size:13px}
+.tutorial-waiting{flex:1 1 140px;display:grid;place-items:center;min-height:44px;border-radius:10px;border:1px dashed rgba(70,226,206,.34);color:#6fd8c6;font-size:12px}
+.tutorial-coach-links{display:flex;gap:14px;margin-top:2px}
+.tutorial-coach-links button{background:none;border:0;padding:4px 0;min-height:32px;width:auto;color:#8aa7b2;font-size:12px;text-decoration:underline;cursor:pointer}
+
+.tutorial-explain{position:fixed;left:16px;bottom:16px;z-index:45;width:min(420px,calc(100vw - 32px));display:grid;gap:6px;padding:16px}
+.tutorial-explain h3{margin:0;font-size:16px;line-height:1.5}
+.tutorial-explain p{margin:0;font-size:13px;line-height:1.7;color:#c3d9e0}
+.tutorial-outcome{color:#7ce0cd;font-weight:600}
+
+.tutorial-menu-panel{max-width:620px;margin:8vh auto;display:grid;gap:12px;padding:28px 24px}
+.tutorial-menu-panel h1{margin:0;font-size:clamp(22px,4vw,30px);line-height:1.35}
+.tutorial-menu-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.tutorial-menu-actions button{width:auto;flex:1 1 160px;min-height:48px}
+.tutorial-chapter-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.tutorial-chapter-list button{display:grid;gap:2px;width:100%;text-align:left;padding:12px 14px;min-height:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px}
+.tutorial-chapter-list small{color:#8aa7b2;font-size:12px}
+.tutorial-chapter-list em{font-style:normal;font-size:11px;color:#6fd8c6}
+.tutorial-done-panel{max-width:560px;margin:12vh auto;display:grid;gap:12px;padding:28px 24px;text-align:center}
+.tutorial-done-actions{display:grid;gap:8px;margin-top:8px}
+
+@media(max-width:860px){
+  .tutorial-coach{left:0;right:0;bottom:0;top:auto!important;width:100%;border-radius:18px 18px 0 0;max-height:52vh;overflow:auto;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+  .tutorial-explain{position:static;width:auto;margin:12px}
+  .tutorial-screen{padding-bottom:56vh}
+  .tutorial-coach-actions button{flex:1 1 100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .tutorial-spotlight i,.tutorial-spotlight b{transition:none}
+}
+.tutorial-coach-reopen{position:fixed;right:16px;bottom:16px;z-index:50;width:auto;min-height:44px;padding:0 16px;font-size:12px;border-radius:12px;
+  background:rgba(10,26,34,.95);border:1px solid rgba(70,226,206,.4);color:#9fe3d8;cursor:pointer}

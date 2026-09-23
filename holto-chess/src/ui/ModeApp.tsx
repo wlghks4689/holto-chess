@@ -6,6 +6,8 @@ const loadLocalApp = () => import("./App");
 const FxPreview = lazy(() => import("./FxPreview").then((module) => ({ default: module.FxPreview })));
 const LocalApp = lazy(() => loadLocalApp().then((module) => ({ default: module.App })));
 const DraftPreview = lazy(() => import("./DraftPreview").then((m) => ({ default: m.DraftPreview })));
+// Chapters, practice scenarios and the simple bots load only when the guide is opened.
+const TutorialApp = lazy(() => import("./tutorial/TutorialApp").then((module) => ({ default: module.TutorialApp })));
 export function ModeApp() {
   const [mode, setMode] = useState<StartMode | null>(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ? "multi" : null);
   useEffect(() => {
@@ -18,5 +20,6 @@ export function ModeApp() {
   }
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>드래프트 준비 중…</p>}><DraftPreview /></Suspense>;
   if (!mode) return <StartScreen onStart={setMode} />;
+  if (mode === "tutorial") return <Suspense fallback={<main className="local-loading-screen"><div><span>TUTORIAL</span><b>길라잡이를 준비하고 있습니다.</b></div></main>}><TutorialApp onHome={() => setMode(null)} onSinglePlay={() => setMode("single")} /></Suspense>;
   return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>MULTIPLAYER</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>SINGLE / AI</button></div>}{mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>AI 아레나를 준비하고 있습니다.</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <OnlineApp onHome={() => setMode(null)} />}</>;
 }
