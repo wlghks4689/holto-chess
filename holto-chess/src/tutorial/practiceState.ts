@@ -1,5 +1,5 @@
 import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
-import { BALANCE } from "../game/config";
+import { BALANCE, purchaseLimitFor, rerollLimitFor } from "../game/config";
 import {
   autoPickDraft, beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, getCard, getCardPrice,
   leaveRoundResult, lockRunLoadouts, openDraft, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival,
@@ -22,8 +22,8 @@ function autoShop(source: PorenaGameState): PorenaGameState {
     if (player.eliminated || player.ownedCardIds.length >= BALANCE.handLimits[state.round]) break;
     const action = tutorialBotPolicy({
       round: state.round, playerId: player.id, stackBB: player.stackBB, handLimit: BALANCE.handLimits[state.round],
-      purchasesLeft: BALANCE.purchaseLimits[state.round] - player.purchasesThisRound,
-      rerollsLeft: BALANCE.rerollLimits[state.round] - (player.rerollsUsed ?? 0),
+      purchasesLeft: purchaseLimitFor(state.round, state.rulesVersion ?? 1) - player.purchasesThisRound,
+      rerollsLeft: rerollLimitFor(state.round, state.rulesVersion ?? 1) - (player.rerollsUsed ?? 0),
       rerollCost: BALANCE.rerollCostBB,
       ownedCards: player.ownedCardIds.map((id) => getCard(state, id)),
       shopCards: player.shopCardIds.map((id) => ({ card: getCard(state, id), price: getCardPrice(state, player.id, id) })),

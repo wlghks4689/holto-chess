@@ -1,5 +1,5 @@
 import { SUIT_SYMBOL, type Card } from "../core/poker/cards";
-import { rankWord } from "./rankWord";
+import { rankWord, withParticle } from "./rankWord";
 import { BALANCE } from "../game/config";
 import { autoPickDraft, getCard, leaveRoundResult, openDraft } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
@@ -76,8 +76,8 @@ const comboHint: TutorialStep = {
       "같은 숫자 두 장은 그 자리에서 원페어가 됩니다.",
       "같은 무늬로 이어지는 숫자는 아직 완성된 족보가 아니고, 보드의 도움을 받아 발전할 수 있는 형태입니다.",
     ];
-    if (pair && mine) lines.push(`지금은 ${label(pair)}를 사면 가진 ${label(mine)}와 원페어가 됩니다.`);
-    if (suited && mine) lines.push(`${label(suited)}는 ${label(mine)}와 같은 무늬로 이어지는 방향이에요.`);
+    if (pair && mine) lines.push(`지금은 ${withParticle(label(pair), "을", "를")} 사면 가진 ${withParticle(label(mine), "과", "와")} 원페어가 됩니다.`);
+    if (suited && mine) lines.push(`${withParticle(label(suited), "은", "는")} ${withParticle(label(mine), "과", "와")} 같은 무늬로 이어지는 방향이에요.`);
     return lines;
   },
   more: [
@@ -300,8 +300,11 @@ const CHAPTER_FIVE: TutorialChapter = {
     {
       id: "r5-score", kind: "REVIEW", focus: "final-score", next: "길라잡이 마치기",
       title: "총점은 이렇게 계산됩니다",
-      body: ["누적 Point + 족보 점수 + 증강 보너스 + BB 환산 점수를 더해 최종 총점이 나옵니다.", "그래서 마지막 패에서 1위를 한 사람과 총점 우승자가 다를 수 있습니다."],
-      more: ["R5 배치 점수는 이미 누적 Point에 들어가 있습니다. 따로 다시 더하지 않습니다."],
+      body: ["누적 Point + 족보 점수 + BB 환산 점수를 더해 최종 총점이 나옵니다. 표의 세 칸이 그대로 더해진 값이에요.", "그래서 마지막 패에서 1위를 한 사람과 총점 우승자가 다를 수 있습니다."],
+      more: [
+        "증강 보너스는 따로 있는 칸이 아니라 족보 점수 안에 함께 계산되어 있습니다.",
+        "R5 배치 점수는 이미 누적 Point에 들어가 있습니다. 따로 다시 더하지 않습니다.",
+      ],
     },
   ],
 };

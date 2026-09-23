@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
 import {
   beginSecondary, buyCard, chooseAugment, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts, pickDraftCard,
@@ -11,7 +11,7 @@ import { createRoundSummary } from "../../game/roundSummary";
 import type { PorenaGameState } from "../../game/types";
 import type { GameAction, MatchView } from "../../shared/protocol";
 import { cinematicTimeline, frameAt } from "../../shared/presentationTimeline";
-import { explainResult, explainStreet, type HandExplanation } from "../../tutorial/showdownExplainer";
+import { explainFinalReveal, explainResult, explainStreet, type HandExplanation } from "../../tutorial/showdownExplainer";
 import { loadTutorial, markChapterDone, markChapterStarted, type TutorialSave } from "../../tutorial/storage";
 import { tutorialBotPolicy } from "../../tutorial/tutorialBots";
 import {
@@ -29,13 +29,15 @@ import { ShowdownCinematic } from "../ShowdownCinematic";
 import { TutorialChapterMenu } from "./TutorialChapterMenu";
 import { TutorialCoachmark } from "./TutorialCoachmark";
 import { TutorialSpotlight } from "./TutorialSpotlight";
-import { useScrollIntoView, useSpotlight } from "./useSpotlight";
+import { useCoachInset, useScrollIntoView, useSpotlight } from "./useSpotlight";
 import "./tutorial.css";
 
 type Screen = { kind: "menu" } | { kind: "chapter"; session: TutorialSession } | { kind: "chapter-done"; session: TutorialSession };
 
 const RESULT_HOLDS = ["BEST5_GLOW", "COMPLETE", "RESULT", "RUN_RESULT"];
 const STREET_HOLDS: Record<string, "FLOP" | "TURN" | "RIVER"> = { FLOP_HAND: "FLOP", TURN_HAND: "TURN", RIVER_SETTLE: "RIVER" };
+/** R5 reveals the seven owned cards in batches instead of dealing a board. */
+const FINAL_HOLDS: Record<string, number> = { FINAL_FIRST_HAND: 3, FINAL_SECOND_HAND: 5, FINAL_SEVEN_SETTLE: 7 };
 
 /** Only phases the player is not asked to drive are stepped for them, and only to reach a beat. */
 function resolvePending(game: PorenaGameState): PorenaGameState {
@@ -106,6 +108,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
   const [elapsed, setElapsed] = useState(0);
   const [guideHidden, setGuideHidden] = useState(false);
   const playedMatch = useRef<string>("");
+  const elapsedRef = useRef(0);
 
   const act = (fn: (game: PorenaGameState) => PorenaGameState) => {
     try { onSession(applyGame(session, fn(session.game))); setError(null); }
@@ -128,27 +131,37 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
   const target = holdMatch && step?.hold ? checkpointMs(holdMatch, step.hold.at) ?? 0 : 0;
 
   // The cinematic runs on this clock alone, so it stops exactly on the checkpoint and waits there.
+  // Reaching the checkpoint ends the clock rather than leaving a frame loop spinning on a held beat.
   useEffect(() => {
     if (!holdMatch) return;
-    if (playedMatch.current !== holdMatch.id) { playedMatch.current = holdMatch.id; setElapsed(0); }
+    if (playedMatch.current !== holdMatch.id) { playedMatch.current = holdMatch.id; elapsedRef.current = 0; setElapsed(0); }
+    if (elapsedRef.current >= target) { setElapsed(target); return; }
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
       const delta = Math.min(120, now - last);
       last = now;
-      setElapsed((current) => Math.min(target, current + delta));
-      frame = requestAnimationFrame(tick);
+      elapsedRef.current = Math.min(target, elapsedRef.current + delta);
+      setElapsed(elapsedRef.current);
+      if (elapsedRef.current < target) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [holdMatch, target]);
 
   const rect = useSpotlight(step?.focus);
+  // Narrow screens put the guidance in a bottom sheet; everything else is laid out against it.
+  const coachInset = useCoachInset(`${step?.id ?? ""}:${guideHidden}`);
   useScrollIntoView(step?.focus, step?.id ?? "");
+  // Left unset until the sheet has actually been measured, so the stylesheet keeps its safe
+  // worst-case fallback instead of being told the sheet takes up no room at all.
+  const insetStyle = (coachInset > 0 ? { "--tutorial-sheet": `${coachInset}px` } : undefined) as CSSProperties | undefined;
 
   const explanation = useMemo<HandExplanation | null>(() => {
     if (!holdMatch || !step?.hold) return null;
     const boardIndex = frameAt(cinematicTimeline(holdMatch), target).boardIndex;
+    const revealed = FINAL_HOLDS[step.hold.at];
+    if (revealed) return explainFinalReveal(holdMatch, "p1", revealed);
     const street = STREET_HOLDS[step.hold.at];
     if (street) return explainStreet(holdMatch, "p1", boardIndex, street);
     if (!RESULT_HOLDS.includes(step.hold.at)) return null;
@@ -176,7 +189,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
   /> : null;
 
   if (holdMatch) {
-    return <div className="tutorial-screen tutorial-cinema">
+    return <div className="tutorial-screen tutorial-cinema" style={insetStyle}>
       <ShowdownCinematic match={holdMatch} profiles={game.players.map((player) => ({ playerId: player.id, name: player.name, points: player.points, alive: !player.eliminated }))}
         viewerId="p1" onComplete={() => {}} elapsedMs={elapsed} />
       {explanation ? <section className="tutorial-explain panel" aria-live="polite">
@@ -190,7 +203,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
     </div>;
   }
 
-  return <div className="tutorial-screen">
+  return <div className="tutorial-screen" style={insetStyle}>
     <TutorialSpotlight rect={rect} />
     <TutorialArena game={game} act={act} error={error} onDismissError={() => setError(null)} origin={session.origin} chapterTitle={chapter.title} chapterId={chapter.id} />
     {coach}
@@ -205,7 +218,7 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
   const handLimit = BALANCE.handLimits[game.round];
   const shopSize = game.rulesVersion === 2 ? regularShopSizeFor(game.round) : me.shopSize;
   const rerollCost = Math.max(0, BALANCE.rerollCostBB - (me.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
-  const rerollLimit = rerollLimitFor(game.round);
+  const rerollLimit = rerollLimitFor(game.round, game.rulesVersion ?? 1);
   const view = createPlayerView({ schema: 1, roomId: "TUTORIAL", revision: 0, status: "PLAYING", game, sessions: [{ playerId: "p1", tokenHash: "tutorial", requests: [] }], readyIds: [], endedShopIds: [], augmentChoices: {} }, "p1");
   const send = (action: GameAction) => {
     if (action.type === "DRAFT_PICK") act((state) => pickDraftCard(state, "p1", action.cardId));
@@ -228,7 +241,9 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
       <div className="card-row owned-row">
         {me.ownedCardIds.map((id) => <div className="tutorial-owned" key={id}>
           <CardView card={getCard(game, id)} />
-          {game.phase === "SHOP" && <button type="button" className="secondary tutorial-sell" onClick={() => act((state) => sellCard(state, "p1", id))}>판매</button>}
+          {/* Not offered on the single starting card: chapter 1 opens by explaining that card, and
+              selling it there leaves the reader staring at an empty row nothing has taught yet. */}
+          {game.phase === "SHOP" && me.ownedCardIds.length > 1 && <button type="button" className="secondary tutorial-sell" onClick={() => act((state) => sellCard(state, "p1", id))}>판매</button>}
         </div>)}
         {Array.from({ length: Math.max(0, handLimit - me.ownedCardIds.length) }, (_, index) => <div className="empty-card" key={index}><span>+</span><small>EMPTY</small></div>)}
       </div>
@@ -236,10 +251,12 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
     </section>
 
     {game.phase === "SHOP" ? <section className="panel tutorial-shop" data-tutorial-id="shop">
-      <header><h2>카드 마켓</h2><span>구매 {me.purchasesThisRound} / {purchaseLimitFor(game.round)}</span></header>
+      <header><h2>카드 마켓</h2><span>구매 {me.purchasesThisRound} / {purchaseLimitFor(game.round, game.rulesVersion ?? 1)}</span></header>
       <div className="card-row market-row">
-        {me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(game, id)} price={getCardPrice(game, "p1", id)} locked={false}
-          onBuy={() => act((state) => buyCard(state, "p1", id))} onLock={() => {}} />)}
+        {/* No onLock: the guide does not teach locking yet, and a button that silently does nothing
+            is worse than no button on the one screen meant to explain the controls. */}
+        {me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(game, id)} price={getCardPrice(game, "p1", id)}
+          onBuy={() => act((state) => buyCard(state, "p1", id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}
       </div>
       <div className="market-actions">

@@ -16,8 +16,16 @@ export function cardId(rank: Rank, suit: Suit): string {
   return `${rankToChar(rank)}${suit}`;
 }
 
+/**
+ * Rank as a reader sees it. `rankToChar` stays the wire form — card ids are built from it — while
+ * anything a person reads spells the ten out, matching the card face.
+ */
+export function rankDisplay(rank: number): string {
+  return rank === 10 ? "10" : rankToChar(rank);
+}
+
 export function cardLabel(card: Card): string {
-  return `${rankToChar(card.rank)}${SUIT_SYMBOL[card.suit]}`;
+  return `${rankDisplay(card.rank)}${SUIT_SYMBOL[card.suit]}`;
 }
 
 export function makeDeck(): Card[] {

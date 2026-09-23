@@ -84,8 +84,10 @@ describe("every chapter can be finished", () => {
       const session = walk(chapter.id, visited);
       expect(chapterFinished(session)).toBe(true);
       expect(assertPoolIntegrity(session.game)).toBe(true);
-      // Every showdown beat this chapter promises must actually have been shown, not skipped.
-      for (const step of chapter.steps.filter((entry) => entry.hold && entry.hold.matchIndex === 0)) expect(visited).toContain(step.id);
+      // Every beat this chapter promises must actually have been shown, not skipped. The later
+      // matches are included on purpose: a wrong match index silently drops a whole beat, which is
+      // exactly the regression that had to be found by hand in the browser once already.
+      for (const step of chapter.steps) expect(visited).toContain(step.id);
     });
   }
 });

@@ -1,9 +1,7 @@
-import { rankToChar, SUIT_SYMBOL, type Card } from "../core/poker/cards";
+import { rankDisplay, SUIT_SYMBOL, type Card } from "../core/poker/cards";
 
 /** Beginners read the ten as "10", not as the shorthand "T" the card faces already avoid. */
-export function rankWord(rank: number): string {
-  return rank === 10 ? "10" : rankToChar(rank);
-}
+export const rankWord = rankDisplay;
 
 export function cardWord(card: Card): string {
   return `${rankWord(card.rank)}${SUIT_SYMBOL[card.suit]}`;

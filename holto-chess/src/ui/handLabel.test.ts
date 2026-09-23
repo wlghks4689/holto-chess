@@ -21,8 +21,9 @@ describe("detailed showdown labels", () => {
   });
 
   it.each([
-    ["h", "A♥ K♥ Q♥ J♥ T♥"], ["s", "A♠ K♠ Q♠ J♠ T♠"],
-    ["d", "A♦ K♦ Q♦ J♦ T♦"], ["c", "A♣ K♣ Q♣ J♣ T♣"],
+    // Ten reads as "10" everywhere a person sees it, matching the printed card face.
+    ["h", "A♥ K♥ Q♥ J♥ 10♥"], ["s", "A♠ K♠ Q♠ J♠ 10♠"],
+    ["d", "A♦ K♦ Q♦ J♦ 10♦"], ["c", "A♣ K♣ Q♣ J♣ 10♣"],
   ] as const)("shows the five-card %s royal flush under its hand name", (suit, expected) => {
     const cards = [14, 13, 12, 11, 10].map((rank) => ({ id: `${rank}${suit}`, rank: rank as Card["rank"], suit }));
     expect(detailedHandLabel("ROYAL_FLUSH", [14], cards, cards.map(({ id }) => id)))

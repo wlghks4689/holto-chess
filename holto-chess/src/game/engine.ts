@@ -217,7 +217,10 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
           buy(action.cardId); continue;
         }
         if (action.type === "SELL") {
+          // The same guard the human path uses: a bot may not sell itself out of a legal hand.
           if (!player.ownedCardIds.includes(action.cardId)) break;
+          if (!canSellWithoutBlocking({ ownedCount: player.ownedCardIds.length, purchases: player.purchasesThisRound,
+            purchaseLimit, handLimit: limit })) break;
           sell(action.cardId); continue;
         }
         if (action.type === "REROLL") {
@@ -439,12 +442,14 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
   }
 }
 
+// R1 and R3 resolve all three matchdays at once, so without a standings snapshot the cinematic
+// falls back to live player points and shows the finished round's total during match 1.
 function rewardMatchWithLedger(state: PorenaGameState, match: MatchResult, pointValue: number, awardIds: readonly string[] = match.winnerIds): void {
-  if (state.round >= 2) match.standingsBefore = pointSnapshot(state);
+  match.standingsBefore = pointSnapshot(state);
   const before = structuredClone(state);
   rewardMatch(state, match, pointValue, awardIds);
   captureRewards(before, state, [match]);
-  if (state.round >= 2) match.standingsAfterRuns = [pointSnapshot(state)];
+  match.standingsAfterRuns = [pointSnapshot(state)];
 }
 
 function rewardFinalPlacements(state: PorenaGameState, match: MatchResult): void {

@@ -1,4 +1,4 @@
-import { cardLabel, rankToChar, type Card } from "../core/poker/cards";
+import { cardLabel, rankDisplay, type Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 
 export function compactHandName(name: string): string {
@@ -7,7 +7,7 @@ export function compactHandName(name: string): string {
 
 export type DetailedHandLabel = { title: string; kicker?: string };
 
-const ranks = (values: readonly number[]) => values.map(rankToChar).join(", ");
+const ranks = (values: readonly number[]) => values.map(rankDisplay).join(", ");
 
 export function detailedHandLabel(category: HandCategory, kickers: readonly number[], playerCards: readonly Card[], usedCardIds: readonly string[]): DetailedHandLabel {
   const [made = 0, second = 0, ...rest] = kickers;
@@ -25,20 +25,20 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
     : madeCards;
 
   switch (category) {
-    case "HIGH_CARD": return withKicker(`${rankToChar(made)} 하이`, [second, ...rest].filter(Boolean));
-    case "PAIR": return withKicker(`${rankToChar(made)} 원페어`, playerKickers.length ? playerKickers : [second, ...rest].filter(Boolean));
-    case "TWO_PAIR": return withKicker(`${rankToChar(made)} · ${rankToChar(second)} 투페어`, rest.filter(Boolean));
-    case "TRIPS": return withKicker(`${rankToChar(made)} 트립스`, [second, ...rest].filter(Boolean));
-    case "STRAIGHT": return { title: `${rankToChar(made)} 하이 스트레이트` };
-    case "FLUSH": return withKicker(`${rankToChar(made)} 하이 플러시`, [second, ...rest].filter(Boolean));
+    case "HIGH_CARD": return withKicker(`${rankDisplay(made)} 하이`, [second, ...rest].filter(Boolean));
+    case "PAIR": return withKicker(`${rankDisplay(made)} 원페어`, playerKickers.length ? playerKickers : [second, ...rest].filter(Boolean));
+    case "TWO_PAIR": return withKicker(`${rankDisplay(made)} · ${rankDisplay(second)} 투페어`, rest.filter(Boolean));
+    case "TRIPS": return withKicker(`${rankDisplay(made)} 트립스`, [second, ...rest].filter(Boolean));
+    case "STRAIGHT": return { title: `${rankDisplay(made)} 하이 스트레이트` };
+    case "FLUSH": return withKicker(`${rankDisplay(made)} 하이 플러시`, [second, ...rest].filter(Boolean));
     case "FULL_HOUSE": return {
-      title: `${rankToChar(made)} · ${rankToChar(second)} 풀하우스`,
-      kicker: [made, made, made, second, second].map(rankToChar).join("-"),
+      title: `${rankDisplay(made)} · ${rankDisplay(second)} 풀하우스`,
+      kicker: [made, made, made, second, second].map(rankDisplay).join("-"),
     };
-    case "QUADS": return withKicker(`${rankToChar(made)} 포카드`, [second].filter(Boolean));
+    case "QUADS": return withKicker(`${rankDisplay(made)} 포카드`, [second].filter(Boolean));
     case "STRAIGHT_FLUSH": return straightFlushCards.length === 5
-      ? { title: `${rankToChar(made)} 하이 스트레이트 플러시`, kicker: straightFlushCards.map(cardLabel).join(" ") }
-      : { title: `${rankToChar(made)} 하이 스트레이트 플러시` };
+      ? { title: `${rankDisplay(made)} 하이 스트레이트 플러시`, kicker: straightFlushCards.map(cardLabel).join(" ") }
+      : { title: `${rankDisplay(made)} 하이 스트레이트 플러시` };
     case "ROYAL_FLUSH": return madeCards.length === 5
       ? { title: "로열 플러시", kicker: madeCards.map(cardLabel).join(" ") }
       : { title: "로열 플러시" };

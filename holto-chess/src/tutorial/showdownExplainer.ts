@@ -1,6 +1,6 @@
 import type { Card } from "../core/poker/cards";
 import { rankWord, withParticle } from "./rankWord";
-import { CATEGORY_RANK, type HandCategory } from "../core/poker/evaluate";
+import { CATEGORY_RANK, evaluatePartial, findBestFive, type HandCategory } from "../core/poker/evaluate";
 import type { MatchView, RevealedHand } from "../shared/protocol";
 
 export type HandExplanation = {
@@ -108,7 +108,9 @@ export function explainStreet(match: MatchView, viewerId: string, boardIndex: nu
   const used = cards.filter((card) => result.usedCardIds.includes(card.id));
   const previousStreet = street === "FLOP" ? "PRE_FLOP" : street === "TURN" ? "FLOP" : street === "RIVER" ? "TURN" : undefined;
   const previous = previousStreet ? snapshot(match, boardIndex, previousStreet, viewerId) : undefined;
-  const unchanged = !!previous && previous.category === result.category && previous.kickers[0] === result.kickers[0];
+  // "still holding" only reads if the reader was told what they were holding. The flop is the first
+  // street the guide stops on — pre-flop is never explained — so the flop always states the hand.
+  const unchanged = street !== "FLOP" && !!previous && previous.category === result.category && previous.kickers[0] === result.kickers[0];
   const opened = visibleBoard.slice(street === "FLOP" ? 0 : STREET_CARDS[street] - 1).filter((card) => result.usedCardIds.includes(card.id));
   return {
     headline: unchanged ? `아직 ${withParticle(result.displayName, "을", "를")} 그대로 유지하고 있어요.` : categoryReason(result.category, result.kickers, used),
@@ -116,6 +118,30 @@ export function explainStreet(match: MatchView, viewerId: string, boardIndex: nu
     detail: [
       ...(opened.length && !unchanged ? [`새로 열린 ${opened.map((card) => rankWord(card.rank)).join(", ")} 덕분에 지금의 조합이 만들어졌어요.`] : []),
       "지금 보이는 카드만으로 읽은 결과예요. 아직 열리지 않은 카드는 아무도 알 수 없습니다.",
+    ],
+  };
+}
+
+/**
+ * R5 has no board, so it has no street snapshots either: the hand is read straight from the cards
+ * the cinematic has turned over so far. Three cards are scored as a partial hand, five and seven as
+ * a real best-five, and nothing that is still face down is ever consulted.
+ */
+export function explainFinalReveal(match: MatchView, viewerId: string, revealedCount: number): HandExplanation | null {
+  const all = match.revealedCards[viewerId] ?? [];
+  const visible = all.slice(0, revealedCount);
+  if (!visible.length) return null;
+  const value = visible.length <= 4 ? evaluatePartial(visible) : findBestFive(visible);
+  const settled = visible.length >= all.length;
+  const remaining = all.length - visible.length;
+  return {
+    headline: settled
+      ? categoryReason(value.category, value.kickers, value.bestFive)
+      : `지금까지 공개된 ${visible.length}장만 보면 ${withParticle(value.displayName, "이", "가")} 됩니다.`,
+    highlightCardIds: value.bestFive.map((card) => card.id),
+    detail: [
+      ...(settled ? [] : [`아직 ${remaining}장이 남아 있어서 최종 족보는 정해지지 않았습니다. 남은 카드에 따라 더 높아질 수 있어요.`]),
+      "마지막 라운드에는 가운데 보드가 없습니다. 내가 모은 카드만으로 족보가 정해집니다.",
     ],
   };
 }

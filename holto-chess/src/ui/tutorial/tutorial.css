@@ -50,10 +50,15 @@
 .tutorial-done-actions{display:grid;gap:8px;margin-top:8px}
 
 @media(max-width:860px){
-  .tutorial-coach{left:0;right:0;bottom:0;top:auto!important;width:100%;border-radius:18px 18px 0 0;max-height:52vh;overflow:auto;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
-  .tutorial-explain{position:static;width:auto;margin:12px}
-  .tutorial-screen{padding-bottom:56vh}
+  /* The guidance owns the bottom of the screen, so --tutorial-sheet (its measured height) is what
+     the rest of the layout clears. Positioning against the viewport instead parks the explanation
+     and the control a step points at underneath the sheet. */
+  .tutorial-coach{left:0;right:0;bottom:0;top:auto!important;width:100%;border-radius:18px 18px 0 0;max-height:46vh;overflow:auto;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+  .tutorial-explain{position:fixed;left:12px;right:12px;width:auto;margin:0;bottom:calc(var(--tutorial-sheet,46vh) + 12px);max-height:34vh;overflow:auto}
+  .tutorial-screen{padding-bottom:calc(var(--tutorial-sheet,46vh) + 32px)}
+  .tutorial-cinema{padding-bottom:calc(var(--tutorial-sheet,46vh) + 40vh)}
   .tutorial-coach-actions button{flex:1 1 100%}
+  .tutorial-coach-reopen{bottom:calc(16px + env(safe-area-inset-bottom))}
 }
 @media(prefers-reduced-motion:reduce){
   .tutorial-spotlight i,.tutorial-spotlight b{transition:none}
