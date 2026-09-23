@@ -65,6 +65,16 @@ function cardsFor(state: PorenaGameState, ids: readonly string[]): Card[] {
   return ids.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!.card);
 }
 
+function transferReservedCardToOwned(state: PorenaGameState, player: PlayerState, cardId: string): void {
+  const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
+  player.shopCardIds = player.shopCardIds.filter((id) => id !== cardId);
+  player.lockedShopCardIds = (player.lockedShopCardIds ?? []).filter((id) => id !== cardId);
+  player.ownedCardIds.push(cardId);
+  entry.state = "OWNED";
+  entry.ownerPlayerId = player.id;
+  delete entry.reservedPlayerId;
+}
+
 function discountedPrice(player: PlayerState, card: Card): number {
   let price = cardPrice(card.rank);
   if (player.augments.some((augment) => augment.id === "suit_discount" && augment.suit === card.suit)) price -= 3;
@@ -102,9 +112,7 @@ export function buyCard(source: PorenaGameState, playerId: string, cardId: strin
   const price = discountedPrice(player, entry.card);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
   player.stackBB -= price; player.purchasesThisRound += 1;
-  player.shopCardIds = player.shopCardIds.filter((id) => id !== cardId); player.ownedCardIds.push(cardId);
-  player.lockedShopCardIds = (player.lockedShopCardIds ?? []).filter((id) => id !== cardId);
-  entry.state = "OWNED"; entry.ownerPlayerId = player.id; delete entry.reservedPlayerId;
+  transferReservedCardToOwned(state, player, cardId);
   log(state, `${player.name} · ${entry.card.id} 구매 −${price}BB`, "economy");
   assertPoolIntegrity(state); return state;
 }
@@ -184,8 +192,8 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
     const ownedCards = () => cardsFor(state, player.ownedCardIds);
     const buy = (cardId: string) => {
       const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!; const price = discountedPrice(player, entry.card);
-      player.stackBB -= price; player.purchasesThisRound += 1; player.shopCardIds = player.shopCardIds.filter((id) => id !== cardId); player.ownedCardIds.push(cardId);
-      entry.state = "OWNED"; entry.ownerPlayerId = player.id; delete entry.reservedPlayerId;
+      player.stackBB -= price; player.purchasesThisRound += 1;
+      transferReservedCardToOwned(state, player, cardId);
     };
     const reroll = () => {
       const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
@@ -235,13 +243,18 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       player.selectedCardIds = bestBotSelection(state.round, ownedCards());
       continue;
     }
+    const hasRerollableSlot = () => {
+      const targetSize = state.rulesVersion === 2 ? regularShopSizeFor(state.round) : player.shopSize;
+      return player.shopCardIds.length < targetSize
+        || player.shopCardIds.some((id) => !(player.lockedShopCardIds ?? []).includes(id));
+    };
     while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state.rulesVersion ?? 1)) {
       const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!)
         .map((entry) => ({ card: entry.card, price: discountedPrice(player, entry.card) })).filter((entry) => entry.price <= player.stackBB);
       const ranked = rankBotPurchases(state.round, player, ownedCards(), options, planContext); const best = ranked[0];
       const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
       const missing = limit - player.ownedCardIds.length;
-      if (player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, best, rerollCost)) { reroll(); continue; }
+      if (hasRerollableSlot() && player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, best, rerollCost)) { reroll(); continue; }
       if (!best) break;
       buy(best.card.id);
     }
@@ -267,7 +280,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId; buy(bestSwap.shopId); continue;
       }
       const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
-      if ((player.rerollsUsed ?? 0) < rerollLimitFor(state.round, state.rulesVersion ?? 1) && player.stackBB >= rerollCost + 20 && baseline.equity < 0.58) { reroll(); continue; }
+      if (hasRerollableSlot() && (player.rerollsUsed ?? 0) < rerollLimitFor(state.round, state.rulesVersion ?? 1) && player.stackBB >= rerollCost + 20 && baseline.equity < 0.58) { reroll(); continue; }
       break;
     }
     player.selectedCardIds = bestBotSelection(state.round, ownedCards());
@@ -709,7 +722,9 @@ export function resolveSurvival(source: PorenaGameState): PorenaGameState {
   }
   if (!combined || survived.length !== allIds.length - boundary.eliminateCount || eliminated.length !== boundary.eliminateCount) throw new Error("생존 경계 계산 실패");
   combined.playerIds = allIds; combined.winnerIds = survived;
-  combined.results = combined.boardResults[0]!.map((r) => ({ ...r, place: survived.includes(r.playerId) ? 1 : 2 }));
+  const latestResult = new Map<string, PlayerShowdown>();
+  for (const boardResult of combined.boardResults) for (const result of boardResult) latestResult.set(result.playerId, result);
+  combined.results = allIds.map((playerId) => ({ ...latestResult.get(playerId)!, place: survived.includes(playerId) ? 1 : 2 }));
   eliminate(state, eliminated); captureRewards(previous, state, [combined]);
   state.matches.push(combined); state.roundResults = [combined]; delete state.survival;
   state.phase = "ROUND_RESULT"; assertPoolIntegrity(state); return state;

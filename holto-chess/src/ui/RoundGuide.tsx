@@ -1,3 +1,4 @@
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import type { Card, Rank, Suit } from "../core/poker/cards";
 import type { Round } from "../game/types";
 import { ROUND_POINTS } from "../game/config";
@@ -32,18 +33,33 @@ function Cards({ ids, used }: { ids: string[]; used?: string[] }) {
 
 function OmahaExample() {
   return <section className="omaha-example" aria-label="오마하 규칙 예시">
-    <div className="guide-example-side"><small>홀카드 4장 · 정확히 2장 사용</small><Cards ids={["2d", "2c", "Ah", "9s"]} used={["2d", "2c"]} /></div>
+    <div className="guide-example-side"><small>홀카드 4장 · 정확히 2장 사용</small><Cards ids={["2d", "2c", "Ah", "9s"]} used={["Ah", "2d"]} /></div>
     <b className="guide-plus">+</b>
-    <div className="guide-example-side"><small>보드 · 반드시 3장</small><Cards ids={["3s", "5s", "4c", "Jh", "6c"]} used={["Jh", "6c", "5s"]} /></div>
-    <div className="guide-verdict"><span>가능한 BEST5</span><strong>2 원페어</strong><em>2♦ · 2♣ · J♥ · 6♣ · 5♠</em></div>
-    <p><b>스트레이트 불가:</b> 2-3-4-5-6은 홀카드 1장 + 보드 4장이 필요합니다. 오마하의 <strong>정확히 2+3</strong> 규칙을 위반합니다.</p>
+    <div className="guide-example-side"><small>보드 · 반드시 3장</small><Cards ids={["3s", "5s", "4c", "Jh", "6c"]} used={["3s", "4c", "5s"]} /></div>
+    <div className="guide-verdict"><span>가능한 BEST5</span><strong>5 하이 스트레이트</strong><em>A♥ · 2♦ · 3♠ · 4♣ · 5♠</em></div>
+    <p><b>정확히 2+3:</b> 홀카드 A♥·2♦와 보드 3♠·4♣·5♠를 사용해 A-2-3-4-5 스트레이트를 완성합니다.</p>
   </section>;
 }
 
 export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound }: { round: Round; onClose: () => void; secondsLeft?: number | null; onPreviewRound?: (round: Round) => void }) {
   const guide = GUIDES[round];
+  const dialogRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => previous?.focus();
+  }, []);
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+    if (event.key !== "Tab") return;
+    const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), [href], [tabindex]:not([tabindex='-1'])") ?? [])];
+    if (!focusable.length) return;
+    const first = focusable[0]!; const last = focusable[focusable.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
   return <div className="round-guide-backdrop" role="presentation">
-    <section className="round-guide" role="dialog" aria-modal="true" aria-labelledby="round-guide-title">
+    <section ref={dialogRef} className="round-guide" role="dialog" aria-modal="true" aria-labelledby="round-guide-title" onKeyDown={handleDialogKeyDown}>
       <header><div><span>ROUND 0{round} · PLAY GUIDE</span><small>{guide.kicker}</small></div><button type="button" aria-label="안내 닫기" onClick={onClose}>×</button></header>
       {onPreviewRound && <div className="start-guide-rounds" aria-label="설명할 라운드">{([1, 2, 3, 4, 5] as const).map((value) => <button key={value} type="button" aria-pressed={round === value} onClick={() => onPreviewRound(value)}>R{value}</button>)}</div>}
       <div className="round-guide-body"><span className="guide-index">0{round}</span><div className="guide-copy"><h2 id="round-guide-title">{guide.title}</h2><p>{guide.summary}</p></div>

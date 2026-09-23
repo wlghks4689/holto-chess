@@ -34,3 +34,30 @@ it("summarizes all Swiss matches without exposing unrevealed cards or boards", (
   result.round = 2;
   expect(createRoundSummary(result)).toEqual([]);
 });
+
+it("uses the previous BB snapshot when tied points determine rank movement", () => {
+  const game = createGame(91);
+  for (const player of game.players) {
+    const id = player.shopCardIds.shift()!;
+    player.ownedCardIds.push(id);
+    const entry = game.ownershipCardPool.find((candidate) => candidate.card.id === id)!;
+    entry.state = "OWNED"; entry.ownerPlayerId = player.id; delete entry.reservedPlayerId;
+  }
+  game.phase = "SHOWDOWN_PRIMARY";
+  const result = resolvePrimary(game);
+  result.round = 2;
+  result.matches.forEach((match) => { match.id = match.id.replace(/^1-/, "2-"); });
+  result.players.forEach((player, index) => {
+    player.points = index < 2 ? 10 : 0;
+    player.stackBB = index === 0 ? 100 : index === 1 ? 200 : 0;
+  });
+  result.matches[0]!.standingsBefore = Object.fromEntries(result.players.map((player, index) => [player.id, index < 2 ? 6 : 0]));
+  for (const match of result.matches) for (const reward of match.rewards ?? []) {
+    if (reward.playerId === "p1") reward.beforeBB = 100;
+    if (reward.playerId === "p2") reward.beforeBB = 200;
+  }
+
+  const rows = createRoundSummary(result);
+  expect(rows.find((row) => row.playerId === "p2")).toMatchObject({ rank: 1, previousRank: 1 });
+  expect(rows.find((row) => row.playerId === "p1")).toMatchObject({ rank: 2, previousRank: 2 });
+});
