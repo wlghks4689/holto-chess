@@ -1,0 +1,24 @@
+{
+  "origin": "https://porena.kr",
+  "roomId": "2A2N2C",
+  "start": 1790238127643,
+  "count": 4,
+  "sizes": [
+    {
+      "width": 1366,
+      "height": 900
+    },
+    {
+      "width": 393,
+      "height": 852
+    },
+    {
+      "width": 360,
+      "height": 660
+    },
+    {
+      "width": 768,
+      "height": 1024
+    }
+  ]
+}

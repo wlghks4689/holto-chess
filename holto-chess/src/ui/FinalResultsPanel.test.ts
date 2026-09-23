@@ -21,7 +21,7 @@ function finalView() {
   view.players[0].name = "지팡스키";
   view.players[1].name = "클럽 레이븐";
   view.standings = [
-    { playerId: "p1", points: 58, handScore: 19, augmentScore: 4, stackScore: 22, stackBB: 229, total: 103, displayName: "로열 스트레이트 플러시", finalPlace: 1, placement: 1, rankPoints: 8 },
+    { playerId: "p1", points: 58, handScore: 19, stackScore: 22, stackBB: 229, total: 99, displayName: "로열 스트레이트 플러시", finalPlace: 1, placement: 1, rankPoints: 8 },
     { playerId: opponentId, points: 39, handScore: 15, stackScore: 19, stackBB: 198, total: 73, displayName: "투페어", finalPlace: 2, placement: 2, rankPoints: 4, eliminatedRound: 5 },
   ];
   return view;
@@ -53,8 +53,7 @@ describe("final result panel", () => {
     expect(html).not.toContain("로열 스트레이트 플러시");
     expect(html).toContain('class="final-score-part">22</span>');
     expect(html).not.toContain("22<small>229BB</small>");
-    expect(html).toContain("증강 보너스");
-    expect(html).toContain("+4P");
+    expect(html).not.toContain("증강 보너스");
     expect(html).not.toContain("누적 승점 + 족보 점수");
     expect(html).not.toContain("총점 P");
     expect(html).not.toContain("RANK");

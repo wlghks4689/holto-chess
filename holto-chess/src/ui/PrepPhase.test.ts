@@ -5,8 +5,8 @@ import { PrepRoundHeader } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 
 describe("getPrepPresentation", () => {
-  it("keeps R3 as the target throughout the R2 augment and transition", () => {
-    for (const phase of ["AUGMENT", "NEXT_ROUND"] as const) {
+  it("keeps R3 as the target throughout the R2 transition", () => {
+    for (const phase of ["NEXT_ROUND"] as const) {
       expect(getPrepPresentation(2, phase)).toMatchObject({
         completedRound: 2,
         targetRound: 3,

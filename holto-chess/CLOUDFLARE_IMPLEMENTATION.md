@@ -81,15 +81,15 @@
 - `ClientMessage`와 `ServerMessage`는 discriminated union이며 JSON shape와 길이도 검사한다.
 - 액션마다 phase, round/turnKey, 생존 여부, 준비 확정 여부, 소유/예약 원장, BB, 구매 횟수와 보유 한도를 검증한다.
 - 세션당 최근 64개의 성공 requestId를 snapshot에 저장해 재전송을 중복 실행하지 않는다. phase가 바뀐 오래된 명령도 거부한다. 64개를 넘긴 장기 replay 저장소는 아니다.
-- 인간 모두가 READY 하면 시작한다. 각 인간의 END_SHOP_PHASE를 기다린 다음 기존 엔진을 호출한다. 이후 화면 단계는 생존 인간의 READY 합의로 전환한다. 각자의 증강 선택도 서버가 보관한다.
+- 인간 모두가 READY 하면 시작한다. 각 인간의 END_SHOP_PHASE를 기다린 다음 기존 엔진을 호출한다. 이후 화면 단계는 생존 인간의 READY 합의로 전환한다.
 - 서버 WebSocket 액션은 짧은 `blockConcurrencyWhile` 범위 안에서 순서대로 검증/저장한다. 저장에 실패하면 후보 상태를 공개하지 않는다.
 
 ## 10. PlayerView sanitization
 
 `src/game/playerView.ts`의 `createPlayerView`가 명시적인 허용 필드만 구성한다.
 
-- `me`: 본인의 보유 카드, 상점·가격, 선택 카드, 증강과 제안 목록.
-- `players`: ID, 이름, BB, 승점, 생존/준비/연결 상태, 공개 증강만.
+- `me`: 본인의 보유 카드, 상점·가격, 선택 카드.
+- `players`: ID, 이름, BB, 승점, 생존/준비/연결 상태.
 - GameState, Card Ledger, session/hash, RNG, 원본 로그는 포함하지 않는다. 원본 로그에는 구매 카드 ID가 들어 있으므로 전달하지 않는다.
 - 쇼다운 결과를 공개하는 phase에서만 본인이 참가한 현재 매치를 보낸다. 다른 매치의 카드나 사전 생성 보드는 보내지 않는다.
 - R1은 출전 2장, R2는 선택 2장, R3/R4는 출전 카드, R5는 결과 BEST 5만 공개한다. R2 미선택 카드는 공개하지 않는다.
@@ -101,7 +101,7 @@
 
 `worker/GameRoom.ts`가 SQLite-backed DO storage의 key-value API에 `snapshot:v1`을 저장한다. 이것은 별도 Cloudflare KV binding이 아니다.
 
-snapshot에는 schema version, 전체 게임, 인간 세션 해시, phase 준비/확정 상태, 개인별 증강 제안, requestId 중복 방지 기록을 함께 저장한다. 생성, 입장, 모든 성공 액션과 phase 전환 후 저장이 완료되어야 새 PlayerView를 broadcast한다.
+snapshot에는 schema version, 전체 게임, 인간 세션 해시, phase 준비/확정 상태, requestId 중복 방지 기록을 함께 저장한다. 기존 snapshot의 폐지된 규칙 필드는 복원 시 제거하고, 해당 선택 단계는 다음 라운드 단계로 이행한다. 생성, 입장, 모든 성공 액션과 phase 전환 후 저장이 완료되어야 새 PlayerView를 broadcast한다.
 
 constructor는 `blockConcurrencyWhile` 안에서 snapshot을 읽는다. WebSocket은 `ctx.acceptWebSocket`과 `webSocketMessage/Close/Error`를 사용한다. attachment에는 roomId, playerId, 연결 시각만 저장한다. 카드·토큰을 저장하지 않는다. wake-up 시 `ctx.getWebSockets()`와 attachment로 연결을 복원한다.
 

@@ -1,0 +1,1129 @@
+{
+  "lastBySeat": {
+    "p1": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p2": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p3": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p4": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    }
+  },
+  "eventCount": 7103,
+  "errors": [],
+  "transitionStatsExcludingP2": {
+    "count": 113,
+    "medianMs": 3,
+    "p95Ms": 16,
+    "maxMs": 44
+  },
+  "recovery": [
+    {
+      "t": 1790247355665,
+      "ms": 74078,
+      "type": "outage-start",
+      "seat": "p2",
+      "before": {
+        "t": 1790247355660,
+        "ms": 74073,
+        "type": "dom-transition",
+        "seat": "p2",
+        "browserTime": 1790247355660,
+        "phase": "FLOP_HAND",
+        "matchId": "2-primary-14",
+        "open": 7,
+        "footer": "FLOP",
+        "scrollY": 0
+      },
+      "after": {
+        "t": 1790247364021,
+        "ms": 82434,
+        "type": "dom-transition",
+        "seat": "p2",
+        "browserTime": 1790247364021,
+        "phase": "TURN",
+        "matchId": "2-primary-14",
+        "open": 8,
+        "footer": "TURN",
+        "scrollY": 0
+      }
+    },
+    {
+      "t": 1790247380869,
+      "ms": 99282,
+      "type": "freeze-start",
+      "seat": "p3",
+      "before": {
+        "t": 1790247380740,
+        "ms": 99153,
+        "type": "dom-transition",
+        "seat": "p3",
+        "browserTime": 1790247380740,
+        "phase": "FLOP_HAND",
+        "matchId": "3-primary-21",
+        "open": 11,
+        "footer": "FLOP",
+        "scrollY": 0
+      },
+      "after": {
+        "t": 1790247388997,
+        "ms": 107410,
+        "type": "dom-transition",
+        "seat": "p3",
+        "browserTime": 1790247388997,
+        "phase": "COMPLETE",
+        "matchId": "3-primary-21",
+        "open": 13,
+        "footer": "NEXT MATCH\n1\n· 다음 매칭을 진행합니다.",
+        "scrollY": 0
+      }
+    },
+    {
+      "t": 1790247382303,
+      "ms": 100716,
+      "type": "reload-start",
+      "seat": "p4",
+      "before": {
+        "t": 1790247382168,
+        "ms": 100581,
+        "type": "dom-transition",
+        "seat": "p4",
+        "browserTime": 1790247382168,
+        "phase": "TURN_HAND",
+        "matchId": "3-primary-24",
+        "open": 12,
+        "footer": "TURN",
+        "scrollY": 0
+      },
+      "after": {
+        "t": 1790247382332,
+        "ms": 100745,
+        "type": "dom-transition",
+        "seat": "p4",
+        "browserTime": 1790247382328,
+        "phase": "",
+        "matchId": "",
+        "open": 0,
+        "footer": "",
+        "scrollY": 0
+      }
+    },
+    {
+      "t": 1790247383053,
+      "ms": 101466,
+      "type": "reload-resume",
+      "seat": "p4",
+      "before": {
+        "t": 1790247382332,
+        "ms": 100745,
+        "type": "dom-transition",
+        "seat": "p4",
+        "browserTime": 1790247382328,
+        "phase": "",
+        "matchId": "",
+        "open": 0,
+        "footer": "",
+        "scrollY": 0
+      },
+      "after": {
+        "t": 1790247383089,
+        "ms": 101502,
+        "type": "dom-transition",
+        "seat": "p4",
+        "browserTime": 1790247383089,
+        "phase": "RIVER_SUSPENSE",
+        "matchId": "3-primary-24",
+        "open": 12,
+        "footer": "RIVER",
+        "scrollY": 0
+      }
+    },
+    {
+      "t": 1790247388988,
+      "ms": 107401,
+      "type": "freeze-resume",
+      "seat": "p3",
+      "before": {
+        "t": 1790247380740,
+        "ms": 99153,
+        "type": "dom-transition",
+        "seat": "p3",
+        "browserTime": 1790247380740,
+        "phase": "FLOP_HAND",
+        "matchId": "3-primary-21",
+        "open": 11,
+        "footer": "FLOP",
+        "scrollY": 0
+      },
+      "after": {
+        "t": 1790247388997,
+        "ms": 107410,
+        "type": "dom-transition",
+        "seat": "p3",
+        "browserTime": 1790247388997,
+        "phase": "COMPLETE",
+        "matchId": "3-primary-21",
+        "open": 13,
+        "footer": "NEXT MATCH\n1\n· 다음 매칭을 진행합니다.",
+        "scrollY": 0
+      }
+    }
+  ],
+  "transitionMeasurement": "dom-transition",
+  "largestTransitionSpreads": [
+    {
+      "key": "1-primary-2|TABLE_ENTER|4",
+      "spreadMs": 1119,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|FLOP_2|6",
+      "spreadMs": 891,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "4-secondary-37|FLOP_1|16",
+      "spreadMs": 783,
+      "seats": [
+        "p3",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|FLOP_1|5",
+      "spreadMs": 766,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|RIVER_SUSPENSE|8",
+      "spreadMs": 763,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|FLOP_SETTLE|7",
+      "spreadMs": 757,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|TURN|8",
+      "spreadMs": 743,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|REWARD|9",
+      "spreadMs": 741,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|FLOP_3|7",
+      "spreadMs": 729,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|BEST5_GLOW|9",
+      "spreadMs": 727,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|RIVER_SETTLE|9",
+      "spreadMs": 726,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|TURN_HAND|8",
+      "spreadMs": 715,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|RESULT|9",
+      "spreadMs": 712,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "1-primary-2|TURN_SETTLE|8",
+      "spreadMs": 696,
+      "seats": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "key": "5-final-38|FINAL_SEVEN_SETTLE|28",
+      "spreadMs": 694,
+      "seats": [
+        "p4",
+        "p1",
+        "p3",
+        "p2"
+      ]
+    }
+  ],
+  "scheduleDiff": [],
+  "horizontalOverflow": [],
+  "mobileBoardBounds": [
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-1",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-6",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-5",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 464,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 610
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-9",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-12",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 464,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 610
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 2,
+      "match": "2-primary-15",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 338,
+          "h": 91,
+          "right": 349,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 338,
+          "h": 147,
+          "right": 349,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 2,
+      "match": "2-primary-14",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 478,
+          "w": 371,
+          "h": 91,
+          "right": 382,
+          "bottom": 569
+        },
+        {
+          "x": 11,
+          "y": 569,
+          "w": 371,
+          "h": 147,
+          "right": 382,
+          "bottom": 716
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-22",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 464,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 610
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-26",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-27",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 464,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 610
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-30",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-31",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 464,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 610
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "match": "4-primary-35",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-primary-33",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 469,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 615
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "match": "4-secondary-37",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 337.75,
+          "w": 338,
+          "h": 107,
+          "right": 349,
+          "bottom": 444.75
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-secondary-37",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 378,
+          "w": 371,
+          "h": 107,
+          "right": 382,
+          "bottom": 485
+        }
+      ]
+    }
+  ],
+  "shops": [
+    {
+      "seat": "p3",
+      "round": 1,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 177
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 1,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 1,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 3,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 3,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 4,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 4,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 5,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 5,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 5,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 5,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "resilience": [
+    {
+      "t": 1790247355665,
+      "ms": 74078,
+      "type": "outage-start",
+      "seat": "p2"
+    },
+    {
+      "t": 1790247356877,
+      "ms": 75290,
+      "type": "outage-screen",
+      "seat": "p2",
+      "state": {
+        "localTime": 1790247356876,
+        "viewport": {
+          "w": 393,
+          "h": 852
+        },
+        "scroll": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 393,
+        "height": 852,
+        "phase": "FLOP_HAND",
+        "matchId": "2-primary-14",
+        "heading": "ROUND 2 · MATCH 1\nSHOWDOWN",
+        "footer": "FLOP",
+        "prep": false,
+        "seats": [
+          {
+            "id": "p2",
+            "profile": "2\n점검2긴닉네임 · YOU\n현재\n공동\n2위",
+            "rect": {
+              "x": 11,
+              "y": 198,
+              "w": 178.5,
+              "h": 235.1875,
+              "right": 189.5,
+              "bottom": 433.1875
+            }
+          },
+          {
+            "id": "p8",
+            "profile": "8\n올인 베어\n현재\n공동\n4위",
+            "rect": {
+              "x": 203.5,
+              "y": 198,
+              "w": 178.5,
+              "h": 235.1875,
+              "right": 382,
+              "bottom": 433.1875
+            }
+          }
+        ],
+        "openCards": [
+          "8d",
+          "9s",
+          "3c",
+          "3h",
+          "Jh",
+          "5c",
+          "6c"
+        ],
+        "outcomes": [],
+        "buttons": [
+          {
+            "text": "MULTIPLAYER",
+            "disabled": false
+          },
+          {
+            "text": "SINGLE / AI",
+            "disabled": false
+          },
+          {
+            "text": "연결 다시 시도",
+            "disabled": false
+          },
+          {
+            "text": "로비 · 방 유지",
+            "disabled": false
+          },
+          {
+            "text": "8\n♦",
+            "disabled": true
+          },
+          {
+            "text": "9\n♠",
+            "disabled": true
+          },
+          {
+            "text": "3\n♣",
+            "disabled": true
+          },
+          {
+            "text": "3\n♥",
+            "disabled": true
+          },
+          {
+            "text": "J\n♥",
+            "disabled": true
+          },
+          {
+            "text": "5\n♣",
+            "disabled": true
+          },
+          {
+            "text": "6\n♣",
+            "disabled": true
+          }
+        ],
+        "bounds": [
+          {
+            "selector": "cinema-seat  made-default ",
+            "rect": {
+              "x": 11,
+              "y": 198,
+              "w": 178.5,
+              "h": 235.1875,
+              "right": 189.5,
+              "bottom": 433.1875
+            },
+            "scrollW": 177,
+            "clientW": 177
+          },
+          {
+            "selector": "cinema-profile cinema-match-profile",
+            "rect": {
+              "x": 17,
+              "y": 211,
+              "w": 166.5,
+              "h": 81,
+              "right": 183.5,
+              "bottom": 292
+            },
+            "scrollW": 167,
+            "clientW": 167
+          },
+          {
+            "selector": "cinema-standing-line",
+            "rect": {
+              "x": 33.296875,
+              "y": 241.5,
+              "w": 133.890625,
+              "h": 22,
+              "right": 167.1875,
+              "bottom": 263.5
+            },
+            "scrollW": 134,
+            "clientW": 134
+          },
+          {
+            "selector": "cinema-seat  made-default ",
+            "rect": {
+              "x": 203.5,
+              "y": 198,
+              "w": 178.5,
+              "h": 235.1875,
+              "right": 382,
+              "bottom": 433.1875
+            },
+            "scrollW": 177,
+            "clientW": 177
+          },
+          {
+            "selector": "cinema-profile cinema-match-profile",
+            "rect": {
+              "x": 209.5,
+              "y": 211,
+              "w": 166.5,
+              "h": 81,
+              "right": 376,
+              "bottom": 292
+            },
+            "scrollW": 167,
+            "clientW": 167
+          },
+          {
+            "selector": "cinema-standing-line",
+            "rect": {
+              "x": 250.734375,
+              "y": 241.5,
+              "w": 84.015625,
+              "h": 22,
+              "right": 334.75,
+              "bottom": 263.5
+            },
+            "scrollW": 84,
+            "clientW": 84
+          },
+          {
+            "selector": "cinema-board active  made-default",
+            "rect": {
+              "x": 11,
+              "y": 457.1875,
+              "w": 371,
+              "h": 146,
+              "right": 382,
+              "bottom": 603.1875
+            },
+            "scrollW": 371,
+            "clientW": 371
+          },
+          {
+            "selector": "cinema-footer",
+            "rect": {
+              "x": 11,
+              "y": 627.1875,
+              "w": 371,
+              "h": 42,
+              "right": 382,
+              "bottom": 669.1875
+            },
+            "scrollW": 371,
+            "clientW": 371
+          }
+        ],
+        "text": "MULTIPLAYER\nSINGLE / AI\n재접속 중…\n연결 복구 후 현재 경기로 돌아갑니다.\n연결 다시 시도\n로비 · 방 유지\nROUND 2 · MATCH 1\nSHOWDOWN\n2\n점검2긴닉네임 · YOU\n현재\n공동\n2위\n♞\n8\n♦\n♞\n9\n♠\n플랍\nJ 하이\n(KICKER 9, 8, 6, 5)\n8\n올인 베어\n현재\n공동\n4위\n♞\n3\n♣\n♞\n3\n♥\n플랍\n3 원페어\n(KICKER J, 6, 5)\nRUN 1\n♞\nJ\n♥\n♞\n5\n♣\n♞\n6\n♣\n♞\n♞\n♞\n♞\nFLOP"
+      }
+    },
+    {
+      "t": 1790247380869,
+      "ms": 99282,
+      "type": "freeze-start",
+      "seat": "p3"
+    },
+    {
+      "t": 1790247382303,
+      "ms": 100716,
+      "type": "reload-start",
+      "seat": "p4"
+    },
+    {
+      "t": 1790247383053,
+      "ms": 101466,
+      "type": "reload-resume",
+      "seat": "p4"
+    },
+    {
+      "t": 1790247388988,
+      "ms": 107401,
+      "type": "freeze-resume",
+      "seat": "p3"
+    },
+    {
+      "t": 1790247469671,
+      "ms": 188084,
+      "type": "early-history",
+      "seat": "p1",
+      "serverEndsAt": 1790247486526,
+      "sourceState": "WAITING",
+      "text": "MULTIPLAYER\nSINGLE / AI\nPORENA\nMATCH HISTORY\n대전 기록\n\n이 기기에서 완료한 최근 경기입니다. 최대 20경기까지 저장됩니다.\n\n저장된 대전 기록이 없습니다\n\n멀티플레이 경기가 끝나면 최종 결과가 이 기기에 자동으로 저장됩니다.\n\n← 멀티플레이 로비"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
-import type { Augment, HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
+import type { HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
 
 export type GameAction =
   | { type: "DRAFT_PICK"; cardId: string }
@@ -13,7 +13,6 @@ export type GameAction =
   | { type: "LOCK_SHOP"; cardId: string }
   | { type: "SELECT_CARDS"; cardIds: string[] }
   | { type: "SELECT_LOADOUT"; slots: (string | null)[] }
-  | { type: "SELECT_AUGMENT"; augmentId: string }
   | { type: "END_SHOP_PHASE" }
   | { type: "CANCEL_SHOP_READY" }
   | { type: "REMATCH_READY" }
@@ -22,7 +21,7 @@ export type ClientMessage =
   | { type: "JOIN_ROOM"; token: string; nickname?: string }
   | (GameAction & { requestId: string; turnKey: string });
 
-export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; departed: boolean; publicAugments: Augment[] };
+export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; departed: boolean };
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
@@ -56,11 +55,11 @@ export type RoundSummaryRow = {
   totalPoints: number; stackBB: number; rank: number; previousRank?: number;
   eliminated: boolean; bracket?: "winner" | "loser";
 };
-export type FinalStandingView = { playerId: string; points: number; handScore: number; augmentScore?: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
+export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
 export type PrivatePlayerView = {
   playerId: string; stackBB: number; points: number; alive: boolean;
   ownedCards: Card[]; shopCards: { card: Card; price: number }[];
-  selectedCardIds: string[]; augments: Augment[]; augmentChoices: Augment[];
+  selectedCardIds: string[];
   loadoutSlots?: (string | null)[];
   handLimit: number; shopSize: number; shopLocked: boolean; lockedShopCardIds: string[]; purchases: number;
   purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
@@ -123,7 +122,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   const fields: Record<string, string[]> = {
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
-      SELECT_CARDS: ["cardIds"], SELECT_AUGMENT: ["augmentId"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], LEAVE_ROOM: [],
+      SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], LEAVE_ROOM: [],
       SELECT_LOADOUT: ["slots"],
   };
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");
@@ -131,7 +130,6 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (Object.keys(v).some((k) => !allowed.includes(k))) throw new Error("허용되지 않은 필드입니다.");
   if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP", "DRAFT_PICK"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
   if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 3 || new Set(v.cardIds).size !== 3 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
-  if (v.type === "SELECT_AUGMENT" && !string("augmentId", /^[a-z][a-z0-9_]{0,39}$/)) throw new Error("잘못된 증강입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");
   if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");
   return v as ClientMessage;

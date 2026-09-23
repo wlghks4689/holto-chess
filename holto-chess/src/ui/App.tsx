@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { assertPoolIntegrity, ownershipCounts } from "../game/cardPool";
 import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../game/config";
 import {
-  beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, finalStandings, leaveRoundResult,
+  beginSecondary, buyCard, confirmSelection, createGame, finalStandings, leaveRoundResult,
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   sellCard, startNextRound, toggleSelectedCard, toggleShopLock,
 } from "../game/engine";
@@ -47,7 +47,7 @@ const ROUND_COPY = {
 const PHASE_LABEL: Record<Phase, string> = {
   DRAFT_ORDER: "드래프트 순서 공개", OPEN_DRAFT: "공개 드래프트", RUN_LOADOUT: "RUN 카드 배치", SURVIVAL_READY: "생존 타이브레이크",
   SHOP: "상점", DECK_SELECT: "출전 카드 선택", SHOWDOWN_PRIMARY: "", GROUP_ASSIGNMENT: "그룹 배정",
-  SHOWDOWN_SECONDARY: "", ROUND_RESULT: "라운드 결과", AUGMENT: "증강 선택", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
+  SHOWDOWN_SECONDARY: "", ROUND_RESULT: "라운드 결과", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
 };
 
 function PoolMeter({ state }: { state: PorenaGameState }) {
@@ -91,7 +91,7 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
       <header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">{me.shopCardIds.length} / {shopSize}</strong></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
       <div className="card-row market-row">{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
-      <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button></div>
+      <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < BALANCE.rerollCostBB} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{BALANCE.rerollCostBB}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button></div>
     </div>
   </section>;
 }
@@ -131,10 +131,6 @@ function ShowdownPanel({ state, secondsLeft, matchup }: { state: PorenaGameState
   return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"} secondsLeft={state.phase === "ROUND_RESULT" ? secondsLeft : null}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
 }
 
-function AugmentPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
-  return <section className="panel augment-panel"><span className="eyebrow">AUGMENT DRAFT</span><h2>전략을 바꿀 증강 하나를 선택하세요</h2><div className="augment-grid">{state.augmentChoices.map((augment) => <button key={augment.id} onClick={() => act((s) => chooseAugment(s, "p1", augment.id))}><b>{augment.name}</b><p>{augment.description}</p><em>선택하기 →</em></button>)}</div></section>;
-}
-
 function FinalPanel({ state }: { state: PorenaGameState }) {
   const standings = finalStandings(state);
   return <section className="final-panel"><div className="standings"><FinalStandingsHeader />{standings.map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={state.players.find((p) => p.id === row.playerId)?.name ?? row.playerId} />)}</div></section>;
@@ -151,7 +147,7 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   if (state.phase === "DECK_SELECT") { label = `선택 확정 (${me.selectedCardIds.length}/2)`; fn = confirmSelection; }
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
   if (state.phase === "SURVIVAL_READY") { label = "생존 타이브레이크 시작"; fn = resolveSurvival; }
-  if (state.phase === "ROUND_RESULT") { label = state.round === 2 || state.round === 4 ? "증강 드래프트" : "라운드 마감"; fn = leaveRoundResult; }
+  if (state.phase === "ROUND_RESULT") { label = "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} ${state.rulesVersion === 2 && [1, 3].includes(state.round) ? "드래프트로" : "상점으로"}`; fn = startNextRound; }
   const requiredSelection = 2;
   if (state.phase === "GAME_RESULT" || (!fn && !me.eliminated)) return null;
@@ -189,7 +185,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
   const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
-  const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [], augmentChoices: {} }, "p1");
+  const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [] }, "p1");
   const isShowdownPrep = ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase);
   const draftAction = (a: GameAction) => {
     if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId));
@@ -210,7 +206,6 @@ export function App({ onHome }: { onHome: () => void }) {
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}
-      {state.phase === "AUGMENT" ? <AugmentPanel state={state} act={act} /> : null}
       {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다.</p></section> : null}
       {state.phase === "GAME_RESULT" ? <FinalPanel state={state} /> : null}
       {state.phase === "GAME_RESULT" && <section className="final-exit-actions" aria-label="최종 결과 다음 작업"><button className="primary" onClick={reset}>새 게임 시작 <span>↻</span></button><button className="secondary" onClick={onHome}>홈으로 <span>→</span></button></section>}

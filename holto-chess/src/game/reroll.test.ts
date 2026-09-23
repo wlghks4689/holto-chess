@@ -25,12 +25,11 @@ it.each(["funds", "phase", "eliminated"])("rejects %s without changing BB, count
   expect(state).toEqual(before);
 });
 
-it("keeps locks, honors discounts, and checks both directions of the ledger", () => {
+it("keeps locks, charges the base cost, and checks both directions of the ledger", () => {
   let state = createGame(13);
   const locked = state.players[0].shopCardIds[0];
   state = toggleShopLock(state, "p1", locked);
-  state.players[0].augments.push({ id: "reroll_discount", name: "test", description: "test" });
-  state.players[0].stackBB = 3;
+  state.players[0].stackBB = 5;
   state = rerollShop(state, "p1");
   expect(state.players[0].stackBB).toBe(0);
   expect(state.players[0].shopCardIds).toContain(locked);

@@ -83,12 +83,11 @@ describe("insufficient-card showdown forfeits", () => {
     expect(game.roundResults.every((match) => !!match.highCardDraw)).toBe(true);
     expect(assertPoolIntegrity(game)).toBe(true);
   });
-  it("R5 forfeit does not collect placement or augment hand bonuses", () => {
+  it("R5 forfeit does not collect placement or hand score", () => {
     const game = fixture(5, 6);
-    game.players[0]!.augments = [{ id: "r5_hand_bonus", name: "bonus", description: "" }];
     const after = primary(game);
     expect(after.phase).toBe("GAME_RESULT");
-    expect(finalStandings(after).find((row) => row.playerId === "p1")).toMatchObject({ points: 0, handScore: 0, augmentScore: 0, total: 0 });
+    expect(finalStandings(after).find((row) => row.playerId === "p1")).toMatchObject({ points: 0, handScore: 0, total: 0 });
     expect(Object.values(after.roundResults[0]!.pointAwards!).reduce((a, b) => a + b, 0)).toBe(37);
   });
   it("R5 all-forfeit result is still finite and settles zero rewards", () => {

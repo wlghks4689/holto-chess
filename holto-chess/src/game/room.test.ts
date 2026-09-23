@@ -17,8 +17,8 @@ function start(count = 2, seed = 303) {
   return r;
 }
 describe("server room authority and projections", () => {
-  it("accepts the R5 augment identifier and validates guest nicknames", () => {
-    expect(parseClientMessage(JSON.stringify({ type: "SELECT_AUGMENT", augmentId: "r5_hand_bonus", requestId: "test-request", turnKey: "4:AUGMENT" })).type).toBe("SELECT_AUGMENT");
+  it("rejects retired decisions and validates guest nicknames", () => {
+    expect(() => parseClientMessage(JSON.stringify({ type: "SELECT_AUGMENT", augmentId: "r5_hand_bonus", requestId: "test-request", turnKey: "4:AUGMENT" }))).toThrow("지원하지 않는 명령");
     expect(parseClientMessage(JSON.stringify({ type: "JOIN_ROOM", token: "a".repeat(64), nickname: "테스터 1" }))).toHaveProperty("nickname", "테스터 1");
     expect(() => parseClientMessage(JSON.stringify({ type: "JOIN_ROOM", token: "a".repeat(64), nickname: "123456789" }))).toThrow("1~8자");
     expect(() => parseClientMessage(JSON.stringify({ type: "JOIN_ROOM", token: "a".repeat(64), nickname: "<script>" }))).toThrow();
@@ -35,7 +35,6 @@ describe("server room authority and projections", () => {
     const r = start(); const before = structuredClone(r);
     expect(() => act(r, "p1", { type: "BUY_CARD", cardId: r.game.players[1].shopCardIds[0] })).toThrow();
     expect(() => act(r, "p3", { type: "REROLL" })).toThrow();
-    expect(() => act(r, "p1", { type: "SELECT_AUGMENT", augmentId: "win_bonus" })).toThrow();
     expect(() => applyRoomAction(r, "p1", { type: "REROLL" }, "1:LOBBY")).toThrow();
     expect(() => parseClientMessage(JSON.stringify({ type: "BUY_CARD", cardId: "As", playerId: "p2", stackBB: 999, requestId: "abcdefghi", turnKey: "1:SHOP" }))).toThrow();
     expect(() => parseClientMessage('{"type":"__proto__","requestId":"abcdefghi","turnKey":"1:SHOP"}')).toThrow();
@@ -69,11 +68,10 @@ describe("server room authority and projections", () => {
   });
   it("does not serialize private cards, logs, ledger, seed or another player's choices", () => {
     const r = start();
-    r.augmentChoices.p2 = [{ id: "win_bonus", name: "PRIVATE_SENTINEL", description: "secret" }];
     r.game.logs.push({ id: 999, tone: "info", message: "SECRET_LOG" });
     const view = createPlayerView(r, "p1"); const json = JSON.stringify(view);
     for (const id of [...r.game.players[1].ownedCardIds, ...r.game.players[1].shopCardIds]) expect(json).not.toContain(`"${id}"`);
-    for (const key of ["ownershipCardPool", "seed", "tokenHash", "SECRET_LOG", "PRIVATE_SENTINEL", "selectedCardIds"]) {
+    for (const key of ["ownershipCardPool", "seed", "tokenHash", "SECRET_LOG", "selectedCardIds"]) {
       if (key !== "selectedCardIds") expect(json).not.toContain(key);
       else expect(view.players.every((p) => !(key in p))).toBe(true);
     }
@@ -113,8 +111,6 @@ describe("server room authority and projections", () => {
           }
           r = act(r, s.playerId, { type: "END_SHOP_PHASE" });
         }
-      } else if (r.game.phase === "AUGMENT") {
-        for (const s of active) r = act(r, s.playerId, { type: "SELECT_AUGMENT", augmentId: r.augmentChoices[s.playerId][0].id });
       } else if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(r.game.phase)) {
         r = forceBarrier(r, barrierDeadline(r)!)!;
       } else {

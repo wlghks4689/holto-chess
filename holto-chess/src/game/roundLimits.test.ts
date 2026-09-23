@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
-import { beginSecondary, buyCard, chooseAugment, createGame as createGameCurrent, finalStandings, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
+import { beginSecondary, buyCard, createGame as createGameCurrent, finalStandings, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
 import type { Round } from "./types";
 
 function buyThree(round: Round) {
@@ -60,7 +60,6 @@ describe("persisted snapshot trimming", () => {
       }
       if (round === 5) break;
       game = leaveRoundResult(game);
-      if (game.phase === "AUGMENT") game = chooseAugment(game, "p1", game.augmentChoices[0]!.id);
       game = startNextRound(game);
       expect(game.matches.some((match) => match.streetSnapshots)).toBe(false);
     }
@@ -75,7 +74,6 @@ describe("persisted snapshot trimming", () => {
       if (game.phase === "GROUP_ASSIGNMENT") { game = beginSecondary(game); game = resolveSecondary(game); }
       if (round === 5) break;
       game = leaveRoundResult(game);
-      if (game.phase === "AUGMENT") game = chooseAugment(game, "p1", game.augmentChoices[0]!.id);
       game = startNextRound(game);
     }
     const withHistory = score(game);

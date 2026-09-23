@@ -1,0 +1,1517 @@
+{
+  "lastBySeat": {
+    "p1": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p2": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p3": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p4": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p5": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p6": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p7": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p8": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    }
+  },
+  "eventCount": 15526,
+  "errors": [],
+  "transitionStatsExcludingP2": {
+    "count": 439,
+    "medianMs": 2,
+    "p95Ms": 20,
+    "maxMs": 151
+  },
+  "recovery": [],
+  "transitionMeasurement": "dom-transition",
+  "largestTransitionSpreads": [
+    {
+      "key": "3-primary-28|TABLE_ENTER|8",
+      "spreadMs": 151,
+      "seats": [
+        "p3",
+        "p4"
+      ]
+    },
+    {
+      "key": "1-primary-7|TABLE_ENTER|4",
+      "spreadMs": 66,
+      "seats": [
+        "p8",
+        "p4"
+      ]
+    },
+    {
+      "key": "1-primary-11|TABLE_ENTER|4",
+      "spreadMs": 62,
+      "seats": [
+        "p2",
+        "p8"
+      ]
+    },
+    {
+      "key": "1-primary-12|TABLE_ENTER|4",
+      "spreadMs": 57,
+      "seats": [
+        "p3",
+        "p5"
+      ]
+    },
+    {
+      "key": "1-primary-5|TABLE_ENTER|4",
+      "spreadMs": 51,
+      "seats": [
+        "p5",
+        "p7"
+      ]
+    },
+    {
+      "key": "1-primary-8|TABLE_ENTER|4",
+      "spreadMs": 40,
+      "seats": [
+        "p3",
+        "p6"
+      ]
+    },
+    {
+      "key": "3-primary-30|TABLE_ENTER|8",
+      "spreadMs": 38,
+      "seats": [
+        "p7",
+        "p5"
+      ]
+    },
+    {
+      "key": "1-primary-1|RIVER_SUSPENSE|8",
+      "spreadMs": 33,
+      "seats": [
+        "p2",
+        "p3"
+      ]
+    },
+    {
+      "key": "1-primary-10|TABLE_ENTER|4",
+      "spreadMs": 32,
+      "seats": [
+        "p7",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-31|TABLE_ENTER|8",
+      "spreadMs": 31,
+      "seats": [
+        "p2",
+        "p8"
+      ]
+    },
+    {
+      "key": "5-final-39|FINAL_PLACE|28",
+      "spreadMs": 29,
+      "seats": [
+        "p5",
+        "p6",
+        "p8",
+        "p2",
+        "p7",
+        "p4",
+        "p3",
+        "p1"
+      ]
+    },
+    {
+      "key": "5-final-39|FINAL_WINNER|28",
+      "spreadMs": 28,
+      "seats": [
+        "p1",
+        "p4",
+        "p7",
+        "p3",
+        "p2",
+        "p6",
+        "p5",
+        "p8"
+      ]
+    },
+    {
+      "key": "3-secondary-33|BEST5_GLOW|13",
+      "spreadMs": 27,
+      "seats": [
+        "p6",
+        "p7",
+        "p2",
+        "p5",
+        "p8",
+        "p3",
+        "p4",
+        "p1"
+      ]
+    },
+    {
+      "key": "5-final-39|FINAL_FIRST_REVEAL|12",
+      "spreadMs": 27,
+      "seats": [
+        "p8",
+        "p2",
+        "p5",
+        "p6",
+        "p7",
+        "p4",
+        "p3",
+        "p1"
+      ]
+    },
+    {
+      "key": "5-final-39|FINAL_SECOND_HAND|20",
+      "spreadMs": 26,
+      "seats": [
+        "p5",
+        "p6",
+        "p2",
+        "p8",
+        "p1",
+        "p7",
+        "p3",
+        "p4"
+      ]
+    }
+  ],
+  "scheduleDiff": [],
+  "horizontalOverflow": [],
+  "mobileBoardBounds": [
+    {
+      "seat": "p6",
+      "round": 1,
+      "match": "1-primary-4",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-1",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-1",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "match": "1-primary-2",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 1,
+      "match": "1-primary-8",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "match": "1-primary-5",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-6",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-8",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-12",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-11",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "match": "1-primary-10",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 1,
+      "match": "1-primary-9",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 2,
+      "match": "2-primary-15",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 371,
+          "h": 91,
+          "right": 382,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 371,
+          "h": 147,
+          "right": 382,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 2,
+      "match": "2-primary-13",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 338,
+          "h": 91,
+          "right": 349,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 338,
+          "h": 147,
+          "right": 349,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 2,
+      "match": "2-primary-14",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 371,
+          "h": 91,
+          "right": 382,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 371,
+          "h": 147,
+          "right": 382,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 2,
+      "match": "2-primary-14",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 338,
+          "h": 91,
+          "right": 349,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 338,
+          "h": 147,
+          "right": 349,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "match": "3-primary-23",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "match": "3-primary-22",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-24",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-24",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-27",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "match": "3-primary-27",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-28",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "match": "3-primary-25",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-31",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-32",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "match": "3-primary-32",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "match": "3-primary-30",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "match": "3-secondary-33",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 384,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 530
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-secondary-33",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 384,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 530
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "match": "3-secondary-33",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 384,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 530
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-secondary-33",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 384,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 530
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-primary-35",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "match": "4-primary-34",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 4,
+      "match": "4-primary-34",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 4,
+      "match": "4-primary-36",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 470,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 616
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-secondary-37",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 344,
+          "w": 371,
+          "h": 107,
+          "right": 382,
+          "bottom": 451
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 4,
+      "match": "4-secondary-37",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 337.75,
+          "w": 338,
+          "h": 107,
+          "right": 349,
+          "bottom": 444.75
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 4,
+      "match": "4-secondary-37",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 379,
+          "w": 371,
+          "h": 107,
+          "right": 382,
+          "bottom": 486
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "match": "4-secondary-38",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 337.75,
+          "w": 338,
+          "h": 107,
+          "right": 349,
+          "bottom": 444.75
+        }
+      ]
+    }
+  ],
+  "shops": [
+    {
+      "seat": "p6",
+      "round": 1,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 1,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 1,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 177
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 1,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 177
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 1,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 3,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 3,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 3,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 3,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 4,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 4,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 4,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 4,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p6",
+      "round": 4,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 4,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 5,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 5,
+      "width": 768,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 5,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 5,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 5,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 5,
+      "width": 360,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 5,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p6",
+      "round": 5,
+      "width": 393,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "resilience": []
+}

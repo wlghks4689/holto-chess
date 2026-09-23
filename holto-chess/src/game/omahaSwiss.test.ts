@@ -145,9 +145,9 @@ describe("R3 Omaha Swiss", () => {
     expect(resolvePrimary(structuredClone(before))).toEqual(after);
   });
 
-  it("pays only 10BB per win, 15/20/25BB for losses, and no win-streak or augment bonus", () => {
+  it("pays only 10BB per win, 15/20/25BB for losses, and no win-streak bonus", () => {
     const before = prepared();
-    before.players.forEach((p) => { p.winStreak = 5; p.loseStreak = 0; p.augments = [{ id: "win_bonus", name: "test", description: "test" }]; });
+    before.players.forEach((p) => { p.winStreak = 5; p.loseStreak = 0; });
     const fixed = poker.findBestFive(before.ownershipCardPool.slice(0, 5).map((e) => e.card));
     const spy = vi.spyOn(poker, "findBestOmaha").mockImplementation((hole) => ({
       ...fixed, kickers: [before.players.findIndex((p) => p.ownedCardIds.includes(hole[0].id))],

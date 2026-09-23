@@ -1,0 +1,940 @@
+{
+  "lastBySeat": {
+    "p1": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p2": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    }
+  },
+  "eventCount": 4408,
+  "errors": [],
+  "transitionStatsExcludingP2": {
+    "count": 0
+  },
+  "recovery": [
+    {
+      "t": 1790238645316,
+      "ms": 14510,
+      "type": "js-pause-start",
+      "seat": "p1",
+      "state": {
+        "localTime": 1790238645072,
+        "viewport": {
+          "w": 1366,
+          "h": 900
+        },
+        "scroll": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 1366,
+        "height": 924,
+        "phase": "FLOP_HAND",
+        "matchId": "1-primary-1",
+        "heading": "ROUND 1 · MATCH 1/3\nSHOWDOWN",
+        "footer": "FLOP",
+        "prep": false,
+        "seats": [
+          {
+            "id": "p1",
+            "profile": "1\n점검1 · YOU\nPOINT 0",
+            "record": "0W 0D 0L",
+            "rect": {
+              "x": 158,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 666,
+              "bottom": 496.390625
+            }
+          },
+          {
+            "id": "p4",
+            "profile": "4\n스페이드 울프\nPOINT 0",
+            "record": "0W 0D 0L",
+            "rect": {
+              "x": 700,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 1208,
+              "bottom": 496.390625
+            }
+          }
+        ],
+        "openCards": [
+          "7d",
+          "Kd",
+          "7h",
+          "7s",
+          "5d",
+          "Qc",
+          "9h"
+        ],
+        "outcomes": [],
+        "buttons": [
+          {
+            "text": "7\n♦",
+            "disabled": true
+          },
+          {
+            "text": "K\n♦",
+            "disabled": true
+          },
+          {
+            "text": "7\n♥",
+            "disabled": true
+          },
+          {
+            "text": "7\n♠",
+            "disabled": true
+          },
+          {
+            "text": "5\n♦",
+            "disabled": true
+          },
+          {
+            "text": "Q\n♣",
+            "disabled": true
+          },
+          {
+            "text": "9\n♥",
+            "disabled": true
+          },
+          {
+            "text": "5\n♥",
+            "disabled": true
+          },
+          {
+            "text": "J\n♦",
+            "disabled": true
+          }
+        ],
+        "bounds": [
+          {
+            "selector": "cinema-seat  made-default ",
+            "rect": {
+              "x": 158,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 666,
+              "bottom": 496.390625
+            },
+            "scrollW": 506,
+            "clientW": 506
+          },
+          {
+            "selector": "cinema-profile cinema-match-profile",
+            "rect": {
+              "x": 171,
+              "y": 221,
+              "w": 482,
+              "h": 94,
+              "right": 653,
+              "bottom": 315
+            },
+            "scrollW": 482,
+            "clientW": 482
+          },
+          {
+            "selector": "cinema-standing-line",
+            "rect": {
+              "x": 358.09375,
+              "y": 263.5,
+              "w": 107.796875,
+              "h": 14,
+              "right": 465.890625,
+              "bottom": 277.5
+            },
+            "scrollW": 108,
+            "clientW": 108
+          },
+          {
+            "selector": "cinema-seat  made-default ",
+            "rect": {
+              "x": 700,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 1208,
+              "bottom": 496.390625
+            },
+            "scrollW": 506,
+            "clientW": 506
+          },
+          {
+            "selector": "cinema-profile cinema-match-profile",
+            "rect": {
+              "x": 713,
+              "y": 221,
+              "w": 482,
+              "h": 94,
+              "right": 1195,
+              "bottom": 315
+            },
+            "scrollW": 482,
+            "clientW": 482
+          },
+          {
+            "selector": "cinema-standing-line",
+            "rect": {
+              "x": 894.59375,
+              "y": 263.5,
+              "w": 118.8125,
+              "h": 14,
+              "right": 1013.40625,
+              "bottom": 277.5
+            },
+            "scrollW": 119,
+            "clientW": 119
+          },
+          {
+            "selector": "cinema-board active  made-default",
+            "rect": {
+              "x": 158,
+              "y": 520.390625,
+              "w": 1050,
+              "h": 173,
+              "right": 1208,
+              "bottom": 693.390625
+            },
+            "scrollW": 1050,
+            "clientW": 1050
+          },
+          {
+            "selector": "cinema-footer",
+            "rect": {
+              "x": 158,
+              "y": 717.390625,
+              "w": 1050,
+              "h": 42,
+              "right": 1208,
+              "bottom": 759.390625
+            },
+            "scrollW": 1050,
+            "clientW": 1050
+          }
+        ],
+        "text": "ROUND 1 · MATCH 1/3\nSHOWDOWN\n\n0W 0D 0L\n\n1\n점검1 · YOU\nPOINT 0\n♞\n7\n♦\n♞\nK\n♦\n플랍\nK 하이\n(KICKER Q, 9, 7, 5)\n\n0W 0D 0L\n\n4\n스페이드 울프\nPOINT 0\n♞\n7\n♥\n♞\n7\n♠\n플랍\n7 원페어\n(KICKER Q, 9, 5)\nCOMMUNITY BOARD\n♞\n5\n♦\n♞\nQ\n♣\n♞\n9\n♥\n♞\n5\n♥\n♞\nJ\n♦\nFLOP"
+      },
+      "before": {
+        "t": 1790238644971,
+        "ms": 14165,
+        "type": "dom-transition",
+        "seat": "p1",
+        "browserTime": 1790238644948,
+        "phase": "FLOP_HAND",
+        "matchId": "1-primary-1",
+        "open": 7,
+        "footer": "FLOP",
+        "scrollY": 0
+      },
+      "after": {
+        "t": 1790238653382,
+        "ms": 22576,
+        "type": "dom-transition",
+        "seat": "p1",
+        "browserTime": 1790238653378,
+        "phase": "COMPLETE",
+        "matchId": "1-primary-1",
+        "open": 9,
+        "footer": "NEXT MATCH\n1\n· 다음 매칭을 진행합니다.",
+        "scrollY": 0
+      }
+    },
+    {
+      "t": 1790238653336,
+      "ms": 22530,
+      "type": "js-pause-resume",
+      "seat": "p1",
+      "before": {
+        "t": 1790238644971,
+        "ms": 14165,
+        "type": "dom-transition",
+        "seat": "p1",
+        "browserTime": 1790238644948,
+        "phase": "FLOP_HAND",
+        "matchId": "1-primary-1",
+        "open": 7,
+        "footer": "FLOP",
+        "scrollY": 0
+      },
+      "after": {
+        "t": 1790238653382,
+        "ms": 22576,
+        "type": "dom-transition",
+        "seat": "p1",
+        "browserTime": 1790238653378,
+        "phase": "COMPLETE",
+        "matchId": "1-primary-1",
+        "open": 9,
+        "footer": "NEXT MATCH\n1\n· 다음 매칭을 진행합니다.",
+        "scrollY": 0
+      }
+    }
+  ],
+  "transitionMeasurement": "dom-transition",
+  "largestTransitionSpreads": [
+    {
+      "key": "3-primary-27|RESULT|13",
+      "spreadMs": 114,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|FLOP_SETTLE|11",
+      "spreadMs": 109,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|RIVER|13",
+      "spreadMs": 109,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|FLOP_HAND|11",
+      "spreadMs": 107,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|BEST5_GLOW|13",
+      "spreadMs": 107,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|TURN|12",
+      "spreadMs": 106,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|COMPLETE|13",
+      "spreadMs": 105,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "2-primary-16|RUN_RESULT|9",
+      "spreadMs": 85,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "2-primary-16|RIVER|9",
+      "spreadMs": 83,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "2-primary-16|RIVER_SETTLE|9",
+      "spreadMs": 83,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "2-primary-16|REWARD|9",
+      "spreadMs": 77,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|TURN_HAND|12",
+      "spreadMs": 77,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "2-primary-16|RIVER_SUSPENSE|8",
+      "spreadMs": 75,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|RIVER_SUSPENSE|12",
+      "spreadMs": 75,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-27|TURN_SETTLE|12",
+      "spreadMs": 71,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    }
+  ],
+  "scheduleDiff": [
+    {
+      "key": "4:1790238783726",
+      "match": "4-primary-35",
+      "entries": [
+        {
+          "seat": "p2",
+          "offset": 25480,
+          "duration": 11990
+        },
+        {
+          "seat": "p1",
+          "offset": 0,
+          "duration": 8990
+        }
+      ]
+    },
+    {
+      "key": "4:1790238828164",
+      "match": "4-secondary-37",
+      "entries": [
+        {
+          "seat": "p2",
+          "offset": 11990,
+          "duration": 11990
+        },
+        {
+          "seat": "p1",
+          "offset": 0,
+          "duration": 8990
+        }
+      ]
+    }
+  ],
+  "horizontalOverflow": [],
+  "mobileBoardBounds": [
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-2",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-8",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-9",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 2,
+      "match": "2-primary-16",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 371,
+          "h": 91,
+          "right": 382,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 371,
+          "h": 147,
+          "right": 382,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-24",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-27",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-31",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-primary-35",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-secondary-36",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 344,
+          "w": 371,
+          "h": 107,
+          "right": 382,
+          "bottom": 451
+        }
+      ]
+    }
+  ],
+  "shops": [
+    {
+      "seat": "p2",
+      "round": 1,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 1,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 3,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 4,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "resilience": [
+    {
+      "t": 1790238645316,
+      "ms": 14510,
+      "type": "js-pause-start",
+      "seat": "p1",
+      "state": {
+        "localTime": 1790238645072,
+        "viewport": {
+          "w": 1366,
+          "h": 900
+        },
+        "scroll": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 1366,
+        "height": 924,
+        "phase": "FLOP_HAND",
+        "matchId": "1-primary-1",
+        "heading": "ROUND 1 · MATCH 1/3\nSHOWDOWN",
+        "footer": "FLOP",
+        "prep": false,
+        "seats": [
+          {
+            "id": "p1",
+            "profile": "1\n점검1 · YOU\nPOINT 0",
+            "record": "0W 0D 0L",
+            "rect": {
+              "x": 158,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 666,
+              "bottom": 496.390625
+            }
+          },
+          {
+            "id": "p4",
+            "profile": "4\n스페이드 울프\nPOINT 0",
+            "record": "0W 0D 0L",
+            "rect": {
+              "x": 700,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 1208,
+              "bottom": 496.390625
+            }
+          }
+        ],
+        "openCards": [
+          "7d",
+          "Kd",
+          "7h",
+          "7s",
+          "5d",
+          "Qc",
+          "9h"
+        ],
+        "outcomes": [],
+        "buttons": [
+          {
+            "text": "7\n♦",
+            "disabled": true
+          },
+          {
+            "text": "K\n♦",
+            "disabled": true
+          },
+          {
+            "text": "7\n♥",
+            "disabled": true
+          },
+          {
+            "text": "7\n♠",
+            "disabled": true
+          },
+          {
+            "text": "5\n♦",
+            "disabled": true
+          },
+          {
+            "text": "Q\n♣",
+            "disabled": true
+          },
+          {
+            "text": "9\n♥",
+            "disabled": true
+          },
+          {
+            "text": "5\n♥",
+            "disabled": true
+          },
+          {
+            "text": "J\n♦",
+            "disabled": true
+          }
+        ],
+        "bounds": [
+          {
+            "selector": "cinema-seat  made-default ",
+            "rect": {
+              "x": 158,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 666,
+              "bottom": 496.390625
+            },
+            "scrollW": 506,
+            "clientW": 506
+          },
+          {
+            "selector": "cinema-profile cinema-match-profile",
+            "rect": {
+              "x": 171,
+              "y": 221,
+              "w": 482,
+              "h": 94,
+              "right": 653,
+              "bottom": 315
+            },
+            "scrollW": 482,
+            "clientW": 482
+          },
+          {
+            "selector": "cinema-standing-line",
+            "rect": {
+              "x": 358.09375,
+              "y": 263.5,
+              "w": 107.796875,
+              "h": 14,
+              "right": 465.890625,
+              "bottom": 277.5
+            },
+            "scrollW": 108,
+            "clientW": 108
+          },
+          {
+            "selector": "cinema-seat  made-default ",
+            "rect": {
+              "x": 700,
+              "y": 156,
+              "w": 508,
+              "h": 340.390625,
+              "right": 1208,
+              "bottom": 496.390625
+            },
+            "scrollW": 506,
+            "clientW": 506
+          },
+          {
+            "selector": "cinema-profile cinema-match-profile",
+            "rect": {
+              "x": 713,
+              "y": 221,
+              "w": 482,
+              "h": 94,
+              "right": 1195,
+              "bottom": 315
+            },
+            "scrollW": 482,
+            "clientW": 482
+          },
+          {
+            "selector": "cinema-standing-line",
+            "rect": {
+              "x": 894.59375,
+              "y": 263.5,
+              "w": 118.8125,
+              "h": 14,
+              "right": 1013.40625,
+              "bottom": 277.5
+            },
+            "scrollW": 119,
+            "clientW": 119
+          },
+          {
+            "selector": "cinema-board active  made-default",
+            "rect": {
+              "x": 158,
+              "y": 520.390625,
+              "w": 1050,
+              "h": 173,
+              "right": 1208,
+              "bottom": 693.390625
+            },
+            "scrollW": 1050,
+            "clientW": 1050
+          },
+          {
+            "selector": "cinema-footer",
+            "rect": {
+              "x": 158,
+              "y": 717.390625,
+              "w": 1050,
+              "h": 42,
+              "right": 1208,
+              "bottom": 759.390625
+            },
+            "scrollW": 1050,
+            "clientW": 1050
+          }
+        ],
+        "text": "ROUND 1 · MATCH 1/3\nSHOWDOWN\n\n0W 0D 0L\n\n1\n점검1 · YOU\nPOINT 0\n♞\n7\n♦\n♞\nK\n♦\n플랍\nK 하이\n(KICKER Q, 9, 7, 5)\n\n0W 0D 0L\n\n4\n스페이드 울프\nPOINT 0\n♞\n7\n♥\n♞\n7\n♠\n플랍\n7 원페어\n(KICKER Q, 9, 5)\nCOMMUNITY BOARD\n♞\n5\n♦\n♞\nQ\n♣\n♞\n9\n♥\n♞\n5\n♥\n♞\nJ\n♦\nFLOP"
+      }
+    },
+    {
+      "t": 1790238653336,
+      "ms": 22530,
+      "type": "js-pause-resume",
+      "seat": "p1"
+    }
+  ]
+}

@@ -1,0 +1,1503 @@
+{
+  "lastBySeat": {
+    "p1": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p2": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p3": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p4": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p5": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    },
+    "p6": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p7": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": false
+    },
+    "p8": {
+      "round": 5,
+      "phase": "GAME_RESULT",
+      "alive": true
+    }
+  },
+  "eventCount": 28020,
+  "errors": [],
+  "transitionStatsExcludingP2": {
+    "count": 423,
+    "medianMs": 3,
+    "p95Ms": 139,
+    "maxMs": 403
+  },
+  "recovery": [],
+  "transitionMeasurement": "screen",
+  "largestTransitionSpreads": [
+    {
+      "key": "1-primary-10|RESULT|9",
+      "spreadMs": 403,
+      "seats": [
+        "p8",
+        "p1"
+      ]
+    },
+    {
+      "key": "2-primary-15|TABLE_ENTER|4",
+      "spreadMs": 351,
+      "seats": [
+        "p3",
+        "p1"
+      ]
+    },
+    {
+      "key": "5-final-38|FINAL_WINNER|28",
+      "spreadMs": 350,
+      "seats": [
+        "p3",
+        "p7",
+        "p5",
+        "p1",
+        "p6",
+        "p4",
+        "p2",
+        "p8"
+      ]
+    },
+    {
+      "key": "2-primary-15|FLOP_1|5",
+      "spreadMs": 349,
+      "seats": [
+        "p3",
+        "p1"
+      ]
+    },
+    {
+      "key": "1-primary-1|COMPLETE|9",
+      "spreadMs": 329,
+      "seats": [
+        "p4",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-21|COMPLETE|13",
+      "spreadMs": 329,
+      "seats": [
+        "p2",
+        "p1"
+      ]
+    },
+    {
+      "key": "3-primary-30|COMPLETE|13",
+      "spreadMs": 325,
+      "seats": [
+        "p6",
+        "p1"
+      ]
+    },
+    {
+      "key": "5-final-38|TABLE_ENTER|0",
+      "spreadMs": 273,
+      "seats": [
+        "p3",
+        "p8",
+        "p5",
+        "p1",
+        "p4",
+        "p2",
+        "p7",
+        "p6"
+      ]
+    },
+    {
+      "key": "3-primary-22|TABLE_ENTER|8",
+      "spreadMs": 267,
+      "seats": [
+        "p7",
+        "p8"
+      ]
+    },
+    {
+      "key": "3-primary-24|TABLE_ENTER|8",
+      "spreadMs": 264,
+      "seats": [
+        "p3",
+        "p6"
+      ]
+    },
+    {
+      "key": "3-primary-31|RESULT|13",
+      "spreadMs": 260,
+      "seats": [
+        "p3",
+        "p5"
+      ]
+    },
+    {
+      "key": "1-primary-9|TABLE_ENTER|4",
+      "spreadMs": 238,
+      "seats": [
+        "p3",
+        "p7"
+      ]
+    },
+    {
+      "key": "1-primary-2|TABLE_ENTER|4",
+      "spreadMs": 228,
+      "seats": [
+        "p3",
+        "p8"
+      ]
+    },
+    {
+      "key": "5-final-38|FINAL_SECOND_REVEAL|20",
+      "spreadMs": 160,
+      "seats": [
+        "p4",
+        "p8",
+        "p2",
+        "p3",
+        "p5",
+        "p6",
+        "p7",
+        "p1"
+      ]
+    },
+    {
+      "key": "5-final-38|FINAL_FIRST_HAND|12",
+      "spreadMs": 152,
+      "seats": [
+        "p3",
+        "p7",
+        "p1",
+        "p8",
+        "p5",
+        "p2",
+        "p6",
+        "p4"
+      ]
+    }
+  ],
+  "scheduleDiff": [
+    {
+      "key": "4:1790237910417",
+      "match": "4-primary-35",
+      "entries": [
+        {
+          "seat": "p3",
+          "offset": 0,
+          "duration": 8990
+        },
+        {
+          "seat": "p2",
+          "offset": 0,
+          "duration": 8990
+        },
+        {
+          "seat": "p7",
+          "offset": 25480,
+          "duration": 11990
+        },
+        {
+          "seat": "p6",
+          "offset": 25480,
+          "duration": 11990
+        }
+      ]
+    },
+    {
+      "key": "4:1790237910417",
+      "match": "4-primary-34",
+      "entries": [
+        {
+          "seat": "p7",
+          "offset": 11990,
+          "duration": 10490
+        },
+        {
+          "seat": "p4",
+          "offset": 0,
+          "duration": 8990
+        },
+        {
+          "seat": "p6",
+          "offset": 11990,
+          "duration": 10490
+        },
+        {
+          "seat": "p1",
+          "offset": 0,
+          "duration": 8990
+        }
+      ]
+    },
+    {
+      "key": "4:1790237954442",
+      "match": "4-secondary-37",
+      "entries": [
+        {
+          "seat": "p7",
+          "offset": 11990,
+          "duration": 11990
+        },
+        {
+          "seat": "p6",
+          "offset": 11990,
+          "duration": 11990
+        },
+        {
+          "seat": "p5",
+          "offset": 0,
+          "duration": 8990
+        },
+        {
+          "seat": "p2",
+          "offset": 0,
+          "duration": 8990
+        },
+        {
+          "seat": "p1",
+          "offset": 0,
+          "duration": 8990
+        }
+      ]
+    }
+  ],
+  "horizontalOverflow": [],
+  "mobileBoardBounds": [
+    {
+      "seat": "p6",
+      "round": 1,
+      "match": "1-primary-3",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "match": "1-primary-4",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-4",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-2",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-8",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-5",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "match": "1-primary-7",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 1,
+      "match": "1-primary-8",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "match": "1-primary-9",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "match": "1-primary-9",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "match": "1-primary-12",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 1,
+      "match": "1-primary-11",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 2,
+      "match": "2-primary-15",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 338,
+          "h": 91,
+          "right": 349,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 338,
+          "h": 147,
+          "right": 349,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 2,
+      "match": "2-primary-14",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 371,
+          "h": 91,
+          "right": 382,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 371,
+          "h": 147,
+          "right": 382,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 2,
+      "match": "2-primary-14",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 371,
+          "h": 91,
+          "right": 382,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 371,
+          "h": 147,
+          "right": 382,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 2,
+      "match": "2-primary-13",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 444,
+          "w": 338,
+          "h": 91,
+          "right": 349,
+          "bottom": 535
+        },
+        {
+          "x": 11,
+          "y": 535,
+          "w": 338,
+          "h": 147,
+          "right": 349,
+          "bottom": 682
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "match": "3-primary-22",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-21",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "match": "3-primary-24",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-24",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-26",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "match": "3-primary-26",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-28",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "match": "3-primary-25",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "match": "3-primary-31",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "match": "3-primary-30",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "match": "3-primary-32",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "match": "3-primary-29",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 430,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 576
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 4,
+      "match": "4-primary-34",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-primary-35",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "match": "4-primary-35",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 338,
+          "h": 146,
+          "right": 349,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 4,
+      "match": "4-primary-34",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 435,
+          "w": 371,
+          "h": 146,
+          "right": 382,
+          "bottom": 581
+        }
+      ]
+    },
+    {
+      "seat": "p6",
+      "round": 4,
+      "match": "4-secondary-36",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 344,
+          "w": 371,
+          "h": 107,
+          "right": 382,
+          "bottom": 451
+        }
+      ]
+    },
+    {
+      "seat": "p7",
+      "round": 4,
+      "match": "4-secondary-36",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 337.75,
+          "w": 338,
+          "h": 107,
+          "right": 349,
+          "bottom": 444.75
+        }
+      ]
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "match": "4-secondary-36",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 360,
+        "h": 660
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 337.75,
+          "w": 338,
+          "h": 107,
+          "right": 349,
+          "bottom": 444.75
+        }
+      ]
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "match": "4-secondary-37",
+      "scroll": {
+        "x": 0,
+        "y": 0
+      },
+      "viewport": {
+        "w": 393,
+        "h": 852
+      },
+      "boards": [
+        {
+          "x": 11,
+          "y": 344,
+          "w": 371,
+          "h": 107,
+          "right": 382,
+          "bottom": 451
+        }
+      ]
+    }
+  ],
+  "shops": [
+    {
+      "seat": "p1",
+      "round": 1,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 1,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 1,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 66
+      }
+    },
+    {
+      "seat": "p6",
+      "round": 1,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 1,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 1,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 66
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 1,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 1,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 3,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 3,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p6",
+      "round": 3,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 3,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 3,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 3,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 3,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 3,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 4,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 4,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p6",
+      "round": 4,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 4,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 4,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 4,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 4,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 4,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p3",
+      "round": 5,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p7",
+      "round": 5,
+      "width": 360,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p5",
+      "round": 5,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p4",
+      "round": 5,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p2",
+      "round": 5,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p8",
+      "round": 5,
+      "width": 768,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p6",
+      "round": 5,
+      "width": 393,
+      "timerVisible": false,
+      "readyStatusVisible": false,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "seat": "p1",
+      "round": 5,
+      "width": 1366,
+      "timerVisible": true,
+      "readyStatusVisible": true,
+      "scroll": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "resilience": []
+}
