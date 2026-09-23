@@ -11,13 +11,15 @@
 - **P-M02 FIXED:** 생존 타이브레이크 요약이 각 플레이어가 마지막으로 참가한 결정 보드의 족보와 사용 카드를 보존합니다. 생존자·탈락자 계산 및 보상은 변경하지 않았습니다.
 - **P-M03 FIXED:** Omaha 예시는 실제 evaluator와 일치하는 `A♥·2♦ + 3♠·4♣·5♠ = 5 하이 스트레이트`로 수정했습니다.
 - **M-03 / N-05 FIXED:** 라운드 가이드에 포커스 진입·순환·복귀·Escape 닫기를 추가했고, 최종 총점 팝업은 hover 자동 열기와 click 토글의 충돌을 제거했습니다.
+- **최종 순위 정책 FIXED:** R5 진출자는 최종 총점으로 1~4위, R4 탈락자는 탈락 당시 승점으로 5~6위, R3 탈락자는 같은 기준으로 7~8위에 고정됩니다.
+- **관전자 READY 정책 FIXED:** 탈락자는 `waitingOn`과 READY 투표 대상에서 제외됩니다. 모든 인간이 탈락한 뒤의 연출·결과 장벽은 관전자 입력 없이 서버 타이머가 진행합니다.
 - README의 R4 드래프트 뒤 개인 상점과 최종 점수의 증강 보너스 공식을 실제 코드에 맞췄습니다.
 
-검증 결과: `npm test` **51 files / 360 tests PASS**, `npm run test:workers` **1 file / 12 tests PASS**, `npm run lint` PASS, `npm run build` PASS. Worker 시험은 실제 Durable Object에서 `2-lock → R1 timeout → AI purchase → persist/broadcast/reconnect`를 확인합니다. Wrangler 로그 파일 `EPERM` 및 정적 분석 경고는 출력됐지만 각 명령은 종료코드 0으로 시험/번들 생성을 완료했습니다.
+검증 결과: `npm test` **51 files / 361 tests PASS**, `npm run test:workers` **1 file / 12 tests PASS**, `npm run lint` PASS, `npm run build` PASS. Worker 시험은 실제 Durable Object에서 `2-lock → R1 timeout → AI purchase → persist/broadcast/reconnect`를 확인합니다. Wrangler 로그 파일 `EPERM` 및 정적 분석 경고는 출력됐지만 각 명령은 종료코드 0으로 시험/번들 생성을 완료했습니다.
 
 운영 도메인은 이전 후보 `8984da8`(Cloudflare Version ID `758e8fc5-ff55-4bce-a185-7c93b382ad7f`)까지 배포되어 있습니다. 2026-09-23 읽기 전용 확인에서 health/root/`/play`는 HTTP 200, `www`는 apex로 HTTP 301이었습니다. 이 보정 커밋 `1318827`은 현재 요청 범위에 따라 GitHub에만 전달하며 새 운영 배포는 하지 않습니다.
 
-**판정은 계속 NOT READY입니다.** 위에서 재현된 코드 결함은 닫혔지만, `win_bonus`의 R3 적용 범위, 탈락자의 최종 순위 정책, 관전자 READY 권한, 시네마틱 이전 resolved payload 공개 정책과 실제 모바일·부하·장애 주입 검증은 별도 승인 또는 실행 증거가 필요합니다.
+**판정은 계속 NOT READY입니다.** 위에서 재현된 코드 결함과 최종 순위·관전자 READY 정책은 닫혔지만, `win_bonus`의 R3 적용 범위, 시네마틱 이전 resolved payload 공개 정책과 실제 모바일·부하·장애 주입 검증은 별도 승인 또는 실행 증거가 필요합니다.
 
 **감사일:** 2026-09-22 · **판정:** **NOT READY**
 **감사 방식:** 읽기 전용 소스 대조 + 독립 실행 검증 + 기존 QA 증거 검토

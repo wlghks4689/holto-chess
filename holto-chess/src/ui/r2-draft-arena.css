@@ -2,7 +2,7 @@
 .r2-draft-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0!important}
 .r2-draft-heading small{font:600 10px 'DM Mono',sans-serif;letter-spacing:.1em;color:#84dedc}
 .r2-draft-heading h2{font-size:clamp(18px,2.4vw,27px);margin:7px 0 0}
-.r2-draft-rule{font-size:11px;color:#90abb9;margin:12px 0 22px}
+.r2-draft-heading .draft-title-row{margin-top:0}
 .r2-draft-layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:30px;align-items:center}
 .r2-order-panel{min-width:0}.r2-order-panel h3{font:600 11px 'DM Mono',sans-serif;color:#85bbc8;letter-spacing:.12em;margin:0 0 12px}.r2-order-panel h3 small{font:400 10px sans-serif;letter-spacing:0;margin-left:8px;color:#688c9c}
 .r2-order{list-style:none;padding:0;margin:0;display:grid;gap:7px}
@@ -29,7 +29,6 @@
 @media(max-width:1100px) and (orientation:landscape){.r2-draft-layout{grid-template-columns:190px minmax(0,1fr);gap:20px}.r2-order li{padding:7px}.r2-order-name{font-size:11px}.r2-arena{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 18px;padding:20px 15px}.r2-card-slot{transform:none}.r2-offer .playing-card{max-width:72px}.r2-card-status{min-height:14px}}
 @media(max-width:700px),(orientation:portrait){
  .panel.r2-draft{padding:14px 10px}.r2-draft-heading{gap:8px}.r2-draft-heading h2{font-size:18px}.r2-draft-heading small{font-size:9px}
- .r2-draft-rule{font-size:9px;letter-spacing:-.035em;margin:10px 0 12px;white-space:nowrap}
  .r2-draft-layout{display:flex;flex-direction:column;gap:16px}.r2-stage{order:0;width:100%;padding:0}.r2-order-panel{order:1;width:100%;text-align:center}.r2-order-panel h3{margin:0 0 9px;font-size:10px;text-align:center}
  .r2-arena{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px 12px;padding:18px 10px 10px;min-height:0}.r2-card-slot{transform:none}.r2-offer{gap:5px}.r2-offer .playing-card{max-width:80px}.r2-offer .card-rank{font-size:24px}.r2-offer .card-suit{font-size:30px}.r2-card-status{font-size:9px;min-height:13px}.r2-price{padding:5px 3px;font-size:10px}
  .r2-current{min-height:27px}.r2-current strong{font-size:14px}.r2-current small{font-size:10px}.r2-auto-hint{font-size:9px;margin-top:4px}

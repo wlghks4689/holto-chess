@@ -197,24 +197,25 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
       const current = boardIndex === frame.boardIndex;
       const pending = boardIndex > frame.boardIndex;
+      const collapsed = match.runoutCount === 2 && boardIndex < frame.boardIndex;
       const shownBoard = match.boards[boardIndex] ?? [];
       const boardResults = match.boardResults[boardIndex] ?? [];
       const boardWinners = match.boardWinnerIds[boardIndex] ?? [];
       const boardFocus = current ? focus : boardResults.find((result) => boardWinners.includes(result.playerId)) ?? boardResults[0];
       const completed = !pending && (!current || flags.glow);
-      const matchupComplete = boardIndex < frame.boardIndex || boardIndex === frame.boardIndex && ["RUN_RESULT", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
+      const matchupComplete = boardIndex === 0 && current && ["RUN_RESULT", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : "COMMUNITY BOARD"
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
-      return <div className={`cinema-board ${pending ? "pending" : !current ? "complete" : "active"} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
-        <h3>{boardTitle}</h3>
-        {match.runoutCount === 2 && boardIndex < 2 && matchupComplete && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete className="cinema-board-matchup" />}
-        <div className="cinema-board-cards">{shownBoard.map((card, index) => {
+      return <div className={`cinema-board ${pending ? "pending" : !current ? "complete" : "active"} ${collapsed ? "is-collapsed" : ""} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
+        <h3>{boardTitle}{collapsed && <b>완료</b>}</h3>
+        {!collapsed && match.runoutCount === 2 && matchupComplete && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete className="cinema-board-matchup" />}
+        {!collapsed && <div className="cinema-board-cards">{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;
           return <ShowdownCardFlip card={card} open={visible} glow={completed && used} dimmed={completed && !used}
             className={`${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`}
             key={`${boardIndex}-${card.id}`} />;
-        })}</div>
+        })}</div>}
       </div>;
     })}</div>}
     <footer className="cinema-footer" aria-live="polite">{intro ? final ? "네 플레이어의 마지막 패" : "상대를 확인하세요" : flags.reward ? "" : final && frame.phase === "FINAL_WINNER" ? "1위 확정" : final && frame.phase === "FINAL_PLACE" ? `${frame.finalPlace}위 확정` : flags.result ? "MATCH RESULT" : flags.runResult ? `${runLabel} RESULT` : flags.made ? "MADE HAND" : flags.glow ? "BEST 5" : final ? finalHeading.kicker : frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : runLabel}

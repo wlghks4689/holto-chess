@@ -33,7 +33,6 @@ import { playerEventFeed } from "./playerEventFeed";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { useLocalCountdown } from "./useLocalCountdown";
-import { PhaseTimer } from "./PhaseTimer";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
@@ -60,14 +59,11 @@ function PoolMeter({ state }: { state: PorenaGameState }) {
   </div>;
 }
 
-function LocalRunLoadoutStage({ state, view, send }: {
-  state: PorenaGameState; view: ReturnType<typeof createPlayerView>; send: (action: GameAction) => void;
+function LocalRunLoadoutStage({ view, send }: {
+  view: ReturnType<typeof createPlayerView>; send: (action: GameAction) => void;
 }) {
   const seconds = useLocalCountdown(30);
-  return <><div className="run-loadout-pool-stage">
-    <div className="pool-loadout-timer"><PhaseTimer seconds={seconds} ariaLabel={`배치 확정 남은 시간 ${seconds}초`} /></div>
-    <PoolMeter state={state} />
-  </div><RunLoadoutPanel view={view} send={send} disabled={false} seconds={seconds} showTimer={false} /></>;
+  return <RunLoadoutPanel view={view} send={send} disabled={false} seconds={seconds} />;
 }
 
 function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
@@ -196,7 +192,8 @@ export function App({ onHome }: { onHome: () => void }) {
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""}`}>
       {prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div><div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div></header>}
-      {state.phase === "RUN_LOADOUT" ? <LocalRunLoadoutStage key={state.phase} state={state} view={draftView} send={draftAction} /> : <PoolMeter state={state} />}
+      {state.phase === "SHOP" && <PoolMeter state={state} />}
+      {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} />}
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}

@@ -87,7 +87,7 @@ export function GameOverviewGuide({ onClose }: { onClose: () => void }) {
             <span><b>⌊BB ÷ 10⌋</b><small>남은 자금</small></span><i>=</i>
             <strong>총점 1위<br /><small>우승</small></strong>
           </div>
-          <p className="game-guide-note">탈락자는 탈락 시점의 승점·족보·BB로 최종 집계합니다. 총점이 같으면 R5 등수 등 엔진의 순위 규칙으로 결정합니다.</p>
+          <p className="game-guide-note">R5 진출자는 최종 총점으로 1~4위를 정합니다. R4 탈락자는 탈락 당시 승점으로 5~6위, R3 탈락자는 같은 기준으로 7~8위를 정합니다.</p>
         </section>
       </div>
 

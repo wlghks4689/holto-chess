@@ -131,9 +131,12 @@
 .cinema-board-stack.run-it-twice .cinema-board+.cinema-board{border-top:1px solid #294839}
 .cinema-board.complete{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.36)}
 .cinema-board.pending{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.18);opacity:.72}
+.cinema-board.is-collapsed{min-height:0;padding:9px 8px;background:rgba(3,15,10,.52)}
+.cinema-board.is-collapsed h3{margin:0}
 .cinema-board.complete .playing-card.compact{width:48px;height:69px}.cinema-board.complete .cinema-board-cards{gap:8px}.cinema-board.complete .hint{margin:8px 0 0}
 .cinema-board-cards{display:flex;justify-content:center;gap:12px}
 .cinema-board .playing-card.compact{width:64px;height:91px}
+.cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:64px;height:91px}
 .cinema-card-open{animation:cinema-flip var(--flip-duration,.22s) ease-out both;perspective:800px}
 .cinema-card-open.cinema-river{animation:cinema-river-impact var(--river-duration,.4s) ease-out both}
 .cinema-suspense{animation:cinema-suspense var(--suspense-duration,.25s) ease-in both}
@@ -277,6 +280,7 @@
   .cinema-multi:not(.cinema-final) .cinema-seats{grid-template-columns:1fr}
   .cinema-board-cards{gap:8px}
   .cinema-board .playing-card.compact{width:43px;height:64px}
+  .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:43px;height:64px}
   .cinema-hole-cards{gap:3px}
   .cinema-hole-cards .playing-card.compact{width:32px;height:48px}
   .cinema-hole-cards .playing-card.compact .card-rank{font-size:13px}

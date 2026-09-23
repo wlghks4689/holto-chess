@@ -79,7 +79,7 @@ describe("current R4 loser bracket review", () => {
     expect(next.game.matches.filter((match) => match.id.startsWith("4-") && match.group === "loser")).toHaveLength(1);
     expect(next.game.players.slice(0, 2).every((player) => player.eliminatedRound === 4)).toBe(true);
     expect(forceBarrier(next, next.presentation!.endsAt - 1)).toBeNull();
-    expect(() => applyRoomAction(next, "p1", { type: "READY" }, turnKey(next), next.presentation!.endsAt - 1)).toThrow(/연출/);
+    expect(() => applyRoomAction(next, "p1", { type: "READY" }, turnKey(next), next.presentation!.endsAt - 1)).toThrow(/관전자는 READY/);
     let finished = next;
     for (let step = 0; step < 10 && finished.game.phase !== "GAME_RESULT"; step++) {
       finished = forceBarrier(finished, barrierDeadline(finished)!)!;
@@ -104,14 +104,13 @@ describe("current R4 loser bracket review", () => {
     expect(presentationViewFor(room, "p3")!.matches.length).toBeGreaterThan(0);
   });
 
-  it("lets eliminated viewers confirm only after playback, then holds the next showdown", () => {
+  it("rejects eliminated viewer READY and lets the server timer open the next showdown", () => {
     const { room } = bothHumansLose();
     let next = forceBarrier(room, barrierDeadline(room)!)!;
     const end = next.presentation!.endsAt;
-    next = applyRoomAction(next, "p1", { type: "READY" }, turnKey(next), end);
-    expect(next.game.phase).toBe("ROUND_RESULT");
-    expect(pendingBarrierIds(next)).toEqual(["p2"]);
-    next = applyRoomAction(next, "p2", { type: "READY" }, turnKey(next), end);
+    expect(() => applyRoomAction(next, "p1", { type: "READY" }, turnKey(next), end)).toThrow(/관전자는 READY/);
+    expect(pendingBarrierIds(next)).toEqual([]);
+    next = forceBarrier(next, barrierDeadline(next)!)!;
     expect(next.game.round).toBe(5);
     expect(next.game.phase).toBe("SHOWDOWN_PRIMARY");
   });

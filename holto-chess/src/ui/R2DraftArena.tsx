@@ -4,6 +4,7 @@ import { CardView } from "./CardView";
 import "./r2-draft-arena.css";
 import { canPickR2Card, DRAFT_DEAL_MS } from "./r2DraftPresentation";
 import { PhaseTimer } from "./PhaseTimer";
+import { DraftRuleTooltip } from "./DraftRuleTooltip";
 
 const dealtPools = new Set<string>();
 
@@ -32,8 +33,7 @@ export function R2DraftArena({ view, send, disabled, seconds }: {
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = draft.currentPlayerId === view.me.playerId;
   return <section className={`panel r2-draft ${dealing ? "is-dealing" : "is-dealt"}`} aria-label="R2 공개 드래프트">
-    <header className="r2-draft-heading"><div><small>ROUND 2 · DRAFT PHASE</small><h2>{ordering ? "공개 드래프트" : "공개 카드 한 장을 선택하세요"}</h2></div>{(ordering || myTurn) && <PhaseTimer className="r2-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={`${ordering ? "Deal-In" : "선택"} 남은 시간 ${seconds ?? (ordering ? 3 : 20)}초`} />}</header>
-    <p className="r2-draft-rule">승점 낮은 순 → 동점 시 BB 높은 순 → 완전 동률 서버 추첨</p>
+    <header className="r2-draft-heading"><div><small>ROUND 2 · DRAFT PHASE</small><div className="draft-title-row"><h2>{ordering ? "공개 드래프트" : "공개 카드 한 장을 선택하세요"}</h2><DraftRuleTooltip round={2} /></div></div>{(ordering || myTurn) && <PhaseTimer className="r2-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={`${ordering ? "Deal-In" : "선택"} 남은 시간 ${seconds ?? (ordering ? 3 : 20)}초`} />}</header>
     <div className="r2-draft-layout">
       <aside className="r2-order-panel" aria-label="드래프트 선택 순서"><h3>DRAFT ORDER <small>선택 순서</small></h3><ol className="r2-order">{draft.order.map((entry, index) => {
         const player = view.players.find((candidate) => candidate.playerId === entry.playerId);

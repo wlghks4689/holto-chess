@@ -24,6 +24,11 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   expect(html).not.toContain("비공개 카드");
   expect(html).toContain("ROUND 2 · DRAFT PHASE");
   expect(html).toContain("공개 드래프트");
+  expect(html).toContain('aria-label="공개 드래프트 진행 방식 보기"');
+  expect(html).toContain('role="tooltip"');
+  expect(html).toContain("누적 승점 낮은 순");
+  expect(html).toContain("8장 공개 풀에서 차례마다 1장을 구매");
+  expect(html).not.toContain("r2-draft-rule");
   expect(html).not.toContain("공용 카드 배치 중");
   expect(html).not.toContain("모든 플레이어가 같은");
   expect(html).not.toContain("배치 중");

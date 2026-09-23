@@ -5,6 +5,7 @@ import { useLocalCountdown } from "./useLocalCountdown";
 import "./open-draft.css";
 import { R2DraftArena } from "./R2DraftArena";
 import { PhaseTimer } from "./PhaseTimer";
+import { DraftRuleTooltip } from "./DraftRuleTooltip";
 
 export function OpenDraftPanel({ view, send, disabled, seconds }: {
   view: PlayerView; send: (action: GameAction) => void; disabled: boolean; seconds: number | null;
@@ -16,8 +17,7 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
   return <section className="open-draft panel" aria-label={`R${view.round} 공개 드래프트`}>
-    <header><small className="draft-kicker">ROUND {view.round} · DRAFT PHASE</small><h2>{ordering ? "공개 드래프트" : "공개 카드 한 장을 선택하세요"}</h2>{(ordering || myTurn) && <PhaseTimer className="draft-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={`${ordering ? "Deal-In" : "선택 제한"} 남은 시간 ${seconds ?? (ordering ? 3 : 20)}초`} />}</header>
-    <p className="draft-rule"><span>승점이 낮은 순서</span><i>→</i><span>동점이면 BB가 높은 순서</span><i>→</i><span>완전 동률은 서버 추첨</span></p>
+    <header><small className="draft-kicker">ROUND {view.round} · DRAFT PHASE</small><div className="draft-title-row"><h2>{ordering ? "공개 드래프트" : "공개 카드 한 장을 선택하세요"}</h2><DraftRuleTooltip round={view.round} /></div>{(ordering || myTurn) && <PhaseTimer className="draft-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={`${ordering ? "Deal-In" : "선택 제한"} 남은 시간 ${seconds ?? (ordering ? 3 : 20)}초`} />}</header>
     {view.round === 4 && <div className="draft-private-inventory"><small>내 보유 카드 · 상대에게 비공개</small><div className="card-row centered">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
       <b>{String(index + 1).padStart(2, "0")}</b><span>{name(entry.playerId)}</span><small>{entry.points}P · {entry.stackBB}BB</small>
