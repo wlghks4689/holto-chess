@@ -22,5 +22,9 @@ describe("round guide", () => {
     expect(html).toContain("2♣");
     expect(html).toContain("A♥");
     expect(html).toContain("9♠");
+    expect(html).toContain("5 하이 스트레이트");
+    expect(html).toContain("A♥ · 2♦ · 3♠ · 4♣ · 5♠");
+    expect(html).not.toContain("2 원페어");
+    expect(html).not.toContain("스트레이트 불가");
   });
 });

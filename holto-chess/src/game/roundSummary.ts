@@ -26,7 +26,13 @@ export function createRoundSummary(state: PorenaGameState): RoundSummaryRow[] {
   const current = [...rows].sort((a, b) => b.totalPoints - a.totalPoints || b.stackBB - a.stackBB || seatOrder.get(a.playerId)! - seatOrder.get(b.playerId)!);
   current.forEach((row, index) => { row.rank = index + 1; });
   if (state.round > 1) {
+    const previousStack = new Map(rows.map((row) => {
+      const reward = matches.flatMap((match) => match.runRewards?.flat() ?? match.rewards ?? [])
+        .find((entry) => entry.playerId === row.playerId);
+      return [row.playerId, reward?.beforeBB ?? row.stackBB] as const;
+    }));
     const previous = [...rows].sort((a, b) => (firstStandings?.[b.playerId] ?? b.totalPoints - b.points) - (firstStandings?.[a.playerId] ?? a.totalPoints - a.points)
+      || previousStack.get(b.playerId)! - previousStack.get(a.playerId)!
       || seatOrder.get(a.playerId)! - seatOrder.get(b.playerId)!);
     previous.forEach((row, index) => { row.previousRank = index + 1; });
   }

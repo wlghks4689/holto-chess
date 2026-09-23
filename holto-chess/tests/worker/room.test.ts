@@ -77,6 +77,37 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(reconnected.view().phase).toBe("ROUND_RESULT");
     expect(assertPoolIntegrity(saved.game)).toBe(true);
   });
+  it("persists and broadcasts AI purchases from a fully locked shop after timeout", async () => {
+    const a = await session(); const b = await session(a.roomId);
+    const clients = await Promise.all([a, b].map(connect));
+    await Promise.all(clients.map((client) => client.send({ type: "READY" })));
+    await clients[0].wait((message) => message.type === "PLAYER_VIEW" && message.payload.phase === "SHOP");
+    expect(await clients[0].send({ type: "REROLL" })).toMatchObject({ type: "ACK" });
+    const lockedIds = clients[0].view().me.shopCards.map(({ card }) => card.id);
+    for (const cardId of lockedIds) expect(await clients[0].send({ type: "LOCK_SHOP", cardId })).toMatchObject({ type: "ACK" });
+    expect(clients[0].view().me.stackBB).toBe(39);
+
+    const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+    await runInDurableObject(stub, async (_instance, state) => {
+      const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
+      saved.barrierSince = Date.now() - 120_000;
+      await state.storage.put("snapshot:v1", saved);
+    });
+    await evictDurableObject(stub);
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    await Promise.all(clients.map((client) => client.wait((message) => message.type === "PLAYER_VIEW" && message.payload.phase === "SHOWDOWN_PRIMARY")));
+
+    const saved = (await runInDurableObject(stub, (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1")))!;
+    const player = saved.game.players.find((candidate) => candidate.id === a.playerId)!;
+    expect(player.ownedCardIds).toHaveLength(2);
+    expect(player.ownedCardIds.some((id) => lockedIds.includes(id))).toBe(true);
+    expect(player.lockedShopCardIds.every((id) => player.shopCardIds.includes(id))).toBe(true);
+    expect(player.lockedShopCardIds.every((id) => !player.ownedCardIds.includes(id))).toBe(true);
+    expect(assertPoolIntegrity(saved.game)).toBe(true);
+    const reconnected = await connect(a);
+    expect(reconnected.view().phase).toBe("SHOWDOWN_PRIMARY");
+    expect(reconnected.view().me.ownedCards).toHaveLength(2);
+  });
   it("limits connection attempts and expires old room snapshots", async () => {
     const headers = { Origin: origin, "CF-Connecting-IP": "192.0.2.92" };
     for (let i = 0; i < 120; i++) {
