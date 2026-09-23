@@ -7,7 +7,8 @@
 - 기존 방: 저장된 증강 필드와 선택 단계만 마이그레이션. 획득된 승점·BB·카드와 경기 결과는 보존하며 과거 보상을 소급 재계산하지 않음.
 - BAL-001 영향: 기존 REQUEST의 증강 항목과 `augments.ts` 참조는 폐지된 규칙의 역사 기록이며 현행 분석 범위에서 제외해야 함. 원본 REQUEST는 변경하지 않음. 후속 분석은 이 결정의 구현 커밋을 새 기준으로 재설정해야 함.
 - 검증: `npm test` 403/403, `npm run test:workers` 12/12, `npm run lint`, `npm run build` 통과. 밸런스 시뮬레이터 전용 테스트 2/6 통과·4/6 실패는 기존 BAL-001에서 기록한 R2 `SHOP`/`DRAFT_ORDER` 불일치이며 이 변경에서 새로 발생하지 않음.
-- 구현 커밋·배포 ID: 배포 확인 후 기록.
+- 구현 커밋: `720f7dc` (`codex/release-audit`, `origin/codex/release-audit` 푸시 확인).
+- 운영 배포: Cloudflare Worker `porena`, Version ID `1b1b1147-3fe9-44f3-b82b-1b451dce4fb8`. `https://porena.kr/api/health` 정상, 운영 HTML의 JS/CSS 해시가 최종 빌드와 일치함.
 
 ## COLLAB-001 — 역할 및 승인 경계
 
