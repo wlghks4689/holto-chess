@@ -3,7 +3,7 @@ import type { Card } from "./cards";
 export type HandCategory = "HIGH_CARD" | "PAIR" | "TWO_PAIR" | "TRIPS" | "STRAIGHT" | "FLUSH" | "FULL_HOUSE" | "QUADS" | "STRAIGHT_FLUSH" | "ROYAL_FLUSH";
 export type HandValue = { category: HandCategory; categoryRank: number; kickers: number[]; bestFive: Card[]; displayName: string };
 
-const CATEGORY_RANK: Record<HandCategory, number> = {
+export const CATEGORY_RANK: Record<HandCategory, number> = {
   HIGH_CARD: 1, PAIR: 2, TWO_PAIR: 3, TRIPS: 4, STRAIGHT: 5,
   FLUSH: 6, FULL_HOUSE: 7, QUADS: 8, STRAIGHT_FLUSH: 9, ROYAL_FLUSH: 10,
 };

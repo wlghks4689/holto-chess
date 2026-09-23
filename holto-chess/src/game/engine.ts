@@ -164,7 +164,20 @@ export function toggleSelectedCard(source: PorenaGameState, playerId: string, ca
   return state;
 }
 
-function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"]): void {
+/** One shop decision a bot policy can ask for. The engine still checks every rule before applying it. */
+export type BotShopAction = { type: "BUY"; cardId: string } | { type: "SELL"; cardId: string } | { type: "REROLL" } | { type: "DONE" };
+export type BotShopInput = {
+  round: Round; playerId: string; stackBB: number; handLimit: number; purchasesLeft: number;
+  rerollsLeft: number; rerollCost: number; ownedCards: Card[]; shopCards: { card: Card; price: number }[];
+};
+/**
+ * Replaces the default bot shopping brain. Passing one never changes prices, limits or ownership:
+ * the engine validates each returned action and stops at the first one the real rules reject.
+ */
+export type BotShopPolicy = (input: BotShopInput) => BotShopAction;
+const POLICY_STEP_LIMIT = 24;
+
+function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"], policy?: BotShopPolicy): void {
   const limit = BALANCE.handLimits[state.round];
   const planContext = { rulesVersion: state.rulesVersion ?? 1 } as const;
   for (const player of state.players.filter((item) => !item.eliminated && !humanIds.includes(item.id))) {
@@ -178,6 +191,47 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"])
       const cost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
       player.stackBB -= cost; releaseShop(state, player); reserveShopCards(state, player); player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
     };
+    if (policy) {
+      const sell = (cardId: string) => {
+        const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
+        const rate = player.augments.some((augment) => augment.id === "sell_bonus") ? 0.8 : BALANCE.sellRate;
+        player.stackBB += Math.floor(cardPrice(entry.card.rank) * rate);
+        player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId);
+        entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
+      };
+      for (let step = 0; step < POLICY_STEP_LIMIT; step += 1) {
+        const purchaseLimit = purchaseLimitFor(state.round, state.rulesVersion ?? 1);
+        const rerollCost = Math.max(0, BALANCE.rerollCostBB - (player.augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0));
+        const shopCards = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!.card)
+          .map((card) => ({ card, price: discountedPrice(player, card) }));
+        const action = policy({
+          round: state.round, playerId: player.id, stackBB: player.stackBB, handLimit: limit,
+          purchasesLeft: purchaseLimit - player.purchasesThisRound,
+          rerollsLeft: rerollLimitFor(state.round, state.rulesVersion ?? 1) - (player.rerollsUsed ?? 0),
+          rerollCost, ownedCards: ownedCards(), shopCards,
+        });
+        // An illegal request ends this bot's shopping instead of bending a rule for it.
+        if (action.type === "BUY") {
+          const offer = shopCards.find((entry) => entry.card.id === action.cardId);
+          if (!offer || offer.price > player.stackBB || player.ownedCardIds.length >= limit || player.purchasesThisRound >= purchaseLimit) break;
+          buy(action.cardId); continue;
+        }
+        if (action.type === "SELL") {
+          if (!player.ownedCardIds.includes(action.cardId)) break;
+          sell(action.cardId); continue;
+        }
+        if (action.type === "REROLL") {
+          const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
+          const shopSize = state.rulesVersion === 2 ? regularShopSizeFor(state.round) : player.shopSize;
+          if ((player.rerollsUsed ?? 0) >= rerollLimitFor(state.round, state.rulesVersion ?? 1) || player.stackBB < rerollCost) break;
+          if (shopSize > 0 && lockedCount >= shopSize) break;
+          reroll(); continue;
+        }
+        break;
+      }
+      player.selectedCardIds = bestBotSelection(state.round, ownedCards());
+      continue;
+    }
     while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state.rulesVersion ?? 1)) {
       const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!)
         .map((entry) => ({ card: entry.card, price: discountedPrice(player, entry.card) })).filter((entry) => entry.price <= player.stackBB);
@@ -217,9 +271,10 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"])
   }
 }
 
-export function prepareShowdown(source: PorenaGameState, humanIds: readonly string[] = ["p1"]): PorenaGameState {
+/** `botPolicy` is for practice modes (the tutorial); leaving it out keeps the normal bot brain. */
+export function prepareShowdown(source: PorenaGameState, humanIds: readonly string[] = ["p1"], botPolicy?: BotShopPolicy): PorenaGameState {
   if (source.phase !== "SHOP") throw new Error("상점 단계가 아닙니다.");
-  const state = structuredClone(source); aiPrepare(state, humanIds);
+  const state = structuredClone(source); aiPrepare(state, humanIds, botPolicy);
   const humans = humanIds.map((id) => playerById(state, id)).filter((p) => !p.eliminated);
   if (humans.some((p) => p.ownedCardIds.length < BALANCE.handLimits[state.round])) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
   const requiredSelection = state.round === 2 ? 2 : 0;
