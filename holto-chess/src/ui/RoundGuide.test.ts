@@ -33,7 +33,11 @@ describe("round guide", () => {
     const html = renderToStaticMarkup(createElement(RoundGuide, { round: 3, onClose: () => undefined }));
 
     expect(html).toContain("홀카드 4장 · 정확히 2장 사용");
-    expect(html).toContain("홀카드 4장 중 정확히 2장 + 보드 5장 중 정확히 3장으로 BEST5");
+    expect(html).toContain("Match 1: 누적 승점 순으로 매칭 상대 결정");
+    expect(html).toContain("Match 2·3: Swiss Score가 가까운 상대와 대결");
+    expect(html).toContain("홀카드 4장 중 2장 + 보드 5장 중 3장으로 BEST5");
+    expect(html).toContain("MATCH RULE");
+    expect(html).toContain("타이브레이크 3판 모두 SPLIT이면 하이카드 드로우로 승패를 결정합니다.");
     expect(html).toContain("2♦");
     expect(html).toContain("2♣");
     expect(html).toContain("A♥");

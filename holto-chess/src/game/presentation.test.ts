@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { MATCH_HOLD_MS, PRESENTATION_LEAD_MS, cinematicTimeline, presentationDurationMs } from "../shared/presentationTimeline";
+import { MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_LEAD_MS, cinematicTimeline, presentationDurationMs } from "../shared/presentationTimeline";
 import { createMatchView } from "./matchView";
 import { createPlayerView } from "./playerView";
-import { matchesVisible, visibleMatchesFor } from "./presentation";
+import { matchesVisible, syncPresentation, visibleMatchesFor } from "./presentation";
 import { addSession, applyRoomAction, barrierDeadline, barrierTimeoutMs, createRoom as createRoomCurrent, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 
 const T0 = 5_000_000;
@@ -38,9 +38,10 @@ describe("server-scheduled showdown presentation", () => {
       entries.forEach((entry, index) => {
         const view = createMatchView(room.game, matches[index]!);
         expect(entry.offsetMs).toBe(offset);
-        // Same timeline code the client plays, plus the automatic 1.5s hold between matches.
-        expect(entry.durationMs).toBe(cinematicTimeline(view).at(-1)!.at + MATCH_HOLD_MS);
-        expect(entry.durationMs).toBe(presentationDurationMs(view));
+        // Later Swiss matches show their own matchup before the cinematic starts.
+        expect(entry.prepMs ?? 0).toBe(index === 0 ? 0 : MATCH_PREP_MS);
+        expect(entry.durationMs).toBe(cinematicTimeline(view).at(-1)!.at + MATCH_HOLD_MS + (entry.prepMs ?? 0));
+        expect(entry.durationMs).toBe(presentationDurationMs(view) + (entry.prepMs ?? 0));
         offset += entry.durationMs;
       });
       longest = Math.max(longest, offset);
@@ -84,6 +85,23 @@ describe("server-scheduled showdown presentation", () => {
     expect(room.game.phase).toBe("SHOP");
     expect(room.presentation).toBeUndefined();
     expect(createPlayerView(room, "p1").presentation).toBeUndefined();
+  });
+
+  it("adds later-match previews in R4 but never in the final round", () => {
+    const { room, openedAt } = untilVisible(started());
+    const viewerMatch = room.game.roundResults.find((match) => match.playerIds.includes("p1"))!;
+    room.game.roundResults.push({ ...viewerMatch, id: `${viewerMatch.id}-again` });
+    room.game.round = 4;
+    delete room.presentation;
+    syncPresentation(room, openedAt + 1);
+    const r4Preps = room.presentation!.perPlayer.p1!.map((entry) => entry.prepMs ?? 0);
+    expect(r4Preps).toHaveLength(4);
+    expect(r4Preps).toEqual([0, MATCH_PREP_MS, MATCH_PREP_MS, MATCH_PREP_MS]);
+
+    room.game.round = 5;
+    delete room.presentation;
+    syncPresentation(room, openedAt + 2);
+    expect(room.presentation!.perPlayer.p1?.map((entry) => entry.prepMs ?? 0)).toEqual([0, 0, 0, 0]);
   });
 });
 

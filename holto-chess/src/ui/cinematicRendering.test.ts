@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { makeDeck, type Card } from "../core/poker/cards";
 import type { MatchView, PresentationView } from "../shared/protocol";
-import { cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
+import { MATCH_PREP_MS, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
 import { CinematicGate, ShowdownCinematic } from "./ShowdownCinematic";
 import { visibleFinalHand } from "./finalShowdownPresentation";
 import { showdownSeatOrder } from "./showdownSeatOrder";
@@ -62,6 +62,11 @@ describe("cinematic initial rendering", () => {
     const resultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: resultAt }));
     expect(resultHtml).toContain('<p class="swiss-record">2W 0D 0L</p>');
     expect(resultHtml).toContain('<em class="cinema-current-points">POINT 6</em>');
+    const viewerSeat = resultHtml.slice(resultHtml.indexOf('data-player-id="p1"'), resultHtml.indexOf('data-player-id="p2"'));
+    expect(viewerSeat.indexOf("cinema-profile-identity")).toBeLessThan(viewerSeat.indexOf("cinema-standing-line"));
+    expect(viewerSeat.indexOf("cinema-standing-line")).toBeLessThan(viewerSeat.indexOf("cinema-profile-outcome"));
+    expect(viewerSeat).toContain('class="cinema-current-points"');
+    expect(viewerSeat).toContain(">WIN</span>");
     expect(resultHtml).not.toContain("SWISS PAIRING");
     expect(resultHtml).not.toContain("R3 +");
   });
@@ -155,9 +160,9 @@ describe("cinematic initial rendering", () => {
     expect(html.match(/cinema-board-matchup/g)).toHaveLength(1);
     expect(html).toContain("cinema-board complete is-collapsed");
     expect(html).not.toContain("완료");
-    expect(html).toContain("p1 승리");
+    expect(html).not.toContain("p1 승리");
     expect(html).toMatch(/cinema-run-player[^"]*is-winner[\s\S]*?playing-card[^"]*glow/);
-    expect(html).toMatch(/cinema-run-player[^"]*is-loser[\s\S]*?playing-card[^"]*dimmed/);
+    expect(html).not.toMatch(/cinema-board complete is-collapsed[\s\S]*?cinema-run-player[^"]*is-loser/);
     expect(html.match(/cinema-board-cards/g)).toHaveLength(1);
     expect(html).toContain("RUN 2");
     expect(html).toContain("cinema-seats");
@@ -178,6 +183,8 @@ describe("cinematic initial rendering", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: survival, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(html).toContain('cinema-status-stamp is-survived">생존');
     expect(html).toContain('cinema-status-stamp is-eliminated">탈락');
+    expect(html).toContain("LOSS");
+    expect(html.match(/class="cinema-victory"/g)).toHaveLength(2);
     expect(html).not.toContain("생존 결정");
     expect(html).toContain("+ 20BB");
     expect(html).toContain("+ 2P 획득");
@@ -188,6 +195,7 @@ describe("cinematic initial rendering", () => {
     expect(regularHtml).toContain('cinema-status-stamp is-eliminated">탈락');
     expect(regularHtml).not.toContain("is-survived");
     expect(regularHtml).toContain("WIN");
+    expect(regularHtml).toContain("LOSS");
   });
   it("defers R3 elimination stamps until Omaha Game 2", () => {
     const omaha: MatchView = { ...match, id: "omaha", round: 3, gameNumber: 1, participantIds: ["p1", "p2"],
@@ -204,6 +212,7 @@ describe("cinematic initial rendering", () => {
 
     const game2Html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...omaha, gameNumber: 2 }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(game2Html).toContain('cinema-status-stamp is-eliminated">탈락');
+    expect(game2Html).toContain("LOSS");
     for (const matchday of [1, 2, 3]) {
       const swiss = { wins: 1, draws: 1, losses: 1, score: 1.5 };
       const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...omaha, gameNumber: undefined, matchday, swissAfter: { p1: swiss, p2: swiss } }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
@@ -257,10 +266,13 @@ describe("cinematic initial rendering", () => {
 });
 
 describe("server-synced cinematic gate", () => {
-  const second: MatchView = { ...match, id: "second-match" };
+  const second: MatchView = { ...match, id: "second-match", round: 1, matchday: 2, participantIds: ["p1", "p2"],
+    boards: [deck.slice(10, 15)], boardResults: [[]], boardWinnerIds: [["p1"]], runoutCount: 1,
+    revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) } };
   const duration = presentationDurationMs(match);
-  const presentation: PresentationView = { version: 1, startsAt: 100_000, endsAt: 100_000 + duration * 3,
-    matches: [{ matchId: match.id, offsetMs: 0, durationMs: duration }, { matchId: second.id, offsetMs: duration, durationMs: duration }] };
+  const secondDuration = presentationDurationMs(second) + MATCH_PREP_MS;
+  const presentation: PresentationView = { version: 1, startsAt: 100_000, endsAt: 100_000 + duration + secondDuration + duration,
+    matches: [{ matchId: match.id, offsetMs: 0, durationMs: duration }, { matchId: second.id, offsetMs: duration, durationMs: secondDuration, prepMs: MATCH_PREP_MS }] };
   const at = (serverTime: number, matches = [match, second]) => renderToStaticMarkup(createElement(CinematicGate, {
     matches, profiles, viewerId: "p1", presentation, clock: { observe: () => {}, offset: () => 0, now: () => serverTime },
     children: createElement("div", null, "PRIVATE_RESULT_SENTINEL") }));
@@ -279,11 +291,46 @@ describe("server-synced cinematic gate", () => {
     expect(phaseOf(holding)).toBe("COMPLETE");
     expect(holding).not.toContain("결과 확인");
     expect(holding).toContain('data-match-id="final-preview"');
-    expect(at(presentation.startsAt + duration)).toContain('data-match-id="second-match"');
+    expect(at(presentation.startsAt + duration)).toContain('aria-label="매칭 로딩창"');
+  });
+  it("shows a separate matchup preview before the next match", () => {
+    const html = at(presentation.startsAt + duration + 500);
+    expect(html).toContain('aria-label="매칭 로딩창"');
+    expect(html).toContain('<main class="game-arena">');
+    expect(html).toContain('class="brand"');
+    expect(html).toContain("SURVIVORS");
+    expect(html).toContain("MATCH 2");
+    expect(html).not.toContain('data-match-id="second-match"');
+    expect(phaseOf(at(presentation.startsAt + duration + MATCH_PREP_MS))).toBe("TABLE_ENTER");
+  });
+
+  it("uses the same loading composition for later two- and three-player matches through R4", () => {
+    const beforeSecond = presentation.startsAt + duration + 500;
+    const splitRuns: MatchView = { ...second, round: 2, runCards: {
+      p1: [deck.slice(0, 2), [deck[0]!, deck[4]!]],
+      p2: [deck.slice(2, 4), [deck[2]!, deck[5]!]],
+    } };
+    const twoWay = at(beforeSecond, [match, splitRuns]);
+    expect(twoWay).toContain("ROUND 02 · MATCH 2");
+    expect(twoWay.match(/class="playing-card[^"]*compact/g)).toHaveLength(6);
+
+    const multiway: MatchView = { ...second, round: 4, stage: "secondary",
+      participantIds: match.participantIds.slice(0, 3), revealedCards: match.revealedCards };
+    const html = at(beforeSecond, [match, multiway]);
+    expect(html).toContain("is-3-way");
+    expect(html.match(/class="showdown-prep-player /g)).toHaveLength(3);
+    expect(html).toContain("SHOWDOWN");
+  });
+
+  it("skips the added matchup screen for an R5 final", () => {
+    const final: MatchView = { ...second, round: 5, stage: "final" };
+    const html = at(presentation.startsAt + duration + 500, [match, final]);
+    expect(html).not.toContain('aria-label="매칭 로딩창"');
+    expect(html).toContain('data-match-id="second-match"');
   });
 
   it("tells a seat whose matches are done to wait, without showing any other table", () => {
-    const waiting = at(presentation.startsAt + duration * 2 + 10);
+    const waiting = at(presentation.startsAt + duration + secondDuration + 10);
     expect(waiting).toContain("다른 매치 결과를 기다리는 중입니다.");
     expect(waiting).not.toContain("cinema-seat");
     expect(waiting).not.toContain("PRIVATE_RESULT_SENTINEL");

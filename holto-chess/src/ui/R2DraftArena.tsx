@@ -33,7 +33,7 @@ export function R2DraftArena({ view, send, disabled, seconds }: {
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = draft.currentPlayerId === view.me.playerId;
   return <section className={`panel r2-draft ${dealing ? "is-dealing" : "is-dealt"}`} aria-label="R2 공개 드래프트">
-    <header className="r2-draft-heading"><div><small>ROUND 2 · DRAFT PHASE</small><div className="draft-title-row"><h2>{ordering ? "공개 드래프트" : "공개 카드 한 장을 선택하세요"}</h2><DraftRuleTooltip round={2} /></div></div>{(ordering || myTurn) && <PhaseTimer className="r2-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={`${ordering ? "Deal-In" : "선택"} 남은 시간 ${seconds ?? (ordering ? 3 : 20)}초`} />}</header>
+    <header className="r2-draft-heading"><div className="draft-title-row"><h2>{ordering ? "공개 드래프트" : "카드 한 장을 선택하세요"}</h2><DraftRuleTooltip round={2} /></div>{(ordering || myTurn) && <PhaseTimer className="r2-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={`${ordering ? "Deal-In" : "선택"} 남은 시간 ${seconds ?? (ordering ? 3 : 20)}초`} />}</header>
     <div className="r2-draft-layout">
       <aside className="r2-order-panel" aria-label="드래프트 선택 순서"><h3>DRAFT ORDER <small>선택 순서</small></h3><ol className="r2-order">{draft.order.map((entry, index) => {
         const player = view.players.find((candidate) => candidate.playerId === entry.playerId);
@@ -55,7 +55,6 @@ export function R2DraftArena({ view, send, disabled, seconds }: {
             </div>;
           })}
         </div>
-        {!ordering && <p className="r2-auto-hint">시간이 끝나면 남은 카드 중 한 장을 자동 구매합니다.</p>}
       </div>
     </div>
   </section>;
