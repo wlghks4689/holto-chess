@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, resumeSession, type RoomSnapshot } from "../src/game/room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, type RoomSnapshot } from "../src/game/room";
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 
@@ -21,7 +21,9 @@ export class GameRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
-      this.room = await ctx.storage.get<RoomSnapshot>(SNAPSHOT_KEY);
+      const storedRoom = await ctx.storage.get<RoomSnapshot>(SNAPSHOT_KEY);
+      this.room = storedRoom ? migrateRoomSnapshot(storedRoom) : undefined;
+      if (storedRoom && this.room !== storedRoom) await ctx.storage.put(SNAPSHOT_KEY, this.room);
       this.expiresAt = await ctx.storage.get<number>(EXPIRY_KEY);
       if (this.room && !this.expiresAt) {
         this.expiresAt = Date.now() + ROOM_LIFETIME_MS;

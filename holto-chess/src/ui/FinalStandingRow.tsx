@@ -32,7 +32,7 @@ export function FinalStandingRow({ row, name }: { row: FinalStandingView; name: 
     <div className="final-total" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
       <button type="button" aria-label={`${name} 총점 ${display(row.total)}점, 점수 내역`} aria-expanded={open} aria-controls={popupId} onClick={() => setOpen((current) => !current)}>{display(row.total)}<span className="final-total-info" aria-hidden="true">ⓘ</span></button>
       <div id={popupId} className="final-score-popover" hidden={!open} role="region" aria-label="점수 내역">
-        <b>총점 계산</b><span>누적 승점 <strong>{display(row.points)}P</strong></span><span>족보 점수 <strong>{row.handScore}P</strong></span><small>{compactHandName(row.displayName) || "족보 없음"}</small>{(row.augmentScore ?? 0) > 0 && <span>증강 보너스 <strong>+{row.augmentScore}P</strong></span>}<span>BB 점수 <strong>{row.stackScore}P</strong></span><small>{display(row.stackBB)}BB ÷ 10 · 소수점 버림</small><hr /><span>총점 <strong>{display(row.total)}P</strong></span>
+        <b>총점 계산</b><span>누적 승점 <strong>{display(row.points)}P</strong></span><span>족보 점수 <strong>{row.handScore}P</strong></span><small>{compactHandName(row.displayName) || "족보 없음"}</small><span>BB 점수 <strong>{row.stackScore}P</strong></span><small>{display(row.stackBB)}BB ÷ 10 · 소수점 버림</small><hr /><span>총점 <strong>{display(row.total)}P</strong></span>
       </div>
     </div>
     <i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}</i>

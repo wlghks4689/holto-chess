@@ -1,23 +1,22 @@
-import { applyAugment } from "./augments";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
-import { beginSecondary, buyCard, choicesFor, createGame, getCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
-import { pickBotAugment } from "./botStrategy";
+import { beginSecondary, buyCard, createGame, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
 import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
-import type { Augment, PorenaGameState } from "./types";
+import type { PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
   schema: 1; roomId: string; revision: number; status: "LOBBY" | "PLAYING";
+  /** Rules migration marker; schema 1 storage remains readable. */
+  rulesRevision?: 2;
   /** Distinguishes rematches without invalidating persisted pre-audit snapshots. */
   gameGeneration?: number;
   game: PorenaGameState;
   sessions: { playerId: string; tokenHash: string; requests: string[]; departed?: boolean }[];
   readyIds: string[]; endedShopIds: string[];
-  augmentChoices: Record<string, Augment[]>;
   loadoutDrafts?: Record<string, (string | null)[]>;
   /** Epoch ms the current barrier began waiting; drives the auto-ready alarm. */
   barrierSince?: number;
@@ -30,7 +29,39 @@ export type RoomSnapshot = {
 export { BARRIER_TIMEOUT_MS, barrierTimeoutMs };
 export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2): RoomSnapshot {
   const game = createGame(seed, randomMode, rulesVersion);
-  return { schema: 1, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [], augmentChoices: {} };
+  return { schema: 1, rulesRevision: 2, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [] };
+}
+
+/** Remove retired rule data from a persisted room without changing earned points, BB or cards. */
+export function migrateRoomSnapshot(source: RoomSnapshot): RoomSnapshot {
+  if (source.schema !== 1) throw new Error("Unsupported room snapshot version");
+  if (source.rulesRevision === 2) return source;
+  const room = structuredClone(source);
+  const legacyRoom = room as RoomSnapshot & { augmentChoices?: unknown };
+  const legacyGame = room.game as Omit<PorenaGameState, "phase"> & { augmentChoices?: unknown; phase: string };
+  delete legacyRoom.augmentChoices;
+  delete legacyGame.augmentChoices;
+  for (const player of room.game.players) {
+    delete (player as typeof player & { augments?: unknown }).augments;
+    player.shopSize = BALANCE.baseShopSize;
+  }
+  room.game.logs = room.game.logs.filter((entry) => !entry.message.includes("증강"));
+  for (const match of room.game.matches) {
+    if (!match.pointAwardDetails) continue;
+    for (const [playerId, detail] of Object.entries(match.pointAwardDetails)) {
+      match.pointAwardDetails[playerId] = detail.replace(/ \+ 증강 \d+/g, "");
+    }
+  }
+  if (legacyGame.phase === "AUGMENT") {
+    legacyGame.phase = "NEXT_ROUND";
+    room.readyIds = [];
+    room.barrierSince = undefined;
+    room.barrierKey = undefined;
+    room.presentation = undefined;
+    refreshBarrier(room, Date.now());
+  }
+  room.rulesRevision = 2;
+  return room;
 }
 export function turnKey(room: RoomSnapshot): string {
   return `${room.game.round}:${room.status === "LOBBY" ? "LOBBY" : room.game.phase}:${room.gameGeneration ?? 0}:${room.game.encounterSequence}`;
@@ -47,7 +78,7 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 }
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
-const BARRIER_PHASES = ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "AUGMENT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
+const BARRIER_PHASES = ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
 const AUTOMATIC_PRESENTATION_PHASES = ["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
 const SPECTATOR_TIMER_PHASES = ["DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
 
@@ -67,7 +98,6 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
   }
   if (room.game.phase === "SURVIVAL_READY") return waiting.filter((id) => room.game.survival?.playerIds.includes(id) && !room.readyIds.includes(id));
   if (room.game.phase === "SHOP") return waiting.filter((id) => !room.endedShopIds.includes(id));
-  if (room.game.phase === "AUGMENT") return waiting.filter((id) => room.augmentChoices[id]?.length);
   return waiting.filter((id) => !room.readyIds.includes(id));
 }
 
@@ -112,16 +142,7 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
     case "SHOWDOWN_SECONDARY": room.game = resolveSecondary(room.game); break;
     case "ROUND_RESULT": {
       if (room.game.survival) { room.game.phase = "SURVIVAL_READY"; break; }
-      if (room.game.round === 2 || room.game.round === 4) {
-        room.game.phase = "AUGMENT";
-        for (const p of room.game.players.filter((p) => !p.eliminated)) {
-          const choices = choicesFor(room.game);
-          // A departed seat picks like a bot so it never holds the augment barrier.
-          if (activeHumans(room).includes(p.id)) room.augmentChoices[p.id] = choices;
-          else applyAugment(p, pickBotAugment(p, choices, room.game.round, p.ownedCardIds.map((id) => getCard(room.game, id))));
-        }
-        if (!Object.keys(room.augmentChoices).length) room.game.phase = "NEXT_ROUND";
-      } else room.game.phase = "NEXT_ROUND";
+      room.game.phase = "NEXT_ROUND";
       break;
     }
     case "NEXT_ROUND": room.game = startNextRound(room.game); room.endedShopIds = []; room.loadoutDrafts = {}; break;
@@ -141,10 +162,7 @@ function settleBarrier(room: RoomSnapshot): void {
     if (room.status !== "PLAYING" || pendingBarrierIds(room).length || waitingForSpectatorTimer(room)) return;
     const before = `${room.game.round}:${room.game.phase}`;
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
-    else if (room.game.phase === "AUGMENT") {
-      if (Object.keys(room.augmentChoices).length) return;
-      room.game.phase = "NEXT_ROUND";
-    } else if (BARRIER_PHASES.includes(room.game.phase)) advanceReadyBarrier(room);
+    else if (BARRIER_PHASES.includes(room.game.phase)) advanceReadyBarrier(room);
     else return;
     if (`${room.game.round}:${room.game.phase}` === before) return;
   }
@@ -159,7 +177,6 @@ function startRematch(room: RoomSnapshot): void {
   room.status = "PLAYING";
   room.readyIds = [];
   room.endedShopIds = [];
-  room.augmentChoices = {};
   room.loadoutDrafts = {};
   room.barrierSince = undefined;
   room.barrierKey = undefined;
@@ -186,7 +203,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
   if (current.departed && action.type !== "LEAVE_ROOM") throw new Error("이미 방에서 나갔습니다. 관전만 가능합니다.");
   if (expectedTurn !== turnKey(source)) throw new Error("단계가 변경되었습니다. 현재 화면에서 다시 시도하세요.");
   const deadline = barrierDeadline(source);
-  if (source.status === "PLAYING" && ["SHOP", "AUGMENT"].includes(source.game.phase)
+  if (source.status === "PLAYING" && source.game.phase === "SHOP"
     && action.type !== "LEAVE_ROOM" && deadline !== undefined && now >= deadline) {
     throw new Error("선택 시간이 끝났습니다. 자동 진행을 기다려 주세요.");
   }
@@ -198,7 +215,6 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     // this person again, so leaving can never strand the remaining players.
     room.sessions.find((s) => s.playerId === playerId)!.departed = true;
     room.readyIds = room.readyIds.filter((id) => id !== playerId);
-    delete room.augmentChoices[playerId];
     if (room.status === "LOBBY") {
       const remaining = controlledHumanIds(room);
       if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; }
@@ -221,7 +237,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const eligible = activeHumans(room);
     if (!eligible.includes(playerId)) throw new Error("관전자는 READY를 대신할 수 없습니다.");
     if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
-    if (["OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "AUGMENT", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
+    if (["OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
     if (AUTOMATIC_PRESENTATION_PHASES.includes(room.game.phase)) throw new Error("공통 연출이 끝나면 자동으로 진행됩니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     if (allReady(eligible)) advanceReadyBarrier(room);
@@ -236,11 +252,6 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("배치 시간이 끝났습니다.");
     if (room.game.phase !== "RUN_LOADOUT" || me.eliminated) throw new Error("RUN 배치 단계가 아닙니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
-  } else if (action.type === "SELECT_AUGMENT") {
-    const choice = room.augmentChoices[playerId]?.find((a) => a.id === action.augmentId);
-    if (room.game.phase !== "AUGMENT" || me.eliminated || !choice) throw new Error("선택할 수 없는 증강입니다.");
-    applyAugment(me, choice); delete room.augmentChoices[playerId];
-    if (!Object.keys(room.augmentChoices).length) room.game.phase = "NEXT_ROUND";
   } else {
     if (room.game.phase !== "SHOP" || me.eliminated || room.endedShopIds.includes(playerId)) throw new Error("상점 행동을 할 수 없습니다.");
     switch (action.type) {
@@ -297,14 +308,6 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
     // Excluding them from the human list hands their shop to the existing bot.
     room.game = prepareShowdown(room.game, controlledHumanIds(room).filter((id) => !pending.includes(id) || loadoutOnly.includes(id)));
     for (const id of pending) if (!room.endedShopIds.includes(id)) room.endedShopIds.push(id);
-  } else if (room.game.phase === "AUGMENT") {
-    for (const id of pending) {
-      const choices = room.augmentChoices[id];
-      const player = room.game.players.find((p) => p.id === id)!;
-      if (choices?.length) applyAugment(player, pickBotAugment(player, choices, room.game.round, player.ownedCardIds.map((c) => getCard(room.game, c))));
-      delete room.augmentChoices[id];
-    }
-    if (!Object.keys(room.augmentChoices).length) room.game.phase = "NEXT_ROUND";
   } else {
     room.readyIds = [...new Set([...room.readyIds, ...pending])];
     advanceReadyBarrier(room);

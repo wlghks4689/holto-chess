@@ -32,11 +32,6 @@ function finishDraft(game: PorenaGameState): PorenaGameState {
   return state;
 }
 
-/** Closes a finished round so the next beat (an augment draft) can actually be shown. */
-function openAugments(game: PorenaGameState): PorenaGameState {
-  return game.phase === "ROUND_RESULT" ? leaveRoundResult(game) : game;
-}
-
 const startingCard: TutorialStep = {
   id: "r1-start-card", kind: "EXPLAIN", focus: "owned-cards", next: "카드 살펴봤어요",
   title: "이 카드가 출발점이에요",
@@ -91,7 +86,7 @@ const buyStep: TutorialStep = {
   title: "마음에 드는 카드를 한 장 사보세요",
   body: ["추천한 카드가 아니어도 괜찮아요. 지금 상점의 어떤 카드든 살 수 있습니다."],
   more: (game) => [
-    `원하는 카드가 없다면 리롤로 상점을 바꿀 수 있어요. 지금 비용은 ${Math.max(0, BALANCE.rerollCostBB - (me(game).augments.some((augment) => augment.id === "reroll_discount") ? 2 : 0))}BB이고, 이번 라운드에 ${BALANCE.rerollLimits[game.round] - (me(game).rerollsUsed ?? 0)}번 남았습니다.`,
+    `원하는 카드가 없다면 리롤로 상점을 바꿀 수 있어요. 지금 비용은 ${BALANCE.rerollCostBB}BB이고, 이번 라운드에 ${BALANCE.rerollLimits[game.round] - (me(game).rerollsUsed ?? 0)}번 남았습니다.`,
     "BB가 모자라거나 횟수를 다 쓰면 실제 규칙대로 막힙니다.",
   ],
   done: handFull,
@@ -208,14 +203,7 @@ const CHAPTER_TWO: TutorialChapter = {
     },
     { id: "r2-run1", kind: "REVIEW", hold: { matchIndex: 0, at: "RUN_RESULT" }, next: "RUN 2 보기", title: "RUN 1 결과", body: ["첫 번째 보드의 승부가 끝났습니다. 대표 카드와 첫 보조 카드가 쓰였어요."] },
     { id: "r2-run2", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "다음으로", title: "RUN 2 결과", body: ["대표 카드는 그대로, 보조 카드만 바뀌어 다시 겨뤘습니다.", "두 승부에서 얻은 점수가 함께 누적됩니다."] },
-    { id: "r2-round-result", kind: "REVIEW", focus: "round-results", next: "증강 선택으로", title: "라운드 결과", body: ["두 번의 승부에서 얻은 점수가 함께 합산되었습니다."] },
-    {
-      id: "r2-augment", kind: "ACT", focus: "augment", goal: "증강 하나 선택하기",
-      title: "첫 증강 선택",
-      body: ["증강은 이후 카드 선택과 운영에 도움을 주는 효과예요.", "설명을 읽고 지금 내 패에 맞는 것을 고르세요."],
-      onEnter: openAugments,
-      done: (game) => game.players[0]!.augments.length > 0 || game.round > 2,
-    },
+    { id: "r2-round-result", kind: "REVIEW", focus: "round-results", next: "다음 라운드로", title: "라운드 결과", body: ["두 번의 승부에서 얻은 점수가 함께 합산되었습니다."], onEnter: (game) => game.phase === "ROUND_RESULT" ? leaveRoundResult(game) : game },
   ],
 };
 
@@ -300,7 +288,7 @@ const CHAPTER_FIVE: TutorialChapter = {
     {
       id: "r5-score", kind: "REVIEW", focus: "final-score", next: "길라잡이 마치기",
       title: "총점은 이렇게 계산됩니다",
-      body: ["누적 Point + 족보 점수 + 증강 보너스 + BB 환산 점수를 더해 최종 총점이 나옵니다.", "그래서 마지막 패에서 1위를 한 사람과 총점 우승자가 다를 수 있습니다."],
+      body: ["누적 Point + 족보 점수 + BB 환산 점수를 더해 최종 총점이 나옵니다.", "그래서 마지막 패에서 1위를 한 사람과 총점 우승자가 다를 수 있습니다."],
       more: ["R5 배치 점수는 이미 누적 Point에 들어가 있습니다. 따로 다시 더하지 않습니다."],
     },
   ],

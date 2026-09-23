@@ -1,8 +1,8 @@
-import type { Card, Suit } from "../core/poker/cards";
-import type { HandCategory, HandValue } from "../core/poker/evaluate";
+import type { Card } from "../core/poker/cards";
+import type { HandValue } from "../core/poker/evaluate";
 
 export type Round = 1 | 2 | 3 | 4 | 5;
-export type Phase = "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "AUGMENT" | "NEXT_ROUND" | "GAME_RESULT";
+export type Phase = "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
 export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: number; stackBB: number }[]; picks: { playerId: string; cardId: string | null; price: number }[] };
 export type PoolCardState = "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED";
 
@@ -12,9 +12,6 @@ export type PoolCard = {
   ownerPlayerId?: string;
   reservedPlayerId?: string;
 };
-
-export type AugmentId = "suit_discount" | "reroll_discount" | "sell_bonus" | "win_bonus" | "pair_points" | "shop_plus_one" | "shop_plus_two" | "rank_discount" | "r5_hand_bonus";
-export type Augment = { id: AugmentId; name: string; description: string; suit?: Suit; category?: HandCategory };
 
 export type PlayerState = {
   id: string;
@@ -28,7 +25,6 @@ export type PlayerState = {
   rerollsUsed?: number; // Missing only in older persisted snapshots; interpreted as zero.
   shopLocked: boolean;
   lockedShopCardIds?: string[];
-  augments: Augment[];
   points: number;
   winStreak: number;
   loseStreak: number;
@@ -105,7 +101,6 @@ export type PorenaGameState = {
   winnerGroup: string[];
   loserGroup: string[];
   roundResults: MatchResult[];
-  augmentChoices: Augment[];
   encounterSequence: number;
   seed: number;
   randomMode: "seeded" | "secure";

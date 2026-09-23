@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
 import {
-  beginSecondary, buyCard, chooseAugment, confirmSelection, createGame as createGameCurrent, finalStandings,
+  beginSecondary, buyCard, confirmSelection, createGame as createGameCurrent, finalStandings,
   leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   sellCard, startNextRound, toggleSelectedCard,
 } from "./engine";
@@ -68,7 +68,6 @@ describe("PORENA engine", () => {
       expect(assertPoolIntegrity(state)).toBe(true);
       if (round === 5) break;
       state = leaveRoundResult(state);
-      if (state.phase === "AUGMENT") state = chooseAugment(state, "p1", state.augmentChoices[0]!.id);
       state = startNextRound(state);
     }
     expect(state.phase).toBe("GAME_RESULT");
@@ -160,7 +159,6 @@ describe("PORENA engine", () => {
         }
       }
       state = leaveRoundResult(state);
-      if (state.phase === "AUGMENT") state = chooseAugment(state, "p1", state.augmentChoices[0]!.id);
       state = startNextRound(state);
     }
   });
@@ -169,7 +167,6 @@ describe("PORENA engine", () => {
     let state = createGame(606);
     for (let round = 1; round <= 3; round += 1) {
       state = playRound(state); state = leaveRoundResult(state);
-      if (state.phase === "AUGMENT") state = chooseAugment(state, "p1", state.augmentChoices[0]!.id);
       state = startNextRound(state);
     }
     state = fillHuman(state); state = prepareShowdown(state); state = resolvePrimary(state);

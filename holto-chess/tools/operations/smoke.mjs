@@ -100,8 +100,7 @@ async function play(roomNumber) {
       } else if (phase === "RUN_LOADOUT") {
         await c.send({ type: "RUN_LOADOUT", cardIds: v.me.ownedCards.map((card) => card.id) });
         await c.send({ type: "LOCK_RUN_LOADOUT" });
-      } else if (phase === "AUGMENT") await c.send({ type: "SELECT_AUGMENT", augmentId: v.me.augmentChoices[0].id });
-      else if (v.waitingOn.includes(v.me.playerId)) await c.send({ type: "READY" });
+      } else if (v.waitingOn.includes(v.me.playerId)) await c.send({ type: "READY" });
     }
     if (step === 2) {
       const old = clients[0];
