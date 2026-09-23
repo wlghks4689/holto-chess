@@ -163,6 +163,27 @@ describe("leaving a room", () => {
     expect(pendingBarrierIds(room)).not.toContain(out!.id);
   }, 30_000);
 
+  it("never accepts spectator READY and leaves spectator-only barriers to the server timer", () => {
+    const room = started(2);
+    room.game.phase = "ROUND_RESULT";
+    for (const id of ["p1", "p2"]) {
+      const player = room.game.players.find((candidate) => candidate.id === id)!;
+      player.eliminated = true;
+      player.eliminatedRound = 3;
+    }
+    room.readyIds = [];
+    room.presentation = undefined;
+    room.barrierSince = T0;
+
+    expect(pendingBarrierIds(room)).toEqual([]);
+    expect(createPlayerView(room, "p1", ["p1", "p2"], T0).waitingOn).toEqual([]);
+    expect(() => act(room, "p1", { type: "READY" }, T0)).toThrow(/관전자는 READY/);
+
+    const forced = forceBarrier(room, T0 + barrierTimeoutMs(room.game.phase));
+    expect(forced).not.toBeNull();
+    expect(forced!.game.phase).not.toBe("ROUND_RESULT");
+  });
+
   it("every human leaving still lets the game finish on bots", () => {
     let room = started(2);
     room = act(room, "p1", { type: "LEAVE_ROOM" });

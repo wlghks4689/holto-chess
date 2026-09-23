@@ -924,9 +924,21 @@ export function finalStandings(state: PorenaGameState) {
     return { playerId: player.id, points, handScore, augmentScore, stackScore, total: points + handScore + augmentScore + stackScore, hand,
       cards, usedCardIds: hand?.bestFive.map((card) => card.id) ?? [],
       finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
-  }).sort((a, b) => b.total - a.total || a.finalPlace - b.finalPlace
-    || (b.eliminatedRound ?? 6) - (a.eliminatedRound ?? 6)
-    || (b.hand && a.hand ? compareHands(b.hand, a.hand) : 0) || a.playerId.localeCompare(b.playerId));
+  }).sort((a, b) => {
+    const aEliminated = a.eliminatedRound !== undefined;
+    const bEliminated = b.eliminatedRound !== undefined;
+    // R5 finalists always occupy 1st-4th. Eliminated players are frozen into
+    // the band for the round in which they left: R4 -> 5th/6th, R3 -> 7th/8th.
+    if (aEliminated !== bEliminated) return aEliminated ? 1 : -1;
+    if (aEliminated && bEliminated) {
+      return b.eliminatedRound! - a.eliminatedRound!
+        || b.points - a.points
+        || a.playerId.localeCompare(b.playerId);
+    }
+    return b.total - a.total || a.finalPlace - b.finalPlace
+      || (b.hand && a.hand ? compareHands(b.hand, a.hand) : 0)
+      || a.playerId.localeCompare(b.playerId);
+  });
   return rows.map((row, index) => ({ ...row, placement: index + 1, rankPoints: rankPoints[index]! }));
 }
 

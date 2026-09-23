@@ -38,6 +38,16 @@ describe("showdown reveal timing", () => {
     expect(timeline.filter((f) => f.phase === "TABLE_ENTER")).toHaveLength(1);
     expect(timeline.filter((f) => f.phase === "REWARD")).toHaveLength(1);
   });
+  it("holds the RUN 1 result for 0.5 seconds longer before switching to RUN 2", () => {
+    const timeline = cinematicTimeline({
+      boards: [deck.slice(0, 5), deck.slice(5, 10)],
+      revealedCards: { p1: deck.slice(10, 12), p2: deck.slice(12, 14) },
+      runCards: { p1: [deck.slice(10, 12), deck.slice(10, 11).concat(deck.slice(14, 15))] },
+    });
+    const runOneResult = timeline.find((frame) => frame.phase === "RUN_RESULT" && frame.boardIndex === 0)!;
+    const switchOut = timeline.find((frame) => frame.phase === "CARD_SWITCH_OUT")!;
+    expect(switchOut.at - runOneResult.at).toBe(1300);
+  });
   it("reveals R5 as 3, then 5, then 7 cards before BEST5 and resolves lower places before the winner", () => {
     const timeline = cinematicTimeline({ round: 5, boards: [], revealedCards: Object.fromEntries([0, 1, 2, 3].map((i) => [`p${i}`, deck.slice(i * 7, i * 7 + 7)])),
       results: [{ place: 1 }, { place: 2 }, { place: 3 }, { place: 4 }] });

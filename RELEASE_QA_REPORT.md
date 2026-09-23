@@ -15,7 +15,7 @@
 
 **NOT READY — broader policy/validation gates remain**
 
-Initial audit: **2 BLOCKER, 0 CRITICAL**. The independent audit added **P-B01**, also a BLOCKER. All three confirmed blockers are now **FIXED in `1318827`** (0 still open in these addressed paths); the two critical fixes remain intact. This focused follow-up does not resolve the separate staged-payload/spectator/final-order decisions or replace the outstanding device and production checks, so it does not independently certify release readiness.
+Initial audit: **2 BLOCKER, 0 CRITICAL**. The independent audit added **P-B01**, also a BLOCKER. All three confirmed blockers are **FIXED in `1318827`** (0 still open in these addressed paths); the two critical fixes remain intact. The 2026-09-23 policy follow-up also fixes elimination-order bands and removes spectator READY authority. Staged-payload policy, device/load/fault evidence and the remaining augment decision are still open, so this report does not independently certify release readiness.
 
 The two original known-fault assertions have been replaced with successful-progression and approved-payout regressions. They no longer pass by expecting the old crash or 10/5/5 settlement.
 
@@ -162,8 +162,8 @@ No additional open Critical issue was confirmed in the exercised paths. This doe
 2. **RESOLVED B-02:** R4 final1/2/2 pays10/3/3; distinct1/2/3 pays10/5/3. Existing winner-only decider placement remains.
 3. **M-02:** does `win_bonus` apply in R3? Adjust the approved exception text or reward logic, not both speculatively.
 4. **Payload reveal policy:** during resolved showdown, PlayerView includes the resolved match boards/hands/results and round summary before the cinematic reveals them. R5 front faces are also mounted but visually hidden. There are no remaining shop/draft choices for that encounter, but this is **not cryptographic/server-timed concealment**. If “hidden until animation time” is a security requirement, this is an additional privacy release gate requiring protocol/presentation design; CSS is insufficient.
-5. **Spectator input policy:** with surviving humans, eliminated viewers cannot decide gameplay. When every human is eliminated, current room logic lets remaining viewers READY-advance presentation/result barriers; bots still choose cards and settle rewards. The request's strict “spectators never mutate state” conflicts with this convenience. Approve or remove spectator progression authority explicitly.
-6. **Final elimination ordering:** code/tests intentionally let an eliminated player's frozen total outrank a surviving finalist. Elimination snapshots score owned cards alone (R3 partial 4-card hand), not that match's board-based Omaha hand. Approve this final-score rule or specify a different ordering/snapshot policy.
+5. **RESOLVED spectator input policy:** eliminated viewers never enter `waitingOn` and cannot send an accepted READY action, including when every human is eliminated. The server timer alone advances spectator-only presentation/result barriers.
+6. **RESOLVED final elimination ordering:** R5 finalists always occupy 1st-4th by final total. R4 eliminations are frozen into 5th-6th and R3 eliminations into 7th-8th; each elimination band is ordered by points at elimination, with player ID only as a deterministic exact-tie display order.
 
 ## Rules vs Implementation Mismatches
 
@@ -179,7 +179,7 @@ No additional open Critical issue was confirmed in the exercised paths. This doe
 | R4 elimination | Two Loser Group non-winners eliminated | Root Game Flow incorrectly says R3 and R4 both eliminate cumulative-point bottom players. |
 | R5 | Four players;7 owned/no board;3→2→2 reveal;20/12/5/3P; ties use ICM over occupied slots | Competition places use 1,1,3 and no suit tie-break. Tests conserve total40P, including lower-place ties. Some generic ICM test names use old example ladders, not current config. |
 | Final score | points + fixed category score + augmentScore + floor(BB/10) | README and UI breakdown now include augmentScore. R5 hand winner is not necessarily overall total-score winner. |
-| Final hand scores | High0,Pair1,TwoPair2,Trips5,Straight8,Flush12,FullHouse15,Quads20,StraightFlush30,Royal40 | Engine/config tests agree; eliminated owned-hand snapshot policy needs approval. |
+| Final hand scores | High0,Pair1,TwoPair2,Trips5,Straight8,Flush12,FullHouse15,Quads20,StraightFlush30,Royal40 | Engine/config tests agree. Hand/BB snapshot data remains displayable but cannot move an eliminated player outside the approved 5-6 or 7-8 band. |
 | Timer | SHOP60s, deal-in3s, human draft20s, bot draft1.8s, loadout30s, setup3s, group10s, result30s, augment30s | NEXT_ROUND settles immediately online; README groups it under30s. Presentation time precedes result confirmation deadline. |
 | Local vs online | Local round guide can pause its intro; online phases remain shared server clocks | Do not assume the debug `pauseRoundResultTimer=1` URL tests production timeout behavior. Server deadlines were tested independently. |
 | Nested README | Short operator guide | Timer/disconnect wording now reflects the authoritative server barrier and AI takeover; detailed round rules remain in the root README. |
@@ -211,7 +211,7 @@ No additional open Critical issue was confirmed in the exercised paths. This doe
 - Awards are engine/DO mutations; cinematics consume `MatchReward` and do not pay points. Repeated projection and reconnect yield unchanged state; re-resolving an already-completed phase is rejected.
 - R3 boundary survival and R4 group deciders have dedicated tests for no extra ordinary point awards and correct survivor counts. R4 tied-second awards now follow the approved3P policy; all-forfeit matches have no score/BB awards.
 - R5 ICM uses occupied prize slots for legal tied hands and conserves40P when all four hands are legal. Forfeited placement slots are unpaid, not redistributed. R5 forfeits receive no hand/augment hand bonus; prior points and BB conversion remain. Final total otherwise includes augment bonuses and floors BB/10 without rounding underlying points.
-- Final standings are deterministic for a stored state; final place tie-break is distinct from hand-comparison suit neutrality. Existing eliminated-total behavior is explicitly tested, so it must not be changed casually.
+- Final standings are deterministic for a stored state. R5 finalists use total/final-place/hand rules; eliminated players use elimination round and frozen points, then player ID only for an exact tie. Hand-comparison suit neutrality remains separate.
 - No permanent rank storage or new leaderboard implementation was added. Existing nonpersistent rank fields were not expanded.
 
 ## Mobile / Responsive
@@ -230,7 +230,7 @@ No additional open Critical issue was confirmed in the exercised paths. This doe
 ## Privacy / Security
 
 - During private decision phases, `createPlayerView` explicitly allowlists data rather than spreading engine state. Live R4 viewers do not get others' current owned/shop cards; R4 draft has no publicHands. R2 ownership is intentionally public under current draft rules.
-- Live viewers have no spectatorViews; eliminated viewers get approved read-only perspectives. Added regression checks live R4 payloads and rejects eliminated-seat buying. Spectator READY exception needs the decision listed above.
+- Live viewers have no spectatorViews; eliminated viewers get approved read-only perspectives. Eliminated seats cannot buy or READY, and spectator-only barriers retain viewing time through the server deadline.
 - Room snapshot, seed, token hash and ownership ledger are not serialized to PlayerView. Existing hostile identity/card tests pass. UI-hidden resolved-showdown data is not claimed to be payload-secret (decision4).
 - Tokens are cryptographically generated, hashed in snapshot, delivered with no-store, and not embedded in WebSocket URLs. Token/Origin/room authorization, bounded frame size and rate caps are present. Routine server logs do not print session tokens.
 - Security review here covers these code paths and tests, not a penetration test, infrastructure access audit, dependency-vulnerability certification or proof against colluding spectators.
@@ -284,7 +284,7 @@ Initial reproduction tests failed as expected before fixes. One blocker assertio
 ## Known Remaining Risks
 
 - B-01/B-02 are deployed in production candidate `8984da8`. P-B01 and display/accessibility remediations in `1318827` are pushed but not deployed by this request.
-- Augment exception, elimination-final ordering, spectator progression and staged-payload secrecy still need explicit approval; the two approved decisions do not implicitly settle them.
+- Augment exception and staged-payload secrecy still need explicit approval. Physical-device, load and fault-injection evidence is also outstanding.
 - No load/soak benchmark, real Internet reconnection fault injection, distributed failover simulation, power-loss persistence test or multi-browser device lab was run.
 - No production game rooms or production player state were modified for this follow-up. Production HTTP smoke confirms route availability, not `1318827` gameplay behavior.
 - Existing simulator uses separate policy/test infrastructure; this audit did not claim a1000-game balance run. Rules correctness evidence is scoped to recorded deterministic fixtures, existing tests and executed full games.

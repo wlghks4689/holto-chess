@@ -1,11 +1,18 @@
 .open-draft { overflow:hidden; padding-top:16px; }
 .panel.open-draft>header { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:auto auto; align-items:center; gap:5px 24px; margin-bottom:7px; padding:4px 16px 14px; border-bottom:1px solid #21424d; }
 .draft-kicker { grid-column:1; grid-row:1; color:#79ddd8; font:600 11px/1.3 DM Mono; letter-spacing:.12em; }
-.open-draft>header h2 { grid-column:1; grid-row:2; margin:0; font-size:clamp(20px,2.5vw,28px); line-height:1.15; }
+.draft-title-row { position:relative; display:flex; align-items:center; gap:8px; min-width:0; }
+.open-draft>header .draft-title-row { grid-column:1; grid-row:2; }
+.open-draft>header h2 { margin:0; font-size:clamp(20px,2.5vw,28px); line-height:1.15; }
 .draft-clock { grid-column:2; grid-row:1/3; }
-.draft-rule { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:2px 16px 10px; color:#8aaab1; font:600 10px/1.4 DM Mono; }
-.draft-rule span { border:1px solid rgba(103,203,220,.16); border-radius:999px; padding:5px 9px; background:rgba(4,23,31,.55); }
-.draft-rule i { color:#5fbdbd; font-style:normal; }
+.draft-help { position:relative; flex:0 0 auto; z-index:12; }
+.draft-help>summary { display:grid; place-items:center; width:23px; height:23px; border:1px solid #68dcd7; border-radius:50%; background:#0a2933; color:#9cfff4; cursor:pointer; list-style:none; font:800 13px/1 DM Mono; box-shadow:0 0 10px rgba(94,231,222,.1); }
+.draft-help>summary::-webkit-details-marker { display:none; }
+.draft-help>summary:focus-visible { outline:2px solid #8afff2; outline-offset:3px; }
+.draft-help-popover { position:absolute; top:calc(100% + 9px); left:0; z-index:20; width:min(360px,calc(100vw - 58px)); padding:13px 14px; border:1px solid rgba(103,225,218,.6); border-radius:10px; background:rgba(3,20,29,.98); color:#cde3e6; box-shadow:0 14px 28px rgba(0,0,0,.48),0 0 18px rgba(67,218,209,.12); font-size:11px; line-height:1.55; }
+.draft-help-popover strong { display:block; color:#8df2e8; font:700 10px/1.4 DM Mono; letter-spacing:.08em; }
+.draft-help-popover p { margin:3px 0 10px; }
+.draft-help-popover small { display:block; color:#8eabb5; font-size:10px; line-height:1.5; }
 .draft-order { padding:0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; list-style:none; }
 .draft-order li { border:1px solid #234651; border-radius:10px; padding:10px; min-width:0; background:#071923; }
 .draft-order li.current { border-color:#80e5df; box-shadow:inset 0 0 24px #67eee318; }
@@ -33,22 +40,17 @@
 .open-draft>footer { text-align:center; color:#96dad9; }
 .open-draft:has(.draft-arena) { display:flex; flex-direction:column; }
 .open-draft:has(.draft-arena)>header { order:0; }
-.open-draft:has(.draft-arena)>.draft-rule { order:1; }
-.open-draft:has(.draft-arena)>.draft-arena { order:2; }
-.open-draft:has(.draft-arena)>footer { order:3; }
-.open-draft:has(.draft-arena)>.draft-order { order:4; }
+.open-draft:has(.draft-arena)>.draft-arena { order:1; }
+.open-draft:has(.draft-arena)>footer { order:2; }
+.open-draft:has(.draft-arena)>.draft-order { order:3; }
 .run-loadout-slots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-.run-loadout-pool-stage { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:end; }
-.run-loadout-pool-stage>.pool-loadout-timer { grid-column:3; justify-self:center; margin:0 0 8px; }
-.run-loadout-pool-stage>.pool-meter { grid-column:1 / -1; width:100%; }
 .run-loadout-timer { display:flex; justify-content:flex-end; margin:-2px 0 14px; }
 .run-loadout-slots>label { display:flex; flex-direction:column; align-items:center; gap:14px; padding:20px 8px; border:1px solid #35636d; border-radius:12px; }
 .run-loadout-slots b { font-size:12px; text-align:center; }
 .run-loadout-slots select { background:#102d38; color:white; padding:8px; width:100%; }
 .run-loadout-action>p { margin:0; color:#7896a4; font-size:11px; line-height:1.55; }
 .run-loadout-action>.primary { display:flex; align-items:center; justify-content:center; gap:15px; }
-@media(max-width:700px) { .open-draft { padding-top:14px; } .panel.open-draft>header { gap:5px 10px; padding:3px 12px 12px; } .draft-kicker { font-size:9px; } .open-draft>header h2 { font-size:18px; } .draft-rule { gap:5px;margin-inline:12px;font-size:9px}.draft-rule span{padding:4px 7px}.draft-order { grid-template-columns:repeat(2,minmax(0,1fr)); } .draft-arena { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 6px; padding:16px 8px 14px; border-radius:18px; } .draft-offer { grid-template-rows:76px 22px 28px; gap:4px; } .draft-arena .playing-card { width:52px; height:76px; min-width:0; } .draft-price { min-width:44px;padding:4px 6px;font-size:11px; } .draft-offer>small { font-size:9px; } .run-loadout-slots { gap:5px; } .run-loadout-slots .playing-card { width:54px; height:76px; min-width:0; } }
-@media(max-width:520px){.draft-rule i{display:none}.draft-rule span{flex:1 1 100%;text-align:center}}
+@media(max-width:700px) { .open-draft { padding-top:14px; } .panel.open-draft>header { gap:5px 10px; padding:3px 12px 12px; } .draft-kicker { font-size:9px; } .open-draft>header h2 { font-size:18px; } .draft-help{position:static}.draft-help-popover{left:0;right:auto;width:min(320px,calc(100vw - 52px));font-size:10px}.draft-order { grid-template-columns:repeat(2,minmax(0,1fr)); } .draft-arena { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 6px; padding:16px 8px 14px; border-radius:18px; } .draft-offer { grid-template-rows:76px 22px 28px; gap:4px; } .draft-arena .playing-card { width:52px; height:76px; min-width:0; } .draft-price { min-width:44px;padding:4px 6px;font-size:11px; } .draft-offer>small { font-size:9px; } .run-loadout-slots { gap:5px; } .run-loadout-slots .playing-card { width:54px; height:76px; min-width:0; } }
 @media(max-width:420px) { .panel.open-draft>header { grid-template-columns:minmax(0,1fr) 88px; gap:4px 8px; } .draft-kicker{white-space:normal;line-height:1.2}.open-draft>header h2{font-size:16px;line-height:1.2} }
 @media(max-width:620px) { .run-loadout-timer { justify-content:center; margin-bottom:12px; } .run-loadout-action { align-items:stretch; } .run-loadout-action>p { display:block; width:100%; text-align:center; font-size:10px; } .run-loadout-action>.primary { width:100%; } }
 @media(prefers-reduced-motion:reduce) { .draft-acquired,.draft-arena.is-dealing .draft-offer,.draft-arena.is-dealing .draft-deal-origin { animation:none; } }

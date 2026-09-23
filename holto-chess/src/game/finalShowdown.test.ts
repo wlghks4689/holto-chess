@@ -77,24 +77,34 @@ describe("four-way last hand", () => {
     }
   });
 
-  it("includes eliminated players by their elimination snapshot and assigns the 8-place rank ladder", () => {
+  it("freezes elimination bands and orders each band by points at elimination", () => {
     const after = resolvePrimary(finalFixture([
       ["As", "Ks", "Qs", "Js", "Ts", "2c", "3c"],
       ["Ah", "Ac", "Ad", "Kh", "Kc", "4c", "5c"],
       ["2s", "2h", "2d", "9s", "8s", "7h", "6h"],
       ["3s", "5s", "7d", "9d", "Jc", "Kd", "Qd"],
     ]));
-    const eliminated = after.players[4]!;
-    eliminated.eliminatedRound = 2;
-    eliminated.eliminationSnapshot = {
-      round: 2,
-      points: 100,
-      stackBB: 90,
-      hand: after.roundResults[0]!.results[0]!.hand,
-    };
+    const finalistHand = after.roundResults[0]!.results[0]!.hand;
+    const frozen = [
+      { player: after.players[4]!, round: 4 as const, points: 20, stackBB: 90 },
+      { player: after.players[5]!, round: 4 as const, points: 30, stackBB: 1 },
+      { player: after.players[6]!, round: 3 as const, points: 12, stackBB: 90 },
+      { player: after.players[7]!, round: 3 as const, points: 18, stackBB: 1 },
+    ];
+    for (const { player, round, points, stackBB } of frozen) {
+      player.eliminatedRound = round;
+      player.eliminationSnapshot = { round, points, stackBB, hand: finalistHand };
+    }
     const standings = finalStandings(after);
     expect(standings).toHaveLength(8);
-    expect(standings[0]).toMatchObject({ playerId: eliminated.id, points: 100, stackScore: 9, placement: 1, rankPoints: 8 });
+    expect(standings.slice(0, 4).every((row) => row.eliminatedRound === undefined)).toBe(true);
+    expect(standings.slice(4).map((row) => [row.playerId, row.eliminatedRound, row.points, row.placement])).toEqual([
+      ["p6", 4, 30, 5],
+      ["p5", 4, 20, 6],
+      ["p8", 3, 18, 7],
+      ["p7", 3, 12, 8],
+    ]);
+    expect(standings.find((row) => row.playerId === "p5")).toMatchObject({ stackScore: 9, placement: 6, rankPoints: -2 });
     expect(standings.map(({ rankPoints }) => rankPoints)).toEqual([8, 4, 2, 0, -1, -2, -4, -8]);
   });
 });

@@ -118,7 +118,8 @@ describe("server room authority and projections", () => {
       } else if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(r.game.phase)) {
         r = forceBarrier(r, barrierDeadline(r)!)!;
       } else {
-        for (const s of active.length ? active : r.sessions) r = act(r, s.playerId, { type: "READY" });
+        if (!active.length) r = forceBarrier(r, barrierDeadline(r)!)!;
+        else for (const s of active) r = act(r, s.playerId, { type: "READY" });
       }
       assertPoolIntegrity(r.game);
       for (const session of r.sessions) {

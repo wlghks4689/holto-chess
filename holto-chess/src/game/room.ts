@@ -49,6 +49,13 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 /** Phases that hold every surviving human at a barrier before the game advances. */
 const BARRIER_PHASES = ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "AUGMENT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
 const AUTOMATIC_PRESENTATION_PHASES = ["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
+const SPECTATOR_TIMER_PHASES = ["DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
+
+/** No human vote exists here; the server clock preserves viewing time and advances the game. */
+function waitingForSpectatorTimer(room: RoomSnapshot): boolean {
+  return room.status === "PLAYING" && SPECTATOR_TIMER_PHASES.includes(room.game.phase)
+    && activeHumans(room).length === 0 && controlledHumanIds(room).length > 0;
+}
 
 /** Who the current barrier is still waiting on. Empty means nothing is blocked. */
 export function pendingBarrierIds(room: RoomSnapshot): string[] {
@@ -61,19 +68,17 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
   if (room.game.phase === "SURVIVAL_READY") return waiting.filter((id) => room.game.survival?.playerIds.includes(id) && !room.readyIds.includes(id));
   if (room.game.phase === "SHOP") return waiting.filter((id) => !room.endedShopIds.includes(id));
   if (room.game.phase === "AUGMENT") return waiting.filter((id) => room.augmentChoices[id]?.length);
-  // With no surviving humans, the people still watching must see each
-  // showdown/result barrier. They may confirm it or let its timeout advance.
-  const viewers = waiting.length ? waiting : controlledHumanIds(room);
-  return viewers.filter((id) => !room.readyIds.includes(id));
+  return waiting.filter((id) => !room.readyIds.includes(id));
 }
 
 /** A phase has one deadline; another player's confirmation never restarts it. */
 function refreshBarrier(room: RoomSnapshot, now: number): void {
   const pending = pendingBarrierIds(room);
-  const key = `${turnKey(room)}|${room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : ""}|${pending.length ? "waiting" : "done"}`;
+  const blocked = pending.length > 0 || waitingForSpectatorTimer(room);
+  const key = `${turnKey(room)}|${room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : ""}|${blocked ? "waiting" : "done"}`;
   if (room.barrierKey === key) return;
   room.barrierKey = key;
-  room.barrierSince = pendingBarrierIds(room).length ? now : undefined;
+  room.barrierSince = blocked ? now : undefined;
 }
 
 /**
@@ -133,7 +138,7 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
 function settleBarrier(room: RoomSnapshot): void {
   for (let guard = 0; guard < 64; guard += 1) {
     if (room.status === "PLAYING" && room.game.phase === "NEXT_ROUND") { advanceReadyBarrier(room); continue; }
-    if (room.status !== "PLAYING" || pendingBarrierIds(room).length) return;
+    if (room.status !== "PLAYING" || pendingBarrierIds(room).length || waitingForSpectatorTimer(room)) return;
     const before = `${room.game.round}:${room.game.phase}`;
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
     else if (room.game.phase === "AUGMENT") {
@@ -213,14 +218,13 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     if (room.game.phase !== "SHOP" || me.eliminated || !room.endedShopIds.includes(playerId)) throw new Error("취소할 덱 준비가 없습니다.");
     room.endedShopIds = room.endedShopIds.filter((id) => id !== playerId);
   } else if (action.type === "READY") {
-    if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
     const eligible = activeHumans(room);
-    const voters = eligible.length ? eligible : controlledHumanIds(room);
-    if (!voters.includes(playerId)) throw new Error("생존자의 진행을 기다리세요.");
+    if (!eligible.includes(playerId)) throw new Error("관전자는 READY를 대신할 수 없습니다.");
+    if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
     if (["OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "AUGMENT", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
     if (AUTOMATIC_PRESENTATION_PHASES.includes(room.game.phase)) throw new Error("공통 연출이 끝나면 자동으로 진행됩니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
-    if (allReady(voters)) advanceReadyBarrier(room);
+    if (allReady(eligible)) advanceReadyBarrier(room);
   } else if (action.type === "DRAFT_PICK") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
     room.game = pickDraftCard(room.game, playerId, action.cardId);
@@ -282,7 +286,8 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   const deadline = barrierDeadline(source);
   if (deadline === undefined || now < deadline) return null;
   const pending = pendingBarrierIds(source);
-  if (!pending.length) return null;
+  const spectatorTimer = waitingForSpectatorTimer(source);
+  if (!pending.length && !spectatorTimer) return null;
   const room = structuredClone(source);
   if (room.game.phase === "OPEN_DRAFT") {
     room.game = autoPickDraft(room.game);

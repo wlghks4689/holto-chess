@@ -56,7 +56,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
       // One hand read, then one outcome. Intermediate run results are needed only
       // when another board follows; the final board flows straight into RESULT.
       bestFive();
-      if (boardIndex < match.boards.length - 1) add("RUN_RESULT", 800);
+      if (boardIndex < match.boards.length - 1) add("RUN_RESULT", match.runCards && boardIndex === 0 ? 1300 : 800);
     }
     boardIndex = match.boards.length - 1;
   }
@@ -103,7 +103,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client derives its frame from that clock, so all seats see the same beat at the same moment.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 4;
+export const PRESENTATION_VERSION = 5;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause on a finished match before the next one starts (replaces the per-match confirm click). */
