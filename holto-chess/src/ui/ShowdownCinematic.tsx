@@ -173,6 +173,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         ? `RUN ${frame.boardIndex + 1} · ${won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}`
         : won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS";
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
+        {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className={`cinema-profile ${!final ? "cinema-match-profile" : ""}`}>
           {!final && <div className="cinema-profile-identity"><span className="player-avatar">{id.slice(1)}</span><b title={`${name(id)}${id === viewerId ? " · YOU" : ""}`}>{name(id)} {id === viewerId ? "· YOU" : ""}</b></div>}
@@ -186,7 +187,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
           {!final && <div className="cinema-profile-outcome">
             {showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${result.place}위` : ""}</span>}
-            {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
           </div>}
         </div>
         <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {

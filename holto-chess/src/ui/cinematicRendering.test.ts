@@ -183,6 +183,9 @@ describe("cinematic initial rendering", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: survival, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(html).toContain('cinema-status-stamp is-survived">생존');
     expect(html).toContain('cinema-status-stamp is-eliminated">탈락');
+    const survivingSeat = html.slice(html.indexOf('data-player-id="p1"'), html.indexOf('data-player-id="p2"'));
+    expect(survivingSeat.indexOf('cinema-status-stamp is-survived')).toBeLessThan(survivingSeat.indexOf('cinema-profile cinema-match-profile'));
+    expect(survivingSeat).not.toMatch(/cinema-profile-outcome[^>]*>[^<]*<span class="cinema-status-stamp/);
     expect(html).toContain("LOSS");
     expect(html.match(/class="cinema-victory"/g)).toHaveLength(2);
     expect(html).not.toContain("생존 결정");

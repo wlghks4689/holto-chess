@@ -50,7 +50,7 @@ const finalRows: FinalStandingView[] = [
 ];
 function FinalResultsPreview() {
   const names = ["나", "턴 샤크", "올인 베어"];
-  return <main className="game-arena"><div className="page-shell final-results-page"><header className="round-header"><div><span className="round-number">ROUND 05</span><h1>FINAL STANDINGS</h1></div></header><section className="final-panel"><div className="standings"><FinalStandingsHeader />{finalRows.map((row,index)=><FinalStandingRow key={row.playerId} row={row} name={names[index]!} />)}</div></section></div></main>;
+  return <main className="game-arena"><div className="page-shell final-results-page"><header className="round-header"><div><h1>FINAL STANDINGS</h1></div></header><section className="final-panel"><div className="standings"><FinalStandingsHeader />{finalRows.map((row,index)=><FinalStandingRow key={row.playerId} row={row} name={names[index]!} />)}</div></section></div></main>;
 }
 function AugmentPreview() {
   return <main className="game-arena"><div className="page-shell"><header className="round-header"><div><span className="round-number">ROUND 03</span><h1>PREPARE FOR ROUND 03</h1></div></header><section className="panel augment-panel"><span className="eyebrow">AUGMENT DRAFT</span><h2>전략을 바꿀 증강 하나를 선택하세요</h2><div className="augment-grid">{[["검은 시장","스페이드 카드 구매가 3BB 저렴합니다."],["승자의 배당","승리 보상이 5BB 증가합니다."],["회수 전문가","판매 환급률이 20% 증가합니다."]].map(([name,description])=><button key={name}><b>{name}</b><p>{description}</p><em>선택하기 →</em></button>)}</div></section></div></main>;

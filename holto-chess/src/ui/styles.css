@@ -39,6 +39,8 @@ nav { min-height: 78px; padding: 0 max(24px, calc((100vw - 1240px)/2)); display:
 .nav-exit{align-self:flex-end;min-width:62px;padding:4px 10px!important;font-size:9px!important;line-height:1.2}
 .page-shell { width: min(1240px, calc(100% - 48px)); margin: 0 auto; padding: 52px 0 80px; position: relative; }
 .round-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:30px; }
+.final-results-page>.round-header{justify-content:center;text-align:center}
+.final-results-page>.round-header>div{width:100%}
 .round-number { display:block; color:var(--mint); font:500 13px DM Mono; letter-spacing:.16em; margin-bottom:9px; }
 h1 { margin:0; font-family:Georgia,'Times New Roman',serif; font-size:clamp(38px, calc(7vw - 4px), 72px); line-height:.9; letter-spacing:-.035em; word-spacing:.16em; font-weight:700; text-shadow:0 3px 18px #000; }
 .round-header p { margin:16px 0 0; color:#9ab1a6; font-size:14px; }
