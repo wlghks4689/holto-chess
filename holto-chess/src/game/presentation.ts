@@ -1,4 +1,4 @@
-import { PRESENTATION_LEAD_MS, PRESENTATION_VERSION, presentationDurationMs } from "../shared/presentationTimeline";
+import { MATCH_PREP_MS, PRESENTATION_LEAD_MS, PRESENTATION_VERSION, presentationDurationMs } from "../shared/presentationTimeline";
 import type { PresentationEntry, PresentationView } from "../shared/protocol";
 import { createMatchView } from "./matchView";
 import type { RoomSnapshot } from "./room";
@@ -48,8 +48,9 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
   const hasSpectators = watching.some((session) => room.game.players.find((player) => player.id === session.playerId)?.eliminated);
   for (const { id: playerId, eliminated } of room.game.players) {
     let offsetMs = 0;
-    perPlayer[playerId] = visibleMatchesFor(room, playerId).map((match) => {
-      const entry = { matchId: match.id, offsetMs, durationMs: durationOf(match) };
+    perPlayer[playerId] = visibleMatchesFor(room, playerId).map((match, index) => {
+      const prepMs = room.game.round === 5 || index === 0 ? 0 : MATCH_PREP_MS;
+      const entry = { matchId: match.id, offsetMs, durationMs: durationOf(match) + prepMs, ...(prepMs ? { prepMs } : {}) };
       offsetMs += entry.durationMs;
       return entry;
     });

@@ -22,7 +22,7 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   expect(html.match(/class="r2-order-name"/g)).toHaveLength(8);
   expect(html).not.toContain("draft-hand");
   expect(html).not.toContain("비공개 카드");
-  expect(html).toContain("ROUND 2 · DRAFT PHASE");
+  expect(html).not.toContain("ROUND 2 · DRAFT PHASE");
   expect(html).toContain("공개 드래프트");
   expect(html).toContain('aria-label="공개 드래프트 진행 방식 보기"');
   expect(html).toContain('role="tooltip"');

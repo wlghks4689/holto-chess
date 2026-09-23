@@ -45,7 +45,7 @@ export type MatchView = {
   revealedCards: Record<string, Card[]>;
 };
 /** One match in a seat's playback order, relative to the shared presentation start. */
-export type PresentationEntry = { matchId: string; offsetMs: number; durationMs: number };
+export type PresentationEntry = { matchId: string; offsetMs: number; durationMs: number; prepMs?: number };
 /** Server-clock schedule for the current showdown set: same startsAt/endsAt for every seat. */
 export type PresentationView = { version: number; startsAt: number; endsAt: number; matches: PresentationEntry[] };
 export type RoundSummaryRow = {
@@ -74,7 +74,7 @@ export type SpectatorPlayerView = {
   presentation?: PresentationView;
 };
 export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[] };
-export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView };
+export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView; opponents?: ShowdownPrepSeatView[] };
 export type PlayerView = {
   survival?: { playerIds: string[]; eliminateCount: number };
   draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]> };

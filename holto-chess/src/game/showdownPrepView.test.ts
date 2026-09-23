@@ -21,4 +21,20 @@ describe("showdown prep view", () => {
     const firstMatch = resolved.roundResults.find((match) => match.matchday === 1 && match.playerIds.includes("p1"));
     expect(new Set(firstMatch?.playerIds)).toEqual(new Set([preview?.viewer.playerId, preview?.opponent?.playerId]));
   });
+
+  it("includes every seat in R4 three-way brackets but leaves R5 to the final cinematic", () => {
+    const room = addSession(createRoom("MULTIWAY", 20260924, "secure"), "player").room;
+    room.status = "PLAYING";
+    room.game.round = 4;
+    room.game.phase = "SHOWDOWN_SECONDARY";
+    room.game.winnerGroup = ["p1", "p2", "p3"];
+    room.game.loserGroup = ["p4", "p5", "p6"];
+    const threeWay = createPlayerView(room, "p1").showdownPrep;
+    expect(threeWay?.matchNumber).toBe(2);
+    expect(threeWay?.opponents?.map((seat) => seat.playerId)).toEqual(["p2", "p3"]);
+    room.game.round = 5;
+    room.game.phase = "SHOWDOWN_PRIMARY";
+    room.game.primaryPairings = [["p1", "p2", "p3", "p4"]];
+    expect(createPlayerView(room, "p1").showdownPrep).toBeUndefined();
+  });
 });

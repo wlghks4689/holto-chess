@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { makeDeck } from "../core/poker/cards";
 import { createGame, prepareShowdown, resolvePrimary, startNextRound, leaveRoundResult, autoPickDraft, openDraft, lockRunLoadouts, pickDraftCard, setRunLoadout } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { createMatchView } from "../game/matchView";
@@ -28,6 +29,16 @@ function fixture(round: 2 | 4) {
 function ShowdownPrepPreview() {
   const matchup = { matchNumber:1, viewer:{playerId:"p1",name:"나",points:12,cards:[{id:"As",rank:14 as const,suit:"s" as const},{id:"Kh",rank:13 as const,suit:"h" as const},{id:"Qd",rank:12 as const,suit:"d" as const},{id:"8c",rank:8 as const,suit:"c" as const}]}, opponent:{playerId:"p2",name:"블러프 폭스",points:16,cards:[{id:"Th",rank:10 as const,suit:"h" as const},{id:"Tc",rank:10 as const,suit:"c" as const},{id:"7d",rank:7 as const,suit:"d" as const},{id:"2s",rank:2 as const,suit:"s" as const}]} };
   return <main className="game-arena"><div className="page-shell"><ShowdownPrepPanel round={3} playerName="나" seconds={3} matchup={matchup} /></div></main>;
+}
+function MultiwayShowdownPrepPreview() {
+  const round = 4;
+  const handSize = 5;
+  const deck = makeDeck();
+  const names = ["나", "블러프 폭스", "리버 폭스", "다이아 바이퍼"];
+  const seats = Array.from({ length: 3 }, (_, index) => ({ playerId: `p${index + 1}`, name: names[index]!,
+    points: 12 + index * 2, cards: deck.slice(index * handSize, (index + 1) * handSize) }));
+  return <main className="game-arena"><div className="page-shell"><ShowdownPrepPanel round={round} playerName="나" seconds={3}
+    matchup={{ matchNumber: 2, viewer: seats[0]!, opponents: seats.slice(1) }} /></div></main>;
 }
 function ShopStylePreview() {
   return <main className="game-arena"><div className="page-shell shop-page"><header className="round-header"><div><span className="round-number">ROUND 01</span><h1>TWO HAND</h1></div></header><section className="shop-layout"><div className="market panel"><header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">2 / 2</strong></div><span className="purchase-count">구매 0 / 2</span></header><div className="card-row market-row"><ShopCard card={{ id:"6d", rank:6, suit:"d" }} price={6} locked={false} onBuy={() => undefined} onLock={() => undefined} /><ShopCard card={{ id:"2s", rank:2, suit:"s" }} price={5} locked={false} dealIndex={1} onBuy={() => undefined} onLock={() => undefined} /></div></div></section></div></main>;
@@ -70,6 +81,7 @@ function DraftFixturePreview() {
 }
 export function DraftPreview() {
   const params = new URLSearchParams(location.search);
+  if (params.get("showdownPrep") === "3") return <MultiwayShowdownPrepPreview />;
   if (params.has("showdownPrep")) return <ShowdownPrepPreview />;
   if (params.has("roundGuide")) return <RoundGuide round={params.get("roundGuide") === "1" ? 1 : 2} onClose={() => undefined} />;
   if (params.has("shopStyle")) return <ShopStylePreview />;

@@ -30,18 +30,21 @@ function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerV
 
 function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownPrepView | undefined {
   const game = room.game;
-  if (!["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(game.phase)) return undefined;
+  if (game.round === 5 || !["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(game.phase)) return undefined;
   const pairIds = (ids: string[]) => Array.from({ length: Math.floor(ids.length / 2) }, (_, index) => ids.slice(index * 2, index * 2 + 2));
-  const pairs = game.phase === "SHOWDOWN_PRIMARY" ? game.primaryPairings ?? [] : [...pairIds(game.winnerGroup), ...pairIds(game.loserGroup)];
-  const pairing = pairs.find((ids) => ids.includes(viewerPlayerId));
-  if (!pairing) return undefined;
+  const groups = game.phase === "SHOWDOWN_PRIMARY" ? game.primaryPairings ?? []
+    : game.round === 2 ? [...pairIds(game.winnerGroup), ...pairIds(game.loserGroup)]
+      : [game.winnerGroup, game.loserGroup];
+  const group = groups.find((ids) => ids.includes(viewerPlayerId));
+  if (!group) return undefined;
   const seat = (playerId: string) => {
     const player = game.players.find((candidate) => candidate.id === playerId)!;
     const cardIds = game.round === 2 ? player.selectedCardIds : player.ownedCardIds;
     return { playerId, name: player.name, points: player.points, cards: cardIds.slice(0, 7).map((id) => getCard(game, id)) };
   };
-  const opponentId = pairing.find((id) => id !== viewerPlayerId);
-  return { matchNumber: game.phase === "SHOWDOWN_SECONDARY" ? 2 : 1, viewer: seat(viewerPlayerId), ...(opponentId ? { opponent: seat(opponentId) } : {}) };
+  const opponents = group.filter((id) => id !== viewerPlayerId).map(seat);
+  return { matchNumber: game.phase === "SHOWDOWN_SECONDARY" ? 2 : 1, viewer: seat(viewerPlayerId),
+    ...(opponents.length === 1 ? { opponent: opponents[0] } : opponents.length > 1 ? { opponents } : {}) };
 }
 
 export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, connectedIds: readonly string[] = [], now = Date.now()): PlayerView {

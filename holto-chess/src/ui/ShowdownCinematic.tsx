@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { MatchView, PresentationView, RevealedHand } from "../shared/protocol";
+import type { MatchView, PresentationView, RevealedHand, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
+import { MATCH_PREP_MS } from "../shared/presentationTimeline";
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
@@ -12,6 +13,8 @@ import { ShowdownCardFlip } from "./ShowdownCardFlip";
 import { CardView } from "./CardView";
 import { useCinematicMotion } from "./useCinematicMotion";
 import { showdownSeatOrder } from "./showdownSeatOrder";
+import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { RoundProgress } from "./PrepPhase";
 import "./cinematic.css";
 import { HighCardDrawNotice, HighCardDrawResult } from "./HighCardDraw";
 
@@ -24,13 +27,13 @@ type Props = { match: MatchView; profiles: Profile[]; viewerId: string; onComple
 /** A jump larger than this (hidden tab, reconnect) lands on the current frame without replaying transitions. */
 const CATCH_UP_MS = 400;
 
-function RunMatchup({ match, index, viewerId, complete, className = "" }: {
-  match: MatchView; index: number; viewerId: string; complete: boolean; className?: string;
+function RunMatchup({ match, index, viewerId, complete, winnerGlowOnly = false, className = "" }: {
+  match: MatchView; index: number; viewerId: string; complete: boolean; winnerGlowOnly?: boolean; className?: string;
 }) {
   const [leftId, rightId] = showdownSeatOrder(match.participantIds, viewerId);
   const winners = match.boardWinnerIds[index] ?? [];
-  const dimLeft = complete && winners.length === 1 && winners[0] !== leftId;
-  const dimRight = complete && winners.length === 1 && winners[0] !== rightId;
+  const dimLeft = complete && !winnerGlowOnly && winners.length === 1 && winners[0] !== leftId;
+  const dimRight = complete && !winnerGlowOnly && winners.length === 1 && winners[0] !== rightId;
   const glowLeft = complete && winners.includes(leftId);
   const glowRight = complete && winners.includes(rightId);
   const runHand = (playerId: string) => match.runCards?.[playerId]?.[index] ?? match.revealedCards[playerId] ?? [];
@@ -165,14 +168,27 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           ? { stage: `current-${readCards}`, tag: readCards === 3 ? "CURRENT READ · 3 CARDS" : "CURRENT BEST · 5 CARDS", title: interimLabel.title, detail: interimLabel.kicker }
           : { stage: "pending", tag: "HAND READ", title: "—", detail: undefined };
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
+      const showMatchOutcome = !final && (flags.result || flags.runResult);
+      const matchOutcome = (flags.runResult || match.runCards)
+        ? `RUN ${frame.boardIndex + 1} · ${won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}`
+        : won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS";
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
-        <div className="cinema-profile"><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b>
-          {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재</small><b>{currentRank}위</b>{tiedOnPoints && <i>공동</i>}</span>}
-          {swiss && currentPoints !== undefined && <em className="cinema-current-points">POINT {currentPoints}</em>}
+        <div className={`cinema-profile ${!final ? "cinema-match-profile" : ""}`}>
+          {!final && <div className="cinema-profile-identity"><span className="player-avatar">{id.slice(1)}</span><b title={`${name(id)}${id === viewerId ? " · YOU" : ""}`}>{name(id)} {id === viewerId ? "· YOU" : ""}</b></div>}
+          {final && <><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b></>}
+          {!final && <div className="cinema-standing-line">
+            {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재</small>{tiedOnPoints && <i>공동</i>}<b>{currentRank}위</b></span>}
+            {swiss && currentPoints !== undefined && <em className="cinema-current-points">POINT {currentPoints}</em>}
+          </div>}
+          {final && match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재</small>{tiedOnPoints && <i>공동</i>}<b>{currentRank}위</b></span>}
+          {final && swiss && currentPoints !== undefined && <em className="cinema-current-points">POINT {currentPoints}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? "SPLIT · 1ST" : ordinalPlace(result?.place)}</span>}
-          {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
-          {!final && (flags.result || flags.runResult) && !survivalOutcome && <span className="cinema-victory" key="outcome">{(flags.runResult || match.runCards) ? `RUN ${frame.boardIndex + 1} · ${won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}` : won ? winners.length > 1 ? "SPLIT" : "WIN" : "LOSS"}{multi && result ? ` · ${result.place}위` : ""}</span>}</div>
+          {!final && <div className="cinema-profile-outcome">
+            {showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${result.place}위` : ""}</span>}
+            {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
+          </div>}
+        </div>
         <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {
           const visible = (!final && intro) || (!intro && (!final || cardIndex < frame.finalCards));
           const used = result?.usedCardIds.includes(card.id) ?? false;
@@ -206,10 +222,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const matchupComplete = boardIndex === 0 && current && ["RUN_RESULT", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : "COMMUNITY BOARD"
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
-      const collapsedOutcome = boardWinners.length > 1 ? "SPLIT" : boardWinners[0] ? `${name(boardWinners[0])} 승리` : "승부 결과";
       return <div className={`cinema-board ${pending ? "pending" : !current ? "complete" : "active"} ${collapsed ? "is-collapsed" : ""} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
         <h3>{boardTitle}</h3>
-        {collapsed && <div className="cinema-run-summary"><RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete className="cinema-board-matchup" /><strong>{collapsedOutcome}</strong></div>}
+        {collapsed && <div className="cinema-run-summary"><RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete winnerGlowOnly className="cinema-board-matchup" /></div>}
         {!collapsed && match.runoutCount === 2 && matchupComplete && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete className="cinema-board-matchup" />}
         {!collapsed && <div className="cinema-board-cards">{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);
@@ -231,6 +246,49 @@ export function WaitingForTables() {
     <span className="cinema-waiting-pulse" aria-hidden="true"><i /><i /><i /></span>
     <p>다른 매치 결과를 기다리는 중입니다.</p>
   </section>;
+}
+
+function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string): ShowdownPrepView | undefined {
+  if (match.participantIds.length < 2) return undefined;
+  const ids = match.participantIds.length === 2 ? showdownSeatOrder(match.participantIds, viewerId)
+    : match.participantIds.includes(viewerId) ? [viewerId, ...match.participantIds.filter((id) => id !== viewerId)] : match.participantIds;
+  const seat = (id: string) => ({
+    playerId: id,
+    name: profiles.find((profile) => profile.playerId === id)?.name ?? id,
+    points: match.standingsBefore?.[id] ?? profiles.find((profile) => profile.playerId === id)?.points ?? 0,
+    cards: match.runCards?.[id] ? [...new Map(match.runCards[id]!.flat().map((card) => [card.id, card])).values()] : match.revealedCards[id] ?? [],
+  });
+  const opponents = ids.slice(1).map(seat);
+  return { matchNumber: match.stage === "secondary" ? 2 : match.matchday ?? match.matchNumber,
+    viewer: seat(ids[0]!), ...(opponents.length === 1 ? { opponent: opponents[0] } : { opponents }) };
+}
+
+function MatchPrepScreen({ match, profiles, viewerId, seconds }: {
+  match: MatchView; profiles: Profile[]; viewerId: string; seconds: number;
+}) {
+  const alive = profiles.filter((profile) => profile.alive !== false).length;
+  return <main className="game-arena"><nav className="match-prep-nav">
+    <div className="brand"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></div>
+    <RoundProgress round={match.round} prep={null} />
+    <div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></div>
+  </nav><div className="page-shell" id="top"><ShowdownPrepPanel round={match.round}
+    playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
+    seconds={seconds} matchup={matchPrepView(match, profiles, viewerId)} /></div></main>;
+}
+
+function MatchPrepInterlude({ match, profiles, viewerId, onComplete }: {
+  match: MatchView; profiles: Profile[]; viewerId: string; onComplete: () => void;
+}) {
+  const [seconds, setSeconds] = useState(MATCH_PREP_MS / 1000);
+  const finish = useRef(onComplete);
+  useEffect(() => { finish.current = onComplete; }, [onComplete]);
+  useEffect(() => {
+    const started = performance.now();
+    const timer = setInterval(() => setSeconds(Math.max(0, Math.ceil((MATCH_PREP_MS - (performance.now() - started)) / 1000))), 100);
+    const done = setTimeout(() => finish.current(), MATCH_PREP_MS);
+    return () => { clearInterval(timer); clearTimeout(done); };
+  }, []);
+  return <MatchPrepScreen match={match} profiles={profiles} viewerId={viewerId} seconds={seconds} />;
 }
 
 /**
@@ -257,7 +315,10 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
   const entry = presentation.matches.find((item) => elapsed < item.offsetMs + item.durationMs);
   const match = entry && matches.find((item) => item.id === entry.matchId);
   if (!entry || !match) return <WaitingForTables />;
-  return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} onComplete={() => {}} elapsedMs={elapsed - entry.offsetMs} catchUp={tick.jumped} />;
+  const matchElapsed = elapsed - entry.offsetMs;
+  if (match.round < 5 && entry.prepMs && matchElapsed < entry.prepMs) return <MatchPrepScreen key={`${match.id}:prep`} match={match}
+    profiles={profiles} viewerId={viewerId} seconds={Math.ceil((entry.prepMs - matchElapsed) / 1000)} />;
+  return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} onComplete={() => {}} elapsedMs={matchElapsed - (entry.prepMs ?? 0)} catchUp={tick.jumped} />;
 }
 
 /** Hides scoreboards, logs, final standings and next-stage controls until presentation completes. */
@@ -267,9 +328,12 @@ export function CinematicGate({ matches, profiles, viewerId, controls = false, p
   presentation?: PresentationView; clock?: ServerClock; children: React.ReactNode;
 }) {
   const [completed, setCompleted] = useState<string[]>([]);
+  const [prepared, setPrepared] = useState<string[]>([]);
   if (presentation && clock) return <SyncedCinematicGate matches={matches} presentation={presentation} clock={clock} profiles={profiles} viewerId={viewerId}>{children}</SyncedCinematicGate>;
   const current = matches.find((match) => !completed.includes(match.id));
   if (!current) return <>{children}</>;
+  if (current.round < 5 && matches[0]?.id !== current.id && !prepared.includes(current.id)) return <MatchPrepInterlude key={`${current.id}:prep`}
+    match={current} profiles={profiles} viewerId={viewerId} onComplete={() => setPrepared((ids) => [...ids, current.id])} />;
   return <ShowdownCinematic key={current.id} match={current} profiles={profiles} viewerId={viewerId} controls={controls}
     onComplete={() => setCompleted((ids) => [...ids, current.id])} />;
 }

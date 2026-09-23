@@ -91,7 +91,7 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
       <header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">{me.shopCardIds.length} / {shopSize}</strong></div><span className="purchase-count">구매 {me.purchasesThisRound} / {purchaseLimit}</span></header>
       <div className="card-row market-row">{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}</div>
-      <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button><span className="hint">{allShopCardsLocked ? "모든 카드가 잠겨 리롤할 수 없습니다." : "카드별 잠금 3BB · 해제 무료"}</span></div>
+      <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))} onClick={() => act((s) => rerollShop(s, me.id))}>↻ 리롤 <b>{Math.max(0, BALANCE.rerollCostBB - (me.augments.some((a) => a.id === "reroll_discount") ? 2 : 0))}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button></div>
     </div>
   </section>;
 }
@@ -124,7 +124,9 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
 }
 
 function ShowdownPanel({ state, secondsLeft, matchup }: { state: PorenaGameState; secondsLeft: number | null; matchup?: ShowdownPrepView }) {
-  if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return <LocalShowdownPrep state={state} matchup={matchup} />;
+  if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return state.round === 5
+    ? <section className="panel transition-panel"><span>ROUND 05</span><h2>최종전 준비 중</h2></section>
+    : <LocalShowdownPrep state={state} matchup={matchup} />;
   if (!state.roundResults.length) return null;
   return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"} secondsLeft={state.phase === "ROUND_RESULT" ? secondsLeft : null}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
 }
@@ -200,7 +202,7 @@ export function App({ onHome }: { onHome: () => void }) {
     <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>나가기</button></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
-      {!isShowdownPrep && (prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">ROUND 0{state.round}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div>{PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div>}</header>)}
+      {!isShowdownPrep && (prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div><span className="round-number">{state.round === 2 && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? "ROUND 2 · DRAFT PHASE" : `ROUND 0${state.round}`}</span><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div>{PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div>}</header>)}
       {state.phase === "SHOP" && <PoolMeter state={state} />}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} />}
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
@@ -209,11 +211,11 @@ export function App({ onHome }: { onHome: () => void }) {
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}
       {state.phase === "AUGMENT" ? <AugmentPanel state={state} act={act} /> : null}
-      {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다. 탈락자의 카드는 공용 풀로 반환됩니다.</p></section> : null}
+      {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다.</p></section> : null}
       {state.phase === "GAME_RESULT" ? <FinalPanel state={state} /> : null}
       {state.phase === "GAME_RESULT" && <section className="final-exit-actions" aria-label="최종 결과 다음 작업"><button className="primary" onClick={reset}>새 게임 시작 <span>↻</span></button><button className="secondary" onClick={onHome}>홈으로 <span>→</span></button></section>}
       <ActionBar state={state} act={act} reset={reset} />
-      <EventLog state={state} />
+      {!isShowdownPrep && <EventLog state={state} />}
     </div>
   </main>}</LocalResultWindow></CinematicGate>;
 }

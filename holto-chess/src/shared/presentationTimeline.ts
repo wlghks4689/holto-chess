@@ -102,11 +102,13 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client derives its frame from that clock, so all seats see the same beat at the same moment.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 5;
+export const PRESENTATION_VERSION = 7;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause on a finished match before the next one starts (replaces the per-match confirm click). */
 export const MATCH_HOLD_MS = 1500;
+/** Each later match through R4 gets its own opponent and pre-board equity preview. */
+export const MATCH_PREP_MS = 3000;
 
 export function presentationDurationMs(match: Parameters<typeof cinematicTimeline>[0]): number {
   return cinematicTimeline(match).at(-1)!.at + MATCH_HOLD_MS;
