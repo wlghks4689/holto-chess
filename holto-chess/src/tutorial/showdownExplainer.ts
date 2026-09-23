@@ -67,7 +67,7 @@ function kickerLabel(category: HandCategory, index: number): string {
 export function decisiveComparison(mine: RevealedHand, theirs: RevealedHand, theirName: string): string {
   if (mine.category !== theirs.category) {
     const winner = higher(mine.category, theirs.category) ? mine.displayName : theirs.displayName;
-    return `내 ${mine.displayName}과 ${theirName}의 ${withParticle(theirs.displayName, "은", "는")} 족보 자체가 다릅니다. ${withParticle(winner, "이", "가")} 더 높습니다.`;
+    return `내 ${withParticle(mine.displayName, "과", "와")} ${theirName}의 ${withParticle(theirs.displayName, "은", "는")} 족보 자체가 다릅니다. ${withParticle(winner, "이", "가")} 더 높습니다.`;
   }
   const length = Math.max(mine.kickers.length, theirs.kickers.length);
   for (let index = 0; index < length; index += 1) {

@@ -55,13 +55,14 @@ function resolveForHold(session: TutorialSession): TutorialSession {
   return applyGame(session, play(session.game));
 }
 
-function walk(chapterId: 1 | 2 | 3 | 4 | 5): TutorialSession {
+function walk(chapterId: 1 | 2 | 3 | 4 | 5, visited: string[] = []): TutorialSession {
   let session = startChapter(chapterId);
   const seen = new Set<string>();
   for (let guard = 0; guard < 120 && !chapterFinished(session); guard += 1) {
     session = resolveForHold(session);
     const step = currentStep(session);
     if (!step) break;
+    if (!visited.includes(step.id)) visited.push(step.id);
     expect(assertPoolIntegrity(session.game)).toBe(true);
     if (step.kind === "ACT") {
       const before = session.stepIndex;
@@ -79,9 +80,12 @@ function walk(chapterId: 1 | 2 | 3 | 4 | 5): TutorialSession {
 describe("every chapter can be finished", () => {
   for (const chapter of TUTORIAL_CHAPTERS) {
     it(`chapter ${chapter.id} · ${chapter.title}`, () => {
-      const session = walk(chapter.id);
+      const visited: string[] = [];
+      const session = walk(chapter.id, visited);
       expect(chapterFinished(session)).toBe(true);
       expect(assertPoolIntegrity(session.game)).toBe(true);
+      // Every showdown beat this chapter promises must actually have been shown, not skipped.
+      for (const step of chapter.steps.filter((entry) => entry.hold && entry.hold.matchIndex === 0)) expect(visited).toContain(step.id);
     });
   }
 });

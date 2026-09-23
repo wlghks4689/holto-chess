@@ -250,7 +250,16 @@ const CHAPTER_FOUR: TutorialChapter = {
       onEnter: draftUntilMyTurn,
       done: (game) => game.phase === "SHOP" || game.players[0]!.ownedCardIds.length >= BALANCE.handLimits[4],
     },
-    { id: "r4-shop", kind: "ACT", focus: "shop", goal: "보유 카드 5장 채우기", title: "상점에서 마무리하세요", body: ["이번 라운드의 보유 한도는 다섯 장입니다."], onEnter: finishDraft, done: handFull },
+    {
+      // Read, not gated on buying: after a draft pick the hand can already be full, and the shop
+      // round still matters even then (selling and swapping stay open).
+      id: "r4-shop", kind: "EXPLAIN", focus: "shop", next: "확정 단계로", title: "드래프트 뒤에도 상점이 열립니다",
+      body: (game) => [
+        `이번 라운드의 보유 한도는 ${BALANCE.handLimits[4]}장이고, 지금 ${me(game).ownedCardIds.length}장을 들고 있어요.`,
+        "드래프트로 가져온 카드에 더해, 상점에서 사고팔아 다섯 장을 마무리합니다.",
+      ],
+      onEnter: finishDraft,
+    },
     {
       id: "r4-rule", kind: "ACT", focus: "action-bar", goal: "구성 확정 누르기",
       title: "이번엔 두 장 제한이 없습니다",
@@ -262,7 +271,14 @@ const CHAPTER_FOUR: TutorialChapter = {
       id: "r4-group", kind: "REVIEW", focus: "round-results", next: "2차전 보기",
       title: "1차전 결과와 그룹", body: ["1차전 결과에 따라 승자조와 생존조로 나뉩니다.", "승자조는 다음 라운드 진출을 확보한 채 추가 점수를 겨루고, 생존조는 한 자리를 두고 겨룹니다."],
     },
-    { id: "r4-secondary", kind: "REVIEW", hold: { matchIndex: 1, at: "COMPLETE" }, next: "라운드 결과 보기", title: "2차전", body: ["같은 다섯 장으로 그룹 안에서 다시 겨룹니다."] },
+    {
+      id: "r4-enter-secondary", kind: "ACT", focus: "action-bar", goal: "2차전 시작하기",
+      title: "내 그룹을 확인했다면",
+      body: ["준비가 되면 2차전을 시작하세요. 눌러야 진행되고, 기다린다고 넘어가지 않습니다."],
+      done: (game) => game.phase !== "GROUP_ASSIGNMENT",
+    },
+    // The engine replaces the round results with the group match, so the second match is index 0 again.
+    { id: "r4-secondary", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "라운드 결과 보기", title: "2차전", body: ["같은 다섯 장으로 그룹 안에서 다시 겨룹니다."] },
   ],
 };
 
