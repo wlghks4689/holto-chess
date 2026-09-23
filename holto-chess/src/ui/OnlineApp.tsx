@@ -25,7 +25,7 @@ import { FinalResultsPanel } from "./FinalResultsPanel";
 import { HighCardDrawResult } from "./HighCardDraw";
 import { makeSavedFinalResult, saveFinalResult } from "./finalResultArchive";
 import { OpenDraftPanel, RunLoadoutPanel } from "./OpenDraft";
-import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
@@ -271,7 +271,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
             <button className={displayView.me.committed ? "secondary" : "primary"} disabled={interactionDisabled || (!displayView.me.committed && (displayView.me.ownedCards.length !== displayView.me.handLimit || (displayView.round === 2 && displayView.me.selectedCardIds.length !== 2)))} onClick={() => send(displayView.me.committed ? { type: "CANCEL_SHOP_READY" } : { type: "END_SHOP_PHASE" })}>{displayView.me.committed ? "덱 준비 취소 · 다시 수정" : "준비 완료 · 구성 확정"}</button></div></>}
         {displayView.phase === "GAME_RESULT" && <><FinalResultsPanel view={displayView} /><section className="panel rematch-panel"><span className="eyebrow">NEXT GAME</span><h2>다음 선택</h2><p>새 게임은 현재 참가자의 준비가 끝나면 같은 방에서 시작됩니다.</p><div className="final-exit-actions"><button className="primary" disabled={disabled || meReadyForRematch || rematchHumans.length < 2} onClick={() => send({ type: "REMATCH_READY" })}>{meReadyForRematch ? `새 게임 대기 중 · ${rematchReady}/${rematchHumans.length}` : "새 게임 시작"}</button><button className="secondary" type="button" onClick={onHome}>홈으로</button></div></section></>}
         {isShowdownPrep && (displayView.round === 5
-          ? <section className="panel transition-panel"><span>ROUND 05</span><h2>최종전 준비 중</h2></section>
+          ? <FinalRoundTransition />
           : <ShowdownPrepPanel round={displayView.round} playerName={observedName ?? "플레이어"} seconds={secondsLeft} secondary={displayView.phase === "SHOWDOWN_SECONDARY"} matchup={displayView.showdownPrep} />)}
         {!isShowdownPrep && <RoundResults round={displayView.round} rows={displayView.roundSummary ?? []} viewerId={displayView.me.playerId} showBrackets={displayView.round === 4 && displayView.phase === "GROUP_ASSIGNMENT"} secondsLeft={displayView.phase === "ROUND_RESULT" ? secondsLeft : null}>{(displayView.roundHistory ?? displayView.matches).map((m) => <OnlineMatch key={m.id} match={m} view={displayView} />)}</RoundResults>}
         {displayView.phase === "AUGMENT" && <section className="panel augment-panel"><header className="augment-heading"><h2>{displayView.me.augmentChoices.length ? "증강 하나를 선택하세요" : "다른 플레이어의 선택을 기다립니다"}</h2>{secondsLeft !== null && <PhaseTimer className="action-countdown" seconds={secondsLeft} ariaLabel={`${phases[displayView.phase]} 남은 시간 ${secondsLeft}초`} />}</header><div className="augment-grid">{displayView.me.augmentChoices.map((a) => <button key={a.id} disabled={interactionDisabled} onClick={() => send({ type: "SELECT_AUGMENT", augmentId: a.id })}><b>{a.name}</b><p>{a.description}</p></button>)}</div></section>}

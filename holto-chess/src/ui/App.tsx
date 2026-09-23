@@ -33,7 +33,7 @@ import { playerEventFeed } from "./playerEventFeed";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { useLocalCountdown } from "./useLocalCountdown";
-import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
@@ -125,7 +125,7 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
 
 function ShowdownPanel({ state, secondsLeft, matchup }: { state: PorenaGameState; secondsLeft: number | null; matchup?: ShowdownPrepView }) {
   if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return state.round === 5
-    ? <section className="panel transition-panel"><span>ROUND 05</span><h2>최종전 준비 중</h2></section>
+    ? <FinalRoundTransition />
     : <LocalShowdownPrep state={state} matchup={matchup} />;
   if (!state.roundResults.length) return null;
   return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"} secondsLeft={state.phase === "ROUND_RESULT" ? secondsLeft : null}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
