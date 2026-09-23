@@ -50,7 +50,6 @@
 .game-arena .phase-wait-copy p,.game-arena .shop-ready-copy p{margin:4px 0;line-height:1.5}
 .game-arena .shop-ready-copy{flex:1;min-width:0}
 .game-arena .action-countdown{flex-shrink:0}
-.game-arena .phase-auto-bar>strong{flex-shrink:0;padding:10px 14px;border:1px solid rgba(112,238,231,.34);border-radius:9px;color:#80e5df;font:700 11px/1 DM Mono;letter-spacing:.08em;background:rgba(6,42,50,.72)}
 .game-arena .action-bar>.primary{flex-shrink:0;max-width:100%;white-space:normal}
 .game-arena .shop-ready-bar>.shop-countdown{display:grid;flex-shrink:0}
 .augment-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.augment-heading h2{min-width:0}

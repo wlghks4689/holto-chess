@@ -71,7 +71,7 @@ function Leaderboard({ rows, viewerId }: { rows: RoundSummaryRow[]; viewerId: st
   </table></div>;
 }
 
-export function RoundResults({ round, rows, viewerId, showBrackets = false, secondsLeft = null, children }: { round: number; rows: RoundSummaryRow[]; viewerId: string; showBrackets?: boolean; secondsLeft?: number | null; children: ReactNode }) {
+export function RoundResults({ rows, viewerId, showBrackets = false, secondsLeft = null, children }: { round: number; rows: RoundSummaryRow[]; viewerId: string; showBrackets?: boolean; secondsLeft?: number | null; children: ReactNode }) {
   if (!rows.length) return null;
   const bracketSections = [
     { bracket: "winner" as const, title: "승자조 브래킷", note: "MATCH 2 · 순위 결정" },
@@ -79,7 +79,7 @@ export function RoundResults({ round, rows, viewerId, showBrackets = false, seco
   ];
   return <section className="round-results">
     <div className="round-overview panel">
-      <header className="round-result-heading"><div><span className="eyebrow">ROUND {round} · RESULT</span><h2>{showBrackets ? "브래킷 배정" : "순위표"}</h2><p>{showBrackets ? "MATCH 1 결과에 따른 다음 경기 그룹입니다" : "이번 라운드 종료 기준 누적 승점 순위입니다"}</p></div>
+      <header className="round-result-heading"><div><h2>{showBrackets ? "브래킷 배정" : "순위표"}</h2><p>{showBrackets ? "MATCH 1 결과에 따른 다음 경기 그룹입니다" : "이번 라운드 종료 기준 누적 승점 순위입니다"}</p></div>
         {!showBrackets && secondsLeft !== null && <PhaseTimer className="result-deadline" seconds={secondsLeft} ariaLabel={`순위표 남은 시간 ${secondsLeft}초`} />}
       </header>
       {showBrackets ? <div className="round-bracket-grid">{bracketSections.map((section) => <section className={`round-bracket is-${section.bracket}`} key={section.bracket}>

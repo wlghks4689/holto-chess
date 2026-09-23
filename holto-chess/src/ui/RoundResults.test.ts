@@ -29,6 +29,7 @@ describe("round result brackets", () => {
     expect(html).not.toContain("round-bracket-grid");
     expect(html).not.toContain("승자조 브래킷");
     expect(html).toContain("순위표");
+    expect(html).not.toContain("ROUND 4 · RESULT");
     expect(html).not.toContain("정렬 기준:");
     expect(html).toContain('<th class="leaderboard-hand-head">핸드</th>');
     expect(html).not.toContain("공개 핸드");
