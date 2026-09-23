@@ -206,8 +206,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const matchupComplete = boardIndex === 0 && current && ["RUN_RESULT", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : "COMMUNITY BOARD"
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
+      const collapsedOutcome = boardWinners.length > 1 ? "SPLIT" : boardWinners[0] ? `${name(boardWinners[0])} 승리` : "승부 결과";
       return <div className={`cinema-board ${pending ? "pending" : !current ? "complete" : "active"} ${collapsed ? "is-collapsed" : ""} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
-        <h3>{boardTitle}{collapsed && <b>완료</b>}</h3>
+        <h3>{boardTitle}</h3>
+        {collapsed && <div className="cinema-run-summary"><RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete className="cinema-board-matchup" /><strong>{collapsedOutcome}</strong></div>}
         {!collapsed && match.runoutCount === 2 && matchupComplete && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete className="cinema-board-matchup" />}
         {!collapsed && <div className="cinema-board-cards">{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);

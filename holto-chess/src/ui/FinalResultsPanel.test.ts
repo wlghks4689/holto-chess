@@ -45,7 +45,9 @@ describe("final result panel", () => {
   it("renders centered final-standing columns and keeps score details in the total popover", () => {
     const html = renderToStaticMarkup(createElement(FinalResultsPanel, { view: finalView() }));
     expect(html).toContain("지팡스키");
-    for (const label of ["순위", "닉네임", "BEST 5", "누적 승점", "족보 점수", "스택", "총점", "랭크 점수"]) expect(html).toContain(label);
+    for (const label of ["순위", "닉네임", "BEST 5", "누적", "승점", "족보", "점수", "스택", "총점", "랭크"]) expect(html).toContain(label);
+    expect(html).not.toContain('class="panel final-panel"');
+    expect(html).not.toContain("최종 결과</h2>");
     expect(html).toContain('class="final-score-part">19</span>');
     expect(html).not.toContain("19<small>로열 플러시</small>");
     expect(html).not.toContain("로열 스트레이트 플러시");

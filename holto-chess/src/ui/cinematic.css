@@ -131,8 +131,10 @@
 .cinema-board-stack.run-it-twice .cinema-board+.cinema-board{border-top:1px solid #294839}
 .cinema-board.complete{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.36)}
 .cinema-board.pending{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.18);opacity:.72}
-.cinema-board.is-collapsed{min-height:0;padding:9px 8px;background:rgba(3,15,10,.52)}
-.cinema-board.is-collapsed h3{margin:0}
+.cinema-board.is-collapsed{min-height:0;padding:10px 8px 12px;background:rgba(3,15,10,.52)}
+.cinema-board.is-collapsed h3{margin:0 0 7px}
+.cinema-run-summary{display:flex;align-items:center;justify-content:center;gap:14px;min-width:0}.cinema-run-summary>.cinema-run-matchup{margin:0}.cinema-run-summary>strong{color:var(--mint);font-size:12px;white-space:nowrap;text-shadow:0 0 12px rgba(132,245,182,.38)}
+.cinema-board.is-collapsed .cinema-run-player.is-winner{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--made-color) 55%,transparent))}.cinema-board.is-collapsed .cinema-run-player.is-loser{opacity:.42;filter:grayscale(.35)}
 .cinema-board.complete .playing-card.compact{width:48px;height:69px}.cinema-board.complete .cinema-board-cards{gap:8px}.cinema-board.complete .hint{margin:8px 0 0}
 .cinema-board-cards{display:flex;justify-content:center;gap:12px}
 .cinema-board .playing-card.compact{width:64px;height:91px}

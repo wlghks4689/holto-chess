@@ -73,6 +73,8 @@ export type SpectatorPlayerView = {
   roundHistory: MatchView[];
   presentation?: PresentationView;
 };
+export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[] };
+export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView };
 export type PlayerView = {
   survival?: { playerIds: string[]; eliminateCount: number };
   draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]> };
@@ -88,6 +90,8 @@ export type PlayerView = {
   /** Seats this phase is still waiting on. */
   waitingOn: string[];
   me: PrivatePlayerView;
+  /** Present only after hands and seats are locked for a showdown. */
+  showdownPrep?: ShowdownPrepView;
   /** Read-only private perspectives, sent only to an eliminated seat. */
   spectatorViews?: SpectatorPlayerView[];
   players: PublicPlayer[];

@@ -1,23 +1,38 @@
-import { PhaseTimer } from "./PhaseTimer";
+import type { CSSProperties } from "react";
+import type { ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
+import { CardView } from "./CardView";
 import "./showdown-prep.css";
 
-export function ShowdownPrepPanel({ round, playerName, seconds, secondary = false }: {
-  round: number; playerName: string; seconds: number | null; secondary?: boolean;
+const ROUND_TITLES = ["", "TWO HAND", "RUN IT TWICE", "OMAHA SWISS", "BEST FIVE", "THE LAST HAND"];
+
+function PrepSeat({ seat, viewer, pending = false }: { seat?: ShowdownPrepSeatView; viewer: boolean; pending?: boolean }) {
+  const name = seat?.name ?? "상대 확인 중";
+  const avatar = pending ? "?" : [...name][0] ?? "P";
+  const cards = seat?.cards.slice(0, 7) ?? [];
+  return <article className={`showdown-prep-player ${viewer ? "is-viewer" : "is-opponent"} ${pending ? "is-pending" : ""}`}>
+    <div className="showdown-prep-identity"><span className="showdown-prep-avatar">{avatar}</span><div><b>{name}</b><small>승점 <strong>{seat?.points ?? "—"}P</strong></small></div></div>
+    <div className="showdown-prep-hand" aria-label={`${name} 출전 카드`}>
+      {Array.from({ length: 7 }, (_, index) => cards[index]
+        ? <CardView key={cards[index]!.id} card={cards[index]!} compact />
+        : pending ? <span key={index} className="showdown-prep-card-back" aria-label="비공개 카드"><i>◇</i></span>
+          : <span key={index} className="showdown-prep-card-space" aria-hidden="true" />)}
+    </div>
+  </article>;
+}
+
+export function ShowdownPrepPanel({ round, playerName, seconds, secondary = false, matchup }: {
+  round: number; playerName: string; seconds: number | null; secondary?: boolean; matchup?: ShowdownPrepView;
 }) {
-  const avatar = [...playerName][0] ?? "P";
-  return <section className="showdown-prep panel" aria-label="쇼다운 매치업 동기화 중">
-    <header className="showdown-prep-heading">
-      <div><small>ROUND {String(round).padStart(2, "0")} · {secondary ? "SECOND MATCH" : "MATCH SETUP"}</small><h2>매치업 동기화 중</h2></div>
-      {seconds !== null && <PhaseTimer className="showdown-prep-clock" seconds={seconds} ariaLabel={`쇼다운 시작까지 ${seconds}초`} />}
-    </header>
-    <div className="showdown-prep-stage" aria-hidden="true">
-      <article className="showdown-prep-player is-viewer"><span>{avatar}</span><small>PLAYER</small><b>{playerName}</b><i>READY</i></article>
-      <strong className="showdown-prep-vs">VS</strong>
-      <article className="showdown-prep-player is-opponent"><span>?</span><small>OPPONENT</small><b>상대 매칭 중</b><i>SYNC</i></article>
+  const viewer = matchup?.viewer ?? { playerId: "viewer", name: playerName, points: 0, cards: [] };
+  const matchNumber = matchup?.matchNumber ?? (secondary ? 2 : 1);
+  const duration = Math.max(1, seconds ?? 3);
+  return <section className="showdown-prep match-loading" aria-label="매칭 로딩창" style={{ "--prep-duration": `${duration}s` } as CSSProperties}>
+    <header className="showdown-prep-heading"><small>ROUND {String(round).padStart(2, "0")} · MATCH {matchNumber}</small><h1>{ROUND_TITLES[round] ?? `ROUND ${round}`}</h1></header>
+    <div className="showdown-prep-stage">
+      <PrepSeat seat={viewer} viewer />
+      <strong className="showdown-prep-vs" aria-label="대결">VS</strong>
+      <PrepSeat seat={matchup?.opponent} viewer={false} pending={!matchup?.opponent} />
     </div>
-    <div className="showdown-prep-status" role="status">
-      <span aria-hidden="true"><i /><i /><i /></span>
-      <p>다음 상대와 쇼다운 화면을 동기화하고 있습니다.<br />준비가 끝나면 자동으로 시작합니다.</p>
-    </div>
+    <footer className="showdown-prep-footer" role="status"><strong>SHOWDOWN</strong><span aria-hidden="true"><i /></span></footer>
   </section>;
 }

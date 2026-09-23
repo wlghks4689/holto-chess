@@ -4,11 +4,12 @@ import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags } from ".
 
 const deck = makeDeck();
 describe("showdown reveal timing", () => {
-  it("holds the face-up intro reveal and updates each made hand 200ms after the street settles", () => {
+  it("enters the table without repeating the match-loading hand reveal and updates each made hand 200ms after the street settles", () => {
     const timeline = cinematicTimeline({ boards: [deck.slice(0, 5)], revealedCards: { p1: deck.slice(5, 7) } });
     const time = (phase: string) => timeline.find((frame) => frame.phase === phase)!.at;
-    expect(frameAt(timeline, 1399).phase).toBe("VS_INTRO");
-    expect(frameAt(timeline, 1200).revealed).toBe(0);
+    expect(timeline.some((frame) => frame.phase === "VS_INTRO" || frame.phase === "PREFLOP_HAND")).toBe(false);
+    expect(frameAt(timeline, 399).phase).toBe("TABLE_ENTER");
+    expect(frameAt(timeline, 400).phase).toBe("FLOP_1");
     expect(time("FLOP_2") - time("FLOP_1")).toBe(400);
     expect(time("FLOP_3") - time("FLOP_2")).toBe(400);
     expect(time("FLOP_HAND") - time("FLOP_SETTLE")).toBe(200);
@@ -33,7 +34,7 @@ describe("showdown reveal timing", () => {
   });
   it("runs two boards and tiebreak as one continuous timeline with only one table entry", () => {
     const timeline = cinematicTimeline({ boards: [deck.slice(0, 5), deck.slice(5, 10), deck.slice(10, 15)], revealedCards: {} });
-    expect(timeline.filter((f) => f.phase === "VS_INTRO")).toHaveLength(1);
+    expect(timeline.filter((f) => f.phase === "VS_INTRO")).toHaveLength(0);
     expect(timeline.filter((f) => f.phase === "RUN_RESULT").map((f) => f.boardIndex)).toEqual([0, 1]);
     expect(timeline.filter((f) => f.phase === "TABLE_ENTER")).toHaveLength(1);
     expect(timeline.filter((f) => f.phase === "REWARD")).toHaveLength(1);

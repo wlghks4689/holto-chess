@@ -89,6 +89,9 @@ export type MatchResult = {
 export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };
 
 export type PorenaGameState = {
+  /** Frozen when a showdown prep phase begins so the VS preview and resolution use the same seats. */
+  primaryOrderIds?: string[];
+  primaryPairings?: string[][];
   r3Seeds?: string[];
   /** Missing in persisted pre-draft games: keep their original rules. */
   rulesVersion?: 1 | 2;
