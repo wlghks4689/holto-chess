@@ -47,7 +47,7 @@
 ## BAL-003 — R2 첫 드래프트 8장/10장 비교 요청
 
 - 상태: 분석 요청 준비. 밸런스 변경 승인 아님.
-- 기준: Codex 복구·검토 브랜치 `d46275e`.
+- 기준: 최신 `afbad6c` 계통에 시뮬레이터 복구를 재적용한 `codex/balance-latest` 기준 커밋 `d6f323c`.
 - 범위: R2 첫 드래프트 카드 풀 8장과 분석용 후보 10장을 비교하고, 드래프트 순번·R1 Swiss 순위·R5 최종 순위의 관계와 순번별 수혜를 측정한다.
 - 담당 경계: Claude는 `product_doc/balance/BAL-003/REPORT.md`와 `artifacts/**`만 작성한다. Codex는 요청 문서와 공용 규칙을 관리하고, 사용자 승인 전 후보를 게임 코드에 반영하지 않는다.
  - 근거 문서: `product_doc/balance/BAL-003/REQUEST.md`.

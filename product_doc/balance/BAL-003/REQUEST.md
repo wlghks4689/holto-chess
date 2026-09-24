@@ -1,8 +1,8 @@
 # BAL-003 — 1차 드래프트 8장과 10장의 순번별 수혜·순위 변화
 
 상태: 분석 요청 준비 완료 / 사용자 승인 대기
-분석 기준 커밋: `d46275e`
-분석 브랜치: `balance/BAL-003`
+분석 기준 커밋: `d6f323c` (최신 `afbad6c` 계통에 시뮬레이터 복구를 재적용하고 의뢰서를 포함한 기준)
+분석 브랜치: `balance/BAL-003-latest`
 
 ## 분석 목적
 
@@ -51,6 +51,8 @@
 ```powershell
 npm exec vitest -- run --config tools/balance-simulator/vitest.config.ts
 node tools/balance-simulator/run.mjs --games 1 --seed 12345 --rerolls 1 --output ../product_doc/balance/BAL-003/artifacts/smoke
+
+최신 기준 smoke에서 완료 게임과 실패 게임을 반드시 분리해 기록한다. `shop fill failures`가 0이 아니면 완주 여부와 별개로 데이터 신뢰성 경고로 보고하고, 수치 권고를 확정하지 않는다.
 ```
 
 구조가 통과하면 현행 8장과 후보 10장을 동일 seed로 각각 최소 200게임 실행하고, 고정 정책·무작위 배정·독립 seed 블록을 포함한다. 실패가 있으면 완료 표본과 분리하며 실패 결과를 측정값으로 합산하지 않는다.
