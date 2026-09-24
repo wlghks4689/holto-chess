@@ -34,6 +34,8 @@ import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { useLocalCountdown } from "./useLocalCountdown";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { SurvivalReadyPanel } from "./SurvivalReadyPanel";
+import { survivalReadyActionLabel } from "./survivalReadyPresentation";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
@@ -146,7 +148,7 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   if (state.phase === "SHOP") { label = `구성 확정 · R${state.round} 쇼다운`; fn = prepareShowdown; }
   if (state.phase === "DECK_SELECT") { label = `선택 확정 (${me.selectedCardIds.length}/2)`; fn = confirmSelection; }
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
-  if (state.phase === "SURVIVAL_READY") { label = "생존 타이브레이크 시작"; fn = resolveSurvival; }
+  if (state.phase === "SURVIVAL_READY") { label = survivalReadyActionLabel(state.survival?.playerIds ?? [], me.id); fn = resolveSurvival; }
   if (state.phase === "ROUND_RESULT") { label = "라운드 마감"; fn = leaveRoundResult; }
   if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} ${state.rulesVersion === 2 && [1, 3].includes(state.round) ? "드래프트로" : "상점으로"}`; fn = startNextRound; }
   const requiredSelection = 2;
@@ -205,6 +207,7 @@ export function App({ onHome }: { onHome: () => void }) {
       {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>관전 모드</h2><p>내 카드는 공용 풀로 반환되었습니다. 남은 플레이어의 매치별 Community Board와 토너먼트 결과를 계속 확인할 수 있습니다.</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
+      {state.phase === "SURVIVAL_READY" && state.survival ? <SurvivalReadyPanel {...state.survival} viewerId="p1" name={(id) => state.players.find((player) => player.id === id)?.name ?? id} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}
       {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다.</p></section> : null}
       {state.phase === "GAME_RESULT" ? <FinalPanel state={state} /> : null}
