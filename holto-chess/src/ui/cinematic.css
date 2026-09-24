@@ -300,6 +300,36 @@
   .cinema-hole-cards .playing-card.compact{width:32px;height:48px}
   .cinema-hole-cards .playing-card.compact .card-rank{font-size:13px}
   .cinema-hole-cards .playing-card.compact .card-suit{font-size:19px}
+  /* R4 three-player brackets keep all seats and the community board in the mobile view. */
+  .cinema-r4-threeway.cinema-multi:not(.cinema-final) .cinema-seats{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .cinema-r4-threeway .cinema-heading{margin-bottom:10px}
+  .cinema-r4-threeway .cinema-seat{padding:23px 3px 8px}
+  .cinema-r4-threeway .cinema-seat>.cinema-status-stamp{top:4px;right:4px;padding:0 3px;font-size:7px}
+  .cinema-r4-threeway .cinema-match-profile{grid-template-rows:20px 21px 18px;gap:2px;min-height:63px;margin-bottom:5px;font-size:10px}
+  .cinema-r4-threeway .cinema-profile-identity{gap:3px}
+  .cinema-r4-threeway .cinema-profile .player-avatar{width:19px;height:19px;font-size:10px}
+  .cinema-r4-threeway .cinema-standing-line{gap:2px}
+  .cinema-r4-threeway .cinema-rank-badge{min-height:18px;padding:1px 3px;gap:2px;font-size:9px}
+  .cinema-r4-threeway .cinema-rank-badge small,.cinema-r4-threeway .cinema-rank-badge b{font-size:9px}
+  .cinema-r4-threeway .cinema-current-points{font-size:9px}
+  .cinema-r4-threeway .cinema-victory{font-size:10px;letter-spacing:.04em;white-space:nowrap}
+  .cinema-r4-threeway .cinema-hole-cards{--r4-card-width:clamp(24px,7.5vw,29px);display:grid;grid-template-columns:repeat(6,calc(var(--r4-card-width) / 2));justify-content:center;column-gap:2px;row-gap:3px}
+  .cinema-r4-threeway .cinema-hole-cards>.cinema-flip-slot{grid-column:span 2}
+  .cinema-r4-threeway .cinema-hole-cards>.cinema-flip-slot:nth-child(4){grid-column:2 / span 2}
+  .cinema-r4-threeway .cinema-hole-cards>.cinema-flip-slot:nth-child(5){grid-column:4 / span 2}
+  .cinema-r4-threeway .cinema-hole-cards .playing-card.compact{width:var(--r4-card-width);height:clamp(36px,10.8vw,42px);padding:2px;border-radius:4px}
+  .cinema-r4-threeway .cinema-hole-cards .card-back{border-width:2px}
+  .cinema-r4-threeway .cinema-hole-cards .card-back span{font-size:13px}
+  .cinema-r4-threeway .cinema-hole-cards .card-rank{font-size:11px}
+  .cinema-r4-threeway .cinema-hole-cards .card-suit{font-size:15px}
+  .cinema-r4-threeway .cinema-made{min-height:37px;margin:7px 0 3px}
+  .cinema-r4-threeway .cinema-made strong{font-size:11px;line-height:1.25}
+  .cinema-r4-threeway .cinema-made small{font-size:8px;margin-top:2px}
+  .cinema-r4-threeway .cinema-reward{margin-top:6px;padding-top:6px}
+  .cinema-r4-threeway .cinema-reward strong{font-size:9px;line-height:1.35;white-space:normal;overflow-wrap:anywhere}
+  .cinema-r4-threeway .cinema-board-stack{margin:10px auto 4px}
+  .cinema-r4-threeway .cinema-board{padding:10px 4px}
+  .cinema-r4-threeway .cinema-board h3{margin-bottom:9px}
   .cinema-final .cinema-seats{gap:8px}
   .cinema-final-heading{align-items:center;padding-top:42px}.cinema-final-heading .cinema-controls{left:0;right:0;top:0;justify-content:space-between}
   .cinema-final-heading h2{font-size:clamp(24px,8vw,34px)}

@@ -63,3 +63,14 @@ it("does not present the AI pick delay as the local player's remaining time", ()
   expect(html).not.toContain('role="timer"');
   expect(html).toContain("선택 중");
 });
+it("keeps the R4 draft order compact without showing any opponent hole cards", () => {
+  const view = fixture(true);
+  view.round = 4;
+  view.draft!.publicHands = { [view.draft!.order[1]!.playerId]: [{ id: "Ah", rank: 14, suit: "h" }] };
+  const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view, send: () => {}, disabled: false, seconds: 20 }));
+
+  expect(html).toContain('class="draft-order"');
+  expect(html).not.toContain('class="draft-hand"');
+  expect(html).not.toContain('class="card-back');
+  expect(html).not.toContain('class="draft-acquired"');
+});
