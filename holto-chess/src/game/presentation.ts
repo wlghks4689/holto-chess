@@ -1,4 +1,4 @@
-import { MATCH_PREP_MS, PRESENTATION_LEAD_MS, PRESENTATION_VERSION, presentationDurationMs } from "../shared/presentationTimeline";
+import { INTER_MATCH_HOLD_MS, MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_LEAD_MS, PRESENTATION_VERSION, presentationDurationMs } from "../shared/presentationTimeline";
 import type { PresentationEntry, PresentationView } from "../shared/protocol";
 import { createMatchView } from "./matchView";
 import type { RoomSnapshot } from "./room";
@@ -46,15 +46,26 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
   let longest = 0;
   const watching = room.sessions.filter((session) => !session.departed);
   const hasSpectators = watching.some((session) => room.game.players.find((player) => player.id === session.playerId)?.eliminated);
+  const sequences = Object.fromEntries(room.game.players.map(({ id }) => [id, visibleMatchesFor(room, id)]));
+  const entryDuration = (match: MatchResult, index: number, last: boolean) =>
+    durationOf(match) + (room.game.round === 5 || index === 0 ? 0 : MATCH_PREP_MS) - (last ? 0 : MATCH_HOLD_MS);
+  // All seats share the same match-slot starts, even when one table has a longer decider.
+  // A shorter table keeps its completed result visible until the last three seconds of the slot.
+  const slotStarts = [0];
+  const slotCount = Math.max(0, ...Object.values(sequences).map((matches) => matches.length));
+  for (let index = 0; index < slotCount - 1; index += 1) {
+    const longestMatch = Math.max(0, ...Object.values(sequences).map((matches) =>
+      matches[index] ? entryDuration(matches[index], index, index === matches.length - 1) : 0));
+    slotStarts.push(slotStarts[index]! + longestMatch + INTER_MATCH_HOLD_MS);
+  }
   for (const { id: playerId, eliminated } of room.game.players) {
-    let offsetMs = 0;
-    perPlayer[playerId] = visibleMatchesFor(room, playerId).map((match, index) => {
+    perPlayer[playerId] = sequences[playerId]!.map((match, index, matches) => {
       const prepMs = room.game.round === 5 || index === 0 ? 0 : MATCH_PREP_MS;
-      const entry = { matchId: match.id, offsetMs, durationMs: durationOf(match) + prepMs, ...(prepMs ? { prepMs } : {}) };
-      offsetMs += entry.durationMs;
-      return entry;
+      return { matchId: match.id, offsetMs: slotStarts[index]!, durationMs: entryDuration(match, index, index === matches.length - 1), ...(prepMs ? { prepMs } : {}) };
     });
-    if (watching.some((session) => session.playerId === playerId) || (hasSpectators && !eliminated)) longest = Math.max(longest, offsetMs);
+    const last = perPlayer[playerId]!.at(-1);
+    if (last && (watching.some((session) => session.playerId === playerId) || (hasSpectators && !eliminated)))
+      longest = Math.max(longest, last.offsetMs + last.durationMs);
   }
   room.presentation = { key, version: PRESENTATION_VERSION, startsAt, endsAt: startsAt + longest, perPlayer };
 }
