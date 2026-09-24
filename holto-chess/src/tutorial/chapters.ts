@@ -129,7 +129,9 @@ const commitStep: TutorialStep = {
 function showdownSteps(prefix: string, matchIndex: number, options: { boardIntro?: boolean } = {}): TutorialStep[] {
   return [
     {
-      id: `${prefix}-vs`, kind: "REVIEW", hold: { matchIndex, at: "VS_INTRO" }, next: "보드 열기",
+      // The shared cinematic now enters directly at the table; the separate
+      // matchup-loading screen owns the old VS intro in online play.
+      id: `${prefix}-vs`, kind: "REVIEW", hold: { matchIndex, at: "TABLE_ENTER" }, next: "보드 열기",
       title: "내 카드와 상대 카드",
       body: options.boardIntro
         ? ["가운데 놓이는 카드는 나와 이번 상대가 함께 쓰는 카드예요.", "내 카드 두 장과 보드 다섯 장 중 가장 강한 다섯 장으로 승부합니다."]
