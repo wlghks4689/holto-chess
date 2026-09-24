@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
 import { BALANCE } from "../game/config";
 import {
-  beginSecondary, buyCard, chooseAugment, confirmSelection, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
+  beginSecondary, buyCard, confirmSelection, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
   pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, setRunLoadout,
   startNextRound, toggleSelectedCard,
 } from "../game/engine";
@@ -37,7 +37,6 @@ function play(game: PorenaGameState): PorenaGameState {
       return pickDraftCard(game, "p1", open!);
     }
     case "RUN_LOADOUT": return lockRunLoadouts(setRunLoadout(game, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(game, id)))));
-    case "AUGMENT": return chooseAugment(game, "p1", game.augmentChoices[0]!.id);
     case "ROUND_RESULT": return leaveRoundResult(game);
     case "GROUP_ASSIGNMENT": return beginSecondary(game);
     case "SHOWDOWN_PRIMARY": return resolvePrimary(game);
