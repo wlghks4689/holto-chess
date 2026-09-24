@@ -47,13 +47,18 @@ export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = tru
     if (previous >= 0) [next[slot], next[previous]] = [next[previous]!, next[slot]!];
     send({ type: "RUN_LOADOUT", cardIds: next });
   };
-  return <section className="panel run-loadout"><h2>대표 카드와 두 RUN을 설계하세요</h2>
-    {showTimer && <div className="run-loadout-timer"><PhaseTimer seconds={seconds ?? 30} ariaLabel={`배치 확정 남은 시간 ${seconds ?? 30}초`} /></div>}
-    <div className="run-loadout-slots">{["대표 카드", "RUN 1 · 보조 카드", "RUN 2 · 보조 카드"].map((label, index) => <label key={label}><b>{label}</b>
-      {owned.find((c) => c.id === ids[index]) && <CardView card={owned.find((c) => c.id === ids[index])!} />}
-      <select aria-label={label} disabled={disabled || ready} value={ids[index]} onChange={(e) => change(index, e.target.value)}>{owned.map((c) => <option value={c.id} key={c.id}>{c.id}</option>)}</select>
-    </label>)}</div><p>대표 카드는 유지하고 보조 카드만 교체합니다. RUN 시작 후에는 변경할 수 없습니다.</p>
-    <div className="action-bar run-loadout-action"><p>시간이 끝나면 미완성 배치는 자동으로 완성됩니다.</p><button className="primary" disabled={disabled || ready} onClick={() => send({ type: "LOCK_RUN_LOADOUT" })}>{ready ? "LOADOUT LOCKED" : "배치 확정 · 준비 완료"}</button></div>
+  return <section className="panel run-loadout">
+    <h2 className="run-loadout-heading">대표 카드 1장과 각 RUN에 사용할 보조 카드를 선택해주세요</h2>
+    <div className="run-loadout-content">
+      {showTimer && <div className="run-loadout-timer"><PhaseTimer seconds={seconds ?? 30} ariaLabel={`배치 확정 남은 시간 ${seconds ?? 30}초`} /></div>}
+      <div className="run-loadout-slots">{["대표 카드", "RUN 1 보조 카드", "RUN 2 보조 카드"].map((label, index) => <label key={label}>
+        <span className="run-loadout-slot-title" role="heading" aria-level={3}>{label}</span>
+        {owned.find((c) => c.id === ids[index]) && <CardView card={owned.find((c) => c.id === ids[index])!} />}
+        <select aria-label={label} disabled={disabled || ready} value={ids[index]} onChange={(e) => change(index, e.target.value)}>{owned.map((c) => <option value={c.id} key={c.id}>{c.id}</option>)}</select>
+      </label>)}</div>
+      <p className="run-loadout-help">대표 카드는 두 RUN에서 공통으로 사용됩니다.</p>
+    </div>
+    <div className="action-bar run-loadout-action"><button className="primary" disabled={disabled || ready} onClick={() => send({ type: "LOCK_RUN_LOADOUT" })}>{ready ? "LOADOUT LOCKED" : "배치 확정 · 준비 완료"}</button></div>
   </section>;
 }
 
