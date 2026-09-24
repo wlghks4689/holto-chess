@@ -8,7 +8,7 @@ export function TutorialChapterMenu({ save, error, onStart, onHome }: {
   const resume = save.resume;
   return <main className="tutorial-screen tutorial-menu">
     <section className="panel tutorial-menu-panel">
-      <span className="eyebrow">처음이라면 · 길라잡이</span>
+      <span className="eyebrow">체험 · 길라잡이</span>
       <h1>카드를 고르며 포레나를 배워보세요</h1>
       <p>포커를 몰라도 괜찮아요. 카드를 직접 골라보며 차근차근 배워볼게요. 설명은 준비되었을 때 직접 넘길 수 있어요.</p>
       <p className="tutorial-muted">연습용 카드와 보드가 사용됩니다. 실제 게임에서는 카드 등장과 상대의 선택이 달라집니다.</p>
