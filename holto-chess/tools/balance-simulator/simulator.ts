@@ -23,7 +23,9 @@ function poolSnapshot(state: PorenaGameState, checkShopFill = false): PoolSnapsh
   const count = (name: "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED") => state.ownershipCardPool.filter((entry) => entry.state === name).length;
   return {
     round: state.round, available: count("AVAILABLE"), reserved: count("RESERVED_IN_SHOP"), owned: count("OWNED"),
-    shopFillFailures: checkShopFill ? state.players.filter((player) => !player.eliminated && player.shopCardIds.length < player.shopSize).length : 0,
+    shopFillFailures: checkShopFill && state.phase === "SHOP"
+      ? state.players.filter((player) => !player.eliminated && player.shopCardIds.length < player.shopSize).length
+      : 0,
   };
 }
 
@@ -201,10 +203,6 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
     trace.reachedR5 = !state.players.find((player) => player.id === standing.playerId)!.eliminated;
     trace.won = index === 0;
   });
-  const eliminated = state.players.filter((player) => player.eliminated).sort((a, b) =>
-    (b.eliminatedRound ?? 0) - (a.eliminatedRound ?? 0) || b.points - a.points || b.stackBB - a.stackBB || a.id.localeCompare(b.id),
-  );
-  eliminated.forEach((player, index) => { traces.get(player.id)!.finalRank = standings.length + index + 1; });
   for (const player of state.players) {
     const trace = traces.get(player.id)!; trace.finalBB = player.stackBB;
     for (const id of player.ownedCardIds) rankCounters[RANK_LABEL[getCard(state, id).rank]]!.finalOwned += 1;

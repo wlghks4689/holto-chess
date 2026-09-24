@@ -43,6 +43,12 @@ describe("balance simulator", () => {
     expect(() => simulateGame(config({ baseSeed: 12_480, simulationCount: 1, maxRerollsPerPlayerRound: 1 }), 0)).not.toThrow();
   });
 
+  it("keeps final ranks within finalStandings and ignores draft-phase shop snapshots", () => {
+    const trace = simulateGame(config({ baseSeed: 12_481, maxRerollsPerPlayerRound: 1 }), 0);
+    expect(trace.players.map((player) => player.finalRank).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(trace.poolSnapshots.every((snapshot) => snapshot.shopFillFailures === 0)).toBe(true);
+  });
+
   it("detects duplicate ownership ledger corruption", () => {
     const state = createGame(42);
     state.players[1]!.ownedCardIds.push(state.players[0]!.ownedCardIds[0]!);
