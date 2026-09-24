@@ -42,7 +42,7 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
         <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="PORENA" /></h1><p className="start-tagline">최강의 패를 조합하여 아레나에서 승리하라</p></header>
         <div className="start-menu" aria-label="메인 메뉴">
           <button type="button" className="start-menu-primary" onClick={() => setOverlay("mode")}><span>시작하기</span></button>
-          <button type="button" onClick={() => onStart("tutorial")}><span>체험 · 길라잡이</span><small>카드를 고르며 포레나를 배워보세요.</small></button>
+          <button type="button" onClick={() => onStart("tutorial")}><span>체험 · 길라잡이</span></button>
           <button type="button" onClick={() => setOverlay("guide")}><span>게임 설명</span></button>
           <button type="button" onClick={() => setOverlay("settings")}><span>환경 설정</span></button>
         </div>
