@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { makeDeck, type Card } from "../core/poker/cards";
 import type { MatchView, PresentationView } from "../shared/protocol";
-import { MATCH_PREP_MS, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
+import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
 import { CinematicGate, ShowdownCinematic } from "./ShowdownCinematic";
 import { visibleFinalHand } from "./finalShowdownPresentation";
 import { showdownSeatOrder } from "./showdownSeatOrder";
@@ -278,10 +278,11 @@ describe("server-synced cinematic gate", () => {
   const second: MatchView = { ...match, id: "second-match", round: 1, matchday: 2, participantIds: ["p1", "p2"],
     boards: [deck.slice(10, 15)], boardResults: [[]], boardWinnerIds: [["p1"]], runoutCount: 1,
     revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) } };
-  const duration = presentationDurationMs(match);
+  const duration = cinematicTimeline(match).at(-1)!.at;
+  const secondOffset = duration + INTER_MATCH_HOLD_MS;
   const secondDuration = presentationDurationMs(second) + MATCH_PREP_MS;
-  const presentation: PresentationView = { version: 1, startsAt: 100_000, endsAt: 100_000 + duration + secondDuration + duration,
-    matches: [{ matchId: match.id, offsetMs: 0, durationMs: duration }, { matchId: second.id, offsetMs: duration, durationMs: secondDuration, prepMs: MATCH_PREP_MS }] };
+  const presentation: PresentationView = { version: 1, startsAt: 100_000, endsAt: 100_000 + secondOffset + secondDuration + duration,
+    matches: [{ matchId: match.id, offsetMs: 0, durationMs: duration }, { matchId: second.id, offsetMs: secondOffset, durationMs: secondDuration, prepMs: MATCH_PREP_MS }] };
   const at = (serverTime: number, matches = [match, second]) => renderToStaticMarkup(createElement(CinematicGate, {
     matches, profiles, viewerId: "p1", presentation, clock: { observe: () => {}, offset: () => 0, now: () => serverTime },
     children: createElement("div", null, "PRIVATE_RESULT_SENTINEL") }));
@@ -296,25 +297,48 @@ describe("server-synced cinematic gate", () => {
   });
 
   it("holds each finished match without a confirm click, then moves on to the next on schedule", () => {
-    const holding = at(presentation.startsAt + duration - 1);
-    expect(phaseOf(holding)).toBe("COMPLETE");
-    expect(holding).not.toContain("결과 확인");
-    expect(holding).toContain('data-match-id="final-preview"');
-    expect(at(presentation.startsAt + duration)).toContain('aria-label="매칭 로딩창"');
+    for (const [elapsed, remaining] of [[duration, 3], [duration + 1_000, 2], [duration + 2_000, 1]]) {
+      const holding = at(presentation.startsAt + elapsed);
+      expect(phaseOf(holding)).toBe("COMPLETE");
+      expect(holding).not.toContain("결과 확인");
+      expect(holding).toContain('data-match-id="final-preview"');
+      expect(holding).toContain(`>${remaining}</strong>`);
+      expect(holding).toContain("다음 매칭을 진행합니다.");
+    }
+    expect(at(presentation.startsAt + secondOffset)).toContain('aria-label="매칭 로딩창"');
+  });
+  it("uses the current server time after a hidden tab resumes, without restarting the countdown", () => {
+    const resumed = at(presentation.startsAt + duration + 2_200);
+    expect(phaseOf(resumed)).toBe("COMPLETE");
+    expect(resumed).toContain(">1</strong>");
+    const advanced = at(presentation.startsAt + secondOffset + MATCH_PREP_MS + 200);
+    expect(advanced).toContain('data-match-id="second-match"');
+    expect(advanced).not.toContain("다음 매칭을 진행합니다.");
+  });
+  it("does not show a next-match countdown when there is only one match", () => {
+    const solo: PresentationView = { ...presentation, endsAt: presentation.startsAt + presentationDurationMs(match),
+      matches: [{ matchId: match.id, offsetMs: 0, durationMs: presentationDurationMs(match) }] };
+    const html = renderToStaticMarkup(createElement(CinematicGate, {
+      matches: [match], profiles, viewerId: "p1", presentation: solo,
+      clock: { observe: () => {}, offset: () => 0, now: () => solo.endsAt - 1 },
+      children: createElement("div", null, "PRIVATE_RESULT_SENTINEL"),
+    }));
+    expect(phaseOf(html)).toBe("COMPLETE");
+    expect(html).not.toContain("다음 매칭을 진행합니다.");
   });
   it("shows a separate matchup preview before the next match", () => {
-    const html = at(presentation.startsAt + duration + 500);
+    const html = at(presentation.startsAt + secondOffset + 500);
     expect(html).toContain('aria-label="매칭 로딩창"');
     expect(html).toContain('<main class="game-arena">');
     expect(html).toContain('class="brand"');
     expect(html).toContain("SURVIVORS");
     expect(html).toContain("MATCH 2");
     expect(html).not.toContain('data-match-id="second-match"');
-    expect(phaseOf(at(presentation.startsAt + duration + MATCH_PREP_MS))).toBe("TABLE_ENTER");
+    expect(phaseOf(at(presentation.startsAt + secondOffset + MATCH_PREP_MS))).toBe("TABLE_ENTER");
   });
 
   it("uses the same loading composition for later two- and three-player matches through R4", () => {
-    const beforeSecond = presentation.startsAt + duration + 500;
+    const beforeSecond = presentation.startsAt + secondOffset + 500;
     const splitRuns: MatchView = { ...second, round: 2, runCards: {
       p1: [deck.slice(0, 2), [deck[0]!, deck[4]!]],
       p2: [deck.slice(2, 4), [deck[2]!, deck[5]!]],
@@ -333,13 +357,13 @@ describe("server-synced cinematic gate", () => {
 
   it("skips the added matchup screen for an R5 final", () => {
     const final: MatchView = { ...second, round: 5, stage: "final" };
-    const html = at(presentation.startsAt + duration + 500, [match, final]);
+    const html = at(presentation.startsAt + secondOffset + 500, [match, final]);
     expect(html).not.toContain('aria-label="매칭 로딩창"');
     expect(html).toContain('data-match-id="second-match"');
   });
 
   it("tells a seat whose matches are done to wait, without showing any other table", () => {
-    const waiting = at(presentation.startsAt + duration + secondDuration + 10);
+    const waiting = at(presentation.startsAt + secondOffset + secondDuration + 10);
     expect(waiting).toContain("다른 매치 결과를 기다리는 중입니다.");
     expect(waiting).not.toContain("cinema-seat");
     expect(waiting).not.toContain("PRIVATE_RESULT_SENTINEL");

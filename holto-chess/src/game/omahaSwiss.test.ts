@@ -5,6 +5,7 @@ import { createGame, prepareShowdown, resolvePrimary, resolveSurvival, startNext
 import { createMatchView } from "./matchView";
 import { createPlayerView } from "./playerView";
 import { syncPresentation } from "./presentation";
+import { INTER_MATCH_HOLD_MS } from "../shared/presentationTimeline";
 import { addSession, createRoom } from "./room";
 import { emptySwissRecord, swissPairs } from "./swiss";
 
@@ -83,6 +84,13 @@ describe("R3 Omaha Swiss", () => {
     expect(view.matches.every((m) => m.participantIds.includes("p1"))).toBe(true);
     expect(view.matches.every((m) => m.revealedCards.p1.length === 4)).toBe(true);
     expect(view.presentation?.matches).toHaveLength(3);
+    for (const [index, match] of view.presentation!.matches.entries()) {
+      if (index === 0) continue;
+      const previous = view.presentation!.matches[index - 1]!;
+      expect(match.offsetMs - previous.offsetMs - previous.durationMs).toBeGreaterThanOrEqual(INTER_MATCH_HOLD_MS);
+    }
+    const otherView = createPlayerView(room, "p2", [], 2000);
+    expect(otherView.presentation?.matches.map((match) => match.offsetMs)).toEqual(view.presentation?.matches.map((match) => match.offsetMs));
     expect(createPlayerView(JSON.parse(JSON.stringify(room)), "p1", [], 2000)).toEqual(view);
   });
   it("freezes Point then BB seeds at entry, before shop changes, with deterministic exact ties", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_LEAD_MS, cinematicTimeline, presentationDurationMs } from "../shared/presentationTimeline";
+import { INTER_MATCH_HOLD_MS, MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_LEAD_MS, cinematicTimeline, presentationDurationMs } from "../shared/presentationTimeline";
 import { createMatchView } from "./matchView";
 import { createPlayerView } from "./playerView";
 import { matchesVisible, syncPresentation, visibleMatchesFor } from "./presentation";
@@ -30,21 +30,25 @@ describe("server-scheduled showdown presentation", () => {
     const schedule = room.presentation!;
     expect(schedule.startsAt).toBe(openedAt + PRESENTATION_LEAD_MS);
     let longest = 0;
+    const sharedStarts = new Map<number, number>();
     for (const { playerId } of room.sessions) {
       const entries = schedule.perPlayer[playerId]!;
       const matches = visibleMatchesFor(room, playerId);
       expect(entries.map((entry) => entry.matchId)).toEqual(matches.map((match) => match.id));
-      let offset = 0;
       entries.forEach((entry, index) => {
         const view = createMatchView(room.game, matches[index]!);
-        expect(entry.offsetMs).toBe(offset);
+        if (sharedStarts.has(index)) expect(entry.offsetMs).toBe(sharedStarts.get(index));
+        else sharedStarts.set(index, entry.offsetMs);
+        if (index === 0) expect(entry.offsetMs).toBe(0);
+        else expect(entry.offsetMs - (entries[index - 1]!.offsetMs + entries[index - 1]!.durationMs)).toBeGreaterThanOrEqual(INTER_MATCH_HOLD_MS);
         // Later Swiss matches show their own matchup before the cinematic starts.
         expect(entry.prepMs ?? 0).toBe(index === 0 ? 0 : MATCH_PREP_MS);
-        expect(entry.durationMs).toBe(cinematicTimeline(view).at(-1)!.at + MATCH_HOLD_MS + (entry.prepMs ?? 0));
-        expect(entry.durationMs).toBe(presentationDurationMs(view) + (entry.prepMs ?? 0));
-        offset += entry.durationMs;
+        const last = index === entries.length - 1;
+        expect(entry.durationMs).toBe(cinematicTimeline(view).at(-1)!.at + (last ? MATCH_HOLD_MS : 0) + (entry.prepMs ?? 0));
+        expect(entry.durationMs).toBe(presentationDurationMs(view) + (entry.prepMs ?? 0) - (last ? 0 : MATCH_HOLD_MS));
       });
-      longest = Math.max(longest, offset);
+      const last = entries.at(-1);
+      if (last) longest = Math.max(longest, last.offsetMs + last.durationMs);
     }
     expect(schedule.endsAt).toBe(schedule.startsAt + longest);
   });
