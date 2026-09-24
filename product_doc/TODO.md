@@ -107,5 +107,5 @@
 #### 7.2.1 출시 우선순위와 수정 범위 확정
 
 - [x] MP-QA-003 | 담당 사용자·Codex | 상태 DONE | 의존 MP-QA-001 | 완료 조건: 수정 범위 승인 | 증거: 사용자 MP-01~07 전부 권고대로 처리 요청, DECISIONS MP-2026-09-24. MP-08(P3)은 별도.
-- [x] MP-QA-004 | 담당 Codex | 상태 DONE | 의존 MP-QA-003 | 완료 조건: 단계별 공개·최종 기록 잠금·상점·연결/관전 UI·참가자 일정 구현, 실게임 및 회귀검증 | 증거: `qa/2026-09-24-multiplayer-remediation.md`, 로컬 4인/8인/자동 관전 3게임 완주, 전체 427개+이행 회귀 1개 집중 통과, Workers 13개, lint·typecheck·build 통과. 운영 미배포, 운영 전환·실기기는 MP-QA-005.
+- [x] MP-QA-004 | 담당 Codex | 상태 DONE | 의존 MP-QA-003 | 완료 조건: 단계별 공개·최종 기록 잠금·상점·연결/관전 UI·참가자 일정 구현, 실게임 및 회귀검증 | 증거: `qa/2026-09-24-multiplayer-remediation.md`, 로컬 4인/8인/자동 관전 3게임 완주, 통합 전체 431개·Workers 13개·lint·typecheck·build 통과. `main` push 및 Cloudflare `porena` Version `ac1c7348-0c50-49e8-ae8f-fd808f4b2f47` 운영 배포 완료. 운영 전환·실기기는 MP-QA-005.
 - [ ] MP-QA-005 | 담당 Codex·사용자 | 상태 TODO | 의존 MP-QA-004 및 배포 승인 | 완료 조건: 구형 탭 혼합 전환·실기기 Safari/iOS/Android·원거리 회선·동시 방 부하 검증 후 운영 배포 판단. 로컬 headless 통과를 실기기 검증으로 대체하지 않음.
