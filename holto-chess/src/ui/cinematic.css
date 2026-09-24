@@ -72,7 +72,7 @@
 .cinema-final .cinema-winner .cinema-final-read{color:#f4d77f}
 .cinema-heading-copy{animation:cinema-soft-in calc(360ms * var(--final-beat,1)) ease-out both}
 /* Shared R1-R5 card primitive: both faces stay in one slot; reveal only rotates the inner plane. */
-.cinema-flip-slot{flex-shrink:0;perspective:700px}
+.cinema-flip-slot{flex-shrink:0;perspective:700px;zoom:1.2}
 .cinema-flip-inner{display:grid;transform-style:preserve-3d;transition:transform var(--flip-duration,.42s) cubic-bezier(.3,.65,.25,1) var(--flip-delay,0ms)}
 .cinema-flip-face{grid-area:1 / 1;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .cinema-flip-front{transform:rotateY(180deg)}
@@ -350,6 +350,7 @@
   .cinema-final .cinema-reward strong i{display:none}
 }
 @media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) *:not(.fx-motion-preview *){animation:none!important;transition:none!important}.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::before,.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::after{animation:none!important;opacity:0}}
+.cinema-card-size-original .cinema-flip-slot{zoom:1}
 /* Server-synced playback: a large clock jump lands on the current frame instead of replaying every transition. */
 .cinema-catchup,.cinema-catchup *{transition:none!important}
 .cinema-waiting{display:grid;place-items:center;align-content:center;gap:18px;min-height:320px;text-align:center}

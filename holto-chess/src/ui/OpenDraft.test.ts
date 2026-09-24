@@ -19,11 +19,13 @@ describe("R2 run loadout presentation", () => {
       view: viewFixture(), send: () => {}, disabled: false, seconds: 24,
     }));
 
-    expect(html).toContain("대표 카드 1장과 각 RUN에 사용할 보조 카드를 선택해주세요");
+    expect(html).toContain('대표 카드 1장과 각 RUN에 사용할<br class="run-loadout-mobile-break"/> 보조 카드 1장을 선택해주세요');
     expect(html).toContain('class="run-loadout-content"');
     expect(html).toContain('role="heading" aria-level="3">대표 카드</span>');
     expect(html).toContain("RUN 1 보조 카드");
     expect(html).toContain("RUN 2 보조 카드");
+    expect(html).toContain(">2♣</option>");
+    expect(html).not.toContain(">2c</option>");
     expect(html).toContain("남은 시간");
     expect(html).toContain("24");
     expect(html).not.toContain("시간이 끝나면 미완성 배치는 자동으로 완성됩니다");
