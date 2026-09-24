@@ -111,4 +111,10 @@
 
 #### 2.5.2 독립 분석
 
- - [ ] BAL-003-A | 담당 Claude | 상태 NOT_STARTED | 의존 BAL-003-Q | 완료 조건: 8장/10장 조건별 REPORT와 artifacts 제출, 실패·유효 표본 분리 | 증거: 미제출.
+ - [x] BAL-003-A | 담당 Claude | 상태 DONE | 의존 BAL-003-Q | 완료 조건: 8장/10장 조건별 REPORT와 artifacts 제출, 실패·유효 표본 분리 | 증거: `REPORT_COMMIT=94c278722e3257cf3e8c8bec019cc918b49a28b3`, REPORT.md 및 artifacts 확인.
+
+#### 2.5.3 분석 후 도구 신뢰성 보완
+
+ - [x] C-BAL003-1 | 담당 Codex | 상태 DONE | 의존 BAL-003-A 보고서 검토 | 완료 조건: `PlayerTrace.finalRank`가 `finalStandings`의 1~8 순위와 일치하고 회귀 테스트 통과 | 증거: `8871569`, simulator 테스트 7개 통과.
+ - [x] C-BAL003-2 | 담당 Codex | 상태 DONE | 의존 BAL-003-A 보고서 검토 | 완료 조건: v2 드래프트 단계에서 shop fill 오탐을 제외하고 정상 스냅샷이 0건을 기록 | 증거: `8871569`, simulator 테스트 7개 통과.
+ - [ ] C-BAL003-3 | 담당 Codex | 상태 TODO | 의존 사용자 승인 | 완료 조건: 10장 변경 승인 시에만 R2 풀 크기를 설정 가능하게 구현하고 전후 비교 검증. 승인 전 실행하지 않음.
