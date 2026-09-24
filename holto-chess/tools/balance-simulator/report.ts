@@ -71,6 +71,17 @@ ${rows(roundRows)}
 - Purchase share of measured spend: ${n(result.economy.purchaseSpendRatio)}%
 - Reroll share of measured spend: ${n(result.economy.rerollSpendRatio)}%
 
+### BB award attribution
+
+| Source | BB |
+| --- | ---: |
+| Round income | ${n(result.economy.bbAwards.roundIncome)} |
+| Win base | ${n(result.economy.bbAwards.winBase)} |
+| Loss base | ${n(result.economy.bbAwards.lossBase)} |
+| Streak bonus | ${n(result.economy.bbAwards.streakBonus)} |
+| Augment bonus | ${n(result.economy.bbAwards.augmentBonus)} |
+| Other / unclassified | ${n(result.economy.bbAwards.other)} |
+
 ## R5 hand distribution
 
 | Hand | Count | Percentage |
