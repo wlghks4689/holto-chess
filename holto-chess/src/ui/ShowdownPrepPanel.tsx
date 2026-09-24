@@ -7,7 +7,7 @@ import "./showdown-prep.css";
 const ROUND_TITLES = ["", "TWO HAND", "RUN IT TWICE", "OMAHA SWISS", "BEST FIVE", "THE LAST HAND"];
 
 export function FinalRoundTransition() {
-  return <section className="panel transition-panel"><span>ROUND 05</span><h2>최종전 준비 중</h2></section>;
+  return <section className="panel transition-panel"><span className="final-round-mark"><small>ROUND</small><strong>05</strong></span><h2>최종전 준비 중</h2></section>;
 }
 
 function PrepSeat({ seat, viewer, pending = false, winPercent }: { seat?: ShowdownPrepSeatView; viewer: boolean; pending?: boolean; winPercent?: number }) {

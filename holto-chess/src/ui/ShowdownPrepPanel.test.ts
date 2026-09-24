@@ -8,6 +8,7 @@ describe("showdown preparation presentation", () => {
   it("keeps the final round on its transition instead of a matchup screen", () => {
     const html = renderToStaticMarkup(createElement(FinalRoundTransition));
     expect(html).toContain("최종전 준비 중");
+    expect(html).toContain('<span class="final-round-mark"><small>ROUND</small><strong>05</strong></span>');
     expect(html).not.toContain("매칭 로딩창");
   });
   it("uses a player-versus-player loading composition without the old literal phase label", () => {
