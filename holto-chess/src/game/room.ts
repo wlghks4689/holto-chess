@@ -3,6 +3,7 @@ import { BALANCE } from "./config";
 import { beginSecondary, buyCard, createGame, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
 import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
+import { PRESENTATION_LEAD_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
 import type { PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
@@ -23,6 +24,7 @@ export type RoomSnapshot = {
   barrierKey?: string;
   /** Shared cinematic schedule for the visible showdown set (server clock). */
   presentation?: PresentationSchedule;
+  finalResultsReleasedAt?: number;
 };
 
 // Re-exported so existing server and test imports keep working.
@@ -35,8 +37,14 @@ export function createRoom(roomId: string, seed: number, randomMode: "seeded" | 
 /** Remove retired rule data from a persisted room without changing earned points, BB or cards. */
 export function migrateRoomSnapshot(source: RoomSnapshot): RoomSnapshot {
   if (source.schema !== 1) throw new Error("Unsupported room snapshot version");
-  if (source.rulesRevision === 2) return source;
+  const outdatedPresentation = source.presentation && source.presentation.version !== PRESENTATION_VERSION;
+  if (source.rulesRevision === 2 && !outdatedPresentation) return source;
   const room = structuredClone(source);
+  if (room.rulesRevision === 2) {
+    // Preserve the original epoch on deployment/reconnect, not a fresh cinematic.
+    syncPresentation(room, room.presentation!.startsAt - PRESENTATION_LEAD_MS);
+    return room;
+  }
   const legacyRoom = room as RoomSnapshot & { augmentChoices?: unknown };
   const legacyGame = room.game as Omit<PorenaGameState, "phase"> & { augmentChoices?: unknown; phase: string };
   delete legacyRoom.augmentChoices;
@@ -61,7 +69,7 @@ export function migrateRoomSnapshot(source: RoomSnapshot): RoomSnapshot {
     refreshBarrier(room, Date.now());
   }
   room.rulesRevision = 2;
-  return room;
+  return migrateRoomSnapshot(room);
 }
 export function turnKey(room: RoomSnapshot): string {
   return `${room.game.round}:${room.status === "LOBBY" ? "LOBBY" : room.game.phase}:${room.gameGeneration ?? 0}:${room.game.encounterSequence}`;
@@ -181,6 +189,7 @@ function startRematch(room: RoomSnapshot): void {
   room.barrierSince = undefined;
   room.barrierKey = undefined;
   room.presentation = undefined;
+  delete room.finalResultsReleasedAt;
 }
 
 /**
@@ -224,8 +233,15 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     const remaining = controlledHumanIds(room);
     if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; }
+  } else if (action.type === "FINAL_RESULTS_VIEWED") {
+    if (room.game.phase !== "GAME_RESULT" || !room.presentation || now < room.presentation.endsAt)
+      throw new Error("최종 순위표 공개 이후에만 기록을 열 수 있습니다.");
+    if (activeHumans(room).length && !activeHumans(room).includes(playerId))
+      throw new Error("진행 중인 플레이어의 최종 순위표 공개를 기다려 주세요.");
+    room.finalResultsReleasedAt ??= now;
   } else if (action.type === "REMATCH_READY") {
     if (room.game.phase !== "GAME_RESULT") throw new Error("최종 결과 이후에만 새 게임을 시작할 수 있습니다.");
+    if (room.presentation && !room.finalResultsReleasedAt) throw new Error("최종 순위표 공개를 기다려 주세요.");
     const players = controlledHumanIds(room);
     if (players.length < 2) throw new Error("같은 방 새 게임에는 실제 플레이어 2명이 필요합니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];

@@ -99,10 +99,10 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
 
 /**
  * Server-scheduled presentation. The server stamps one start time per showdown set and every
- * client derives its frame from that clock, so all seats see the same beat at the same moment.
+ * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 8;
+export const PRESENTATION_VERSION = 9;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */

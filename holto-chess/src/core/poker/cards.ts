@@ -1,7 +1,7 @@
 /** Card model and deck rules adapted from holdem-game/src/holdem/cards.ts. */
 export type Suit = "s" | "h" | "d" | "c";
 export type Rank = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
-export type Card = { id: string; rank: Rank; suit: Suit };
+export type Card = { id: string; rank: Rank; suit: Suit; hidden?: true };
 
 export const SUITS: Suit[] = ["c", "d", "h", "s"];
 export const RANKS: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];

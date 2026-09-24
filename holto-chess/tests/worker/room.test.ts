@@ -42,6 +42,18 @@ async function connect(s: SessionCredential) {
   return { ws, messages, wait, view, send };
 }
 describe("GameRoom in the Cloudflare runtime", () => {
+  it("returns authenticated server receive/send stamps without changing game revision", async () => {
+    const s = await session(); const client = await connect(s);
+    const revision = client.view().revision;
+    client.ws.send(JSON.stringify({ type: "SYNC_CLOCK", nonce: "clock-probe-123" }));
+    const message = await client.wait(m => m.type === "CLOCK_SYNC" && m.nonce === "clock-probe-123");
+    expect(message.type).toBe("CLOCK_SYNC");
+    if (message.type === "CLOCK_SYNC") {
+      expect(message.sentAt).toBeGreaterThanOrEqual(message.receivedAt);
+      expect(message.sentAt).toBeLessThanOrEqual(Date.now());
+    }
+    expect(client.view().revision).toBe(revision);
+  });
   it("persists and broadcasts an empty-hand timeout forfeit, including after reconnect", async () => {
     const a = await session(); const b = await session(a.roomId);
     const clients = await Promise.all([a, b].map(connect));
@@ -237,6 +249,25 @@ describe("GameRoom in the Cloudflare runtime", () => {
     const revision = Math.max(...clients.map((c) => c.view().revision));
     await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
     expect(clients[0].view().phase).toBe("GAME_RESULT");
+    expect(clients[0].view().standings).toEqual([]);
+    const sessionBefore = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/session`, { method: "POST", headers: { Origin: origin, "X-Porena-Session": a.token } });
+    expect(sessionBefore.status).toBe(204);
+    const unreleasedExpiry = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
+    expect(unreleasedExpiry).toBeGreaterThan(Date.now() + 23 * 60 * 60 * 1000);
+    expect(await clients[0].send({ type: "FINAL_RESULTS_VIEWED" })).toMatchObject({ type: "ERROR" });
+    const finalStub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+    await runInDurableObject(finalStub, async (_instance, state) => {
+      const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
+      saved.presentation!.startsAt = Date.now() - 240_000;
+      saved.presentation!.endsAt = Date.now() - 1;
+      await state.storage.put("snapshot:v1", saved);
+    });
+    await evictDurableObject(finalStub);
+    await runInDurableObject(finalStub, instance => instance.alarm());
+    await Promise.all(clients.map(client => client.wait(m => m.type === "PLAYER_VIEW" && m.payload.standings.length === 8)));
+    const finalViewer = clients.find(client => client.view().me.alive) ?? clients[0];
+    expect(await finalViewer.send({ type: "FINAL_RESULTS_VIEWED" })).toMatchObject({ type: "ACK" });
+    await clients[0].wait(m => m.type === "PLAYER_VIEW" && !!m.payload.finalResultsReleased);
     for (const client of clients) expect(client.view().standings).toEqual(clients[0].view().standings);
     expect(clients[0].view().standings).toHaveLength(8);
     const status = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/session`, { method: "POST", headers: { Origin: origin, "X-Porena-Session": a.token } });

@@ -53,6 +53,7 @@ describe("server room authority and projections", () => {
   it("starts a fresh game in the same room after every remaining player requests a rematch", () => {
     let r = start();
     r.game.phase = "GAME_RESULT";
+    r.finalResultsReleasedAt = Date.now();
     r.game.players[0].name = "첫 번째";
     r.game.players[1].name = "두 번째";
     r.game.players[0].eliminated = true;
@@ -89,8 +90,9 @@ describe("server room authority and projections", () => {
       r.game.players.filter((player) => !player.eliminated).map((player) => player.id),
     );
     const playerTwo = view.spectatorViews?.find((candidate) => candidate.playerId === "p2");
-    expect(playerTwo?.me.ownedCards.map((card) => card.id)).toEqual(r.game.players[1].ownedCardIds);
-    expect(playerTwo?.me.shopCards.map(({ card }) => card.id)).toEqual(r.game.players[1].shopCardIds);
+    expect(playerTwo?.me.ownedCards).toHaveLength(r.game.players[1].ownedCardIds.length);
+    expect(playerTwo?.me.ownedCards.every(card => card.hidden)).toBe(true);
+    expect(playerTwo?.me.shopCards).toEqual([]);
     expect(view.me.playerId).toBe("p1");
   });
   it.each([2, 3, 8])("completes all five rounds with %i humans using shared rules", (count) => {
@@ -119,7 +121,7 @@ describe("server room authority and projections", () => {
       }
       assertPoolIntegrity(r.game);
       for (const session of r.sessions) {
-        const v = createPlayerView(r, session.playerId);
+        const v = createPlayerView(r, session.playerId, [], Math.max(Date.now(), r.presentation?.endsAt ?? 0));
         for (const m of v.matches) {
           if (v.me.alive) expect(m.participantIds).toContain(session.playerId);
           const source = r.game.roundResults.find((result) => result.id === m.id)!;

@@ -74,13 +74,23 @@ describe("server-scheduled showdown presentation", () => {
     expect(forceBarrier(room, room.presentation!.endsAt)).toBeNull();
   });
 
+  it("rejects a participant confirming a result before the shared presentation ends", () => {
+    const { room } = untilVisible(started());
+    const before = structuredClone(room);
+    expect(() => applyRoomAction(room, "p1", { type: "READY" }, turnKey(room), room.presentation!.endsAt - 1))
+      .toThrow("쇼다운 연출이 끝난 뒤 확인해 주세요.");
+    expect(room).toEqual(before);
+  });
+
   it("sends each seat only its own playback entries plus the server time", () => {
     const { room } = untilVisible(started());
     const view = createPlayerView(room, "p1", [], 123_456);
     expect(view.serverNow).toBe(123_456);
     expect(view.presentation).toEqual({ version: room.presentation!.version, startsAt: room.presentation!.startsAt,
       endsAt: room.presentation!.endsAt, matches: room.presentation!.perPlayer.p1 });
-    expect(view.presentation!.matches.every((entry) => view.matches.some((match) => match.id === entry.matchId))).toBe(true);
+    expect(view.matches).toEqual([]); // Schedule metadata is not permission to read future matches.
+    const finished = createPlayerView(room, "p1", [], room.presentation!.endsAt);
+    expect(finished.presentation!.matches.every(entry => finished.matches.some(match => match.id === entry.matchId))).toBe(true);
     expect(JSON.stringify(view)).not.toContain("perPlayer");
   });
 

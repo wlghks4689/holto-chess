@@ -4,6 +4,7 @@ import { rankDisplay, SUIT_SYMBOL, type Card } from "../core/poker/cards";
 export function CardView({ card, selected = false, dimmed = false, glow = false, compact = false, onClick, footer }: {
   card: Card; selected?: boolean; dimmed?: boolean; glow?: boolean; compact?: boolean; onClick?: () => void; footer?: string;
 }) {
+  if (card.hidden) return <CardBack compact={compact} />;
   const red = card.suit === "h" || card.suit === "d";
   const style = { "--card-index": card.rank } as CSSProperties;
   return (

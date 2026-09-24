@@ -102,6 +102,7 @@ describe("release audit: deadline and stale-action regressions", () => {
     const oldTurn = turnKey(room);
     const oldGameId = createPlayerView(room, "p1").gameId;
     room.game.phase = "GAME_RESULT";
+    room.finalResultsReleasedAt = startTime;
     room = act(room, "p1", { type: "REMATCH_READY" });
     room = act(room, "p2", { type: "REMATCH_READY" });
     expect(room.game.phase).toBe("SHOP");

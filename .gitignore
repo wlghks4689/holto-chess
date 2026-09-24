@@ -9,3 +9,4 @@ vite.config.d.ts
 # Local browser-preview launch config
 .claude/
 operations-backups/
+.audit/

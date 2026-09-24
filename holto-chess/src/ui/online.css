@@ -59,3 +59,17 @@
   .game-arena .action-bar>.primary{width:100%;min-width:0;padding:8px 10px}
 }
 @media(max-width:480px){.game-arena .loadout-games{grid-template-columns:1fr}}
+
+/* Multiplayer deadlines and readiness are essential, including inside the compact shop layout. */
+.game-arena .shop-page .shop-layout + .action-bar.shop-ready-bar>.shop-ready-copy,
+.game-arena .action-bar.phase-ready-bar>.phase-wait-copy{display:block}
+.game-arena .shop-page .shop-layout + .action-bar.shop-ready-bar>.shop-countdown{display:grid}
+@media(max-width:900px){
+  .game-arena .shop-page .shop-layout + .action-bar.shop-ready-bar{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px}
+  .game-arena .shop-page .shop-layout + .action-bar.shop-ready-bar>.shop-ready-copy{grid-column:1 / -1}
+  .game-arena .shop-page .shop-layout + .action-bar.shop-ready-bar>.primary{font-size:13px;min-width:0}
+  .game-arena .shop-page .shop-layout + .action-bar.shop-ready-bar>.primary::before{display:none}
+}
+.online-session-overlay{position:sticky;top:0;z-index:210;padding:8px 12px;border-bottom:1px solid #387888;background:#071a24;color:#b8e6e8;font-size:12px;overflow-wrap:anywhere}
+.online-session-overlay>div,.online-session-overlay .spectator-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.online-session-overlay p{margin:4px 0}.online-session-overlay summary{cursor:pointer}.online-session-overlay button{padding:6px 10px;min-height:32px}
