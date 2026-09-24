@@ -34,6 +34,7 @@ describe("balance simulator", () => {
     expect(Object.values(result.rounds[5].hands).reduce((total, hand) => total + hand.count, 0)).toBe(20);
     expect(result.rounds[5].survived).toBe(4);
     expect(result.players.p1).toMatchObject({ games: 5 });
+    expect(Object.values(result.policies).reduce((total, policy) => total + policy.entries * policy.r5Rate / 100, 0)).toBe(4 * 5);
     expect(Object.values(result.policies).reduce((total, policy) => total + policy.tournament.r2Eliminations, 0)).toBe(0);
     expect(Object.values(result.policies).reduce((total, policy) => total + policy.tournament.r4Eliminations, 0)).toBe(10);
   });

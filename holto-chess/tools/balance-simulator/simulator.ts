@@ -161,7 +161,7 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
       const category = result.hand.category;
       handCounts[round][category] = (handCounts[round][category] ?? 0) + 1;
     }
-    rounds.push({ round, entered, survived: expectedEnd[round], stacks: state.players.filter((player) => !player.eliminated).map((player) => player.stackBB) });
+    rounds.push({ round, entered, survived: state.players.filter((player) => !player.eliminated).length, stacks: state.players.filter((player) => !player.eliminated).map((player) => player.stackBB) });
     poolSnapshots.push(poolSnapshot(state));
     if (round === 5) break;
     state = leaveRoundResult(state); actionCount += 1;
@@ -173,7 +173,9 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
   standings.forEach((standing, index) => {
     const trace = traces.get(standing.playerId)!;
     trace.finalRank = index + 1; trace.finalScore = standing.total; trace.roundPoints = standing.points;
-    trace.handScore = standing.handScore; trace.stackScore = standing.stackScore; trace.reachedR5 = true; trace.won = index === 0;
+    trace.handScore = standing.handScore; trace.stackScore = standing.stackScore;
+    trace.reachedR5 = !state.players.find((player) => player.id === standing.playerId)!.eliminated;
+    trace.won = index === 0;
   });
   const eliminated = state.players.filter((player) => player.eliminated).sort((a, b) =>
     (b.eliminatedRound ?? 0) - (a.eliminatedRound ?? 0) || b.points - a.points || b.stackBB - a.stackBB || a.id.localeCompare(b.id),
