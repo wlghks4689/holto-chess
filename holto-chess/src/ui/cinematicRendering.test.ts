@@ -239,12 +239,18 @@ describe("cinematic initial rendering", () => {
       ] };
     const rewardAt = cinematicTimeline(threeWay).find((entry) => entry.phase === "REWARD")!.at;
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: threeWay, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(html).toContain("cinema-r4-threeway");
+    expect(html.match(/class="cinema-seat /g)).toHaveLength(3);
+    expect(html.match(/class="cinema-flip-slot /g)).toHaveLength(20); // 3 × 5 hole cards and 5 community cards
+    expect(html).toContain("COMMUNITY BOARD");
     expect(html.match(/cinema-status-stamp is-survived/g)).toHaveLength(1);
     expect(html.match(/cinema-status-stamp is-eliminated/g)).toHaveLength(2);
     expect(html.match(/class="cinema-reward"/g)).toHaveLength(1);
     expect(html).toContain("+ 20BB");
     expect(html).toContain("+ 2P 획득");
     expect(html).not.toContain("+ 0P 획득");
+    const winnersBracket = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...threeWay, group: "winner" }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(winnersBracket).toContain("cinema-r4-threeway");
   });
   it("offers speed and skip only when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));

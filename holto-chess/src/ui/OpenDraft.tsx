@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { GameAction, PlayerView } from "../shared/protocol";
-import { CardBack, CardView } from "./CardView";
+import { CardView } from "./CardView";
 import { useLocalCountdown } from "./useLocalCountdown";
 import "./open-draft.css";
 import { R2DraftArena } from "./R2DraftArena";
@@ -21,9 +21,6 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
     {view.round === 4 && <div className="draft-private-inventory"><small>내 보유 카드 · 상대에게 비공개</small><div className="card-row centered">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
       <b>{String(index + 1).padStart(2, "0")}</b><span>{name(entry.playerId)}</span><small>{entry.points}P · {entry.stackBB}BB</small>
-      <div className="draft-hand">{draft.publicHands?.[entry.playerId]
-        ? draft.publicHands[entry.playerId]!.map((card) => <span className="draft-acquired" key={card.id}><CardView card={card} compact /></span>)
-        : Array.from({ length: 4 + Number(draft.cards.some((c) => c.claimedBy === entry.playerId)) }, (_, i) => <CardBack key={i} compact />)}</div>
     </li>)}</ol>
     <><div className={`draft-arena ${ordering ? "is-dealing" : ""}`}><div className="draft-deal-origin" aria-hidden="true">◇</div>{draft.cards.map(({ card, price, claimedBy }, index) => <div key={card.id} className={`draft-offer ${claimedBy ? "claimed" : ""}`} style={{ "--deal-delay": `${150 + index * 90}ms` } as CSSProperties}>
       <CardView card={card} onClick={myTurn && !disabled && !claimedBy && view.me.stackBB >= price ? () => send({ type: "DRAFT_PICK", cardId: card.id }) : undefined} />

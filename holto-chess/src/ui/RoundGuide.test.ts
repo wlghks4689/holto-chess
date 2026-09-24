@@ -47,4 +47,14 @@ describe("round guide", () => {
     expect(html).not.toContain("2 원페어");
     expect(html).not.toContain("스트레이트 불가");
   });
+
+  it("summarizes only R4 match points and the winner/loser bracket outcomes", () => {
+    const html = renderToStaticMarkup(createElement(RoundGuide, { round: 4, onClose: () => undefined }));
+
+    expect(html).toContain("1차전: 승리 +6P · Split +3P");
+    expect(html).toContain("2차전 승자조: 1위 +10P · 2위 +5P · 3위 +3P (공동 2위 각 +3P)");
+    expect(html).toContain("2차전 패자조: 승자 생존 · 패자 탈락");
+    expect(html).not.toContain("기본 BB");
+    expect(html).not.toContain("연승·연패");
+  });
 });

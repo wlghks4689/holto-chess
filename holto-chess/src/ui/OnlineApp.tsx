@@ -26,6 +26,8 @@ import { HighCardDrawResult } from "./HighCardDraw";
 import { makeSavedFinalResult, saveFinalResult } from "./finalResultArchive";
 import { OpenDraftPanel, RunLoadoutPanel } from "./OpenDraft";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { SurvivalReadyPanel } from "./SurvivalReadyPanel";
+import { isSurvivalParticipant } from "./survivalReadyPresentation";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
@@ -79,6 +81,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const [pending, setPending] = useState<GameAction["type"] | false>(false);
   const [connectionKey, setConnectionKey] = useState(0);
   const [spectating, setSpectating] = useState(false);
+  const [tiebreakSpectating, setTiebreakSpectating] = useState(false);
   const [spectatedPlayerId, setSpectatedPlayerId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const socket = useRef<WebSocket | null>(null);
@@ -132,6 +135,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         if (message.type === "ROOM_JOINED") { setStatus("Connected"); attempts = 0; setError(""); }
         if (message.type === "PLAYER_VIEW") {
           serverClock.observe(message.payload.serverNow);
+          if (message.payload.phase !== "SURVIVAL_READY") setTiebreakSpectating(false);
           if (message.payload.phase === "GAME_RESULT" && archivedGameId.current !== message.payload.gameId) {
             archivedGameId.current = message.payload.gameId;
             try { saveFinalResult(makeSavedFinalResult(message.payload)); } catch { /* The result screen remains usable without local storage. */ }
@@ -235,6 +239,8 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const displayView = view && spectatorPerspective ? { ...view, me: spectatorPerspective.me, matches: spectatorPerspective.matches,
     roundHistory: spectatorPerspective.roundHistory, presentation: spectatorPerspective.presentation } : view;
   const isSpectatingPlayer = !!spectatorPerspective;
+  const survivalSpectator = displayView?.phase === "SURVIVAL_READY" && !!displayView.survival
+    && !isSurvivalParticipant(displayView.survival.playerIds, view?.me.playerId ?? "");
   const interactionDisabled = disabled || isSpectatingPlayer;
   const canSell = displayView ? canSellWithoutBlocking({ ownedCount: displayView.me.ownedCards.length, purchases: displayView.me.purchases,
     purchaseLimit: displayView.me.purchaseLimit, handLimit: displayView.me.handLimit }) : false;
@@ -259,7 +265,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         {!isShowdownPrep && <header className="round-header"><div>{displayView.phase !== "GAME_RESULT" && <span className="round-number">{displayView.round === 2 && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(displayView.phase) ? "ROUND 2 · DRAFT PHASE" : `ROUND 0${displayView.round}`}</span>}<h1>{displayView.phase === "GAME_RESULT" ? "FINAL STANDINGS" : titles[displayView.round]}</h1></div>{displayView.phase !== "GAME_RESULT" && (phases[displayView.phase] ?? displayView.phase) && <div className="phase-badge"><b>{phases[displayView.phase] ?? displayView.phase}</b></div>}</header>}
         {["DRAFT_ORDER", "OPEN_DRAFT"].includes(displayView.phase) && <OpenDraftPanel view={displayView} send={send} disabled={interactionDisabled} seconds={secondsLeft} />}
         {displayView.phase === "RUN_LOADOUT" && <RunLoadoutPanel view={displayView} send={send} disabled={interactionDisabled} seconds={secondsLeft} />}
-        {displayView.phase === "SURVIVAL_READY" && displayView.survival && <section className="panel"><h2>누적 승점 탈락선 동률</h2><p>{displayView.survival.playerIds.map((id) => displayView.players.find((p) => p.playerId === id)?.name).join(" · ")}</p><strong>{displayView.survival.playerIds.length - displayView.survival.eliminateCount}명 생존 · {displayView.survival.eliminateCount}명 탈락</strong><p>보유 4장 중 정확히 2장 + 새 보드 3장으로 판정합니다. 승점·BB 보상은 없습니다. 다른 플레이어는 관전합니다.</p></section>}
+        {displayView.phase === "SURVIVAL_READY" && displayView.survival && <SurvivalReadyPanel {...displayView.survival} viewerId={view.me.playerId} name={(id) => displayView.players.find((player) => player.playerId === id)?.name ?? id} />}
         {displayView.phase === "SHOP" && displayView.me.alive && <><section className="shop-layout"><div className="inventory panel"><header><div className="shop-heading"><h2>{isSpectatingPlayer ? `${observedName} 카드` : "내 카드"}</h2><strong className="shop-count">{displayView.me.ownedCards.length} / {displayView.me.handLimit}</strong></div><div className="stat-block"><small>스택 :</small><strong>{displayView.me.stackBB}<i>BB</i></strong></div></header><div className="card-row owned-row">{displayView.me.ownedCards.map((card) => <CardView key={card.id} card={card} onClick={!interactionDisabled && !displayView.me.committed && canSell ? () => send({ type: "SELL_CARD", cardId: card.id }) : undefined} footer={isSpectatingPlayer ? undefined : canSell ? "판매" : "판매 불가"} />)}<EmptyHandSlots count={displayView.me.ownedCards.length} limit={displayView.me.handLimit} /></div></div><div className="market panel"><header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">{displayView.me.shopCards.length} / {displayView.me.shopSize}</strong></div><span className="purchase-count">구매 {displayView.me.purchases} / {displayView.me.purchaseLimit}</span></header><div className="card-row market-row">{displayView.me.shopCards.map(({ card, price }, index) => <ShopCard key={card.id} dealIndex={index} card={card} price={price} locked={displayView.me.lockedShopCardIds?.includes(card.id) ?? false} disabled={interactionDisabled || displayView.me.committed} onBuy={() => send({ type: "BUY_CARD", cardId: card.id })} onLock={() => send({ type: "LOCK_SHOP", cardId: card.id })} />)}</div><div className="market-actions"><button className="secondary" disabled={interactionDisabled || displayView.me.committed || allShopCardsLocked || displayView.me.rerollsUsed >= displayView.me.rerollLimit || displayView.me.stackBB < displayView.me.rerollCost} onClick={() => send({ type: "REROLL" })}>{pending === "REROLL" ? "REFRESHING…" : `리롤 ${displayView.me.rerollCost}BB`} · {displayView.me.rerollsUsed} / {displayView.me.rerollLimit}</button></div></div></section>
           {(displayView.round === 2) && <Selection key={`${displayView.round}:${displayView.me.playerId}:${displayView.me.ownedCards.map((c) => c.id).join()}`} view={displayView} send={send} disabled={interactionDisabled || displayView.me.committed} />}
           <div className="action-bar shop-ready-bar">
@@ -275,7 +281,8 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
           : <ShowdownPrepPanel round={displayView.round} playerName={observedName ?? "플레이어"} seconds={secondsLeft} secondary={displayView.phase === "SHOWDOWN_SECONDARY"} matchup={displayView.showdownPrep} />)}
         {!isShowdownPrep && <RoundResults round={displayView.round} rows={displayView.roundSummary ?? []} viewerId={displayView.me.playerId} showBrackets={displayView.round === 4 && displayView.phase === "GROUP_ASSIGNMENT"} secondsLeft={displayView.phase === "ROUND_RESULT" ? secondsLeft : null}>{(displayView.roundHistory ?? displayView.matches).map((m) => <OnlineMatch key={m.id} match={m} view={displayView} />)}</RoundResults>}
         {view.players.find((p) => p.playerId === view.me.playerId)?.departed && <p className="hint">방에서 나갔습니다. 이 좌석은 더 이상 진행을 막지 않습니다.</p>}
-        {!["LOBBY", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "GAME_RESULT"].includes(displayView.phase) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{phases[displayView.phase]}</b><p>{displayView.phase === "NEXT_ROUND" ? "이번 라운드가 끝났습니다. 확인하면 다음 라운드 상점으로 이동합니다." : "결과를 확인해 주세요. 모두 확인하면 다음 단계로 이동합니다."}</p></div>{secondsLeft !== null && <PhaseTimer className="action-countdown" seconds={secondsLeft} ariaLabel={`${phases[displayView.phase]} 남은 시간 ${secondsLeft}초`} />}<button className="primary" disabled={interactionDisabled || !view.me.alive || (displayView.phase === "SURVIVAL_READY" && !waitingOnMe) || displayView.players.find((p) => p.playerId === displayView.me.playerId)?.ready} onClick={() => send({ type: "READY" })}>{!view.me.alive ? "관전 중 · 자동 진행 대기" : !waitingOnMe ? "확인 완료 · 다른 플레이어 대기" : displayView.phase === "NEXT_ROUND" ? "다음 라운드 상점으로" : "확인 · 다음 단계"}</button></div>}
+        {survivalSpectator && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy" aria-live="polite"><b>타이 브레이크 관전</b><p>{tiebreakSpectating ? "경기 대상자의 준비가 끝나면 관전 화면이 자동으로 열립니다." : "경기 대상자의 준비를 기다리고 있습니다."}</p></div><button className="primary" disabled={tiebreakSpectating || status !== "Connected"} onClick={() => setTiebreakSpectating(true)}>{tiebreakSpectating ? "관전 대기 중" : "관전하기"}</button></div>}
+        {!survivalSpectator && !["LOBBY", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "GAME_RESULT"].includes(displayView.phase) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{phases[displayView.phase]}</b><p>{displayView.phase === "NEXT_ROUND" ? "이번 라운드가 끝났습니다. 확인하면 다음 라운드 상점으로 이동합니다." : "결과를 확인해 주세요. 모두 확인하면 다음 단계로 이동합니다."}</p></div>{secondsLeft !== null && <PhaseTimer className="action-countdown" seconds={secondsLeft} ariaLabel={`${phases[displayView.phase]} 남은 시간 ${secondsLeft}초`} />}<button className="primary" disabled={interactionDisabled || !view.me.alive || (displayView.phase === "SURVIVAL_READY" && !waitingOnMe) || displayView.players.find((p) => p.playerId === displayView.me.playerId)?.ready} onClick={() => send({ type: "READY" })}>{!view.me.alive ? "관전 중 · 자동 진행 대기" : !waitingOnMe ? "확인 완료 · 다른 플레이어 대기" : displayView.phase === "SURVIVAL_READY" ? "타이브레이크 시작하기" : displayView.phase === "NEXT_ROUND" ? "다음 라운드 상점으로" : "확인 · 다음 단계"}</button></div>}
       </>
     </div>
   </main></CinematicGate>;
