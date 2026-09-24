@@ -9,7 +9,7 @@ import { assertSimulationInvariants } from "./invariants";
 import { assignPolicies, hasStrategyCandidate, orderedShop, selectR2Cards, shouldReroll } from "./policies";
 import {
   emptyEconomy, emptyTournament, type EconomyCounter, type GameTrace, type PlayerTrace,
-  type PolicyName, type PoolSnapshot, type RankCounter, type SimulationConfig,
+  emptyBBAwards, type BBAwardCounter, type PolicyName, type PoolSnapshot, type RankCounter, type SimulationConfig,
 } from "./types";
 
 const ROUNDS: Round[] = [1, 2, 3, 4, 5];
@@ -51,6 +51,26 @@ function updateTournament(round: Round, primary: MatchResult[], secondary: Match
   for (const id of participants) if (!survivors.has(id)) traces.get(id)!.tournament[round === 2 ? "r2Eliminations" : "r4Eliminations"] += 1;
 }
 
+function addBBAward(target: BBAwardCounter, key: keyof BBAwardCounter, value: number): void {
+  if (value > 0) target[key] += value;
+}
+
+function captureBBAwards(matches: MatchResult[], target: BBAwardCounter): void {
+  for (const match of matches) for (const reward of match.rewards ?? []) {
+    const detail = reward.detail ?? "";
+    const streak = Number(detail.match(/연(?:승|패) (\d+)/)?.[1] ?? 0);
+    const augment = Number(detail.match(/증강 (\d+)/)?.[1] ?? 0);
+    addBBAward(target, "streakBonus", streak);
+    addBBAward(target, "augmentBonus", augment);
+    if (detail.includes("BB ")) {
+      const base = Number(detail.match(/BB (\d+)/)?.[1] ?? 0);
+      if (detail.includes("연패") || (base === 15 && reward.deltaBB > 0)) addBBAward(target, "lossBase", base);
+      else if (base > 0) addBBAward(target, "winBase", base);
+      else if (reward.deltaBB > 0) addBBAward(target, "other", reward.deltaBB - streak - augment);
+    } else if (reward.deltaBB > 0) addBBAward(target, "other", reward.deltaBB - streak - augment);
+  }
+}
+
 function completeDraft(state: PorenaGameState, policies: Record<string, PolicyName>): PorenaGameState {
   let next = state.phase === "DRAFT_ORDER" ? openDraft(state) : state;
   while (next.phase === "OPEN_DRAFT") {
@@ -86,6 +106,7 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
   const rankCounters = Object.fromEntries(Object.values(RANK_LABEL).map((rank) => [rank, { appearances: 0, purchases: 0, sales: 0, finalOwned: 0 } satisfies RankCounter]));
   const handCounts = Object.fromEntries(ROUNDS.map((round) => [round, {}])) as GameTrace["handCounts"];
   const poolSnapshots: PoolSnapshot[] = [];
+  const bbAwards = emptyBBAwards();
   const rounds: GameTrace["rounds"] = [];
   const strategyCandidateMissing = Object.fromEntries(config.policies.map((policy) => [policy, 0])) as Record<PolicyName, number>;
   let availableZeroEvents = 0; let rerollShortageEvents = 0; let repeatedRerollGroups = 0;
@@ -146,6 +167,7 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
       secondary = state.roundResults;
     }
     updateTournament(round, primary, secondary, traces);
+    captureBBAwards([...primary, ...secondary], bbAwards);
     assertSimulationInvariants(state, expectedEnd[round]);
     const countedMatches = state.roundResults;
     if (round === 5 && pointsBeforeR5) {
@@ -166,7 +188,9 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
     if (round === 5) break;
     state = leaveRoundResult(state); actionCount += 1;
     if (state.phase === "AUGMENT") { state = chooseAugment(state, "p1", state.augmentChoices[0]!.id); actionCount += 1; }
+    const activeBeforeIncome = state.players.filter((player) => !player.eliminated).length;
     state = startNextRound(state); actionCount += 1;
+    addBBAward(bbAwards, "roundIncome", activeBeforeIncome * BALANCE.roundIncomeBB);
     captureShopAppearances(state, rankCounters); poolSnapshots.push(poolSnapshot(state, true));
   }
   const standings = finalStandings(state);
@@ -185,5 +209,5 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
     const trace = traces.get(player.id)!; trace.finalBB = player.stackBB;
     for (const id of player.ownedCardIds) rankCounters[RANK_LABEL[getCard(state, id).rank]]!.finalOwned += 1;
   }
-  return { seed, actionCount, players: [...traces.values()], rounds, poolSnapshots, rankCounters, handCounts, availableZeroEvents, rerollShortageEvents, repeatedRerollGroups, strategyCandidateMissing };
+  return { seed, actionCount, players: [...traces.values()], rounds, poolSnapshots, rankCounters, handCounts, availableZeroEvents, rerollShortageEvents, repeatedRerollGroups, strategyCandidateMissing, bbAwards };
 }

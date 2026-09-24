@@ -1,7 +1,7 @@
 import type { Round } from "../../src/game/types";
 import {
   POLICY_NAMES, emptyEconomy, emptyTournament, type EconomyCounter, type FailureRecord, type GameTrace,
-  type NumericSummary, type PolicyName, type PolicyReport, type ReportHandCategory, type SimulationConfig,
+  emptyBBAwards, type BBAwardCounter, type NumericSummary, type PolicyName, type PolicyReport, type ReportHandCategory, type SimulationConfig,
   type SimulationResult, type TournamentCounter,
 } from "./types";
 
@@ -31,10 +31,14 @@ const divideEconomy = (source: EconomyCounter, count: number): EconomyCounter =>
   rerolls: roundToNumber(source.rerolls / (count || 1)), purchaseSpend: roundToNumber(source.purchaseSpend / (count || 1)),
   rerollSpend: roundToNumber(source.rerollSpend / (count || 1)),
 });
+const addBBAwards = (target: BBAwardCounter, source: BBAwardCounter) => {
+  for (const key of Object.keys(target) as (keyof BBAwardCounter)[]) target[key] += source[key];
+};
 
 export function aggregateResults(config: SimulationConfig, games: GameTrace[], failures: FailureRecord[]): SimulationResult {
   const allPlayers = games.flatMap((game) => game.players);
   const economy = emptyEconomy(); allPlayers.forEach((player) => addEconomy(economy, player.economy));
+  const bbAwards = emptyBBAwards(); games.forEach((game) => addBBAwards(bbAwards, game.bbAwards));
   const totalSpend = economy.purchaseSpend + economy.rerollSpend;
   const roundReports = Object.fromEntries(ROUNDS.map((round) => {
     const snapshots = games.flatMap((game) => game.rounds.filter((entry) => entry.round === round));
@@ -112,6 +116,7 @@ export function aggregateResults(config: SimulationConfig, games: GameTrace[], f
       ...economy, averagePurchasesPerPlayer: roundToNumber(economy.purchases / (allPlayers.length || 1)), averageSalesPerPlayer: roundToNumber(economy.sales / (allPlayers.length || 1)),
       averageRerollsPerPlayer: roundToNumber(economy.rerolls / (allPlayers.length || 1)), averageEndingBB: roundToNumber(average(allPlayers.map((player) => player.finalBB))),
       purchaseSpendRatio: roundToNumber(economy.purchaseSpend / (totalSpend || 1) * 100), rerollSpendRatio: roundToNumber(economy.rerollSpend / (totalSpend || 1) * 100),
+      bbAwards,
     },
     ranks, players, policies,
     score: {

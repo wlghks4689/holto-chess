@@ -24,6 +24,15 @@ export type EconomyCounter = {
   rerollSpend: number;
 };
 
+export type BBAwardCounter = {
+  roundIncome: number;
+  winBase: number;
+  lossBase: number;
+  streakBonus: number;
+  augmentBonus: number;
+  other: number;
+};
+
 export type PoolSnapshot = {
   round: Round;
   available: number;
@@ -88,6 +97,7 @@ export type GameTrace = {
   rerollShortageEvents: number;
   repeatedRerollGroups: number;
   strategyCandidateMissing: Record<PolicyName, number>;
+  bbAwards: BBAwardCounter;
 };
 
 export type FailureRecord = { gameIndex: number; seed: number; message: string; stack?: string };
@@ -140,6 +150,7 @@ export type SimulationResult = {
     averageEndingBB: number;
     purchaseSpendRatio: number;
     rerollSpendRatio: number;
+    bbAwards: BBAwardCounter;
   };
   ranks: Record<string, RankCounter & { purchaseRate: number }>;
   players: Record<string, PlayerSlotReport>;
@@ -173,6 +184,7 @@ export type SimulationResult = {
 };
 
 export const emptyEconomy = (): EconomyCounter => ({ purchases: 0, sales: 0, rerolls: 0, purchaseSpend: 0, rerollSpend: 0 });
+export const emptyBBAwards = (): BBAwardCounter => ({ roundIncome: 0, winBase: 0, lossBase: 0, streakBonus: 0, augmentBonus: 0, other: 0 });
 export const emptyTournament = (): TournamentCounter => ({
   r2PrimaryWins: 0, r2WinnerBracketWins: 0, r2LoserBracketSurvivals: 0, r2Eliminations: 0,
   r4PrimaryWins: 0, r4WinnerThreeWayFirsts: 0, r4LoserThreeWaySurvivals: 0, r4Eliminations: 0,

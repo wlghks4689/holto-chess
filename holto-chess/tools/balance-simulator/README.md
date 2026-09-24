@@ -53,6 +53,7 @@ node tools/balance-simulator/run.mjs --games 100 --seed 9000 --assignment random
 - 게임: 요청/완주/실패 수, 평균 엔진 액션 수, seed별 실패 정보
 - 라운드: 평균 진입·생존 인원, BB 평균/중앙값/최소/최대
 - 경제: 구매·판매·리롤 수, 구매/리롤 지출, 종료 BB, 플레이어 슬롯별 및 라운드별 1인 평균
+- BB 보상 원인: 라운드 수입, 승리/패배 기본 보상, 연승·연패 보너스, 증강 보너스, 미분류 보상
 - 카드: rank별 상점 등장, 구매, 구매율, 판매, 최종 보유
 - 카드풀: `AVAILABLE`, `RESERVED_IN_SHOP`, `OWNED`, 고갈과 상점 충전 실패
 - 족보: R1~R5 분포. `ROYAL_FLUSH`는 `STRAIGHT_FLUSH`와 분리된 엔진 카테고리로 집계
