@@ -131,7 +131,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, identityId = view
   const nextBatch = final ? finalNextBatch(frame.phase) : undefined;
   const phaseMs = (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
   const readStage = finalReadStage(frame.phase);
-  return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
+  return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms`, "--final-beat": `${1 / speed}`, "--phase-duration": `${phaseMs / speed}ms` } as CSSProperties}>
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : displayedMatchNumber(match)}</span>}<h2>{final ? finalHeading.title : title}</h2></div>
@@ -211,7 +211,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, identityId = view
         })}</div>
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
           <div className="cinema-final-read-copy" key={read.stage}>{read.tag && <small>{read.tag}</small>}<strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
-        {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
+        {!intro && !final && !flags.made && streetIndex === 1 && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><small>{streetName}</small><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {!final && flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {(flags.reward || flags.runResult && match.runRewards) && reward && showReward && <div className="cinema-reward">{final
           ? <strong><span>{ordinalPlace(result?.place)} PLACE REWARD</span><i>·</i><span>{reward.deltaPoints >= 0 ? "+" : ""}{Number(reward.deltaPoints.toFixed(2))} POINT</span></strong>
