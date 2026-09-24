@@ -19,6 +19,21 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("separates spectator identity from the perspective seat", () => {
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", identityId: "p8", onComplete: () => {} }));
+    expect(html).not.toContain("YOU");
+    expect(html).toContain('data-player-id="p1"');
+  });
+  it.each([
+    [2, "primary", 4, 1],
+    [4, "primary", 3, 1],
+    [4, "secondary", 1, 2],
+    [4, "secondary", 2, 2],
+  ] as const)("labels R%i %s table %i as player match %i", (round, stage, matchNumber, expected) => {
+    const view: MatchView = { ...match, round, stage, matchNumber };
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: view, profiles, viewerId: "p1", onComplete: () => {} }));
+    expect(html).toContain(`ROUND ${round} · MATCH ${expected}`);
+  });
   it.each([1, 2, 5] as const)("renders R%i zero-card forfeits through every cinematic frame without a fake hand", (round) => {
     const forfeited = { playerId: "p1", place: 2, category: "HIGH_CARD" as const, kickers: [], displayName: "몰수패", usedCardIds: [] };
     const view: MatchView = { ...match, round, participantIds: ["p1", "p2"], winnerIds: ["p2"],
@@ -288,6 +303,21 @@ describe("server-synced cinematic gate", () => {
     children: createElement("div", null, "PRIVATE_RESULT_SENTINEL") }));
   const phaseOf = (html: string) => /data-phase="([A-Z0-9_]+)"/.exec(html)?.[1];
 
+  it("distinguishes the shared start lead-in from waiting for other tables", () => {
+    const html = at(presentation.startsAt - 100);
+    expect(html).toContain("쇼다운을 준비하고 있습니다.");
+    expect(html).not.toContain("다른 매치 결과");
+    expect(html).not.toContain("PRIVATE_RESULT_SENTINEL");
+  });
+  it("does not release final children based only on an advanced client clock", () => {
+    const html = renderToStaticMarkup(createElement(CinematicGate, {
+      matches: [match], profiles, viewerId: "p1", presentation: { ...presentation, version: 9 },
+      receivedAt: presentation.endsAt - 1, clock: { observe: () => {}, offset: () => 0, now: () => presentation.endsAt + 60_000 },
+      children: createElement("div", null, "PRIVATE_RESULT_SENTINEL"),
+    }));
+    expect(html).not.toContain("PRIVATE_RESULT_SENTINEL");
+  });
+
   it("derives the frame from the shared server time, so every seat shows the same beat", () => {
     const serverTime = presentation.startsAt + 5_000;
     const timeline = cinematicTimeline(match);
@@ -339,18 +369,19 @@ describe("server-synced cinematic gate", () => {
 
   it("uses the same loading composition for later two- and three-player matches through R4", () => {
     const beforeSecond = presentation.startsAt + secondOffset + 500;
-    const splitRuns: MatchView = { ...second, round: 2, runCards: {
+    const splitRuns: MatchView = { ...second, round: 2, stage: "primary", matchday: undefined, matchNumber: 4, runCards: {
       p1: [deck.slice(0, 2), [deck[0]!, deck[4]!]],
       p2: [deck.slice(2, 4), [deck[2]!, deck[5]!]],
     } };
     const twoWay = at(beforeSecond, [match, splitRuns]);
-    expect(twoWay).toContain("ROUND 02 · MATCH 2");
+    expect(twoWay).toContain("ROUND 02 · MATCH 1");
     expect(twoWay.match(/class="playing-card[^"]*compact/g)).toHaveLength(6);
 
     const multiway: MatchView = { ...second, round: 4, stage: "secondary",
       participantIds: match.participantIds.slice(0, 3), revealedCards: match.revealedCards };
     const html = at(beforeSecond, [match, multiway]);
     expect(html).toContain("is-3-way");
+    expect(html).toContain("ROUND 04 · MATCH 2");
     expect(html.match(/class="showdown-prep-player /g)).toHaveLength(3);
     expect(html).toContain("SHOWDOWN");
   });

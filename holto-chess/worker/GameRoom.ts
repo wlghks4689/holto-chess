@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, type RoomSnapshot } from "../src/game/room";
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
+import { nextDisclosureAt } from "../src/game/disclosure";
 
 type Attachment = { roomId: string; playerId: string | null; joinedAt: number; windowAt?: number; messages?: number };
 const SNAPSHOT_KEY = "snapshot:v1";
@@ -29,15 +30,15 @@ export class GameRoom extends DurableObject<Env> {
         this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
         await ctx.storage.put(EXPIRY_KEY, this.expiresAt);
       }
-      if (this.room?.game.phase === "GAME_RESULT") {
-        const finishedExpiry = Date.now() + FINISHED_ROOM_LIFETIME_MS;
+      if (this.room?.finalResultsReleasedAt) {
+        const finishedExpiry = this.room.finalResultsReleasedAt + FINISHED_ROOM_LIFETIME_MS;
         if (!this.expiresAt || this.expiresAt > finishedExpiry) {
           this.expiresAt = finishedExpiry;
           await ctx.storage.put(EXPIRY_KEY, finishedExpiry);
-          await ctx.storage.setAlarm(finishedExpiry);
         }
       }
       if (this.room && this.room.schema !== 1) throw new Error("Unsupported room snapshot version");
+      if (this.room && await ctx.storage.getAlarm() === null) await this.rescheduleAlarm();
     });
   }
 
@@ -48,10 +49,10 @@ export class GameRoom extends DurableObject<Env> {
       console.error(JSON.stringify({ event: "room_storage_failed", roomId: next.roomId, revision: next.revision }));
       throw new Error("상태를 저장하지 못했습니다. 재접속 후 다시 시도하세요.");
     }
-    if (next.game.phase === "GAME_RESULT" && this.room?.game.phase !== "GAME_RESULT") {
-      // Connected players keep a short result-viewing window, but completed
-      // arenas must not occupy durable storage for the full room lifetime.
-      this.expiresAt = Date.now() + FINISHED_ROOM_LIFETIME_MS;
+    if (next.finalResultsReleasedAt && !this.room?.finalResultsReleasedAt) {
+      // Result computation is not game completion. Start cleanup only after
+      // an eligible player opens the final standings following common reveal.
+      this.expiresAt = next.finalResultsReleasedAt + FINISHED_ROOM_LIFETIME_MS;
       await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
     } else if (next.game.phase !== "GAME_RESULT" && this.room?.game.phase === "GAME_RESULT") {
       this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
@@ -60,8 +61,8 @@ export class GameRoom extends DurableObject<Env> {
     this.room = next;
   }
   /**
-   * One alarm slot serves two deadlines: unauthenticated sockets and the barrier
-   * auto-advance. Always arm the nearer of the two.
+   * One alarm slot serves authentication, authorized reveal, phase advancement
+   * and room expiry. Always arm the earliest deadline.
    */
   private async rescheduleAlarm(): Promise<void> {
     const deadlines: number[] = [];
@@ -72,6 +73,8 @@ export class GameRoom extends DurableObject<Env> {
     }
     const barrier = this.room ? barrierDeadline(this.room) : undefined;
     if (barrier !== undefined) deadlines.push(barrier);
+    const reveal = this.room ? nextDisclosureAt(this.room, Date.now()) : undefined;
+    if (reveal !== undefined) deadlines.push(reveal);
     const next = deadlines.length ? Math.min(...deadlines) : null;
     // Avoid a billed write when the scheduled deadline has not changed.
     if (await this.ctx.storage.getAlarm() === next) return;
@@ -83,11 +86,12 @@ export class GameRoom extends DurableObject<Env> {
   }
   private broadcast(): void {
     if (!this.room) return;
+    const now = Date.now();
     const sockets = this.ctx.getWebSockets();
     const connected = sockets.map((ws) => (ws.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id);
     for (const ws of sockets) {
       const a = ws.deserializeAttachment() as Attachment | null;
-      if (a?.playerId && a.roomId === this.room.roomId) this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, a.playerId, connected) });
+      if (a?.playerId && a.roomId === this.room.roomId) this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, a.playerId, connected, now) });
     }
   }
   async fetch(request: Request): Promise<Response> {
@@ -113,7 +117,7 @@ export class GameRoom extends DurableObject<Env> {
       const digest = await hash(secret);
       const session = this.room.sessions.find((entry) => entry.tokenHash === digest);
       if (!session) return new Response("Invalid session", { status: 401 });
-      if (session.departed || this.room.game.phase === "GAME_RESULT") return new Response("Room finished", { status: 410 });
+      if (session.departed || this.room.finalResultsReleasedAt) return new Response("Room finished", { status: 410 });
       return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
     }
     if (url.pathname === "/internal/join" && request.method === "POST") {
@@ -170,6 +174,14 @@ export class GameRoom extends DurableObject<Env> {
           this.send(ws, { type: "ROOM_JOINED", roomId: this.room.roomId, playerId: session.playerId });
           this.broadcast(); return;
         }
+        if (message.type === "SYNC_CLOCK") {
+          if (!attachment.playerId) throw new Error("먼저 세션을 연결하세요.");
+          this.send(ws, { type: "CLOCK_SYNC", nonce: message.nonce, receivedAt: now, sentAt: Date.now() });
+          // Returning tabs receive the current authorized reveal, never an old replay.
+          this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, attachment.playerId, this.ctx.getWebSockets().map(socket => (socket.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id)) });
+          await this.rescheduleAlarm();
+          return;
+        }
         requestId = message.requestId;
         if (!attachment.playerId) { this.send(ws, { type: "ERROR", code: "UNAUTHORIZED", message: "먼저 세션을 연결하세요.", requestId }); ws.close(1008, "Authentication required"); return; }
         const session = this.room.sessions.find((s) => s.playerId === attachment.playerId)!;
@@ -209,7 +221,8 @@ export class GameRoom extends DurableObject<Env> {
         // Bots stand in for whoever the barrier is still waiting on, so one
         // unresponsive player can never strand the rest of the room.
         const forced = forceBarrier(this.room, now);
-        if (forced) { await this.commit(forced); this.broadcast(); }
+        if (forced) await this.commit(forced);
+        this.broadcast();
       }
       await this.rescheduleAlarm();
     });

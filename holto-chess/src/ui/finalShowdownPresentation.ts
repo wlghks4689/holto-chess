@@ -6,6 +6,7 @@ import { FINAL_ARENA_HOLD_MS, FINAL_ARENA_ZOOM_MS } from "../shared/presentation
 /** R5 presentation helper. It only evaluates the cards already visible in the current frame. */
 export function visibleFinalHand(cards: readonly Card[], visibleCount: number): HandValue | undefined {
   const visible = cards.slice(0, visibleCount);
+  if (visible.some(card => card.hidden)) return undefined;
   if (!visible.length) return undefined;
   return visible.length >= 5 ? findBestFive(visible) : evaluatePartial(visible);
 }

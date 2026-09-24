@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
-import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS } from "../shared/presentationTimeline";
+import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
@@ -23,9 +23,15 @@ type Profile = { playerId: string; name: string; points?: number; alive?: boolea
  * `controls` exposes speed/skip for local simulation only. `elapsedMs` hands playback to an outside
  * clock (the server-synced gate): no local timer, no speed, no per-match confirm.
  */
-type Props = { match: MatchView; profiles: Profile[]; viewerId: string; onComplete: () => void; controls?: boolean; elapsedMs?: number; catchUp?: boolean; nextMatchSeconds?: number };
+type Props = { match: MatchView; profiles: Profile[]; viewerId: string; identityId?: string; onComplete: () => void; controls?: boolean; elapsedMs?: number; catchUp?: boolean; nextMatchSeconds?: number };
 /** A jump larger than this (hidden tab, reconnect) lands on the current frame without replaying transitions. */
 const CATCH_UP_MS = 400;
+
+/** A table's array index is not the player's match number in R2/R4. */
+function displayedMatchNumber(match: MatchView): number {
+  if (match.round === 2 || match.round === 4) return match.stage === "secondary" ? 2 : 1;
+  return match.matchday ?? match.matchNumber;
+}
 
 function RunMatchup({ match, index, viewerId, complete, winnerGlowOnly = false, className = "" }: {
   match: MatchView; index: number; viewerId: string; complete: boolean; winnerGlowOnly?: boolean; className?: string;
@@ -65,14 +71,16 @@ function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame
   </aside>;
 }
 
-export function ShowdownCinematic({ match, profiles, viewerId, onComplete, controls = false, elapsedMs, catchUp = false, nextMatchSeconds }: Props) {
+export function ShowdownCinematic({ match, profiles, viewerId, identityId = viewerId, onComplete, controls = false, elapsedMs, catchUp = false, nextMatchSeconds }: Props) {
   const motion = useCinematicMotion();
   const synced = elapsedMs !== undefined;
   const [localElapsed, setElapsed] = useState(0);
   const [localSpeed, setSpeed] = useState(1);
   const speed = synced ? 1 : localSpeed;
-  const elapsed = synced ? elapsedMs : localElapsed;
-  const frames = cinematicTimeline(match);
+  const frames = match.disclosure?.frames ?? cinematicTimeline(match);
+  const authorized = match.disclosure && frameAt(frames, match.disclosure.elapsedMs);
+  const nextAuthorizedAt = authorized ? frames[frames.indexOf(authorized) + 1]?.at ?? Infinity : Infinity;
+  const elapsed = Math.min(synced ? elapsedMs : localElapsed, nextAuthorizedAt - 0.001);
   const frame = frameAt(frames, elapsed);
   const flags = revealFlags(frame.phase);
   const final = match.round === 5;
@@ -126,7 +134,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms`, "--final-beat": `${1 / speed}`, "--phase-duration": `${phaseMs / speed}ms` } as CSSProperties}>
-    <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : match.matchNumber}</span>}<h2>{final ? finalHeading.title : title}</h2></div>
+    <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : displayedMatchNumber(match)}</span>}<h2>{final ? finalHeading.title : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><label>속도 <select aria-label="Animation Speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
         <button className="secondary" onClick={onComplete}>Skip Cinematic</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
@@ -176,8 +184,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{survivalOutcome === "SURVIVED" ? "생존" : "탈락"}</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className={`cinema-profile ${!final ? "cinema-match-profile" : ""}`}>
-          {!final && <div className="cinema-profile-identity"><span className="player-avatar">{id.slice(1)}</span><b title={`${name(id)}${id === viewerId ? " · YOU" : ""}`}>{name(id)} {id === viewerId ? "· YOU" : ""}</b></div>}
-          {final && <><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === viewerId ? "· YOU" : ""}</b></>}
+          {!final && <div className="cinema-profile-identity"><span className="player-avatar">{id.slice(1)}</span><b title={`${name(id)}${id === identityId ? " · YOU" : ""}`}>{name(id)} {id === identityId ? "· YOU" : ""}</b></div>}
+          {final && <><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === identityId ? "· YOU" : ""}</b></>}
           {!final && <div className="cinema-standing-line">
             {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={`현재 ${tiedOnPoints ? "공동 " : ""}${currentRank}위`}><small>현재</small>{tiedOnPoints && <i>공동</i>}<b>{currentRank}위</b></span>}
             {swiss && currentPoints !== undefined && <em className="cinema-current-points">POINT {currentPoints}</em>}
@@ -196,10 +204,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             const slot = finalRevealSlot(cardIndex);
             const slotStyle = { "--flip-delay": `${slot.offset * FINAL_REVEAL_STAGGER_MS[slot.batch] / speed}ms` } as CSSProperties;
             return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used}
-              className={`batch-${slot.batch} ${!visible && slot.batch === nextBatch ? "is-next" : ""}`} style={slotStyle} key={card.id} />;
+            className={`batch-${slot.batch} ${!visible && slot.batch === nextBatch ? "is-next" : ""}`} style={slotStyle} key={cardIndex} />;
           }
           return <ShowdownCardFlip card={card} open={visible && !(cardSwitch && cardIndex === 1)} glow={flags.glow && used} dimmed={flags.holeDim && !used}
-            className={intro ? "cinema-vs-reveal" : ""} style={intro ? { "--flip-delay": `${cardIndex * 200}ms` } as CSSProperties : undefined} key={match.runCards ? cardIndex : card.id} />;
+            className={intro ? "cinema-vs-reveal" : ""} style={intro ? { "--flip-delay": `${cardIndex * 200}ms` } as CSSProperties : undefined} key={cardIndex} />;
         })}</div>
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
           <div className="cinema-final-read-copy" key={read.stage}>{read.tag && <small>{read.tag}</small>}<strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
@@ -231,7 +239,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;
           return <ShowdownCardFlip card={card} open={visible} glow={completed && used} dimmed={completed && !used}
             className={`${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`}
-            key={`${boardIndex}-${card.id}`} />;
+            key={`${boardIndex}-${index}`} />;
         })}</div>}
       </div>;
     })}</div>}
@@ -242,10 +250,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
 }
 
 /** Shown once this seat's matches are done while another table is still playing. */
-export function WaitingForTables() {
+export function WaitingForTables({ preparing = false }: { preparing?: boolean } = {}) {
   return <section className="cinema cinema-waiting" aria-live="polite" data-phase="WAITING">
     <span className="cinema-waiting-pulse" aria-hidden="true"><i /><i /><i /></span>
-    <p>다른 매치 결과를 기다리는 중입니다.</p>
+    <p>{preparing ? "쇼다운을 준비하고 있습니다." : "다른 매치 결과를 기다리는 중입니다."}</p>
   </section>;
 }
 
@@ -260,7 +268,7 @@ function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string):
     cards: match.runCards?.[id] ? [...new Map(match.runCards[id]!.flat().map((card) => [card.id, card])).values()] : match.revealedCards[id] ?? [],
   });
   const opponents = ids.slice(1).map(seat);
-  return { matchNumber: match.stage === "secondary" ? 2 : match.matchday ?? match.matchNumber,
+  return { matchNumber: displayedMatchNumber(match),
     viewer: seat(ids[0]!), ...(opponents.length === 1 ? { opponent: opponents[0] } : { opponents }) };
 }
 
@@ -297,12 +305,12 @@ function MatchPrepInterlude({ match, profiles, viewerId, onComplete }: {
  * steps through shared match slots (with a three-second inter-match result hold), and releases the
  * results at the shared endsAt. Missed frames (hidden tab, reconnect) are skipped, not replayed.
  */
-function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId, children }: {
-  matches: MatchView[]; presentation: PresentationView; clock: ServerClock; profiles: Profile[]; viewerId: string; children: React.ReactNode;
+function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId, identityId, receivedAt, children }: {
+  matches: MatchView[]; presentation: PresentationView; clock: ServerClock; profiles: Profile[]; viewerId: string; identityId?: string; receivedAt?: number; children: React.ReactNode;
 }) {
   const [tick, setTick] = useState(() => ({ now: clock.now(), jumped: false }));
   const { now } = tick;
-  const done = now >= presentation.endsAt;
+  const done = now >= presentation.endsAt && (receivedAt === undefined || receivedAt >= presentation.endsAt);
   useEffect(() => {
     if (done) return;
     const timer = setInterval(() => setTick((previous) => {
@@ -311,6 +319,7 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
     }), 40);
     return () => clearInterval(timer);
   }, [done, clock, presentation.startsAt, presentation.endsAt]);
+  if (presentation.version !== PRESENTATION_VERSION && receivedAt !== undefined) return <section className="panel" role="alert"><p>새 게임 버전이 필요합니다. 좌석을 유지한 채 새로고침해 주세요.</p><button onClick={() => location.reload()}>새로고침</button></section>;
   if (done) return <>{children}</>;
   const elapsed = now - presentation.startsAt;
   const entry = presentation.matches.find((item) => elapsed >= item.offsetMs && elapsed < item.offsetMs + item.durationMs);
@@ -321,27 +330,27 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
     const previousMatch = previous && matches.find((item) => item.id === previous.matchId);
     if (previous && previousMatch && elapsed >= previous.offsetMs + previous.durationMs) {
       const remainingMs = presentation.matches[nextIndex]!.offsetMs - elapsed;
-      return <ShowdownCinematic key={previousMatch.id} match={previousMatch} profiles={profiles} viewerId={viewerId}
+      return <ShowdownCinematic key={previousMatch.id} match={previousMatch} profiles={profiles} viewerId={viewerId} identityId={identityId}
         onComplete={() => {}} elapsedMs={previous.durationMs - (previous.prepMs ?? 0)} catchUp={tick.jumped}
         nextMatchSeconds={remainingMs <= INTER_MATCH_HOLD_MS ? Math.ceil(remainingMs / 1000) : undefined} />;
     }
-    return <WaitingForTables />;
+    return <WaitingForTables preparing={elapsed < 0} />;
   }
   const matchElapsed = elapsed - entry.offsetMs;
   if (match.round < 5 && entry.prepMs && matchElapsed < entry.prepMs) return <MatchPrepScreen key={`${match.id}:prep`} match={match}
     profiles={profiles} viewerId={viewerId} seconds={Math.ceil((entry.prepMs - matchElapsed) / 1000)} />;
-  return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} onComplete={() => {}} elapsedMs={matchElapsed - (entry.prepMs ?? 0)} catchUp={tick.jumped} />;
+  return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} identityId={identityId} onComplete={() => {}} elapsedMs={matchElapsed - (entry.prepMs ?? 0)} catchUp={tick.jumped} />;
 }
 
 /** Hides scoreboards, logs, final standings and next-stage controls until presentation completes. */
-export function CinematicGate({ matches, profiles, viewerId, controls = false, presentation, clock, children }: {
-  matches: MatchView[]; profiles: Profile[]; viewerId: string; controls?: boolean;
+export function CinematicGate({ matches, profiles, viewerId, identityId, receivedAt, controls = false, presentation, clock, children }: {
+  matches: MatchView[]; profiles: Profile[]; viewerId: string; identityId?: string; receivedAt?: number; controls?: boolean;
   /** Online: server schedule + clock. Without them (local simulation) playback stays client-paced. */
   presentation?: PresentationView; clock?: ServerClock; children: React.ReactNode;
 }) {
   const [completed, setCompleted] = useState<string[]>([]);
   const [prepared, setPrepared] = useState<string[]>([]);
-  if (presentation && clock) return <SyncedCinematicGate matches={matches} presentation={presentation} clock={clock} profiles={profiles} viewerId={viewerId}>{children}</SyncedCinematicGate>;
+  if (presentation && clock) return <SyncedCinematicGate matches={matches} presentation={presentation} clock={clock} profiles={profiles} viewerId={viewerId} identityId={identityId} receivedAt={receivedAt}>{children}</SyncedCinematicGate>;
   const current = matches.find((match) => !completed.includes(match.id));
   if (!current) return <>{children}</>;
   if (current.round < 5 && matches[0]?.id !== current.id && !prepared.includes(current.id)) return <MatchPrepInterlude key={`${current.id}:prep`}

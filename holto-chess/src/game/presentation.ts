@@ -23,19 +23,23 @@ export function matchesVisible(room: RoomSnapshot): boolean {
 export function visibleMatchesFor(room: RoomSnapshot, playerId: string): MatchResult[] {
   const eliminated = room.game.players.find((player) => player.id === playerId)?.eliminated;
   // Keep a newly eliminated viewer on their own deciding match first. In
-  // later rounds, automatically show the remaining tables instead of silence.
-  if (eliminated && !room.game.roundResults.some((match) => match.playerIds.includes(playerId))) return room.game.roundResults;
+  // later rounds, follow one live participant's schedule instead of all tables.
+  if (eliminated && !room.game.roundResults.some((match) => match.playerIds.includes(playerId))) {
+    const target = room.game.players.find((player) => !player.eliminated)?.id;
+    return target ? room.game.roundResults.filter((match) => match.playerIds.includes(target)) : [];
+  }
   return room.game.roundResults.filter((match) => match.playerIds.includes(playerId) || room.game.round === 3 && match.tiebreakKind === "SURVIVAL_TIEBREAK");
 }
 
 /**
  * Stamps one shared start time when a new showdown set becomes visible. The room waits for the
- * seat with the longest playback, so everyone leaves the cinematic at the same moment.
+ * actual participant path with the longest playback, including genuine deciders.
+ * Spectators follow those paths and never add an extra wait to the room.
  */
 export function syncPresentation(room: RoomSnapshot, now: number): void {
   if (!matchesVisible(room)) { delete room.presentation; return; }
   const key = `${room.game.round}:${room.game.roundResults.map((match) => match.id).join(",")}`;
-  if (room.presentation?.key === key) return;
+  if (room.presentation?.key === key && room.presentation.version === PRESENTATION_VERSION) return;
   const durations = new Map<string, number>();
   const durationOf = (match: MatchResult) => {
     if (!durations.has(match.id)) durations.set(match.id, presentationDurationMs(createMatchView(room.game, match)));
@@ -43,10 +47,8 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
   };
   const startsAt = now + PRESENTATION_LEAD_MS;
   const perPlayer: Record<string, PresentationEntry[]> = {};
-  let longest = 0;
-  const watching = room.sessions.filter((session) => !session.departed);
-  const hasSpectators = watching.some((session) => room.game.players.find((player) => player.id === session.playerId)?.eliminated);
-  const sequences = Object.fromEntries(room.game.players.map(({ id }) => [id, visibleMatchesFor(room, id)]));
+  // Derive slots from the participants' actual match order, never spectator playback.
+  const sequences = Object.fromEntries(room.game.players.map(({ id }) => [id, room.game.roundResults.filter((match) => match.playerIds.includes(id))]));
   const entryDuration = (match: MatchResult, index: number, last: boolean) =>
     durationOf(match) + (room.game.round === 5 || index === 0 ? 0 : MATCH_PREP_MS) - (last ? 0 : MATCH_HOLD_MS);
   // All seats share the same match-slot starts, even when one table has a longer decider.
@@ -58,15 +60,17 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
       matches[index] ? entryDuration(matches[index], index, index === matches.length - 1) : 0));
     slotStarts.push(slotStarts[index]! + longestMatch + INTER_MATCH_HOLD_MS);
   }
-  for (const { id: playerId, eliminated } of room.game.players) {
-    perPlayer[playerId] = sequences[playerId]!.map((match, index, matches) => {
+  const byMatch = new Map<string, PresentationEntry>();
+  for (const matches of Object.values(sequences)) {
+    matches.forEach((match, index) => {
       const prepMs = room.game.round === 5 || index === 0 ? 0 : MATCH_PREP_MS;
-      return { matchId: match.id, offsetMs: slotStarts[index]!, durationMs: entryDuration(match, index, index === matches.length - 1), ...(prepMs ? { prepMs } : {}) };
+      const entry = { matchId: match.id, offsetMs: slotStarts[index]!, durationMs: entryDuration(match, index, index === matches.length - 1), ...(prepMs ? { prepMs } : {}) };
+      const existing = byMatch.get(match.id);
+      if (!existing || entry.offsetMs > existing.offsetMs) byMatch.set(match.id, entry);
     });
-    const last = perPlayer[playerId]!.at(-1);
-    if (last && (watching.some((session) => session.playerId === playerId) || (hasSpectators && !eliminated)))
-      longest = Math.max(longest, last.offsetMs + last.durationMs);
   }
+  for (const { id } of room.game.players) perPlayer[id] = visibleMatchesFor(room, id).map((match) => ({ ...byMatch.get(match.id)! }));
+  const longest = Math.max(0, ...[...byMatch.values()].map((entry) => entry.offsetMs + entry.durationMs));
   room.presentation = { key, version: PRESENTATION_VERSION, startsAt, endsAt: startsAt + longest, perPlayer };
 }
 

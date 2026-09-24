@@ -16,6 +16,7 @@ type Props = {
  * rotateY state changes, so a reveal never replaces a card node or changes the slot geometry.
  */
 export function ShowdownCardFlip({ card, open, glow = false, dimmed = false, className = "", style }: Props) {
+  open = open && !card.hidden;
   return <div className={`cinema-flip-slot ${className} ${open ? "is-open" : ""}`.trim()} style={style} data-card-id={card.id} data-open={open}>
     <div className="cinema-flip-inner">
       <div className="cinema-flip-face cinema-flip-back" aria-hidden={open || undefined}><CardBack compact /></div>

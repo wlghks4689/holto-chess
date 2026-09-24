@@ -80,7 +80,8 @@ describe("R3 Omaha Swiss", () => {
     room.game = resolvePrimary(room.game);
     syncPresentation(room, 1000);
     const view = createPlayerView(room, "p1", [], 2000);
-    expect(view.matches.map((m) => m.matchday)).toEqual([1, 2, 3]);
+    expect(view.matches.map((m) => m.matchday)).toEqual([1]);
+    expect(createPlayerView(room, "p1", [], room.presentation!.endsAt).matches.map((m) => m.matchday)).toEqual([1, 2, 3]);
     expect(view.matches.every((m) => m.participantIds.includes("p1"))).toBe(true);
     expect(view.matches.every((m) => m.revealedCards.p1.length === 4)).toBe(true);
     expect(view.presentation?.matches).toHaveLength(3);

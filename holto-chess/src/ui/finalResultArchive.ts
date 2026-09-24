@@ -16,6 +16,8 @@ export type SavedFinalResult = {
 };
 
 export function makeSavedFinalResult(view: PlayerView, savedAt = new Date().toISOString()): SavedFinalResult {
+  if (view.phase !== "GAME_RESULT" || !view.finalResultsReleased || !view.standings.length)
+    throw new Error("최종 순위표 공개 전에는 대전 기록을 저장할 수 없습니다.");
   return {
     id: `${view.gameId}:${view.me.playerId}`,
     roomId: view.roomId,

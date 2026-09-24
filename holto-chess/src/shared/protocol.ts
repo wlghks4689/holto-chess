@@ -16,15 +16,19 @@ export type GameAction =
   | { type: "END_SHOP_PHASE" }
   | { type: "CANCEL_SHOP_READY" }
   | { type: "REMATCH_READY" }
+  | { type: "FINAL_RESULTS_VIEWED" }
   | { type: "LEAVE_ROOM" };
 export type ClientMessage =
   | { type: "JOIN_ROOM"; token: string; nickname?: string }
+  | { type: "SYNC_CLOCK"; nonce: string }
   | (GameAction & { requestId: string; turnKey: string });
 
 export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; departed: boolean };
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
+  /** Server-authorized frames. No future card values/outcomes are in this projection. */
+  disclosure?: { frames: import("./presentationTimeline").CinematicFrame[]; elapsedMs: number };
   runCards?: Record<string, Card[][]>;
   runRewards?: MatchReward[][];
   standingsBefore?: Record<string, number>;
@@ -83,6 +87,8 @@ export type PlayerView = {
   /** Present while showdown matches are visible; drives synchronized cinematic playback. */
   presentation?: PresentationView;
   status: "LOBBY" | "PLAYING"; round: Round; phase: Phase | "LOBBY";
+  /** True only after an eligible player has opened the final standings after the shared end. */
+  finalResultsReleased?: boolean;
   humanCount: number; capacity: number;
   /** Epoch ms this phase auto-advances without the remaining players, if it is waiting. */
   barrierEndsAt?: number;
@@ -100,6 +106,7 @@ export type PlayerView = {
   standings: FinalStandingView[];
 };
 export type ServerMessage =
+  | { type: "CLOCK_SYNC"; nonce: string; receivedAt: number; sentAt: number }
   | { type: "PLAYER_VIEW"; payload: PlayerView }
   | { type: "ROOM_JOINED"; roomId: string; playerId: string }
   | { type: "ACK"; requestId: string; revision: number }
@@ -113,6 +120,10 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("잘못된 메시지입니다.");
   const v = value as Record<string, unknown>;
   const string = (key: string, pattern: RegExp) => typeof v[key] === "string" && pattern.test(v[key] as string);
+  if (v.type === "SYNC_CLOCK") {
+    if (Object.keys(v).some((k) => !["type", "nonce"].includes(k)) || !string("nonce", /^[a-zA-Z0-9_-]{8,64}$/)) throw new Error("잘못된 시계 요청입니다.");
+    return { type: "SYNC_CLOCK", nonce: v.nonce as string };
+  }
   if (v.type === "JOIN_ROOM") {
     if (Object.keys(v).some((k) => !["type", "token", "nickname"].includes(k)) || !string("token", /^[a-f0-9]{64}$/)) throw new Error("잘못된 세션입니다.");
     if (v.nickname !== undefined && (typeof v.nickname !== "string" || !/^[\p{L}\p{N} _-]{1,8}$/u.test(v.nickname.trim()))) throw new Error("닉네임은 문자·숫자 1~8자로 입력하세요.");
@@ -122,7 +133,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   const fields: Record<string, string[]> = {
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
-      SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], LEAVE_ROOM: [],
+      SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], FINAL_RESULTS_VIEWED: [], LEAVE_ROOM: [],
       SELECT_LOADOUT: ["slots"],
   };
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");

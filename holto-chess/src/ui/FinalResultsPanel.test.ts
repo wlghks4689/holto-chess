@@ -18,6 +18,7 @@ function finalView() {
   const view = createPlayerView(addSession(createRoom("ABCDEF", 101), "one").room, "p1");
   const opponentId = view.players[1].playerId;
   view.phase = "GAME_RESULT";
+  view.finalResultsReleased = true;
   view.players[0].name = "지팡스키";
   view.players[1].name = "클럽 레이븐";
   view.standings = [
@@ -74,5 +75,12 @@ describe("final result panel", () => {
     expect(history).toContain("대전 기록");
     expect(history).toContain("지팡스키");
     expect(history).toContain("최종 229BB");
+  });
+  it("cannot save or expose an unacknowledged final result in another tab's history", () => {
+    const view = { ...finalView(), finalResultsReleased: false };
+    expect(() => makeSavedFinalResult(view)).toThrow("최종 순위표 공개 전");
+    expect(loadSavedFinalResults()).toEqual([]);
+    expect(renderToStaticMarkup(createElement(MatchHistoryPage, { onBack: () => {} }))).not.toContain("지팡스키");
+    expect(renderToStaticMarkup(createElement(FinalResultsPanel, { view }))).toContain("최종 순위표 공개 확인 중");
   });
 });
