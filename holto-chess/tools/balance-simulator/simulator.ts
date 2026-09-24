@@ -1,8 +1,8 @@
 import { BALANCE } from "../../src/game/config";
 import {
-  beginSecondary, buyCard, confirmSelection, createGame, finalStandings, getCard,
-  getCardPrice, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
-  startNextRound, toggleSelectedCard,
+  beginSecondary, buyCard, chooseAugment, confirmSelection, createGame, finalStandings, getCard,
+  getCardPrice, leaveRoundResult, lockRunLoadouts, openDraft, pickDraftCard, prepareShowdown,
+  rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, startNextRound, toggleSelectedCard,
 } from "../../src/game/engine";
 import type { PorenaGameState, MatchResult, Round } from "../../src/game/types";
 import { assertSimulationInvariants } from "./invariants";
@@ -14,7 +14,7 @@ import {
 
 const ROUNDS: Round[] = [1, 2, 3, 4, 5];
 const RANK_LABEL: Record<number, string> = { 14: "A", 13: "K", 12: "Q", 11: "J", 10: "T", 9: "9", 8: "8", 7: "7", 6: "6", 5: "5", 4: "4", 3: "3", 2: "2" };
-const expectedEnd: Record<Round, number> = { 1: 8, 2: 6, 3: 6, 4: 4, 5: 4 };
+const expectedEnd: Record<Round, number> = { 1: 8, 2: 8, 3: 6, 4: 4, 5: 4 };
 
 const roundEconomy = () => Object.fromEntries(ROUNDS.map((round) => [round, emptyEconomy()])) as Record<Round, EconomyCounter>;
 const addEconomy = (target: EconomyCounter, key: keyof EconomyCounter, value = 1) => { target[key] += value; };
@@ -51,6 +51,27 @@ function updateTournament(round: Round, primary: MatchResult[], secondary: Match
   for (const id of participants) if (!survivors.has(id)) traces.get(id)!.tournament[round === 2 ? "r2Eliminations" : "r4Eliminations"] += 1;
 }
 
+function completeDraft(state: PorenaGameState, policies: Record<string, PolicyName>): PorenaGameState {
+  let next = state.phase === "DRAFT_ORDER" ? openDraft(state) : state;
+  while (next.phase === "OPEN_DRAFT") {
+    const playerId = next.draft!.order[next.draft!.picks.length]!.playerId;
+    const player = next.players.find((entry) => entry.id === playerId)!;
+    const policy = policies[playerId]!;
+    const candidates = next.draft!.cardIds
+      .filter((id) => next.ownershipCardPool.find((entry) => entry.card.id === id)?.state === "AVAILABLE")
+      .filter((id) => getCardPrice(next, playerId, id) <= player.stackBB)
+      .sort((left, right) => {
+        const a = getCard(next, left); const b = getCard(next, right);
+        return b.rank - a.rank || (policy === "ECONOMY" ? getCardPrice(next, playerId, left) - getCardPrice(next, playerId, right) : 0) || left.localeCompare(right);
+      });
+    const cardId = candidates[0];
+    if (!cardId) throw new Error(`${playerId} cannot afford a draft card in R${next.round}`);
+    next = pickDraftCard(next, playerId, cardId);
+  }
+  if (next.phase === "RUN_LOADOUT") next = lockRunLoadouts(next, []);
+  return next;
+}
+
 export function simulateGame(config: SimulationConfig, gameIndex: number): GameTrace {
   const seed = (config.baseSeed + gameIndex) >>> 0 || 1;
   let state = createGame(seed, "seeded");
@@ -71,9 +92,13 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
 
   captureShopAppearances(state, rankCounters); poolSnapshots.push(poolSnapshot(state, true));
   for (const round of ROUNDS) {
-    if (state.round !== round || state.phase !== "SHOP") throw new Error(`Expected R${round} SHOP, found R${state.round} ${state.phase}`);
+    if (state.round !== round) throw new Error(`Expected R${round}, found R${state.round} ${state.phase}`);
+    if (state.phase === "DRAFT_ORDER" || state.phase === "OPEN_DRAFT" || state.phase === "RUN_LOADOUT") {
+      state = completeDraft(state, policies); actionCount += 1;
+    }
+    if (state.phase !== "SHOP" && state.phase !== "SHOWDOWN_PRIMARY") throw new Error(`Expected R${round} SHOP or SHOWDOWN_PRIMARY, found R${state.round} ${state.phase}`);
     const entered = state.players.filter((player) => !player.eliminated).length;
-    for (const player of state.players.filter((entry) => !entry.eliminated)) {
+    if (state.phase === "SHOP") for (const player of state.players.filter((entry) => !entry.eliminated)) {
       const policy = policies[player.id]!; const trace = traces.get(player.id)!;
       if (!hasStrategyCandidate(state, player, policy)) strategyCandidateMissing[policy] += 1;
       let rerolls = 0;
@@ -104,7 +129,7 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
       const sample = poolSnapshot(state); poolSnapshots.push(sample); if (sample.available === 0) availableZeroEvents += 1;
     }
     const activeIds = state.players.filter((player) => !player.eliminated).map((player) => player.id);
-    state = prepareShowdown(state, activeIds); actionCount += 1;
+    if (state.phase === "SHOP") { state = prepareShowdown(state, activeIds); actionCount += 1; }
     if (state.phase === "DECK_SELECT") { state = confirmSelection(state); actionCount += 1; }
     const pointsBeforeR5 = round === 5
       ? new Map(state.players.filter((player) => !player.eliminated).map((player) => [player.id, player.points]))
@@ -114,6 +139,11 @@ export function simulateGame(config: SimulationConfig, gameIndex: number): GameT
     let secondary: MatchResult[] = [];
     if (state.phase === "GROUP_ASSIGNMENT") {
       state = beginSecondary(state); actionCount += 1; state = resolveSecondary(state); actionCount += 1; secondary = state.roundResults;
+    }
+    if (state.survival) {
+      state = leaveRoundResult(state); actionCount += 1;
+      state = resolveSurvival(state); actionCount += 1;
+      secondary = state.roundResults;
     }
     updateTournament(round, primary, secondary, traces);
     assertSimulationInvariants(state, expectedEnd[round]);
