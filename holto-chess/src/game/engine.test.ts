@@ -80,7 +80,7 @@ describe("PORENA engine", () => {
   });
 
   it("creates independent R2 match universes and excludes unselected owned cards", () => {
-    let state = playRound(createGame(404)); state = startNextRound(leaveRoundResult(state));
+    let state = playRound(createGame(2)); state = startNextRound(leaveRoundResult(state));
     state = fillHuman(state); state = prepareShowdown(state);
     for (const id of state.players[0]!.ownedCardIds.slice(0, 2)) state = toggleSelectedCard(state, "p1", id);
     state = confirmSelection(state); state = resolvePrimary(state);
