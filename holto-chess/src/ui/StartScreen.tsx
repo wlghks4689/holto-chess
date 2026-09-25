@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GameOverviewGuide } from "./GameOverviewGuide";
 import { useCinematicMotion } from "./useCinematicMotion";
+import { resetSeenRoundGuides, setAutoRoundGuides, useRoundGuidePreferences } from "./roundGuidePreferences";
 import "./start-screen.css";
 
 export type StartMode = "single" | "multi" | "tutorial";
@@ -8,6 +9,7 @@ type MenuOverlay = "mode" | "guide" | "settings" | null;
 
 export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void }) {
   const motion = useCinematicMotion();
+  const roundGuides = useRoundGuidePreferences();
   const [overlay, setOverlay] = useState<MenuOverlay>(null);
   const modal = useRef<HTMLDivElement>(null);
 
@@ -63,6 +65,7 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
         <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="start-settings-title">
           <header><div><small>PREFERENCES</small><h2 id="start-settings-title">환경 설정</h2></div><button type="button" aria-label="환경 설정 닫기" onClick={() => setOverlay(null)}>×</button></header>
           <fieldset><legend>게임 연출</legend><label>카드 회전·쇼다운 애니메이션<input type="checkbox" role="switch" checked={motion.enabled} onChange={(event) => motion.setEnabled(event.target.checked)} /></label><p className="start-settings-note">기본값은 켜짐입니다. 끄면 카드 회전·화면 이동·메이드 연출의 움직임이 줄어듭니다. 공개 순서와 게임 진행 시간은 유지됩니다. 설정은 이 브라우저에 자동 저장됩니다.</p></fieldset>
+          <fieldset><legend>게임 도움말</legend><label>라운드 시작 시 규칙 설명 자동 표시<input type="checkbox" role="switch" checked={roundGuides.autoEnabled} onChange={(event) => setAutoRoundGuides(event.target.checked)} /></label><p className="start-settings-note">켜면 아직 확인하지 않은 라운드 설명만 자동으로 표시합니다. 설정과 확인 기록은 이 브라우저에 저장됩니다.</p><button className="secondary" type="button" onClick={() => resetSeenRoundGuides()}>설명 확인 기록 초기화</button></fieldset>
           <p>아래 준비 중인 항목은 아직 게임에 적용되지 않습니다.</p>
           <fieldset disabled><legend>사운드 · 준비 중</legend><label>전체 음량<input type="range" min="0" max="100" defaultValue="70" /></label><label>배경 음악<input type="checkbox" defaultChecked /></label><label>효과음<input type="checkbox" defaultChecked /></label></fieldset>
           <fieldset disabled><legend>화면 · 준비 중</legend><label>기본 애니메이션 속도<select defaultValue="1"><option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option></select></label></fieldset>

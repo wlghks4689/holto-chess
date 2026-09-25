@@ -119,6 +119,7 @@ describe("server room authority and projections", () => {
         if (!active.length) r = forceBarrier(r, barrierDeadline(r)!)!;
         else for (const s of active) r = act(r, s.playerId, { type: "READY" });
       }
+      expect(r.game.phase).not.toBe("NEXT_ROUND");
       assertPoolIntegrity(r.game);
       for (const session of r.sessions) {
         const v = createPlayerView(r, session.playerId, [], Math.max(Date.now(), r.presentation?.endsAt ?? 0));
