@@ -171,47 +171,47 @@
 .cinema-made-fx .cinema-hole-cards{position:relative;isolation:isolate;border-radius:12px;overflow:visible}
 .cinema-made-fx .cinema-hole-cards>*{position:relative;z-index:1}
 .cinema-made-fx .cinema-hole-cards::before{content:"";position:absolute;inset:-26px;z-index:-1;border-radius:28px;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,color-mix(in srgb,var(--made-color) 58%,transparent),transparent 68%)}
-.cinema-made-fx .cinema-made{animation:cinema-made-label-glow 1.45s ease-out 1 both}
-.cinema-leading{--fx-peak:1;border-color:var(--made-color);background:color-mix(in srgb,var(--made-color) 13%,#0a1d15);animation:cinema-winner-panel-impact 1.2s cubic-bezier(.22,1,.36,1) 1 both}
+.cinema-made-fx .cinema-made{animation:cinema-made-label-glow 1.65s ease-out 1 both}
+.cinema-leading{--fx-peak:1;border-color:var(--made-color);background:color-mix(in srgb,var(--made-color) 13%,#0a1d15);animation:cinema-winner-panel-impact 1.4s cubic-bezier(.22,1,.36,1) 1 both}
 .cinema-trailing{--fx-peak:.28;background:#081710;border-color:color-mix(in srgb,var(--made-color) 38%,#365345)}.cinema-trailing .cinema-made{filter:saturate(.72);opacity:.78}.cinema-trailing .playing-card:not(.glow){opacity:.3}
 .cinema .cinema-trailing .playing-card.glow{animation:none!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--made-color) 42%,white),0 0 8px color-mix(in srgb,var(--made-color) 30%,transparent)}
-.cinema-made-fx.made-straight .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(251,191,36,.72),rgba(245,158,11,.28) 42%,transparent 72%);animation:cinema-made-backdrop-impact .95s ease-out 1}
-.cinema-made-fx.made-straight .cinema-hole-cards::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:18px;pointer-events:none;background:linear-gradient(105deg,transparent 34%,rgba(253,230,138,.62) 50%,transparent 66%);animation:cinema-made-scan 1.05s ease-out 1}
-.cinema-made-fx.made-flush .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(56,189,248,.76),rgba(14,165,233,.28) 44%,transparent 72%);animation:cinema-made-backdrop-pulse 1.25s ease-in-out 1}
-.cinema-made-fx.made-flush .cinema-hole-cards::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:18px;pointer-events:none;background:linear-gradient(110deg,transparent 0%,rgba(125,211,252,.5) 40%,rgba(14,165,233,.38) 52%,transparent 90%);background-size:220% 100%;animation:cinema-made-flush-sheen 1.3s linear 1;opacity:.9}
-.cinema-made-fx.made-full-house .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(216,180,254,.82),rgba(251,191,36,.38) 42%,transparent 72%);animation:cinema-made-backdrop-house 1.55s cubic-bezier(.34,1.15,.52,1) 1}
-.cinema-made-fx.made-full-house .cinema-hole-cards::after{content:"";position:absolute;inset:-18px;z-index:-1;border-radius:22px;pointer-events:none;background:conic-gradient(from 25deg,transparent,rgba(251,191,36,.58),rgba(167,139,250,.66),transparent 58%,rgba(216,180,254,.48),transparent);animation:cinema-made-backdrop-orbit 1.55s ease-out 1}
-.cinema-made-fx.made-quads .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(251,113,133,.88),rgba(190,24,93,.34) 45%,transparent 72%);animation:cinema-made-backdrop-impact 1.1s cubic-bezier(.34,1.3,.64,1) 1}
-.cinema-made-fx.made-straight-flush .cinema-hole-cards::before{background:conic-gradient(from 0deg,rgba(56,189,248,.66),rgba(244,114,182,.68),rgba(253,224,71,.62),rgba(192,132,252,.72),rgba(56,189,248,.66));animation:cinema-made-backdrop-orbit 1.55s ease-out 1}
-.cinema-made-fx.made-royal .cinema-hole-cards::before{inset:-34px;background:radial-gradient(ellipse at center,rgba(255,255,255,.9),rgba(253,224,71,.58) 28%,rgba(192,132,252,.3) 52%,transparent 74%);animation:cinema-made-backdrop-royal 1.7s cubic-bezier(.22,1,.36,1) 1}
+.cinema-made-fx.made-straight .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(251,191,36,.72),rgba(245,158,11,.28) 42%,transparent 72%);animation:cinema-made-backdrop-impact 1.15s ease-out 1}
+.cinema-made-fx.made-straight .cinema-hole-cards::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:18px;pointer-events:none;background:linear-gradient(105deg,transparent 34%,rgba(253,230,138,.62) 50%,transparent 66%);animation:cinema-made-scan 1.25s ease-out 1;animation-delay:120ms}
+.cinema-made-fx.made-flush .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(56,189,248,.76),rgba(14,165,233,.28) 44%,transparent 72%);animation:cinema-made-backdrop-pulse 1.45s ease-in-out 1}
+.cinema-made-fx.made-flush .cinema-hole-cards::after{content:"";position:absolute;inset:-12px;z-index:-1;border-radius:18px;pointer-events:none;background:linear-gradient(110deg,transparent 0%,rgba(125,211,252,.5) 40%,rgba(14,165,233,.38) 52%,transparent 90%);background-size:220% 100%;animation:cinema-made-flush-sheen 1.5s linear 1;animation-delay:120ms;opacity:.9}
+.cinema-made-fx.made-full-house .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(216,180,254,.82),rgba(251,191,36,.38) 42%,transparent 72%);animation:cinema-made-backdrop-house 1.75s cubic-bezier(.34,1.15,.52,1) 1}
+.cinema-made-fx.made-full-house .cinema-hole-cards::after{content:"";position:absolute;inset:-18px;z-index:-1;border-radius:22px;pointer-events:none;background:conic-gradient(from 25deg,transparent,rgba(251,191,36,.58),rgba(167,139,250,.66),transparent 58%,rgba(216,180,254,.48),transparent);animation:cinema-made-backdrop-orbit 1.75s ease-out 1;animation-delay:120ms}
+.cinema-made-fx.made-quads .cinema-hole-cards::before{background:radial-gradient(ellipse at center,rgba(251,113,133,.88),rgba(190,24,93,.34) 45%,transparent 72%);animation:cinema-made-backdrop-impact 1.3s cubic-bezier(.34,1.3,.64,1) 1}
+.cinema-made-fx.made-straight-flush .cinema-hole-cards::before{background:conic-gradient(from 0deg,rgba(56,189,248,.66),rgba(244,114,182,.68),rgba(253,224,71,.62),rgba(192,132,252,.72),rgba(56,189,248,.66));animation:cinema-made-backdrop-orbit 1.75s ease-out 1}
+.cinema-made-fx.made-royal .cinema-hole-cards::before{inset:-34px;background:radial-gradient(ellipse at center,rgba(255,255,255,.9),rgba(253,224,71,.58) 28%,rgba(192,132,252,.3) 52%,transparent 74%);animation:cinema-made-backdrop-royal 1.9s cubic-bezier(.22,1,.36,1) 1}
 .cinema-made-fx .cinema-hole-cards::before,.cinema-made-fx .cinema-hole-cards::after{display:none!important}
-.cinema-made-fx.made-straight::before{background:radial-gradient(circle at 50% 42%,rgba(251,191,36,.48),rgba(245,158,11,.14) 46%,transparent 76%);animation:cinema-panel-bloom 1.05s ease-out 1}
-.cinema-made-fx.made-straight::after{background:linear-gradient(105deg,transparent 25%,rgba(253,230,138,.34) 47%,transparent 67%);background-size:220% 100%;animation:cinema-panel-sweep 1.05s ease-out 1}
-.cinema-made-fx.made-flush::before{background:radial-gradient(circle at 50% 42%,rgba(56,189,248,.55),rgba(14,165,233,.16) 48%,transparent 78%);animation:cinema-panel-bloom 1.25s ease-out 1}
-.cinema-made-fx.made-flush::after{background:linear-gradient(110deg,transparent 18%,rgba(125,211,252,.42) 46%,rgba(14,165,233,.22) 56%,transparent 78%);background-size:240% 100%;animation:cinema-panel-sweep 1.3s ease-out 1}
+.cinema-made-fx.made-straight::before{background:radial-gradient(circle at 50% 42%,rgba(251,191,36,.48),rgba(245,158,11,.14) 46%,transparent 76%);animation:cinema-panel-bloom 1.25s ease-out 1}
+.cinema-made-fx.made-straight::after{background:linear-gradient(105deg,transparent 25%,rgba(253,230,138,.34) 47%,transparent 67%);background-size:220% 100%;animation:cinema-panel-sweep 1.25s ease-out 1;animation-delay:120ms}
+.cinema-made-fx.made-flush::before{background:radial-gradient(circle at 50% 42%,rgba(56,189,248,.55),rgba(14,165,233,.16) 48%,transparent 78%);animation:cinema-panel-bloom 1.45s ease-out 1}
+.cinema-made-fx.made-flush::after{background:linear-gradient(110deg,transparent 18%,rgba(125,211,252,.42) 46%,rgba(14,165,233,.22) 56%,transparent 78%);background-size:240% 100%;animation:cinema-panel-sweep 1.5s ease-out 1;animation-delay:120ms}
 .cinema-made-fx.cinema-leading.made-full-house{--fx-peak:.78}
-.cinema-made-fx.made-full-house::before{background:radial-gradient(circle at 50% 42%,rgba(192,132,252,.66),rgba(167,139,250,.25) 46%,transparent 76%);animation:cinema-panel-house 1.35s ease-out 1}
-.cinema-made-fx.made-full-house::after{inset:-35%;background:conic-gradient(from 25deg,transparent,rgba(216,180,254,.5),rgba(139,92,246,.4),transparent 56%,rgba(192,132,252,.42),transparent);animation:cinema-panel-orbit 1.45s ease-out 1}
-.cinema-made-fx.made-quads::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.5),rgba(251,113,133,.78) 18%,rgba(190,24,93,.3) 52%,transparent 80%);animation:cinema-panel-quads-burst 1.55s cubic-bezier(.22,1,.36,1) 1}
-.cinema-made-fx.made-quads::after{inset:-40%;background:conic-gradient(from 0deg,transparent 0 8%,rgba(251,113,133,.84) 15%,transparent 24% 38%,rgba(239,68,68,.7) 48%,transparent 58% 72%,rgba(190,24,93,.76) 82%,transparent 92%);animation:cinema-panel-quads-orbit 1.65s cubic-bezier(.2,.8,.25,1) 1}
+.cinema-made-fx.made-full-house::before{background:radial-gradient(circle at 50% 42%,rgba(192,132,252,.66),rgba(167,139,250,.25) 46%,transparent 76%);animation:cinema-panel-house 1.55s ease-out 1}
+.cinema-made-fx.made-full-house::after{inset:-35%;background:conic-gradient(from 25deg,transparent,rgba(216,180,254,.5),rgba(139,92,246,.4),transparent 56%,rgba(192,132,252,.42),transparent);animation:cinema-panel-orbit 1.65s ease-out 1;animation-delay:120ms}
+.cinema-made-fx.made-quads::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.5),rgba(251,113,133,.78) 18%,rgba(190,24,93,.3) 52%,transparent 80%);animation:cinema-panel-quads-burst 1.75s cubic-bezier(.22,1,.36,1) 1}
+.cinema-made-fx.made-quads::after{inset:-40%;background:conic-gradient(from 0deg,transparent 0 8%,rgba(251,113,133,.84) 15%,transparent 24% 38%,rgba(239,68,68,.7) 48%,transparent 58% 72%,rgba(190,24,93,.76) 82%,transparent 92%);animation:cinema-panel-quads-orbit 1.85s cubic-bezier(.2,.8,.25,1) 1;animation-delay:120ms}
 /* Use the same behind-the-seat bloom/orbit layers as full house and quads.
    Shared holdem-game palettes preserve SF rainbow and RF white/gold identity.
    Radial falloff hides rotating rectangle edges; cards/text stay above the FX. */
-.cinema-made-fx.made-straight-flush::before{background:radial-gradient(ellipse at 50% 42%,rgba(34,211,238,.48),rgba(192,132,252,.22) 46%,transparent 76%);animation:cinema-panel-bloom 1.8s ease-out 1}
-.cinema-made-fx.made-straight-flush::after{inset:-40%;border-radius:50%;background:var(--fx-sf-orbit);mask-image:radial-gradient(ellipse,transparent 8%,#000 28%,#000 42%,transparent 68%);animation:cinema-panel-quads-orbit 1.8s cubic-bezier(.2,.8,.25,1) 1}
-.cinema-made-fx.made-royal::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.64),rgba(191,219,254,.4) 26%,rgba(196,181,253,.18) 50%,transparent 78%);animation:cinema-panel-royal 2.1s ease-out 1}
-.cinema-made-fx.made-royal::after{inset:-40%;border-radius:50%;background:var(--fx-royal-aura);mask-image:radial-gradient(ellipse,transparent 6%,#000 24%,#000 42%,transparent 68%);animation:cinema-panel-quads-orbit 2.1s cubic-bezier(.2,.8,.25,1) 1}
+.cinema-made-fx.made-straight-flush::before{background:radial-gradient(ellipse at 50% 42%,rgba(34,211,238,.48),rgba(192,132,252,.22) 46%,transparent 76%);animation:cinema-panel-bloom 2s ease-out 1}
+.cinema-made-fx.made-straight-flush::after{inset:-40%;border-radius:50%;background:var(--fx-sf-orbit);mask-image:radial-gradient(ellipse,transparent 8%,#000 28%,#000 42%,transparent 68%);animation:cinema-panel-quads-orbit 2s cubic-bezier(.2,.8,.25,1) 1;animation-delay:120ms}
+.cinema-made-fx.made-royal::before{background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.64),rgba(191,219,254,.4) 26%,rgba(196,181,253,.18) 50%,transparent 78%);animation:cinema-panel-royal 2.3s ease-out 1}
+.cinema-made-fx.made-royal::after{inset:-40%;border-radius:50%;background:var(--fx-royal-aura);mask-image:radial-gradient(ellipse,transparent 6%,#000 24%,#000 42%,transparent 68%);animation:cinema-panel-quads-orbit 2.3s cubic-bezier(.2,.8,.25,1) 1;animation-delay:120ms}
 .cinema-made-fx.cinema-trailing{--fx-peak:.24}
-.cinema .cinema-made-fx.made-straight .playing-card.glow{animation:cinema-card-glow-straight .85s ease-out 1}
-.cinema .cinema-made-fx.made-flush .playing-card.glow{animation:cinema-card-glow-flush 1.05s ease-out 1}
-.cinema .cinema-made-fx.made-full-house .playing-card.glow{animation:cinema-card-glow-house 1.2s ease-out 1}
+.cinema .cinema-made-fx.made-straight .playing-card.glow{animation:cinema-card-glow-straight 1.05s ease-out 1;animation-delay:120ms}
+.cinema .cinema-made-fx.made-flush .playing-card.glow{animation:cinema-card-glow-flush 1.25s ease-out 1;animation-delay:120ms}
+.cinema .cinema-made-fx.made-full-house .playing-card.glow{animation:cinema-card-glow-house 1.4s ease-out 1;animation-delay:120ms}
 .cinema .made-full-house .playing-card.glow{filter:brightness(1.08) saturate(1.12);box-shadow:0 0 0 2px rgba(216,180,254,.96),0 0 18px rgba(192,132,252,.82),0 0 34px rgba(139,92,246,.54)}
 .cinema .made-full-house .cinema-made strong{color:#d8b4fe;text-shadow:0 0 10px rgba(216,180,254,.82),0 0 22px rgba(139,92,246,.5)}
-.cinema .cinema-made-fx.made-quads .playing-card.glow{animation:cinema-card-glow-quads 1.15s ease-out 1}
+.cinema .cinema-made-fx.made-quads .playing-card.glow{animation:cinema-card-glow-quads 1.35s ease-out 1;animation-delay:120ms}
 /* holdem-game applies its per-kind variant class instead of the tier glow for
    straight flush and royal, so both reuse those exact animations here. */
-.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{box-shadow:var(--fx-sf-rim);animation:porena-sf-card 1.8s linear 1}
-.cinema .cinema-made-fx.made-royal .playing-card.glow{box-shadow:var(--fx-royal-rim);animation:porena-royal-card 1.9s ease-out 1}
+.cinema .cinema-made-fx.made-straight-flush .playing-card.glow{box-shadow:var(--fx-sf-rim);animation:porena-sf-card 2s linear 1;animation-delay:120ms}
+.cinema .cinema-made-fx.made-royal .playing-card.glow{box-shadow:var(--fx-royal-rim);animation:porena-royal-card 2.1s ease-out 1;animation-delay:120ms}
 /* Persistent identity, including after the one-shot orbit has finished.
    These outrank generic/final-table winner colors without changing other hands. */
 .cinema .cinema-seat.cinema-made-fx.made-straight-flush{--made-color:#a5f3fc;border-color:transparent;background:linear-gradient(#142333,#142333) padding-box,var(--fx-sf-spectrum) border-box}
@@ -227,7 +227,6 @@
 .cinema .cinema-seat.cinema-loser.cinema-trailing,.cinema .cinema-seat.cinema-made-fx.cinema-loser{--made-color:#737d80;border-color:#374145;background:#080e10;box-shadow:inset 0 0 0 1px rgba(137,149,153,.05)}
 .cinema-street-made{margin:14px 0 4px;min-height:48px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
 .cinema-street-made small,.cinema-street-made strong,.cinema-street-made em{display:block;font-style:normal}
-.cinema-street-made small{color:#779889;font:500 9px DM Mono;letter-spacing:.08em;margin-bottom:4px}
 .cinema-street-made strong{font-size:clamp(14px,1.8vw,18px);line-height:1.3}
 .cinema-street-made em{color:#9cb6a9;font:500 9px DM Mono;margin-top:3px}
 .cinema-reward{border-top:1px solid var(--line);padding-top:14px;margin-top:14px;animation:cinema-seat-enter .3s ease-out both}
