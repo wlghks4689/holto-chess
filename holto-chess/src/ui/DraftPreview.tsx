@@ -59,6 +59,14 @@ function RunSummaryPreview() {
   const match = createMatchView(game, game.roundResults[0]!);
   return <ShowdownCinematic match={match} profiles={game.players.map((player)=>({playerId:player.id,name:player.name,points:player.points,alive:!player.eliminated}))} viewerId="p1" onComplete={()=>undefined} elapsedMs={Number.MAX_SAFE_INTEGER} />;
 }
+function RunLoadoutPreview() {
+  let game = openDraft(fixture(2));
+  while (game.phase === "OPEN_DRAFT") game = autoPickDraft(game);
+  const viewer = "p1";
+  const view = createPlayerView({ schema:1, roomId:"PREVIEW", revision:0, status:"PLAYING", game,
+    sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
+  return <main className="page-shell"><TimedRunLoadoutPanel view={view} send={()=>undefined} disabled={false} seconds={null} durationSeconds={30} /></main>;
+}
 function DraftFixturePreview() {
   const [game, setGame] = useState(() => fixture(2));
   const draftPickIndex = game.draft?.picks.length ?? 0;
@@ -83,6 +91,7 @@ export function DraftPreview() {
   if (params.has("showdownPrep")) return <ShowdownPrepPreview />;
   if (params.has("roundGuide")) return <RoundGuide round={params.get("roundGuide") === "1" ? 1 : 2} onClose={() => undefined} />;
   if (params.has("shopStyle")) return <ShopStylePreview />;
+  if (params.has("runLoadout")) return <RunLoadoutPreview />;
   if (params.has("finalResults")) return <FinalResultsPreview />;
   if (params.has("runSummary")) return <RunSummaryPreview />;
   return <DraftFixturePreview />;

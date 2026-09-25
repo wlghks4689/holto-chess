@@ -3,6 +3,9 @@
 .fx-preview-head small { color:#7fe8eb; font:500 9px 'DM Mono',monospace; letter-spacing:.16em; }
 .fx-preview-head h1 { margin:6px 0 8px; font-size:clamp(21px,3vw,30px); letter-spacing:-.02em; }
 .fx-preview-head p { margin:0; max-width:62ch; color:#93b0bc; font-size:12px; line-height:1.7; }
+.fx-sound-preview { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; margin:0 0 22px; padding:16px; border:1px solid rgba(93,178,195,.28); border-radius:12px; background:rgba(7,22,34,.8); }
+.fx-sound-preview h2 { margin:0 0 5px; font-size:15px; }.fx-sound-preview p { margin:0; color:#93b0bc; font-size:11px; line-height:1.6; }
+.fx-sound-buttons { display:flex; flex-wrap:wrap; gap:7px; }.fx-sound-buttons button { min-height:36px; padding:7px 10px; border:1px solid rgba(93,178,195,.35); border-radius:8px; background:#0c2532; color:#c9e9ec; cursor:pointer; font:600 11px Manrope,sans-serif; }.fx-sound-buttons button:hover { border-color:#5be1df; color:#83f5eb; }
 .fx-controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
 .fx-controls [role="group"] { display:flex; border:1px solid rgba(102,183,203,.28); border-radius:5px; overflow:hidden; }
 .fx-controls button { min-height:34px; padding:7px 14px; border:0; background:rgba(6,20,33,.7); color:#accbd5; font-size:12px; letter-spacing:.04em; cursor:pointer; }
@@ -10,6 +13,7 @@
 .fx-controls button.locked { background:rgba(31,100,115,.72); color:#f2ffff; font-weight:700; }
 .fx-controls button.primary { border:1px solid #7be5ec99; border-radius:5px; background:linear-gradient(100deg,rgba(8,42,57,.85),rgba(26,108,124,.72)); color:#f2ffff; font-weight:700; }
 .fx-controls label { display:flex; gap:7px; align-items:center; color:#a6c2cd; font-size:12px; cursor:pointer; }
+.fx-sequence-status { color:#83f5eb; font:600 11px 'DM Mono',monospace; letter-spacing:.04em; }
 .fx-warning { margin:0 0 22px; padding:11px 14px; border:1px solid rgba(251,191,36,.42); border-radius:6px; background:rgba(66,50,10,.4); color:#f6e3ad; font-size:12px; line-height:1.6; }
 .fx-warning code { color:#fde68a; font-family:'DM Mono',monospace; }
 .fx-grid { display:grid; gap:20px; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); }
@@ -21,8 +25,23 @@
 .fx-sample .cinema { margin:0; padding:18px 10px; overflow:visible; }
 .fx-sample .cinema-seat { margin:0 auto; }
 .fx-sample .board { margin:0 0 14px; }
+.fx-video-tools { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin:0 0 20px; padding:12px 14px; border:1px solid rgba(93,178,195,.28); border-radius:10px; background:rgba(7,22,34,.8); }
+.fx-video-tools>div:first-child { display:grid; gap:3px; }.fx-video-tools b { font-size:13px; }.fx-video-tools small { color:#93b0bc; font-size:11px; }
+.fx-video-tools>button { min-height:36px; padding:8px 14px; border:1px solid #7be5ec99; border-radius:6px; background:linear-gradient(100deg,rgba(8,42,57,.85),rgba(26,108,124,.72)); color:#f2ffff; font-weight:700; cursor:pointer; }
+.fx-video-tools>button:disabled { opacity:.65; cursor:progress; }
+.fx-video-downloads { display:flex; flex-basis:100%; flex-wrap:wrap; gap:8px; }.fx-video-downloads a { color:#83f5eb; font-size:12px; }
+.fx-video-capture { display:grid; grid-template-rows:auto 1fr; align-content:center; gap:10px; min-height:100svh; height:100svh; padding:clamp(12px,3vw,38px); overflow:hidden; }
+.fx-video-capture .fx-preview-head, .fx-video-capture .fx-video-tools, .fx-video-capture .fx-sound-preview, .fx-video-capture .fx-warning { display:none; }
+.fx-video-capture .fx-capture-title { text-align:center; color:#7fe8eb; font:600 clamp(14px,2vw,20px) 'DM Mono',monospace; letter-spacing:.18em; }
+.fx-video-capture .fx-grid { display:grid; grid-template-columns:minmax(0,900px); align-content:center; justify-content:center; width:100%; min-height:0; }
+.fx-video-capture .fx-sample { width:100%; box-sizing:border-box; padding:clamp(14px,3vw,28px); }
+.fx-video-capture .fx-sample>header { justify-content:center; margin-bottom:clamp(14px,3vw,26px); }
+.fx-video-capture .fx-sample>header b { font-size:clamp(18px,3vw,28px); }
+.fx-video-capture .fx-sample>header code { font-size:clamp(11px,1.5vw,14px); }
+.fx-video-capture .fx-sample .cinema { padding:clamp(18px,4vw,40px) 12px; }
 @media(max-width:600px) {
   .fx-preview { padding:20px 14px 48px; }
   .fx-preview-head { align-items:flex-start; }
   .fx-grid { grid-template-columns:1fr; }
+  .fx-video-capture { padding:12px; }
 }

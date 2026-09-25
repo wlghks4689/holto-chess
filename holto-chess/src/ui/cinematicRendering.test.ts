@@ -146,10 +146,10 @@ describe("cinematic initial rendering", () => {
     }
     expect(renderPhase("COMPLETE")).not.toContain("보상 지급 완료");
   });
-  it("keeps street hand callouts on the flop only, where they add context beyond the board", () => {
+  it("shows each street hand without repeating its street heading, then keeps the final river hand", () => {
     const streetHand = { playerId: "p1", place: 1, category: "HIGH_CARD" as const, kickers: [14, 13, 10, 7], displayName: "A 하이", usedCardIds: [deck[0]!.id] };
     const view: MatchView = { ...match, round: 1, participantIds: ["p1", "p2"],
-      boards: [deck.slice(10, 15)], boardWinnerIds: [["p1"]], boardResults: [[]], runoutCount: 1,
+      boards: [deck.slice(10, 15)], boardWinnerIds: [["p1"]], boardResults: [[streetHand]], results: [streetHand], runoutCount: 1,
       revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) },
       streetSnapshots: [[
         { street: "PRE_FLOP", results: [streetHand] },
@@ -161,10 +161,20 @@ describe("cinematic initial rendering", () => {
     const renderPhase = (phase: (typeof timeline)[number]["phase"]) => renderToStaticMarkup(createElement(ShowdownCinematic, {
       match: view, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: timeline.find((entry) => entry.phase === phase)!.at,
     }));
-    expect(renderPhase("TABLE_ENTER")).not.toContain("cinema-street-made");
-    expect(renderPhase("FLOP_HAND")).toContain("cinema-street-made");
-    expect(renderPhase("TURN_HAND")).not.toContain("cinema-street-made");
-    expect(renderPhase("BEST5_GLOW")).not.toContain("cinema-street-made");
+    for (const phase of ["TABLE_ENTER", "FLOP_HAND", "TURN_HAND"] as const) {
+      const html = renderPhase(phase);
+      expect(html).toContain("cinema-street-made");
+      expect(html).toContain("A 하이");
+      expect(html).not.toContain("프리플랍");
+      expect(html).not.toContain("플랍");
+      expect(html).not.toContain("턴");
+      expect(html).not.toContain("리버");
+    }
+    expect(renderPhase("RIVER_SETTLE")).toContain("cinema-street-made");
+    const riverHand = renderPhase("BEST5_GLOW");
+    expect(riverHand).not.toContain("cinema-street-made");
+    expect(riverHand).toContain("cinema-made");
+    expect(riverHand).toContain("A 하이");
   });
   it("pre-mounts RUN 2 face-down during the RUN 1 result beat", () => {
     const runTwice: MatchView = { ...match, id: "run-twice", round: 2, participantIds: ["p1", "p2"],
