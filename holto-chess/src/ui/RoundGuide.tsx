@@ -45,7 +45,7 @@ function OmahaExample() {
   </section>;
 }
 
-export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound }: { round: Round; onClose: () => void; secondsLeft?: number | null; onPreviewRound?: (round: Round) => void }) {
+export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound, confirmLabel, timerNotice }: { round: Round; onClose: () => void; secondsLeft?: number | null; onPreviewRound?: (round: Round) => void; confirmLabel?: string; timerNotice?: string }) {
   const guide = GUIDES[round];
   const dialogRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -72,9 +72,9 @@ export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound }: { ro
         <div className="guide-scoring"><span>POINT RULE</span><strong>{Array.isArray(guide.scoring) ? guide.scoring.map((line) => <span key={line}>{line}</span>) : guide.scoring}</strong></div>
         {round === 3 && <div className="guide-special guide-match-rule"><span>MATCH RULE</span><p>누적 승점 하위 2명 탈락. 탈락선 동점 시 타이브레이크를 진행합니다. 타이브레이크 3판 모두 SPLIT이면 하이카드 드로우로 승패를 결정합니다.</p></div>}
       </div>
-      <footer className={!onPreviewRound && typeof secondsLeft !== "number" ? "action-only" : undefined}>
-        {(onPreviewRound || typeof secondsLeft === "number") && <p>{onPreviewRound ? "각 라운드를 선택해 규칙을 확인하세요." : `남은 시간 ${secondsLeft}초`}</p>}
-        <button className="primary" type="button" onClick={onClose}>{onPreviewRound ? "시작 화면으로" : `이해했습니다 · ROUND ${round} 시작`} <span>→</span></button>
+      <footer className={!onPreviewRound && typeof secondsLeft !== "number" && !timerNotice ? "action-only" : undefined}>
+        {(onPreviewRound || typeof secondsLeft === "number" || timerNotice) && <p className={timerNotice ? "round-guide-timer-notice" : undefined}>{timerNotice ?? (onPreviewRound ? "각 라운드를 선택해 규칙을 확인하세요." : `남은 시간 ${secondsLeft}초`)}</p>}
+        <button className="primary" type="button" onClick={onClose}>{confirmLabel ?? (onPreviewRound ? "시작 화면으로" : `이해했습니다 · ROUND ${round} 시작`)} <span>→</span></button>
       </footer>
     </section>
   </div>;

@@ -4,9 +4,9 @@ import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from ".
 import {
   beginSecondary, buyCard, confirmSelection, createGame, finalStandings, leaveRoundResult,
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
-  sellCard, startNextRound, toggleSelectedCard, toggleShopLock,
+  sellCard, toggleSelectedCard, toggleShopLock,
 } from "../game/engine";
-import type { PorenaGameState, MatchResult, Phase } from "../game/types";
+import type { PorenaGameState, MatchResult, Phase, Round } from "../game/types";
 import { createMatchView } from "../game/matchView";
 import { HighCardDrawResult } from "./HighCardDraw";
 import { canSellWithoutBlocking } from "../game/shopRules";
@@ -36,6 +36,8 @@ import { useLocalCountdown } from "./useLocalCountdown";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { SurvivalReadyPanel } from "./SurvivalReadyPanel";
 import { survivalReadyActionLabel } from "./survivalReadyPresentation";
+import { advanceLocalNextRound } from "./localRoundTransition";
+import { markRoundGuideSeen, shouldAutoShowRoundGuide, useRoundGuidePreferences } from "./roundGuidePreferences";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_COPY = {
@@ -49,7 +51,7 @@ const ROUND_COPY = {
 const PHASE_LABEL: Record<Phase, string> = {
   DRAFT_ORDER: "드래프트 순서 공개", OPEN_DRAFT: "공개 드래프트", RUN_LOADOUT: "RUN 카드 배치", SURVIVAL_READY: "생존 타이브레이크",
   SHOP: "상점", DECK_SELECT: "출전 카드 선택", SHOWDOWN_PRIMARY: "", GROUP_ASSIGNMENT: "그룹 배정",
-  SHOWDOWN_SECONDARY: "", ROUND_RESULT: "라운드 결과", NEXT_ROUND: "라운드 전환", GAME_RESULT: "최종 결과",
+  SHOWDOWN_SECONDARY: "", ROUND_RESULT: "라운드 결과", NEXT_ROUND: "", GAME_RESULT: "최종 결과",
 };
 
 function PoolMeter({ state }: { state: PorenaGameState }) {
@@ -150,9 +152,8 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   if (state.phase === "GROUP_ASSIGNMENT") { label = "브래킷 확인 · 2차전"; fn = beginSecondary; }
   if (state.phase === "SURVIVAL_READY") { label = survivalReadyActionLabel(state.survival?.playerIds ?? [], me.id); fn = resolveSurvival; }
   if (state.phase === "ROUND_RESULT") { label = "라운드 마감"; fn = leaveRoundResult; }
-  if (state.phase === "NEXT_ROUND") { label = `R${state.round + 1} ${state.rulesVersion === 2 && [1, 3].includes(state.round) ? "드래프트로" : "상점으로"}`; fn = startNextRound; }
   const requiredSelection = 2;
-  if (state.phase === "GAME_RESULT" || (!fn && !me.eliminated)) return null;
+  if (state.phase === "GAME_RESULT" || state.phase === "NEXT_ROUND" || (!fn && !me.eliminated)) return null;
   return <div className="action-bar action-only">{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>새 게임<span>↻</span></button>}</div>;
 }
 
@@ -160,12 +161,17 @@ export function App({ onHome }: { onHome: () => void }) {
   const [state, setState] = useState(() => createGame()); const [error, setError] = useState<string | null>(null);
   const [exiting, setExiting] = useState(false);
   const [gameVersion, setGameVersion] = useState(0);
-  const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
-  const expireResult = useCallback(() => setState((current) => current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current), []);
+  const [manualGuideRound, setManualGuideRound] = useState<Round | null>(null);
+  const roundGuidePreferences = useRoundGuidePreferences();
+  const expireResult = useCallback(() => setState((current) => advanceLocalNextRound(current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current)), []);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
-  const guideKey = `${gameVersion}:${state.round}`;
-  const guideOpen = dismissedGuide !== guideKey;
+  const guideOpen = manualGuideRound !== null || shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
+  const guideRound = manualGuideRound ?? state.round;
+  const closeGuide = () => {
+    markRoundGuideSeen(guideRound);
+    setManualGuideRound(null);
+  };
   useEffect(() => {
     const phase = state.phase;
     if (guideOpen) return;
@@ -174,15 +180,15 @@ export function App({ onHome }: { onHome: () => void }) {
       : phase === "RUN_LOADOUT" ? BARRIER_TIMEOUT_MS.RUN_LOADOUT
       : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
       : draftPickerId === "p1" ? 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
-    const timer = setTimeout(() => setState((s) => phase === "DRAFT_ORDER" ? openDraft(s)
+    const timer = setTimeout(() => setState((s) => advanceLocalNextRound(phase === "DRAFT_ORDER" ? openDraft(s)
       : phase === "RUN_LOADOUT" ? lockRunLoadouts(s)
       : phase === "SHOWDOWN_PRIMARY" ? resolvePrimary(s)
       : phase === "SHOWDOWN_SECONDARY" ? resolveSecondary(s)
-      : autoPickDraft(s)), delay);
+      : autoPickDraft(s))), delay);
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId, guideOpen]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
-  const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(fn(state)); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
+  const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(advanceLocalNextRound(fn(state))); setError(null); } catch (caught) { setError(caught instanceof Error ? caught.message : "작업을 완료하지 못했습니다."); } };
   const round = ROUND_COPY[state.round]; const alive = state.players.filter((player) => !player.eliminated).length;
   const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
@@ -195,9 +201,9 @@ export function App({ onHome }: { onHome: () => void }) {
     if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
   const reset = () => { setGameVersion((value) => value + 1); setState(createGame()); };
-  return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
-    {guideOpen ? <RoundGuide round={state.round} onClose={() => setDismissedGuide(guideKey)} /> : null}
-    <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>나가기</button></div></nav>
+  return <CinematicGate key={gameVersion} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
+    {guideOpen ? <RoundGuide round={guideRound} onClose={closeGuide} confirmLabel={manualGuideRound === null ? undefined : "게임으로 돌아가기"} /> : null}
+    <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><div className="nav-actions"><button type="button" className="secondary round-guide-trigger" aria-label={`ROUND ${state.round} 규칙 설명`} onClick={() => setManualGuideRound(state.round)}>?</button><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>나가기</button></div></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
       {!isShowdownPrep && (prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{state.round === 2 && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? "ROUND 2 · DRAFT PHASE" : `ROUND 0${state.round}`}</span>}<h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : round.title}</h1></div>{state.phase !== "GAME_RESULT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{PHASE_LABEL[state.phase]}</b></div>}</header>)}
@@ -209,7 +215,6 @@ export function App({ onHome }: { onHome: () => void }) {
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {state.phase === "SURVIVAL_READY" && state.survival ? <SurvivalReadyPanel {...state.survival} viewerId="p1" name={(id) => state.players.find((player) => player.id === id)?.name ?? id} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}
-      {state.phase === "NEXT_ROUND" ? <section className="panel transition-panel"><span>R{state.round}</span><h2>라운드 종료</h2><p>{alive}명이 다음 라운드로 진출합니다.</p></section> : null}
       {state.phase === "GAME_RESULT" ? <FinalPanel state={state} /> : null}
       {state.phase === "GAME_RESULT" && <section className="final-exit-actions" aria-label="최종 결과 다음 작업"><button className="primary" onClick={reset}>새 게임 시작 <span>↻</span></button><button className="secondary" onClick={onHome}>홈으로 <span>→</span></button></section>}
       <ActionBar state={state} act={act} reset={reset} />

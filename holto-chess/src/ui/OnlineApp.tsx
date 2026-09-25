@@ -28,11 +28,14 @@ import { OpenDraftPanel, RunLoadoutPanel } from "./OpenDraft";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { SurvivalReadyPanel } from "./SurvivalReadyPanel";
 import { isSurvivalParticipant } from "./survivalReadyPresentation";
+import type { Round } from "../game/types";
+import { RoundGuide } from "./RoundGuide";
+import { markRoundGuideSeen, shouldAutoShowRoundGuide, useRoundGuidePreferences } from "./roundGuidePreferences";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
 const titles = ["", "TWO HAND", "RUN IT TWICE", "OMAHA SWISS", "BEST FIVE", "THE LAST HAND"];
-const phases: Record<string, string> = { LOBBY: "입장 대기", SHOP: "상점", SHOWDOWN_PRIMARY: "", GROUP_ASSIGNMENT: "그룹 배정", SHOWDOWN_SECONDARY: "", ROUND_RESULT: "라운드 결과", NEXT_ROUND: "다음 라운드", GAME_RESULT: "최종 결과" };
+const phases: Record<string, string> = { LOBBY: "입장 대기", SHOP: "상점", SHOWDOWN_PRIMARY: "", GROUP_ASSIGNMENT: "그룹 배정", SHOWDOWN_SECONDARY: "", ROUND_RESULT: "라운드 결과", NEXT_ROUND: "", GAME_RESULT: "최종 결과" };
 Object.assign(phases, { DRAFT_ORDER: "드래프트 순서 공개", OPEN_DRAFT: "공개 드래프트", RUN_LOADOUT: "RUN 카드 배치", SURVIVAL_READY: "탈락선 생존 타이브레이크" });
 const storedNickname = () => [...(localStorage.getItem("porena-nickname") ?? "플레이어")].slice(0, 8).join("");
 
@@ -240,6 +243,8 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     setResumable(storedSessions());
   };
   const [exiting, setExiting] = useState(false);
+  const [manualGuideRound, setManualGuideRound] = useState<Round | null>(null);
+  const roundGuidePreferences = useRoundGuidePreferences();
   const resume = (session: SessionCredential) => {
     rememberSession(session);
     setError(""); setView(null); setCredential(session);
@@ -283,13 +288,16 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     && !view.matches.some(match => match.participantIds.includes(view.me.playerId));
   const observedName = displayView.players.find((player) => player.playerId === (autoSpectating ? effectiveSpectatedPlayerId : displayView.me.playerId))?.name;
   const isShowdownPrep = ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(displayView.phase);
+  const autoGuideRound = displayView.phase !== "LOBBY" && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, displayView.round)
+    ? displayView.round : null;
+  const guideRound = manualGuideRound ?? autoGuideRound;
   const clockQuality = serverClock.quality?.();
   return <>{(status !== "Connected" || error || isSpectatingPlayer || autoSpectating || clockQuality?.degraded) && <aside className="online-session-overlay" aria-label="온라인 연결 및 관전 상태">
     {status !== "Connected" && <div role="status"><b>{statusLabel}</b><span>연결 복구 후 현재 경기로 돌아갑니다.</span><button className="secondary" onClick={() => setConnectionKey(n => n + 1)}>연결 다시 시도</button><button className="secondary" onClick={returnToLobby}>로비 · 방 유지</button></div>}
     {error && <p role="alert">{error}</p>}
     {status === "Connected" && clockQuality?.degraded && <small role="status">{Number.isFinite(clockQuality.uncertaintyMs) ? `회선 지연 · 공개 시점에 차이가 날 수 있습니다 (추정 오차 ±${Math.ceil(clockQuality.uncertaintyMs)}ms)` : "서버 시각 동기화 확인 중…"}</small>}
     {(isSpectatingPlayer || autoSpectating) && <details><summary>{autoSpectating ? "자동 관전" : "관전 중"} · {observedName} <small>읽기 전용 · 대상 변경</small></summary><div className="spectator-picker" role="group" aria-label="관전할 플레이어 선택">{view.spectatorViews?.map(candidate => <button key={candidate.playerId} aria-pressed={candidate.playerId === effectiveSpectatedPlayerId} onClick={() => { setSpectating(true); setSpectatedPlayerId(candidate.playerId); }}>{view.players.find(player => player.playerId === candidate.playerId)?.name ?? candidate.playerId}</button>)}{isSpectatingPlayer && <button onClick={() => setSpectating(false)}>관전 닫기</button>}</div></details>}
-  </aside>}<CinematicGate key={`${credential?.roomId ?? "lobby"}:${displayView.me.playerId}`} matches={displayView.matches} profiles={displayView.players} viewerId={displayView.me.playerId} identityId={view.me.playerId} receivedAt={view.serverNow} presentation={displayView.presentation} clock={serverClock}><main className={displayView.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}><nav><button className="brand brand-home" type="button" onClick={onHome} aria-label="PORENA 메인 화면으로 이동"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></button>{displayView.phase !== "LOBBY" ? <RoundProgress round={displayView.round} prep={null} /> : <span />}<div className="nav-status"><div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div><button type="button" className="secondary nav-exit" disabled={!!pending} onClick={() => setExiting(true)}>나가기</button></div></nav>
+  </aside>}{guideRound !== null && <RoundGuide round={guideRound} onClose={() => { markRoundGuideSeen(guideRound); setManualGuideRound(null); }} confirmLabel="게임으로 돌아가기" timerNotice="온라인 경기 시간은 설명을 보는 동안에도 계속 진행됩니다." />}<CinematicGate key={`${credential?.roomId ?? "lobby"}:${displayView.me.playerId}`} matches={displayView.matches} profiles={displayView.players} viewerId={displayView.me.playerId} identityId={view.me.playerId} receivedAt={view.serverNow} presentation={displayView.presentation} clock={serverClock}><main className={displayView.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}><nav><button className="brand brand-home" type="button" onClick={onHome} aria-label="PORENA 메인 화면으로 이동"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>ONLINE · TACTICAL POKER AUTOBATTLER</small></div></button>{displayView.phase !== "LOBBY" ? <RoundProgress round={displayView.round} prep={null} /> : <span />}<div className="nav-status"><div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : "로비"}</b></div><div className="nav-actions"><button type="button" className="secondary round-guide-trigger" aria-label={`ROUND ${displayView.round} 규칙 설명`} onClick={() => setManualGuideRound(displayView.round)}>?</button><button type="button" className="secondary nav-exit" disabled={!!pending} onClick={() => setExiting(true)}>나가기</button></div></div></nav>
       {exiting && <ExitGameDialog mode="multi" busy={!!pending} onCancel={() => setExiting(false)} onConfirm={() => { setExiting(false); leaveRoom(); }} />}
     <div className={`page-shell ${displayView.phase === "SHOP" ? "shop-page" : ""} ${displayView.phase === "GAME_RESULT" ? "final-results-page" : ""}`} id="top">
       <>
@@ -314,7 +322,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         {!isShowdownPrep && <RoundResults round={displayView.round} rows={displayView.roundSummary ?? []} viewerId={displayView.me.playerId} showBrackets={displayView.round === 4 && displayView.phase === "GROUP_ASSIGNMENT"} secondsLeft={displayView.phase === "ROUND_RESULT" ? secondsLeft : null}>{(displayView.roundHistory ?? displayView.matches).map((m) => <OnlineMatch key={m.id} match={m} view={displayView} />)}</RoundResults>}
         {view.players.find((p) => p.playerId === view.me.playerId)?.departed && <p className="hint">방에서 나갔습니다. 이 좌석은 더 이상 진행을 막지 않습니다.</p>}
         {survivalSpectator && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy" aria-live="polite"><b>타이 브레이크 관전</b><p>{tiebreakSpectating ? "경기 대상자의 준비가 끝나면 관전 화면이 자동으로 열립니다." : "경기 대상자의 준비를 기다리고 있습니다."}</p></div><button className="primary" disabled={tiebreakSpectating || status !== "Connected"} onClick={() => setTiebreakSpectating(true)}>{tiebreakSpectating ? "관전 대기 중" : "관전하기"}</button></div>}
-        {!survivalSpectator && !["LOBBY", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "GAME_RESULT"].includes(displayView.phase) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{phases[displayView.phase]}</b><p>{displayView.phase === "NEXT_ROUND" ? "이번 라운드가 끝났습니다. 확인하면 다음 라운드 상점으로 이동합니다." : "결과를 확인해 주세요. 모두 확인하면 다음 단계로 이동합니다."}</p></div>{secondsLeft !== null && <PhaseTimer className="action-countdown" seconds={secondsLeft} ariaLabel={`${phases[displayView.phase]} 남은 시간 ${secondsLeft}초`} />}<button className="primary" disabled={interactionDisabled || !view.me.alive || (displayView.phase === "SURVIVAL_READY" && !waitingOnMe) || displayView.players.find((p) => p.playerId === displayView.me.playerId)?.ready} onClick={() => send({ type: "READY" })}>{!view.me.alive ? "관전 중 · 자동 진행 대기" : !waitingOnMe ? "확인 완료 · 다른 플레이어 대기" : displayView.phase === "SURVIVAL_READY" ? "타이브레이크 시작하기" : displayView.phase === "NEXT_ROUND" ? "다음 라운드 상점으로" : "확인 · 다음 단계"}</button></div>}
+        {!survivalSpectator && !["LOBBY", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "NEXT_ROUND", "GAME_RESULT"].includes(displayView.phase) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{phases[displayView.phase]}</b><p>결과를 확인해 주세요. 모두 확인하면 다음 단계로 이동합니다.</p></div>{secondsLeft !== null && <PhaseTimer className="action-countdown" seconds={secondsLeft} ariaLabel={`${phases[displayView.phase]} 남은 시간 ${secondsLeft}초`} />}<button className="primary" disabled={interactionDisabled || !view.me.alive || (displayView.phase === "SURVIVAL_READY" && !waitingOnMe) || displayView.players.find((p) => p.playerId === displayView.me.playerId)?.ready} onClick={() => send({ type: "READY" })}>{!view.me.alive ? "관전 중 · 자동 진행 대기" : !waitingOnMe ? "확인 완료 · 다른 플레이어 대기" : displayView.phase === "SURVIVAL_READY" ? "타이브레이크 시작하기" : "확인 · 다음 단계"}</button></div>}
       </>
     </div>
   </main></CinematicGate></>;

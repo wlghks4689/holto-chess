@@ -57,4 +57,10 @@ describe("round guide", () => {
     expect(html).not.toContain("기본 BB");
     expect(html).not.toContain("연승·연패");
   });
+
+  it("supports a neutral return label when opened manually during a game", () => {
+    const html = renderToStaticMarkup(createElement(RoundGuide, { round: 3, onClose: () => undefined, confirmLabel: "게임으로 돌아가기" }));
+    expect(html).toContain("게임으로 돌아가기");
+    expect(html).not.toContain("이해했습니다 · ROUND 3 시작");
+  });
 });

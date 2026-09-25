@@ -109,3 +109,17 @@
 - [x] MP-QA-003 | 담당 사용자·Codex | 상태 DONE | 의존 MP-QA-001 | 완료 조건: 수정 범위 승인 | 증거: 사용자 MP-01~07 전부 권고대로 처리 요청, DECISIONS MP-2026-09-24. MP-08(P3)은 별도.
 - [x] MP-QA-004 | 담당 Codex | 상태 DONE | 의존 MP-QA-003 | 완료 조건: 단계별 공개·최종 기록 잠금·상점·연결/관전 UI·참가자 일정 구현, 실게임 및 회귀검증 | 증거: `qa/2026-09-24-multiplayer-remediation.md`, 로컬 4인/8인/자동 관전 3게임 완주, 통합 전체 431개·Workers 13개·lint·typecheck·build 통과. `main` push 및 Cloudflare `porena` Version `ac1c7348-0c50-49e8-ae8f-fd808f4b2f47` 운영 배포 완료. 운영 전환·실기기는 MP-QA-005.
 - [ ] MP-QA-005 | 담당 Codex·사용자 | 상태 TODO | 의존 MP-QA-004 및 배포 승인 | 완료 조건: 구형 탭 혼합 전환·실기기 Safari/iOS/Android·원거리 회선·동시 방 부하 검증 후 운영 배포 판단. 로컬 headless 통과를 실기기 검증으로 대체하지 않음.
+
+## 8. 라운드 전환 UI와 규칙 안내 노출
+
+### 8.1 Local 라운드 진행
+
+#### 8.1.1 NEXT_ROUND 화면 생략
+
+- [x] UI-006 | 담당 Codex | 상태 DONE | 의존 사용자 직접 요청 | 완료 조건: 엔진 phase는 유지하며 Local에서 전환 화면·클릭 없이 다음 라운드 초기화를 한 번 수행하고, 의미 있는 결과·생존·드래프트 단계를 유지한다. Online READY barrier와 server timer는 변경하지 않는다. | 증거: `advanceLocalNextRound` 정확 1회 초기화/수입·드래프트 단위 테스트, Online 2·3·8인 완주 회귀에서 외부 관찰 phase가 NEXT_ROUND에 머물지 않음, 전체 443 테스트 및 Workers 13 통과. 참고: 현재 엔진에는 AUGMENT phase가 없고 `rulesRevision=2`에서 제거된 규칙이다. 재도입하지 않았다.
+
+### 8.2 브라우저별 Round Guide
+
+#### 8.2.1 최초 확인 기반 자동 표시
+
+- [x] UI-007 | 담당 Codex | 상태 DONE | 의존 UI-006 | 완료 조건: 자동 표시 환경설정 기본 ON, 라운드별 확인 기록 및 초기화, Local/Online 자동 안내, 수동 `?` 열람, 저장 기록·미확인·OFF 동작을 테스트한다. Online server timer는 계속 authoritative다. | 증거: 기본 ON·라운드별 유일 기록·OFF 분리·초기화·무효값·미확인 조건 테스트, RoundGuide 수동 복귀 문구 테스트 5개, 전체 443 테스트·Workers 13·lint·타입 검사·build 통과. Online은 안내 중에도 서버 barrier timer를 변경하지 않으며 안내문으로 고지한다.
