@@ -58,6 +58,14 @@
 - 보고서 커밋: `94c278722e3257cf3e8c8bec019cc918b49a28b3` (부모 `97207cfe900296e6a1957d89dff4b6748d56fe53` 확인).
 - 결론: 8장→10장 확대를 채택·기각할 통계적 근거가 충분하지 않으며, 사용자 승인 전 게임 규칙과 수치를 변경하지 않는다.
 - Codex 조치: `PlayerTrace.finalRank` 덮어쓰기와 v2 드래프트 shop fill 오탐을 수정한 `8871569`를 별도 도구 유지보수 커밋으로 기록했다. 게임 코드·밸런스 수치는 변경하지 않았다.
+
+## BAL-004 — 로우 카드 가격 곡선 분석 요청
+
+- 상태: 분석 요청 준비. 가격 변경 승인 아님.
+- 목적: 현행 rank 2~5의 5BB 통일 가격과 후보 rank 2=2BB, rank 3=3BB, rank 4=4BB, rank 5=5BB 가격이 로우 카드의 구매·보유·교체 가치와 최종 결과를 바꾸는지 측정한다.
+- 담당 경계: Claude는 `product_doc/balance/BAL-004/REPORT.md`와 `artifacts/**`만 작성한다. Codex는 도구·공용 문서와 검토를 담당하며 사용자 승인 전 `src/game/config.ts`를 변경하지 않는다.
+- 기준: `codex/balance-latest`의 `ef5bda3` 계통에서 의뢰 문서 커밋 후 고정한다.
+- 근거 문서: `product_doc/balance/BAL-004/REQUEST.md`.
 ## 발견한 불일치 — 결정이 아닌 검토 대기 기록
 
 | ID | 기존 자료 | 현재 구현 근거 | 처리 |
