@@ -127,9 +127,9 @@
 
 #### 2.6.2 독립 분석
 
-- [ ] BAL-004-A | 담당 Claude | 상태 NOT_STARTED | 의존 BAL-004-Q | 완료 조건: 현행 가격과 후보 가격의 동일 seed 비교 REPORT와 artifacts 제출, 실패·유효 표본 분리 | 증거: 미제출.
+- [x] BAL-004-A | 담당 Claude | 상태 DONE | 의존 BAL-004-Q | 완료 조건: 현행 가격과 후보 가격의 동일 seed 비교 REPORT와 artifacts 제출, 실패·유효 표본 분리 | 증거: `REPORT_COMMIT=5a0a1d628ec13f24485f20254e4f8f4a7f4a4824`, REPORT.md 및 artifacts 확인.
 
 #### 2.6.3 Codex 검토와 사용자 승인
 
-- [ ] BAL-004-R | 담당 Codex | 상태 TODO | 의존 BAL-004-A | 완료 조건: 가격별 효과 크기·불확실성·정책/라운드 교란을 검토하고 채택·보류·기각 권고를 기록.
+- [x] BAL-004-R | 담당 Codex | 상태 DONE | 의존 BAL-004-A | 완료 조건: 가격별 효과 크기·불확실성·정책/라운드 교란을 검토하고 채택·보류·기각 권고를 기록 | 증거: DECISIONS.md BAL-004-REVIEW.
 - [ ] BAL-004-U | 담당 사용자 | 상태 TODO | 의존 BAL-004-R | 완료 조건: 가격 변경 여부와 범위를 명시적으로 승인 또는 보류.
