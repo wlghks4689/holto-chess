@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { rankDisplay, SUIT_SYMBOL, type Card } from "../core/poker/cards";
+import { useTranslation } from "../i18n";
 
 export function CardView({ card, selected = false, dimmed = false, glow = false, compact = false, onClick, footer }: {
   card: Card; selected?: boolean; dimmed?: boolean; glow?: boolean; compact?: boolean; onClick?: () => void; footer?: string;
@@ -17,5 +18,6 @@ export function CardView({ card, selected = false, dimmed = false, glow = false,
 }
 
 export function CardBack({ compact = false }: { compact?: boolean }) {
-  return <div className={`playing-card card-back ${compact ? "compact" : ""}`} aria-label="비공개 카드"><span>♞</span></div>;
+  const { t } = useTranslation();
+  return <div className={`playing-card card-back ${compact ? "compact" : ""}`} aria-label={t("card.hidden")}><span>♞</span></div>;
 }

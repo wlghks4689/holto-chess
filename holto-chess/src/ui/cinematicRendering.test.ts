@@ -71,17 +71,17 @@ describe("cinematic initial rendering", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {} }));
     expect(html).toContain("MATCH 2/3");
     expect(html).toContain('<p class="swiss-record">1W 0D 0L</p>');
-    expect(html).toContain('<em class="cinema-current-points">POINT 3</em>');
+    expect(html).toContain('<em class="cinema-current-points">승점 3</em>');
     expect(html).not.toContain("2W 0D 0L");
     const resultAt = cinematicTimeline(swiss).find((entry) => entry.phase === "RESULT")!.at;
     const resultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: resultAt }));
     expect(resultHtml).toContain('<p class="swiss-record">2W 0D 0L</p>');
-    expect(resultHtml).toContain('<em class="cinema-current-points">POINT 6</em>');
+    expect(resultHtml).toContain('<em class="cinema-current-points">승점 6</em>');
     const viewerSeat = resultHtml.slice(resultHtml.indexOf('data-player-id="p1"'), resultHtml.indexOf('data-player-id="p2"'));
     expect(viewerSeat.indexOf("cinema-profile-identity")).toBeLessThan(viewerSeat.indexOf("cinema-standing-line"));
     expect(viewerSeat.indexOf("cinema-standing-line")).toBeLessThan(viewerSeat.indexOf("cinema-profile-outcome"));
     expect(viewerSeat).toContain('class="cinema-current-points"');
-    expect(viewerSeat).toContain(">WIN</span>");
+    expect(viewerSeat).toContain(">승리</span>");
     expect(resultHtml).not.toContain("SWISS PAIRING");
     expect(resultHtml).not.toContain("R3 +");
   });
@@ -141,7 +141,7 @@ describe("cinematic initial rendering", () => {
     expect(tableHtml.match(/data-open="true"/g)).toHaveLength(4);
     expect(renderPhase("BEST5_GLOW")).not.toContain("WIN");
     for (const phase of ["RESULT", "REWARD", "COMPLETE"] as const) {
-      expect(renderPhase(phase).match(/WIN/g)).toHaveLength(1);
+      expect(renderPhase(phase).match(/승리/g)).toHaveLength(1);
       expect(renderPhase(phase).match(/class="cinema-victory"/g)).toHaveLength(2);
     }
     expect(renderPhase("COMPLETE")).not.toContain("보상 지급 완료");
@@ -231,7 +231,7 @@ describe("cinematic initial rendering", () => {
     const survivingSeat = html.slice(html.indexOf('data-player-id="p1"'), html.indexOf('data-player-id="p2"'));
     expect(survivingSeat.indexOf('cinema-status-stamp is-survived')).toBeLessThan(survivingSeat.indexOf('cinema-profile cinema-match-profile'));
     expect(survivingSeat).not.toMatch(/cinema-profile-outcome[^>]*>[^<]*<span class="cinema-status-stamp/);
-    expect(html).toContain("LOSS");
+    expect(html).toContain("패배");
     expect(html.match(/class="cinema-victory"/g)).toHaveLength(2);
     expect(html).not.toContain("생존 결정");
     expect(html).toContain("+ 20BB");
@@ -242,8 +242,8 @@ describe("cinematic initial rendering", () => {
     const regularHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: regularMatch, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(regularHtml).toContain('cinema-status-stamp is-eliminated">탈락');
     expect(regularHtml).not.toContain("is-survived");
-    expect(regularHtml).toContain("WIN");
-    expect(regularHtml).toContain("LOSS");
+    expect(regularHtml).toContain("승리");
+    expect(regularHtml).toContain("패배");
   });
   it("defers R3 elimination stamps until Omaha Game 2", () => {
     const omaha: MatchView = { ...match, id: "omaha", round: 3, gameNumber: 1, participantIds: ["p1", "p2"],
@@ -256,11 +256,11 @@ describe("cinematic initial rendering", () => {
     const rewardAt = cinematicTimeline(omaha).find((entry) => entry.phase === "REWARD")!.at;
     const game1Html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: omaha, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(game1Html).not.toContain("cinema-status-stamp");
-    expect(game1Html).toContain("LOSS");
+    expect(game1Html).toContain("패배");
 
     const game2Html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...omaha, gameNumber: 2 }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(game2Html).toContain('cinema-status-stamp is-eliminated">탈락');
-    expect(game2Html).toContain("LOSS");
+    expect(game2Html).toContain("패배");
     for (const matchday of [1, 2, 3]) {
       const swiss = { wins: 1, draws: 1, losses: 1, score: 1.5 };
       const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...omaha, gameNumber: undefined, matchday, swissAfter: { p1: swiss, p2: swiss } }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
@@ -287,7 +287,7 @@ describe("cinematic initial rendering", () => {
     expect(html).toContain("cinema-r4-threeway");
     expect(html.match(/class="cinema-seat /g)).toHaveLength(3);
     expect(html.match(/class="cinema-flip-slot /g)).toHaveLength(20); // 3 × 5 hole cards and 5 community cards
-    expect(html).toContain("COMMUNITY BOARD");
+    expect(html).toContain("커뮤니티 보드");
     expect(html.match(/cinema-status-stamp is-survived/g)).toHaveLength(1);
     expect(html.match(/cinema-status-stamp is-eliminated/g)).toHaveLength(2);
     expect(html.match(/class="cinema-reward"/g)).toHaveLength(1);
@@ -299,8 +299,8 @@ describe("cinematic initial rendering", () => {
   });
   it("offers speed and skip only when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));
-    expect(html).toContain("Skip Cinematic");
-    expect(html).toContain("Animation Speed");
+    expect(html).toContain("연출 건너뛰기");
+    expect(html).toContain('aria-label="속도"');
   });
   it("removes the redundant settlement status line from the final reward", () => {
     const rewardAt = cinematicTimeline(match).find((entry) => entry.phase === "REWARD")!.at;
@@ -308,7 +308,7 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("승점 정산 완료");
     expect(html).not.toContain("POINT SETTLEMENT");
     expect(html).not.toContain("FINAL BEST 5");
-    expect(html).toContain("SHOWDOWN RESULTS");
+    expect(html).toContain("최종 쇼다운 결과");
   });
   it("keeps scoreboard and logs out of the DOM until the result presentation is dismissed", () => {
     const html = renderToStaticMarkup(createElement(CinematicGate, {

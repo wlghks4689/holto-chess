@@ -110,7 +110,7 @@ export type ServerMessage =
   | { type: "PLAYER_VIEW"; payload: PlayerView }
   | { type: "ROOM_JOINED"; roomId: string; playerId: string }
   | { type: "ACK"; requestId: string; revision: number }
-  | { type: "ERROR"; code: string; message: string; requestId?: string };
+  | { type: "ERROR"; code: string; params?: Record<string, string | number>; message: string; requestId?: string };
 export type SessionCredential = { roomId: string; playerId: string; token: string };
 
 // TypeScript types alone do not validate an untrusted WebSocket frame.

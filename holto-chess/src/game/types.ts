@@ -82,7 +82,9 @@ export type MatchResult = {
   gameNumber?: 1 | 2;
 };
 
-export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string };
+/** `message` stays for rooms persisted before localization and older clients. */
+export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy"; message: string;
+  event?: string; params?: Record<string, string | number>; playerId?: string };
 
 export type PorenaGameState = {
   /** Frozen when a showdown prep phase begins so the VS preview and resolution use the same seats. */

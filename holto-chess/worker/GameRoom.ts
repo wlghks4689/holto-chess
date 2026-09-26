@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, type RoomSnapshot } from "../src/game/room";
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
+import { classifyGameError } from "../src/shared/gameErrorCode";
 import { nextDisclosureAt } from "../src/game/disclosure";
 
 type Attachment = { roomId: string; playerId: string | null; joinedAt: number; windowAt?: number; messages?: number };
@@ -157,7 +158,7 @@ export class GameRoom extends DurableObject<Env> {
           if (attachment.playerId) throw new Error("이미 인증된 연결입니다.");
           const digest = await hash(message.token);
           const session = this.room.sessions.find((s) => s.tokenHash === digest);
-          if (!session) { this.send(ws, { type: "ERROR", code: "UNAUTHORIZED", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
+          if (!session) { this.send(ws, { type: "ERROR", code: "SESSION_INVALID", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
           if (message.nickname && this.room.status === "LOBBY") {
             const next = structuredClone(this.room);
             next.game.players.find((p) => p.id === session.playerId)!.name = message.nickname;
@@ -183,7 +184,7 @@ export class GameRoom extends DurableObject<Env> {
           return;
         }
         requestId = message.requestId;
-        if (!attachment.playerId) { this.send(ws, { type: "ERROR", code: "UNAUTHORIZED", message: "먼저 세션을 연결하세요.", requestId }); ws.close(1008, "Authentication required"); return; }
+        if (!attachment.playerId) { this.send(ws, { type: "ERROR", code: "SESSION_REQUIRED", message: "먼저 세션을 연결하세요.", requestId }); ws.close(1008, "Authentication required"); return; }
         const session = this.room.sessions.find((s) => s.playerId === attachment.playerId)!;
         if (session.requests.includes(requestId)) { this.send(ws, { type: "ACK", requestId, revision: this.room.revision }); this.broadcast(); return; }
         const candidate = structuredClone(this.room);
@@ -196,7 +197,8 @@ export class GameRoom extends DurableObject<Env> {
         this.send(ws, { type: "ACK", requestId, revision: next.revision });
         this.broadcast();
       } catch (error) {
-        this.send(ws, { type: "ERROR", code: "ACTION_REJECTED", message: error instanceof SyntaxError ? "JSON 메시지가 필요합니다." : error instanceof Error ? error.message : "명령을 처리하지 못했습니다.", requestId });
+        const legacyMessage = error instanceof SyntaxError ? "JSON 메시지가 필요합니다." : error instanceof Error ? error.message : "명령을 처리하지 못했습니다.";
+        this.send(ws, { type: "ERROR", ...classifyGameError(legacyMessage), message: legacyMessage, requestId });
       }
     });
   }

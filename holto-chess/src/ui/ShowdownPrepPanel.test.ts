@@ -24,8 +24,8 @@ describe("showdown preparation presentation", () => {
     expect(html).toContain('aria-label="매칭 로딩창"');
     expect(html).toContain(">VS<");
     expect(html).toContain("블러프 폭스");
-    expect(html).toContain("승점 <strong>12P");
-    expect(html).toContain("승점 <strong>16P");
+    expect(html).toContain("승점 12P");
+    expect(html).toContain("승점 16P");
     expect(html).toContain("SHOWDOWN");
     expect(html).not.toContain("showdown-prep-card-space");
     expect(html).not.toContain("showdown-prep-card-back");

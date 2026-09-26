@@ -20,6 +20,10 @@ import {
 } from "../../tutorial/tutorialController";
 import { checkpointMs } from "../../tutorial/tutorialPlayback";
 import { stepText, type ChapterId } from "../../tutorial/tutorialTypes";
+import { EN_CHAPTERS, englishStepCopy } from "../../tutorial/englishCopy";
+import { useTranslation } from "../../i18n";
+import { classifyGameError } from "../../shared/gameErrorCode";
+import { renderGameError } from "../../i18n/gameError";
 import { CardView } from "../CardView";
 import { FinalStandingRow, FinalStandingsHeader } from "../FinalStandingRow";
 import { OpenDraftPanel, RunLoadoutPanel } from "../OpenDraft";
@@ -50,6 +54,7 @@ function resolvePending(game: PorenaGameState): PorenaGameState {
 }
 
 export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSinglePlay: () => void }) {
+  const { locale, t } = useTranslation();
   const [save, setSave] = useState<TutorialSave>(() => loadTutorial());
   const [screen, setScreen] = useState<Screen>({ kind: "menu" });
   const [error, setError] = useState<string | null>(null);
@@ -61,10 +66,10 @@ export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSi
       setScreen({ kind: "chapter", session });
       setError(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "연습 상태를 준비하지 못했습니다.");
+      setError(caught instanceof Error ? caught.message : t("tutorial.initFailed"));
       setScreen({ kind: "menu" });
     }
-  }, []);
+  }, [t]);
 
   if (screen.kind === "menu") {
     return <TutorialChapterMenu save={save} error={error} onStart={open} onHome={onHome} />;
@@ -75,13 +80,13 @@ export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSi
     return <main className="tutorial-screen tutorial-done">
       <section className="panel tutorial-done-panel">
         <span className="eyebrow">CHAPTER {chapter.id} · CLEAR</span>
-        <h2>{chapter.id === 1 ? "기본 조작을 익혔어요" : `${chapter.title} 챕터를 마쳤어요`}</h2>
-        <p>{chapter.id === 5 ? "이제 직접 패를 만들어볼 준비가 됐어요." : "이어서 포레나만의 규칙을 배워볼까요?"}</p>
+        <h2>{chapter.id === 1 ? t("tutorial.basicsComplete") : t("tutorial.chapterComplete", { chapter: locale === "en-US" ? EN_CHAPTERS[chapter.id].title : chapter.title })}</h2>
+        <p>{t(chapter.id === 5 ? "tutorial.readyToPlay" : "tutorial.learnNext")}</p>
         <div className="tutorial-done-actions">
-          {chapter.id < 5 && <button type="button" className="primary" onClick={() => open(nextId, screen.session.game)}>계속 배우기 · {chapterById(nextId).title}</button>}
-          <button type="button" className="secondary" onClick={onSinglePlay}>싱글 플레이로 연습하기</button>
-          <button type="button" className="secondary" onClick={() => setScreen({ kind: "menu" })}>다른 챕터 다시 배우기</button>
-          <button type="button" className="secondary" onClick={onHome}>홈으로</button>
+          {chapter.id < 5 && <button type="button" className="primary" onClick={() => open(nextId, screen.session.game)}>{t("tutorial.continueWithChapter", { chapter: locale === "en-US" ? EN_CHAPTERS[nextId].title : chapterById(nextId).title })}</button>}
+          <button type="button" className="secondary" onClick={onSinglePlay}>{t("tutorial.trySingle")}</button>
+          <button type="button" className="secondary" onClick={() => setScreen({ kind: "menu" })}>{t("tutorial.otherChapters")}</button>
+          <button type="button" className="secondary" onClick={onHome}>{t("action.home")}</button>
         </div>
       </section>
     </main>;
@@ -101,6 +106,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
   session: TutorialSession; onSession: (session: TutorialSession) => void;
   onFinish: (session: TutorialSession) => void; onChapters: () => void; onHome: () => void;
 }) {
+  const { locale, t } = useTranslation();
   const chapter = chapterById(session.chapterId);
   const step = currentStep(session);
   const game = session.game;
@@ -112,7 +118,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
 
   const act = (fn: (game: PorenaGameState) => PorenaGameState) => {
     try { onSession(applyGame(session, fn(session.game))); setError(null); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : "지금은 할 수 없는 동작이에요."); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : t("tutorial.actionUnavailable")); }
   };
 
   // A beat that needs a showdown result resolves it right away: no countdown, no timer.
@@ -158,6 +164,8 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
   const insetStyle = (coachInset > 0 ? { "--tutorial-sheet": `${coachInset}px` } : undefined) as CSSProperties | undefined;
 
   const explanation = useMemo<HandExplanation | null>(() => {
+    // The explainer reads the active locale; force a fresh explanation when it changes.
+    void locale;
     if (!holdMatch || !step?.hold) return null;
     const boardIndex = frameAt(cinematicTimeline(holdMatch), target).boardIndex;
     const revealed = FINAL_HOLDS[step.hold.at];
@@ -168,16 +176,18 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
     const result = explainResult(holdMatch, "p1", boardIndex);
     // The BEST 5 beat explains the hand only; who won belongs to the result beat that follows.
     return result && step.hold.at === "BEST5_GLOW" ? { ...result, outcome: undefined } : result;
-  }, [holdMatch, step, target]);
+  }, [holdMatch, step, target, locale]);
 
-  const coach = step ? <TutorialCoachmark
-    chapter={`${chapter.id}/5 · ${chapter.title}`}
+  const copy = step && locale === "en-US" ? englishStepCopy(step) : step;
+  const chapterTitle = locale === "en-US" ? EN_CHAPTERS[chapter.id].title : chapter.title;
+  const coach = step && copy ? <TutorialCoachmark
+    chapter={`${chapter.id}/5 · ${chapterTitle}`}
     step={step.id}
-    title={step.title}
-    body={stepText(step.body, game)}
-    more={stepText(step.more, game)}
-    goal={step.goal}
-    next={step.next}
+    title={copy.title}
+    body={stepText(copy.body, game)}
+    more={stepText(copy.more, game)}
+    goal={copy.goal}
+    next={copy.next}
     rect={rect}
     hidden={guideHidden}
     onHide={() => setGuideHidden(true)}
@@ -197,7 +207,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
         {explanation.comparison ? <p>{explanation.comparison}</p> : null}
         {explanation.outcome ? <p className="tutorial-outcome">{explanation.outcome}</p> : null}
         {explanation.unused ? <p className="tutorial-muted">{explanation.unused}</p> : null}
-        <details><summary>더 알아보기</summary>{explanation.detail.map((line, index) => <p key={index}>{line}</p>)}</details>
+        <details><summary>{t("tutorial.learnMore")}</summary>{explanation.detail.map((line, index) => <p key={index}>{line}</p>)}</details>
       </section> : null}
       {coach}
     </div>;
@@ -205,7 +215,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
 
   return <div className="tutorial-screen" style={insetStyle}>
     <TutorialSpotlight rect={rect} />
-    <TutorialArena game={game} act={act} error={error} onDismissError={() => setError(null)} origin={session.origin} chapterTitle={chapter.title} chapterId={chapter.id} />
+    <TutorialArena game={game} act={act} error={error} onDismissError={() => setError(null)} origin={session.origin} chapterTitle={chapterTitle} chapterId={chapter.id} />
     {coach}
   </div>;
 }
@@ -214,6 +224,7 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
   game: PorenaGameState; act: (fn: (game: PorenaGameState) => PorenaGameState) => void;
   error: string | null; onDismissError: () => void; origin: "continued" | "practice"; chapterTitle: string; chapterId: ChapterId;
 }) {
+  const { locale, t } = useTranslation();
   const me = game.players[0]!;
   const handLimit = BALANCE.handLimits[game.round];
   const shopSize = game.rulesVersion === 2 ? regularShopSizeFor(game.round) : me.shopSize;
@@ -227,41 +238,41 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
   };
   return <main className="tutorial-arena">
     <header className="tutorial-header">
-      <div><span className="eyebrow">체험 · 길라잡이</span><h1>{chapterId}/5 · {chapterTitle}</h1></div>
+      <div><span className="eyebrow">{t("tutorial.eyebrow")}</span><h1>{chapterId}/5 · {chapterTitle}</h1></div>
       <div className="tutorial-stats" data-tutorial-id="stack">
         <span><small>BB</small><b>{me.stackBB}</b></span>
         <span><small>POINT</small><b>{me.points}</b></span>
       </div>
     </header>
-    {origin === "practice" && chapterId !== 1 ? <p className="tutorial-note">이 챕터는 준비된 연습 패로 시작합니다. 실제 게임에서는 카드 등장과 상대의 선택이 달라집니다.</p> : null}
-    {error ? <div className="error-toast" role="alert"><span>!</span>{error}<button type="button" onClick={onDismissError}>×</button></div> : null}
+    {origin === "practice" && chapterId !== 1 ? <p className="tutorial-note">{t("tutorial.practiceStartsReady")}</p> : null}
+    {error ? <div className="error-toast" role="alert"><span>!</span>{locale === "ko-KR" ? error : renderGameError({ ...classifyGameError(error), message: error }, t)}<button type="button" onClick={onDismissError}>×</button></div> : null}
 
     <section className="panel tutorial-inventory" data-tutorial-id="owned-cards">
-      <header><h2>내 카드</h2><strong>{me.ownedCardIds.length} / {handLimit}</strong></header>
+      <header><h2>{t("shop.myCards")}</h2><strong>{me.ownedCardIds.length} / {handLimit}</strong></header>
       <div className="card-row owned-row">
         {me.ownedCardIds.map((id) => <div className="tutorial-owned" key={id}>
           <CardView card={getCard(game, id)} />
           {/* Not offered on the single starting card: chapter 1 opens by explaining that card, and
               selling it there leaves the reader staring at an empty row nothing has taught yet. */}
-          {game.phase === "SHOP" && me.ownedCardIds.length > 1 && <button type="button" className="secondary tutorial-sell" onClick={() => act((state) => sellCard(state, "p1", id))}>판매</button>}
+          {game.phase === "SHOP" && me.ownedCardIds.length > 1 && <button type="button" className="secondary tutorial-sell" onClick={() => act((state) => sellCard(state, "p1", id))}>{t("shop.sell")}</button>}
         </div>)}
         {Array.from({ length: Math.max(0, handLimit - me.ownedCardIds.length) }, (_, index) => <div className="empty-card" key={index}><span>+</span><small>EMPTY</small></div>)}
       </div>
-      <p className="tutorial-muted">카드를 눌러도 팔리지 않습니다. 판매는 아래 판매 버튼으로만 이루어져요.</p>
+      <p className="tutorial-muted">{t("tutorial.sellByButton")}</p>
     </section>
 
     {game.phase === "SHOP" ? <section className="panel tutorial-shop" data-tutorial-id="shop">
-      <header><h2>카드 마켓</h2><span>구매 {me.purchasesThisRound} / {purchaseLimitFor(game.round, game.rulesVersion ?? 1)}</span></header>
+      <header><h2>{t("shop.market")}</h2><span>{t("shop.purchases", { used: me.purchasesThisRound, limit: purchaseLimitFor(game.round, game.rulesVersion ?? 1) })}</span></header>
       <div className="card-row market-row">
         {/* No onLock: the guide does not teach locking yet, and a button that silently does nothing
             is worse than no button on the one screen meant to explain the controls. */}
         {me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(game, id)} price={getCardPrice(game, "p1", id)}
           onBuy={() => act((state) => buyCard(state, "p1", id))} />)}
-        {!me.shopCardIds.length ? <p className="market-empty">상점 카드가 모두 소진되었습니다.</p> : null}
+        {!me.shopCardIds.length ? <p className="market-empty">{t("shop.soldOut")}</p> : null}
       </div>
       <div className="market-actions">
         <button type="button" className="secondary" disabled={(me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < rerollCost || shopSize === 0}
-          onClick={() => act((state) => rerollShop(state, "p1"))}>↻ 리롤 <b>{rerollCost}BB</b> · {me.rerollsUsed ?? 0} / {rerollLimit}</button>
+          onClick={() => act((state) => rerollShop(state, "p1"))}>{t("shop.rerollStatus", { cost: rerollCost, used: me.rerollsUsed ?? 0, limit: rerollLimit })}</button>
       </div>
     </section> : null}
 
@@ -271,20 +282,20 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
 
     {["GROUP_ASSIGNMENT", "ROUND_RESULT"].includes(game.phase) ? <div data-tutorial-id="round-results">
       <RoundResults round={game.round} rows={createRoundSummary(game)} viewerId="p1" showBrackets={game.round === 4 && game.phase === "GROUP_ASSIGNMENT"} secondsLeft={null}>
-        <p className="tutorial-muted">여기서는 시간이 흐르지 않습니다. 충분히 읽고 넘어가세요.</p>
+        <p className="tutorial-muted">{t("tutorial.noTimer")}</p>
       </RoundResults>
     </div> : null}
 
     {game.phase === "GAME_RESULT" ? <section className="panel" data-tutorial-id="final-score">
-      <span className="eyebrow">FINAL SCORE</span><h2>최종 총점</h2>
+      <span className="eyebrow">FINAL SCORE</span><h2>{t("tutorial.finalScore")}</h2>
       <div className="standings"><FinalStandingsHeader />{finalStandings(game).map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={game.players.find((player) => player.id === row.playerId)?.name ?? row.playerId} />)}</div>
     </section> : null}
 
     <div className="action-bar action-only" data-tutorial-id="action-bar">
-      {game.phase === "SHOP" && <button type="button" className="primary" onClick={() => act((state) => prepareShowdown(state, ["p1"], tutorialBotPolicy))}>구성 확정 · R{game.round} 쇼다운 <span>→</span></button>}
-      {game.phase === "GROUP_ASSIGNMENT" && <button type="button" className="primary" onClick={() => act(beginSecondary)}>브래킷 확인 · 2차전 <span>→</span></button>}
-      {game.phase === "ROUND_RESULT" && <button type="button" className="primary" onClick={() => act(leaveRoundResult)}>라운드 마감 <span>→</span></button>}
-      {game.phase === "NEXT_ROUND" && <button type="button" className="primary" onClick={() => act(startNextRound)}>다음 라운드로 <span>→</span></button>}
+      {game.phase === "SHOP" && <button type="button" className="primary" onClick={() => act((state) => prepareShowdown(state, ["p1"], tutorialBotPolicy))}>{t("action.confirmShop", { round: game.round })} <span>→</span></button>}
+      {game.phase === "GROUP_ASSIGNMENT" && <button type="button" className="primary" onClick={() => act(beginSecondary)}>{t("action.confirmBracket")} <span>→</span></button>}
+      {game.phase === "ROUND_RESULT" && <button type="button" className="primary" onClick={() => act(leaveRoundResult)}>{t("action.closeRound")} <span>→</span></button>}
+      {game.phase === "NEXT_ROUND" && <button type="button" className="primary" onClick={() => act(startNextRound)}>{t("tutorial.nextRound")} <span>→</span></button>}
     </div>
   </main>;
 }

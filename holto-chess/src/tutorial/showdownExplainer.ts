@@ -2,6 +2,7 @@ import type { Card } from "../core/poker/cards";
 import { rankWord, withParticle } from "./rankWord";
 import { CATEGORY_RANK, evaluatePartial, findBestFive, type HandCategory } from "../core/poker/evaluate";
 import type { MatchView, RevealedHand } from "../shared/protocol";
+import { getLocale } from "../i18n";
 
 export type HandExplanation = {
   /** Why this hand is what it is, read from the cards actually on screen. */
@@ -29,9 +30,35 @@ function straightText(high: number, usedCards: readonly Card[], wheel: boolean):
   return `${ranks(values)}로`;
 }
 
+const EN_HAND_NAMES: Record<HandCategory, string> = {
+  HIGH_CARD: "High Card", PAIR: "One Pair", TWO_PAIR: "Two Pair", TRIPS: "Three of a Kind",
+  STRAIGHT: "Straight", FLUSH: "Flush", FULL_HOUSE: "Full House", QUADS: "Four of a Kind",
+  STRAIGHT_FLUSH: "Straight Flush", ROYAL_FLUSH: "Royal Flush",
+};
+
+function englishStraight(high: number, usedCards: readonly Card[]): string {
+  if (high === 5) return "A-2-3-4-5";
+  const values = usedCards.length === 5 ? usedCards.map((card) => card.rank).sort((a, b) => a - b) : [high - 4, high - 3, high - 2, high - 1, high];
+  return ranks(values);
+}
+
 /** Reads the made hand out of the real kickers; never assumes a shape the evaluator did not report. */
 export function categoryReason(category: HandCategory, kickers: readonly number[], usedCards: readonly Card[]): string {
   const [first = 0, second = 0] = kickers;
+  if (getLocale() === "en-US") {
+    switch (category) {
+      case "HIGH_CARD": return `No pair or sequence yet. Your highest card, ${rankWord(first)}, leads.`;
+      case "PAIR": return `Two ${rankWord(first)}s make One Pair.`;
+      case "TWO_PAIR": return `Two ${rankWord(first)}s and two ${rankWord(second)}s make Two Pair.`;
+      case "TRIPS": return `Three ${rankWord(first)}s make Three of a Kind.`;
+      case "STRAIGHT": return `${englishStraight(first, usedCards)} makes a Straight.`;
+      case "FLUSH": return `Five cards of one suit make a Flush. The highest is ${rankWord(first)}.`;
+      case "FULL_HOUSE": return `Three ${rankWord(first)}s and two ${rankWord(second)}s make a Full House.`;
+      case "QUADS": return `Four ${rankWord(first)}s make Four of a Kind.`;
+      case "STRAIGHT_FLUSH": return `${englishStraight(first, usedCards)} in one suit makes a Straight Flush.`;
+      case "ROYAL_FLUSH": return "10 through A in one suit makes a Royal Flush.";
+    }
+  }
   switch (category) {
     case "HIGH_CARD": return `짝도 연결도 없어서 가장 높은 ${rankWord(first)} 한 장으로 겨룹니다.`;
     case "PAIR": return `${rankWord(first)} 두 장이 모여 원페어가 되었어요.`;
@@ -65,6 +92,16 @@ function kickerLabel(category: HandCategory, index: number): string {
  * compares them, so the wording can never disagree with the placing.
  */
 export function decisiveComparison(mine: RevealedHand, theirs: RevealedHand, theirName: string): string {
+  if (getLocale() === "en-US") {
+    const myHand = EN_HAND_NAMES[mine.category]; const theirHand = EN_HAND_NAMES[theirs.category];
+    if (mine.category !== theirs.category) return `Your ${myHand} and ${theirName}'s ${theirHand} are different hand categories. ${higher(mine.category, theirs.category) ? myHand : theirHand} ranks higher.`;
+    const length = Math.max(mine.kickers.length, theirs.kickers.length);
+    for (let index = 0; index < length; index += 1) {
+      const a = mine.kickers[index] ?? 0; const b = theirs.kickers[index] ?? 0;
+      if (a !== b) return `Both hands are ${myHand}. The first difference is kicker ${index + 1}: ${rankWord(a)} versus ${rankWord(b)}.`;
+    }
+    return "Both BEST 5 hands have the same value. Suits do not break this tie, so the result is a Split.";
+  }
   if (mine.category !== theirs.category) {
     const winner = higher(mine.category, theirs.category) ? mine.displayName : theirs.displayName;
     return `내 ${withParticle(mine.displayName, "과", "와")} ${theirName}의 ${withParticle(theirs.displayName, "은", "는")} 족보 자체가 다릅니다. ${withParticle(winner, "이", "가")} 더 높습니다.`;
@@ -84,7 +121,8 @@ export function decisiveComparison(mine: RevealedHand, theirs: RevealedHand, the
 function unusedNote(cards: readonly Card[], usedCardIds: readonly string[]): string | undefined {
   const unused = cards.filter((card) => !usedCardIds.includes(card.id));
   if (!unused.length) return undefined;
-  return `내 ${unused.map((card) => rankWord(card.rank)).join(", ")}는 이번 다섯 장에 들어가지 않아 비교에서 빠졌어요. 포커는 언제나 가장 좋은 다섯 장만으로 겨룹니다.`;
+  return getLocale() === "en-US" ? `Your ${unused.map((card) => rankWord(card.rank)).join(", ")} did not make your BEST 5. Only the best five cards count.`
+    : `내 ${unused.map((card) => rankWord(card.rank)).join(", ")}는 이번 다섯 장에 들어가지 않아 비교에서 빠졌어요. 포커는 언제나 가장 좋은 다섯 장만으로 겨룹니다.`;
 }
 
 function holeCards(match: MatchView, playerId: string, boardIndex: number): Card[] {
@@ -112,6 +150,14 @@ export function explainStreet(match: MatchView, viewerId: string, boardIndex: nu
   // street the guide stops on — pre-flop is never explained — so the flop always states the hand.
   const unchanged = street !== "FLOP" && !!previous && previous.category === result.category && previous.kickers[0] === result.kickers[0];
   const opened = visibleBoard.slice(street === "FLOP" ? 0 : STREET_CARDS[street] - 1).filter((card) => result.usedCardIds.includes(card.id));
+  if (getLocale() === "en-US") return {
+    headline: unchanged ? `You still hold ${EN_HAND_NAMES[result.category]}.` : categoryReason(result.category, result.kickers, used),
+    highlightCardIds: [...result.usedCardIds],
+    detail: [
+      ...(opened.length && !unchanged ? [`The newly revealed ${opened.map((card) => rankWord(card.rank)).join(", ")} helped make this hand.`] : []),
+      "This reading uses only visible cards. No one knows the unrevealed cards yet.",
+    ],
+  };
   return {
     headline: unchanged ? `아직 ${withParticle(result.displayName, "을", "를")} 그대로 유지하고 있어요.` : categoryReason(result.category, result.kickers, used),
     highlightCardIds: [...result.usedCardIds],
@@ -134,6 +180,15 @@ export function explainFinalReveal(match: MatchView, viewerId: string, revealedC
   const value = visible.length <= 4 ? evaluatePartial(visible) : findBestFive(visible);
   const settled = visible.length >= all.length;
   const remaining = all.length - visible.length;
+  if (getLocale() === "en-US") return {
+    headline: settled ? categoryReason(value.category, value.kickers, value.bestFive)
+      : `From the ${visible.length} cards revealed so far, this is ${EN_HAND_NAMES[value.category]}.`,
+    highlightCardIds: value.bestFive.map((card) => card.id),
+    detail: [
+      ...(settled ? [] : [`${remaining} cards remain. The final hand can still improve.`]),
+      "The final round has no community board. Your collected cards alone make your hand.",
+    ],
+  };
   return {
     headline: settled
       ? categoryReason(value.category, value.kickers, value.bestFive)
@@ -159,6 +214,16 @@ export function explainResult(match: MatchView, viewerId: string, boardIndex: nu
   const winners = match.boardWinnerIds[boardIndex] ?? match.winnerIds;
   const drew = winners.length > 1 && winners.includes(viewerId);
   const won = winners.includes(viewerId) && !drew;
+  if (getLocale() === "en-US") return {
+    headline: categoryReason(mine.category, mine.kickers, used),
+    highlightCardIds: [...mine.usedCardIds], unused: unusedNote(hole, mine.usedCardIds),
+    comparison: best ? decisiveComparison(mine, best, "your opponent") : undefined,
+    outcome: won ? "You won this match." : drew ? "This match is a Split." : "Your opponent won this match.",
+    detail: [
+      ...(boardCards.length ? [`Your BEST 5 uses ${hole.filter((card) => mine.usedCardIds.includes(card.id)).length} hole cards and ${boardCards.filter((card) => mine.usedCardIds.includes(card.id)).length} board cards.`] : []),
+      "Several equal-value BEST 5 combinations may exist. One of them is shown.",
+    ],
+  };
   return {
     headline: categoryReason(mine.category, mine.kickers, used),
     highlightCardIds: [...mine.usedCardIds],

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { SpotlightRect } from "./useSpotlight";
+import { useTranslation } from "../../i18n";
 
 /**
  * Non-modal guidance panel. It sits beside the highlight on a wide screen and becomes a bottom sheet
@@ -12,6 +13,7 @@ export function TutorialCoachmark({ chapter, step, title, body, more, goal, next
   onHide?: () => void; onShow?: () => void;
   onNext?: () => void; onRestart: () => void; onExit: () => void; onChapters: () => void;
 }) {
+  const { t } = useTranslation();
   const panel = useRef<HTMLDivElement>(null);
   // ESC only puts the guidance away. It never confirms a step or buys anything.
   useEffect(() => {
@@ -52,24 +54,24 @@ export function TutorialCoachmark({ chapter, step, title, body, more, goal, next
       window.removeEventListener("resize", place); window.removeEventListener("orientationchange", place);
     };
   }, [rect, step]);
-  if (hidden) return <button type="button" className="tutorial-coach-reopen" onClick={onShow}>설명 다시 보기</button>;
+  if (hidden) return <button type="button" className="tutorial-coach-reopen" onClick={onShow}>{t("tutorial.showGuide")}</button>;
   return <aside ref={panel} className="tutorial-coach" style={style} aria-live="polite" data-tutorial-coach>
-    <header><small>{chapter}</small>{goal ? <strong className="tutorial-goal">현재 목표 · {goal}</strong> : null}</header>
+    <header><small>{chapter}</small>{goal ? <strong className="tutorial-goal">{t("tutorial.currentGoal", { goal })}</strong> : null}</header>
     <h2>{title}</h2>
     {body.map((line, index) => <p key={index}>{line}</p>)}
     {more?.length ? <details key={step}>
-      <summary>더 알아보기</summary>
+      <summary>{t("tutorial.learnMore")}</summary>
       {more.map((line, index) => <p key={index}>{line}</p>)}
     </details> : null}
     <div className="tutorial-coach-actions">
-      {onNext ? <button type="button" className="primary" disabled={busy} onClick={onNext}>{next ?? "계속하기"}</button>
-        : <span className="tutorial-waiting">화면에서 직접 해보세요</span>}
-      <button type="button" className="secondary" onClick={onRestart}>이 단계 다시 연습하기</button>
+      {onNext ? <button type="button" className="primary" disabled={busy} onClick={onNext}>{next ?? t("tutorial.continue")}</button>
+        : <span className="tutorial-waiting">{t("tutorial.tryOnScreen")}</span>}
+      <button type="button" className="secondary" onClick={onRestart}>{t("tutorial.retryStep")}</button>
     </div>
     <div className="tutorial-coach-links">
-      <button type="button" onClick={onHide}>설명 숨기기</button>
-      <button type="button" onClick={onChapters}>챕터 선택</button>
-      <button type="button" onClick={onExit}>길라잡이 나가기</button>
+      <button type="button" onClick={onHide}>{t("tutorial.hideGuide")}</button>
+      <button type="button" onClick={onChapters}>{t("tutorial.chooseChapter")}</button>
+      <button type="button" onClick={onExit}>{t("tutorial.exit")}</button>
     </div>
   </aside>;
 }
