@@ -15,6 +15,21 @@ describe("heads-up matchup equity", () => {
     expect(showdownEquity(1, left, right)).toEqual(result);
   });
 
+  it("keeps sampled equity stable when the same cards arrive in a different order", () => {
+    const cases = [
+      { round: 1 as const, left: hand("As", "Ah"), right: hand("2c", "7d") },
+      { round: 2 as const, left: hand("As", "Ah"), right: hand("2c", "7d") },
+      { round: 3 as const, left: hand("As", "Ks", "Qs", "Js"), right: hand("2c", "3d", "4h", "5c") },
+      { round: 4 as const, left: hand("As", "Ah", "Kd", "Qc", "Js"), right: hand("2c", "3d", "4h", "5c", "6s") },
+    ];
+
+    for (const { round, left, right } of cases) {
+      const equity = showdownEquity(round, left, right);
+      expect(showdownEquity(round, [...left].reverse(), [...right].reverse())).toEqual(equity);
+      expect(showdownEquity(round, right, left)).toEqual([equity![1], equity![0]]);
+    }
+  });
+
   it("scores the boardless final exactly and hides incomplete or duplicate hands", () => {
     expect(showdownEquity(5, hand("Ts", "Js", "Qs", "Ks", "As", "2c", "3d"),
       hand("2h", "3h", "4c", "5d", "6c", "7d", "8h"))).toEqual([100, 0]);

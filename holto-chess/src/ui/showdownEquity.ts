@@ -29,7 +29,9 @@ export function showdownEquity(round: Round, left: readonly Card[], right: reado
     return comparison === 0 ? [50, 50] : comparison > 0 ? [100, 0] : [0, 100];
   }
   const available = makeDeck().filter((card) => !ids.has(card.id));
-  const random = seededRandom(`${round}:${known.map((card) => card.id).join(":")}`);
+  // Sampling must depend on the card set, not on how cards were acquired or ordered in state.
+  const canonicalCardIds = known.map((card) => card.id).sort();
+  const random = seededRandom(`${round}:${canonicalCardIds.join(":")}`);
   let leftShare = 0;
   for (let sample = 0; sample < SAMPLES[round]; sample += 1) {
     const deck = [...available];
