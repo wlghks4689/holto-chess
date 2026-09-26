@@ -177,3 +177,15 @@
 #### 14.1.1 실제 loadout 연결 및 독립 승률 산출
 
 - [x] UI-009 | 담당 Codex | 상태 DONE | 의존 사용자 제공 UI 명세 | 완료 조건: R2에서만 양 플레이어 정보와 RUN 1/2 실제 카드쌍·개별 승률을 중앙 VS 레이아웃으로 표시하고, 나머지 라운드 로딩 화면을 유지한다. 승률 계산은 양쪽 전체 R2 핸드 카드를 보드 덱에서 제외하며, 데이터 대기·비정상 입력은 자리표시자로 처리한다 | 증거: `showdownPrepView`, `showdownEquity`, `ShowdownPrepPanel` 타깃 테스트 13개 통과, lint/build 통과; 미리보기 경로 `/draft-preview?showdownPrep=2`.
+
+## 15. R2 프리플랍 RUN별 승률 검증
+
+### 15.1 Claude 분석 의뢰 및 검토
+
+#### 15.1.1 기준 코드 확인 및 분석 요청
+
+- [ ] BAL-007-REQ | 담당 Codex | 상태 IN_PROGRESS | 의존 최신 `main` 확인 | 완료 조건: 기준 SHA에 고정된 REQUEST를 별도 분석 worktree의 `balance/BAL-007-latest`에 커밋하고 Claude가 SHA와 요청 내용을 실제로 열람할 수 있음을 확인한다 | 증거: `product_doc/balance/BAL-007/REQUEST.md`; 기준 코드 `2cce1a2e63573556124c167337b1294020c68a4a`; 커밋/원격 공유/Claude 열람 확인 후 업데이트.
+- [ ] BAL-007-REPORT | 담당 Claude | 상태 TODO | 의존 BAL-007-REQ READY | 완료 조건: RUN별 주변 승률과 두 RUN 결합 결과를 구분하고, 실제 R2 규칙과 산식·표본·오차·재현성 및 계산비용을 근거와 함께 보고서와 분석 산출물로 제출한다 | 쓰기 허용 경로: `product_doc/balance/BAL-007/REPORT.md`, `artifacts/**`만.
+- [ ] BAL-007-REVIEW | 담당 Codex | 상태 TODO | 의존 BAL-007-REPORT | 완료 조건: 보고서 SHA 고정, 기준 SHA 이후 R2 관련 차이 검토, 표본/산식/오차/엔진 규칙 검증, 제안별 채택 권고·보류·기각 근거 보고.
+- [ ] BAL-007-APPROVAL | 담당 사용자 | 상태 TODO | 의존 BAL-007-REVIEW | 완료 조건: 승률 지표/산식 또는 표시 변경 제안마다 승인·거절을 결정한다. 보고서 자체는 규칙 변경 승인이 아니다.
+- [ ] BAL-007-IMPL | 담당 Codex | 상태 TODO | 의존 BAL-007-APPROVAL | 완료 조건: 명시적으로 승인된 최소 범위만 구현하고 R2 계산·표시 회귀 검증 및 구현 SHA를 기록한다. 승인 전 코드·UI·규칙 변경 금지.
