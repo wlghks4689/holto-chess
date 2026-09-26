@@ -83,7 +83,7 @@ function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame
   </aside>;
 }
 
-export function ShowdownCinematic({ match, profiles, viewerId, identityId = viewerId, onComplete, controls = false, elapsedMs, catchUp = false, nextMatchSeconds, soundSessionId = "game" }: Props) {
+export function ShowdownCinematic({ match, profiles, viewerId, onComplete, controls = false, elapsedMs, catchUp = false, nextMatchSeconds, soundSessionId = "game" }: Props) {
   const { t, locale } = useTranslation();
   const motion = useCinematicMotion();
   const synced = elapsedMs !== undefined;
@@ -213,8 +213,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, identityId = view
         {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{t(survivalOutcome === "SURVIVED" ? "match.survived" : "results.eliminated")}</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className={`cinema-profile ${!final ? "cinema-match-profile" : ""}`}>
-          {!final && <div className="cinema-profile-identity"><span className="player-avatar">{id.slice(1)}</span><b title={`${name(id)}${id === identityId ? ` · ${t("cinema.you")}` : ""}`}>{name(id)} {id === identityId ? `· ${t("cinema.you")}` : ""}</b></div>}
-          {final && <><span className="player-avatar">{id.slice(1)}</span><b>{name(id)} {id === identityId ? `· ${t("cinema.you")}` : ""}</b></>}
+          {!final && <div className="cinema-profile-identity"><span className="player-avatar">{id.slice(1)}</span><b title={name(id)}>{name(id)}</b></div>}
+          {final && <><span className="player-avatar">{id.slice(1)}</span><b>{name(id)}</b></>}
           {!final && <div className="cinema-standing-line">
             {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span>}
             {swiss && currentPoints !== undefined && <em className="cinema-current-points">{t("cinema.pointTotal", { points: currentPoints })}</em>}

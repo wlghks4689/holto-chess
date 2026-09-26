@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { createRoom, addSession } from "../game/room";
-import { openDraft, prepareShowdown, resolvePrimary, leaveRoundResult, startNextRound } from "../game/engine";
+import { openDraft, pickDraftCard, prepareShowdown, resolvePrimary, leaveRoundResult, startNextRound } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { OpenDraftPanel } from "./OpenDraft";
 import { canPickR2Card, DRAFT_DEAL_MS } from "./r2DraftPresentation";
@@ -21,7 +21,18 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   expect(html.match(/class="r2-card-slot /g)).toHaveLength(8);
   expect(html.match(/class="r2-order-name"/g)).toHaveLength(8);
   expect(html).not.toContain("draft-hand");
-  expect(html).not.toContain("비공개 카드");
+  expect(html).toContain('class="draft-private-hand"');
+  expect(html).toContain("내 보유 카드");
+  expect(html).toContain("상대에게 비공개");
+  expect(html).toContain('aria-label="보유 카드 공개 범위 보기"');
+  expect(html).toContain('<span role="tooltip">상대에게 비공개</span>');
+  expect(html.indexOf('class="draft-private-hand"')).toBeGreaterThan(html.indexOf('class="r2-arena"'));
+  const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
+  expect(hand.match(/class="playing-card/g)).toHaveLength(view.me.ownedCards.length);
+  expect(html).toContain("드래프트 선택 순서");
+  expect(html).toContain('class="draft-private-timer"');
+  expect(html.indexOf('class="r2-draft-heading"')).toBeGreaterThan(html.indexOf('class="r2-stage"'));
+  expect(html.indexOf('class="r2-draft-heading"')).toBeLessThan(html.indexOf('class="r2-arena"'));
   expect(html).not.toContain("ROUND 2 · DRAFT PHASE");
   expect(html).toContain("공개 드래프트");
   expect(html).toContain('aria-label="공개 드래프트 진행 방식 보기"');
@@ -36,6 +47,22 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   expect(html).toContain('aria-current="step"');
   expect(DRAFT_DEAL_MS).toBeGreaterThanOrEqual(1200);
   expect(DRAFT_DEAL_MS).toBeLessThanOrEqual(1600);
+});
+it("adds the purchased card to the same viewer's centered private hand", () => {
+  const room = addSession(createRoom("DRAFT-PICK", 303), "one").room;
+  room.status = "PLAYING";
+  room.game = openDraft(startNextRound(leaveRoundResult(resolvePrimary(prepareShowdown(room.game, [])))));
+  const viewer = room.game.draft!.order[0]!.playerId;
+  room.sessions[0]!.playerId = viewer;
+  const before = createPlayerView(room, viewer);
+  const chosen = before.draft!.cards.find(({ price }) => price <= before.me.stackBB)!;
+  room.game = pickDraftCard(room.game, viewer, chosen.card.id);
+  const after = createPlayerView(room, viewer);
+  const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view: after, send: () => {}, disabled: false, seconds: 20 }));
+  const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
+  expect(after.me.ownedCards).toHaveLength(before.me.ownedCards.length + 1);
+  expect(after.me.ownedCards.some((card) => card.id === chosen.card.id)).toBe(true);
+  expect(hand.match(/class="playing-card/g)).toHaveLength(after.me.ownedCards.length);
 });
 it("blocks selection during dealing, claimed, other turns, insufficient BB and server-disabled states", () => {
   const view = fixture(true);
@@ -69,7 +96,13 @@ it("keeps the R4 draft order compact without showing any opponent hole cards", (
   view.draft!.publicHands = { [view.draft!.order[1]!.playerId]: [{ id: "Ah", rank: 14, suit: "h" }] };
   const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view, send: () => {}, disabled: false, seconds: 20 }));
 
-  expect(html).toContain('class="draft-order"');
+  expect(html).toContain('class="r2-order"');
+  expect(html).toContain('class="draft-private-hand"');
+  expect(html).toContain("상대에게 비공개");
+  expect(html).not.toContain("4장 · 상대에게 비공개");
+  expect(html).toContain("16장 공개 풀에서 차례마다 1장을 구매");
+  expect(html).toContain('role="tooltip"');
+  expect(html).toContain('class="phase-timer is-normal r2-clock"');
   expect(html).not.toContain('class="draft-hand"');
   expect(html).not.toContain('class="card-back');
   expect(html).not.toContain('class="draft-acquired"');

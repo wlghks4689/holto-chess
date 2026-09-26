@@ -19,6 +19,15 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("shows the nickname once without appending a self label", () => {
+    const namedProfiles = profiles.map((profile) => profile.playerId === "p1" ? { ...profile, name: "나" } : profile);
+    for (const round of [1, 5] as const) {
+      const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...match, round }, profiles: namedProfiles, viewerId: "p1", onComplete: () => {} }));
+      expect(html).toContain(round === 1 ? '<b title="나">나</b>' : '<b>나</b>');
+      expect(html).not.toContain("나 · 나");
+      expect(html).not.toContain("나<!-- --> · 나");
+    }
+  });
   it("separates spectator identity from the perspective seat", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", identityId: "p8", onComplete: () => {} }));
     expect(html).not.toContain("YOU");
