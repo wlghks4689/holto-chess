@@ -75,6 +75,25 @@ describe("four-way last hand", () => {
     }
   });
 
+  it("does not compare cards again after a final-score tie; R5 place is the only gameplay tiebreak", () => {
+    const after = resolvePrimary(finalFixture([
+      ["As", "Ks", "Js", "9s", "8s", "2c", "3c"],
+      ["Ah", "Kh", "Jh", "Th", "8h", "4c", "5c"],
+      ["Ad", "Ac", "Kd", "Kc", "9d", "7s", "6h"],
+      ["2s", "2h", "6s", "4s", "3h", "7d", "8d"],
+    ]));
+    after.players[0].points = 6; after.players[1].points = 6;
+    const p1Result = after.roundResults[0].results.find((result) => result.playerId === "p1")!;
+    const p2Result = after.roundResults[0].results.find((result) => result.playerId === "p2")!;
+    // Deliberately put the weaker hand at the higher R5 place to test precedence.
+    p1Result.place = 1;
+    p2Result.place = 2;
+    expect(finalStandings(after).slice(0, 2).map((row) => row.playerId)).toEqual(["p1", "p2"]);
+    // With equal R5 places, card strength no longer acts as a second tiebreak.
+    p2Result.place = 1;
+    expect(finalStandings(after).slice(0, 2).map((row) => row.playerId)).toEqual(["p1", "p2"]);
+  });
+
   it("freezes elimination bands and orders each band by points at elimination", () => {
     const after = resolvePrimary(finalFixture([
       ["As", "Ks", "Qs", "Js", "Ts", "2c", "3c"],

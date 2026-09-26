@@ -1,5 +1,5 @@
 import { shuffle, type Card } from "../core/poker/cards";
-import { compareHands, evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
+import { evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
 import { bestBotSelection, bestRunLoadout, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
@@ -902,8 +902,9 @@ export function finalStandings(state: PorenaGameState) {
         || b.points - a.points
         || a.playerId.localeCompare(b.playerId);
     }
+    // A tied final score is decided by R5 placement, not by comparing cards again.
+    // Keep a stable display order if the R5 placements are tied as well.
     return b.total - a.total || a.finalPlace - b.finalPlace
-      || (b.hand && a.hand ? compareHands(b.hand, a.hand) : 0)
       || a.playerId.localeCompare(b.playerId);
   });
   return rows.map((row, index) => ({ ...row, placement: index + 1, rankPoints: rankPoints[index]! }));
