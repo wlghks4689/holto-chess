@@ -1,0 +1,36 @@
+{
+  "analysisId": "BAL-007",
+  "baseCommit": "2cce1a2e63573556124c167337b1294020c68a4a",
+  "requestCommit": "f62ce673dd5875c79e858d8f1652da53240e7b2a",
+  "branch": "balance/BAL-007-latest",
+  "environment": {
+    "node": "v22.22.2",
+    "note": "All scripts run via `node --experimental-strip-types --experimental-loader ./lib/tsExtLoader.mjs <script>.ts` from artifacts/scripts/. The loader only resolves extensionless relative imports to .ts; it does not modify anything under holto-chess/."
+  },
+  "scripts": {
+    "lib/paths.ts": "절대 경로 상수",
+    "lib/tsExtLoader.mjs": "Node ESM 로더 훅 — 확장자 없는 상대 import 해석용(분석 전용)",
+    "lib/fixture.ts": "createGame()+releasePlayerCards로 R2 SHOWDOWN_PRIMARY 헤즈업 상태를 구성하는 실제 엔진 상태 빌더",
+    "lib/cases.ts": "24개 R2 결정적 매치업(anchor+secondary1+secondary2 x2) 정의 + 카드 중복 검증",
+    "lib/jointVsMarginal.ts": "실제 createShowdownDeck+drawCommunityBoards+findBestFive+compareHands로 RUN1·RUN2 결합 분포를 측정하는 핵심 시뮬레이션",
+    "lib/prng.ts": "독립 RNG(mulberry32), 95% CI 계산기",
+    "validate.ts": "24개 사례의 카드 중복 여부만 확인",
+    "smoke.ts": "fixture+resolvePrimary 최초 동작 확인",
+    "crossCheckUiVsEngine.ts": "UI의 RUN 분리 로직이 엔진의 실제 handFor/shownCardIds 결과와 일치하는지, dead-card 제외가 실제로 결과를 바꾸는지 확인 — §1 근거",
+    "symmetryChecks.ts": "반복성/좌우 대칭성/순서 불변성/중복·불완전 입력 처리 7개 항목 — §5(§6) 근거",
+    "benchSmall.ts": "runCaseMatrix.ts 실행 전 소규모(N=2000, 3개 사례) 사전 벤치마크",
+    "runCaseMatrix.ts": "24개 사례 × N=50,000 결합 시뮬레이션 실행 — §3 근거, joint_case_matrix.json 생성",
+    "exactMarginal.ts": "RUN 1개 주변 승률의 전수 계산(C(46,5)=1,370,754) — §4 근거"
+  },
+  "results": {
+    "joint_case_matrix.json": "24건 결합 시뮬레이션 원본(run1/run2 주변값, 참값 both-win, naive both-win, 상관계수, 기대 합산 승점)",
+    "tables.md": "위 JSON을 REPORT.md §3.2용 마크다운 표로 정리한 것",
+    "exactMarginal.log": "exactMarginal.ts 원본 로그(git-ignored *.log, 재실행으로 재생성 가능)"
+  },
+  "tests": {
+    "baseline_target_tests.md": "REQUEST가 지정한 4개 타깃 테스트 파일 35/35 통과 로그(작업 전후 동일, 게임 코드 미수정)",
+    "cross_check_ui_vs_engine.md": "crossCheckUiVsEngine.ts 실행 로그 — §1 근거",
+    "symmetry_checks.md": "symmetryChecks.ts 실행 로그 — 7개 항목 전부 PASS, §5 근거"
+  },
+  "note": "REQUEST.md의 쓰기 허용 경로(product_doc/balance/BAL-007/REPORT.md, artifacts/**) 안에서만 작성했으며 게임 소스·UI·공용 테스트·공용 문서는 전혀 수정하지 않았다. 모든 수치는 실제 프로덕션 함수를 직접 호출해 얻었다 — 별도 판정 로직 재구현 없음. 24×N=50,000 결합 시뮬레이션(134.9초)과 단일 정확 계산(70.1초) 외의 대규모/장시간 실행은 수행하지 않았다. *.log 파일은 리포지토리 전역 .gitignore(*.log) 때문에 커밋되지 않지만 모든 스크립트가 결정적(seed 고정)이라 언제든 재실행해 재생성할 수 있다."
+}

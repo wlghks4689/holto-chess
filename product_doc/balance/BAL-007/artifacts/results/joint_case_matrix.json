@@ -1,0 +1,606 @@
+{
+  "n": 50000,
+  "totalMs": 134933,
+  "results": [
+    {
+      "id": "r2-01",
+      "category": "강한 앵커 vs 약한 앵커",
+      "label": "A-anchor(AKQ) vs 7-anchor(789)",
+      "leftCards": [
+        "As",
+        "Kd",
+        "Qc"
+      ],
+      "rightCards": [
+        "7c",
+        "8d",
+        "9h"
+      ],
+      "n": 50000,
+      "ms": 5945,
+      "run1WinPercent": 62.66199999999999,
+      "run2WinPercent": 64.151,
+      "trueBothWinPercent": 38.82,
+      "naiveBothWinPercent": 40.19829962,
+      "bothLossPercent": 12.113999999999999,
+      "splitSplitPercent": 0,
+      "expectedLeftPoints": 5.07252,
+      "correlation": -0.049903734045430984
+    },
+    {
+      "id": "r2-02",
+      "category": "페어 앵커 vs 페어 앵커",
+      "label": "K-anchor+pair-ish vs Q-anchor",
+      "leftCards": [
+        "Kh",
+        "Kc",
+        "2s"
+      ],
+      "rightCards": [
+        "Qh",
+        "Qd",
+        "3s"
+      ],
+      "n": 50000,
+      "ms": 5502,
+      "run1WinPercent": 81.425,
+      "run2WinPercent": 61.344,
+      "trueBothWinPercent": 48.53,
+      "naiveBothWinPercent": 49.949352000000005,
+      "bothLossPercent": 6.142,
+      "splitSplitPercent": 0.002,
+      "expectedLeftPoints": 5.71076,
+      "correlation": -0.04665419165410992
+    },
+    {
+      "id": "r2-03",
+      "category": "동일 앵커 강도, 보조만 다름",
+      "label": "A-anchor, 보조 극단 차이",
+      "leftCards": [
+        "As",
+        "Ks",
+        "2c"
+      ],
+      "rightCards": [
+        "Ad",
+        "Th",
+        "3c"
+      ],
+      "n": 50000,
+      "ms": 5505,
+      "run1WinPercent": 74.203,
+      "run2WinPercent": 46.265,
+      "trueBothWinPercent": 15.744,
+      "naiveBothWinPercent": 34.33001795,
+      "bothLossPercent": 6.976,
+      "splitSplitPercent": 2.116,
+      "expectedLeftPoints": 4.81872,
+      "correlation": 0.004242210849982899
+    },
+    {
+      "id": "r2-04",
+      "category": "약한 앵커 동률",
+      "label": "2-anchor vs 2-anchor(다른 슈트)",
+      "leftCards": [
+        "2s",
+        "9d",
+        "Th"
+      ],
+      "rightCards": [
+        "2h",
+        "9c",
+        "Tc"
+      ],
+      "n": 50000,
+      "ms": 5680,
+      "run1WinPercent": 50.395999999999994,
+      "run2WinPercent": 50.632,
+      "trueBothWinPercent": 0.06999999999999999,
+      "naiveBothWinPercent": 25.516502720000002,
+      "bothLossPercent": 0.01,
+      "splitSplitPercent": 93.026,
+      "expectedLeftPoints": 4.04112,
+      "correlation": 0.005712278640962792
+    },
+    {
+      "id": "r2-05",
+      "category": "수티드 vs 오프수트",
+      "label": "A-suited-run vs A-offsuit",
+      "leftCards": [
+        "As",
+        "Ks",
+        "Qs"
+      ],
+      "rightCards": [
+        "Ah",
+        "Kd",
+        "Qc"
+      ],
+      "n": 50000,
+      "ms": 5258,
+      "run1WinPercent": 51.778,
+      "run2WinPercent": 51.815999999999995,
+      "trueBothWinPercent": 0.13799999999999998,
+      "naiveBothWinPercent": 26.829288479999995,
+      "bothLossPercent": 0.084,
+      "splitSplitPercent": 83.26599999999999,
+      "expectedLeftPoints": 4.14376,
+      "correlation": -0.03730754328310114
+    },
+    {
+      "id": "r2-06",
+      "category": "커넥티드 vs 산개",
+      "label": "8-anchor 커넥티드 vs 8-anchor 산개",
+      "leftCards": [
+        "8s",
+        "7h",
+        "6d"
+      ],
+      "rightCards": [
+        "8c",
+        "3d",
+        "Jh"
+      ],
+      "n": 50000,
+      "ms": 5692,
+      "run1WinPercent": 64.414,
+      "run2WinPercent": 28.169,
+      "trueBothWinPercent": 12.531999999999998,
+      "naiveBothWinPercent": 18.14477966,
+      "bothLossPercent": 14.984,
+      "splitSplitPercent": 1.5,
+      "expectedLeftPoints": 3.70332,
+      "correlation": -0.016733314903642018
+    },
+    {
+      "id": "r2-07",
+      "category": "보조1만 강함",
+      "label": "보조1=A, 보조2=2 (RUN 간 격차 극대)",
+      "leftCards": [
+        "9s",
+        "As",
+        "2c"
+      ],
+      "rightCards": [
+        "9h",
+        "Kd",
+        "3d"
+      ],
+      "n": 50000,
+      "ms": 5550,
+      "run1WinPercent": 74.619,
+      "run2WinPercent": 46.573,
+      "trueBothWinPercent": 16.246,
+      "naiveBothWinPercent": 34.75230687,
+      "bothLossPercent": 7.216,
+      "splitSplitPercent": 1.012,
+      "expectedLeftPoints": 4.84768,
+      "correlation": 0.0016797934163454294
+    },
+    {
+      "id": "r2-08",
+      "category": "높은 카드 산개",
+      "label": "K-anchor 산개 vs J-anchor 산개",
+      "leftCards": [
+        "Kd",
+        "4h",
+        "9c"
+      ],
+      "rightCards": [
+        "Jc",
+        "5s",
+        "8h"
+      ],
+      "n": 50000,
+      "ms": 5930,
+      "run1WinPercent": 59.227,
+      "run2WinPercent": 61.909000000000006,
+      "trueBothWinPercent": 35.54,
+      "naiveBothWinPercent": 36.66684343,
+      "bothLossPercent": 14.566,
+      "splitSplitPercent": 0.004,
+      "expectedLeftPoints": 4.84544,
+      "correlation": -0.0305392832525484
+    },
+    {
+      "id": "r2-09",
+      "category": "낮은 카드 산개",
+      "label": "4-anchor 산개 vs 5-anchor 산개",
+      "leftCards": [
+        "4s",
+        "9h",
+        "Jc"
+      ],
+      "rightCards": [
+        "5d",
+        "8c",
+        "Th"
+      ],
+      "n": 50000,
+      "ms": 5639,
+      "run1WinPercent": 56.141,
+      "run2WinPercent": 59.221999999999994,
+      "trueBothWinPercent": 31.637999999999998,
+      "naiveBothWinPercent": 33.24782301999999,
+      "bothLossPercent": 16.48,
+      "splitSplitPercent": 0.034,
+      "expectedLeftPoints": 4.61452,
+      "correlation": -0.020579920984940235
+    },
+    {
+      "id": "r2-10",
+      "category": "동일 랭크 앵커 미러",
+      "label": "A-anchor 미러(슈트만 다름)",
+      "leftCards": [
+        "As",
+        "Kc",
+        "2d"
+      ],
+      "rightCards": [
+        "Ah",
+        "Kd",
+        "2c"
+      ],
+      "n": 50000,
+      "ms": 5558,
+      "run1WinPercent": 49.992999999999995,
+      "run2WinPercent": 50.039,
+      "trueBothWinPercent": 0.046,
+      "naiveBothWinPercent": 25.01599727,
+      "bothLossPercent": 0.048,
+      "splitSplitPercent": 91.384,
+      "expectedLeftPoints": 4.00128,
+      "correlation": -0.005435312516388959
+    },
+    {
+      "id": "r2-11",
+      "category": "낮은 페어 앵커",
+      "label": "3-anchor+pair 흔적 vs 4-anchor",
+      "leftCards": [
+        "3s",
+        "3h",
+        "Kd"
+      ],
+      "rightCards": [
+        "4c",
+        "4d",
+        "Qh"
+      ],
+      "n": 50000,
+      "ms": 5519,
+      "run1WinPercent": 20.194000000000003,
+      "run2WinPercent": 63.58200000000001,
+      "trueBothWinPercent": 11.548,
+      "naiveBothWinPercent": 12.83974908,
+      "bothLossPercent": 27.986,
+      "splitSplitPercent": 0.008,
+      "expectedLeftPoints": 3.35104,
+      "correlation": -0.005654752660569635
+    },
+    {
+      "id": "r2-12",
+      "category": "커넥티드 vs 커넥티드",
+      "label": "9-8-7 vs T-9-8",
+      "leftCards": [
+        "9s",
+        "8h",
+        "7d"
+      ],
+      "rightCards": [
+        "Tc",
+        "9d",
+        "8s"
+      ],
+      "n": 50000,
+      "ms": 5796,
+      "run1WinPercent": 23.673,
+      "run2WinPercent": 34.286,
+      "trueBothWinPercent": 6.41,
+      "naiveBothWinPercent": 8.116524779999999,
+      "bothLossPercent": 46.626,
+      "splitSplitPercent": 0.164,
+      "expectedLeftPoints": 2.31836,
+      "correlation": -0.013478982089322505
+    },
+    {
+      "id": "r2-13",
+      "category": "강한 앵커 vs 강한 앵커",
+      "label": "A-anchor vs K-anchor(둘 다 강)",
+      "leftCards": [
+        "As",
+        "Qd",
+        "Jc"
+      ],
+      "rightCards": [
+        "Ks",
+        "Qh",
+        "Jd"
+      ],
+      "n": 50000,
+      "ms": 5656,
+      "run1WinPercent": 74.925,
+      "run2WinPercent": 75.46300000000001,
+      "trueBothWinPercent": 54.468,
+      "naiveBothWinPercent": 56.54065275,
+      "bothLossPercent": 4.726,
+      "splitSplitPercent": 0.016,
+      "expectedLeftPoints": 6.01552,
+      "correlation": -0.05863488656960411
+    },
+    {
+      "id": "r2-14",
+      "category": "보조 둘 다 약함",
+      "label": "Q-anchor 강한 보조 없음",
+      "leftCards": [
+        "Qs",
+        "3d",
+        "2c"
+      ],
+      "rightCards": [
+        "Jh",
+        "4d",
+        "3c"
+      ],
+      "n": 50000,
+      "ms": 5652,
+      "run1WinPercent": 58.42,
+      "run2WinPercent": 63.568999999999996,
+      "trueBothWinPercent": 35.69,
+      "naiveBothWinPercent": 37.1370098,
+      "bothLossPercent": 13.904,
+      "splitSplitPercent": 0.004,
+      "expectedLeftPoints": 4.87956,
+      "correlation": -0.03563096578138086
+    },
+    {
+      "id": "r2-15",
+      "category": "수티드 코네티드 앵커",
+      "label": "6-anchor 수티드런 vs 6-anchor 산개",
+      "leftCards": [
+        "6s",
+        "5s",
+        "4s"
+      ],
+      "rightCards": [
+        "6h",
+        "Jd",
+        "2c"
+      ],
+      "n": 50000,
+      "ms": 5544,
+      "run1WinPercent": 34.449999999999996,
+      "run2WinPercent": 56.546,
+      "trueBothWinPercent": 10.549999999999999,
+      "naiveBothWinPercent": 19.480096999999997,
+      "bothLossPercent": 13.122,
+      "splitSplitPercent": 2.472,
+      "expectedLeftPoints": 3.63984,
+      "correlation": -0.013279586975007985
+    },
+    {
+      "id": "r2-16",
+      "category": "높은 페어 앵커 대칭",
+      "label": "K-anchor+K 보조 vs A-anchor+낮은 보조",
+      "leftCards": [
+        "Kc",
+        "Kh",
+        "5d"
+      ],
+      "rightCards": [
+        "As",
+        "3d",
+        "2h"
+      ],
+      "n": 50000,
+      "ms": 5877,
+      "run1WinPercent": 70.68900000000001,
+      "run2WinPercent": 35.345,
+      "trueBothWinPercent": 23.65,
+      "naiveBothWinPercent": 24.98502705,
+      "bothLossPercent": 17.66,
+      "splitSplitPercent": 0,
+      "expectedLeftPoints": 4.24136,
+      "correlation": -0.04980925527753519
+    },
+    {
+      "id": "r2-17",
+      "category": "중간 카드 미러",
+      "label": "9-anchor 미러",
+      "leftCards": [
+        "9s",
+        "Jd",
+        "4c"
+      ],
+      "rightCards": [
+        "9h",
+        "Jc",
+        "4d"
+      ],
+      "n": 50000,
+      "ms": 5608,
+      "run1WinPercent": 49.97,
+      "run2WinPercent": 49.948,
+      "trueBothWinPercent": 0.044000000000000004,
+      "naiveBothWinPercent": 24.959015599999997,
+      "bothLossPercent": 0.032,
+      "splitSplitPercent": 91.60199999999999,
+      "expectedLeftPoints": 3.99672,
+      "correlation": -0.010719303357948415
+    },
+    {
+      "id": "r2-18",
+      "category": "낮은 앵커 vs 높은 앵커",
+      "label": "2-anchor vs A-anchor",
+      "leftCards": [
+        "2s",
+        "Kd",
+        "Qc"
+      ],
+      "rightCards": [
+        "As",
+        "4d",
+        "3c"
+      ],
+      "n": 50000,
+      "ms": 5461,
+      "run1WinPercent": 35.371,
+      "run2WinPercent": 35.673,
+      "trueBothWinPercent": 11.752,
+      "naiveBothWinPercent": 12.61789683,
+      "bothLossPercent": 40.562,
+      "splitSplitPercent": 0,
+      "expectedLeftPoints": 2.84176,
+      "correlation": -0.027862243448030625
+    },
+    {
+      "id": "r2-19",
+      "category": "보조1/보조2 역전",
+      "label": "보조2가 보조1보다 강함",
+      "leftCards": [
+        "Ts",
+        "2d",
+        "Ac"
+      ],
+      "rightCards": [
+        "Th",
+        "3d",
+        "Kc"
+      ],
+      "n": 50000,
+      "ms": 5150,
+      "run1WinPercent": 46.187,
+      "run2WinPercent": 73.404,
+      "trueBothWinPercent": 15.726,
+      "naiveBothWinPercent": 33.90310548,
+      "bothLossPercent": 7.562,
+      "splitSplitPercent": 1.016,
+      "expectedLeftPoints": 4.78364,
+      "correlation": 0.00458368399023669
+    },
+    {
+      "id": "r2-20",
+      "category": "완전 무관 산개",
+      "label": "완전 무관 6장(랜덤 산개)",
+      "leftCards": [
+        "3s",
+        "9d",
+        "Kh"
+      ],
+      "rightCards": [
+        "4c",
+        "Td",
+        "Qs"
+      ],
+      "n": 50000,
+      "ms": 5812,
+      "run1WinPercent": 36.614999999999995,
+      "run2WinPercent": 58.88099999999999,
+      "trueBothWinPercent": 20.702,
+      "naiveBothWinPercent": 21.559278149999997,
+      "bothLossPercent": 25.259999999999998,
+      "splitSplitPercent": 0.008,
+      "expectedLeftPoints": 3.81984,
+      "correlation": -0.008351575980482051
+    },
+    {
+      "id": "r2-21",
+      "category": "동일 secondary 강도 대칭",
+      "label": "양쪽 보조 강도 동일 패턴",
+      "leftCards": [
+        "7s",
+        "As",
+        "2d"
+      ],
+      "rightCards": [
+        "7h",
+        "Ad",
+        "2c"
+      ],
+      "n": 50000,
+      "ms": 5716,
+      "run1WinPercent": 52.951,
+      "run2WinPercent": 49.666,
+      "trueBothWinPercent": 0.122,
+      "naiveBothWinPercent": 26.298643660000003,
+      "bothLossPercent": 0.046,
+      "splitSplitPercent": 86.056,
+      "expectedLeftPoints": 4.10468,
+      "correlation": -0.011625515583014591
+    },
+    {
+      "id": "r2-22",
+      "category": "강한 앵커+약한 두 보조 vs 약한 앵커+강한 두 보조",
+      "label": "앵커·보조 강도 반전",
+      "leftCards": [
+        "As",
+        "3d",
+        "2c"
+      ],
+      "rightCards": [
+        "3s",
+        "Ad",
+        "Kc"
+      ],
+      "n": 50000,
+      "ms": 5463,
+      "run1WinPercent": 50.035,
+      "run2WinPercent": 61.97899999999999,
+      "trueBothWinPercent": 0.5700000000000001,
+      "naiveBothWinPercent": 31.011192649999998,
+      "bothLossPercent": 0.308,
+      "splitSplitPercent": 0.638,
+      "expectedLeftPoints": 4.48056,
+      "correlation": -0.011898450668869711
+    },
+    {
+      "id": "r2-23",
+      "category": "낮은 페어 vs 오버카드 산개",
+      "label": "5-anchor pair-ish vs K-anchor 산개",
+      "leftCards": [
+        "5s",
+        "5h",
+        "9c"
+      ],
+      "rightCards": [
+        "Kd",
+        "8c",
+        "3h"
+      ],
+      "n": 50000,
+      "ms": 5697,
+      "run1WinPercent": 54.940999999999995,
+      "run2WinPercent": 37.408,
+      "trueBothWinPercent": 19.509999999999998,
+      "naiveBothWinPercent": 20.552329280000002,
+      "bothLossPercent": 27.11,
+      "splitSplitPercent": 0.008,
+      "expectedLeftPoints": 3.69396,
+      "correlation": -0.03104483349532815
+    },
+    {
+      "id": "r2-24",
+      "category": "브로드웨이 전부",
+      "label": "브로드웨이 카드로만 구성된 양쪽",
+      "leftCards": [
+        "As",
+        "Kd",
+        "Qc"
+      ],
+      "rightCards": [
+        "Jh",
+        "Th",
+        "9c"
+      ],
+      "n": 50000,
+      "ms": 5382,
+      "run1WinPercent": 58.958999999999996,
+      "run2WinPercent": 65.066,
+      "trueBothWinPercent": 37.56,
+      "naiveBothWinPercent": 38.362262939999994,
+      "bothLossPercent": 13.624,
+      "splitSplitPercent": 0,
+      "expectedLeftPoints": 4.961,
+      "correlation": -0.0238637701858265
+    }
+  ]
+}
