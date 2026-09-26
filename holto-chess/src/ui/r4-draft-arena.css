@@ -1,0 +1,29 @@
+/* Round 4 uses the R2 arena composition with a 16-card pool and a private hand. */
+.r4-draft .r2-stage { position: relative; padding: 66px 12px 15px; }
+.r4-draft .r2-clock { top: 12px; right: 12px; }
+.r4-draft .r2-arena { min-height: 0; row-gap: 12px; padding: 17px 2px 12px; }
+.r4-draft .r2-card-slot { transform: none; }
+.r4-draft .r2-offer { gap: 4px; }
+.r4-draft .r2-offer .playing-card,
+.r4-draft .r2-price { max-width: 76px; }
+.r4-draft .r2-offer .card-rank { font-size: clamp(20px,2vw,27px); }
+.r4-draft .r2-offer .card-suit { font-size: clamp(26px,2.7vw,35px); }
+.r4-draft .r2-price { display: grid; place-items: center; min-height: 24px; font-size: 11px; }
+.r4-draft .r2-card-status { min-height: 13px; font-size: 9px; }
+
+@media (max-width: 700px), (orientation: portrait) {
+  .r4-draft .r2-stage { position: static; margin-top: 5px; padding: 8px 3px 10px; }
+  .r4-draft .r2-clock { top: -32px; right: 0; }
+  .r4-draft .r2-arena { row-gap: 8px; padding: 8px 0 10px; }
+  .r4-draft .r2-offer .playing-card,
+  .r4-draft .r2-price { max-width: none; }
+  .r4-draft .r2-offer .card-rank { font-size: clamp(18px,4.5vw,34px); }
+  .r4-draft .r2-offer .card-suit { font-size: clamp(23px,5.5vw,43px); }
+  .r4-draft .r2-price { min-height: 21px; font-size: clamp(8px,calc(2vw + 1px),11px); }
+  .r4-draft .r2-card-status { min-height: 11px; font-size: clamp(7px,1.7vw,10px); }
+  .r4-draft .r2-order-panel { margin-top: 12px; }
+}
+@media (max-width: 700px) and (min-height: 760px), (orientation: portrait) and (min-height: 760px) {
+  .r4-draft .r2-order { gap: 2px; }
+  .r4-draft .r2-order li { min-height: 34px; }
+}

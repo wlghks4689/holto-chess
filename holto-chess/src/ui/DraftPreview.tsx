@@ -3,7 +3,7 @@ import { makeDeck } from "../core/poker/cards";
 import { createGame, prepareShowdown, resolvePrimary, startNextRound, leaveRoundResult, autoPickDraft, openDraft, lockRunLoadouts, pickDraftCard, setRunLoadout } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { createMatchView } from "../game/matchView";
-import { TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
+import { OpenDraftPanel, TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
 import { ShowdownCinematic } from "./ShowdownCinematic";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { RoundGuide } from "./RoundGuide";
@@ -84,6 +84,32 @@ function DraftFixturePreview() {
     {game.phase==="SHOP" && <p>상점 준비 완료 · 보유 {view.me.ownedCards.length}장 · 진열 {view.me.shopCards.length}장</p>}
   </main>;
 }
+function R2ArenaStylePreview() {
+  const [game, setGame] = useState(() => openDraft(fixture(2)));
+  const viewer = game.draft?.order[0]?.playerId ?? "p1";
+  const view = createPlayerView({ schema:1, roomId:"PREVIEW", revision:0, status:"PLAYING", game,
+    sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
+  const send = (action: GameAction) => {
+    if (action.type === "DRAFT_PICK") setGame((state) => pickDraftCard(state,viewer,action.cardId));
+  };
+  return <main className="game-arena"><div className="page-shell">
+    <header className="round-header"><div><span className="round-number">ROUND 2 · DRAFT PHASE</span><h1>RUN IT TWICE</h1></div><div className="phase-badge"><b>공개 드래프트</b></div></header>
+    {game.phase === "OPEN_DRAFT" && <OpenDraftPanel view={view} send={send} disabled={false} seconds={20} />}
+  </div></main>;
+}
+function R4DraftConceptPreview() {
+  const [game, setGame] = useState(() => openDraft(fixture(4)));
+  const viewer = game.draft?.order[game.draft.picks.length]?.playerId ?? "p1";
+  const view = createPlayerView({ schema:1, roomId:"R4-CONCEPT", revision:0, status:"PLAYING", game,
+    sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
+  const send = (action: GameAction) => {
+    if (action.type === "DRAFT_PICK") setGame((state) => pickDraftCard(state, viewer, action.cardId));
+  };
+  return <main className="game-arena"><div className="page-shell">
+    <header className="round-header"><div><span className="round-number">ROUND 4 · DRAFT PHASE</span><h1>BEST FIVE</h1></div><div className="phase-badge"><b>공개 드래프트</b></div></header>
+    {game.phase === "OPEN_DRAFT" ? <OpenDraftPanel view={view} send={send} disabled={false} seconds={20} /> : <p>드래프트 완료</p>}
+  </div></main>;
+}
 export function DraftPreview() {
   const params = new URLSearchParams(location.search);
   if (params.get("showdownPrep") === "3") return <MultiwayShowdownPrepPreview />;
@@ -93,6 +119,8 @@ export function DraftPreview() {
   if (params.has("shopStyle")) return <ShopStylePreview />;
   if (params.has("runLoadout")) return <RunLoadoutPreview />;
   if (params.has("finalResults")) return <FinalResultsPreview />;
+  if (params.has("r2Arena")) return <R2ArenaStylePreview />;
+  if (params.has("r4Concept")) return <R4DraftConceptPreview />;
   if (params.has("runSummary")) return <RunSummaryPreview />;
   return <DraftFixturePreview />;
 }

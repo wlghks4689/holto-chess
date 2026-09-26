@@ -1,45 +1,230 @@
-.panel.r2-draft{padding:22px;background:linear-gradient(135deg,#061622dd,#07172388);overflow:hidden}
-.r2-draft-heading{position:relative;display:flex;align-items:center;justify-content:center;gap:16px;min-height:67px;margin:0!important}
-.r2-draft-heading h2{font-size:clamp(18px,2.4vw,27px);margin:0}
-.r2-draft-heading .draft-title-row{justify-content:center;margin-top:0}
-.r2-draft-heading .r2-clock{position:absolute;right:0;top:50%;transform:translateY(-50%)}
-.r2-draft-layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:30px;align-items:center}
-.r2-order-panel{min-width:0}.r2-order-panel h3{font:600 11px 'DM Mono',sans-serif;color:#85bbc8;letter-spacing:.12em;margin:0 0 12px}.r2-order-panel h3 small{font:400 10px sans-serif;letter-spacing:0;margin-left:8px;color:#688c9c}
-.r2-order{list-style:none;padding:0;margin:0;display:grid;gap:7px}
-.r2-order li{display:grid;grid-template-columns:24px minmax(0,1fr) 40px;align-items:center;gap:3px 6px;padding:9px 10px;min-height:51px;border:1px solid #294655;border-radius:8px;background:#071924b3;transition:transform .25s ease,border-color .25s,background .25s,opacity .25s}
-.r2-order-number{grid-column:1;grid-row:1/3;font:600 11px 'DM Mono',sans-serif;color:#739fac}.r2-order-name{grid-column:2;grid-row:1;font-size:12px;font-weight:700;overflow-wrap:anywhere}.r2-order-stats{grid-column:2;grid-row:2;font:500 10px 'DM Mono',sans-serif;color:#9ab5c2}.r2-order-status{grid-column:3;grid-row:1/3;font-size:9px;color:#789ba8;text-align:center}
-.r2-order li.is-current{transform:translateX(10px);border-color:#64e8e1;background:#15434de6;box-shadow:0 0 14px #43ded830,inset 0 0 13px #5ae2db15}.r2-order li.is-current .r2-order-status{color:#9cfff2}.r2-order li.is-picked{opacity:.53;transform:none}
-.r2-stage{min-width:0;position:relative;padding:20px 8px;border-radius:48%;background:radial-gradient(ellipse,#0d4b5366,transparent 70%)}
-.r2-stage::before{content:"";position:absolute;inset:40px -15px 0;z-index:0;pointer-events:none;background:linear-gradient(#06121c55,#06121c88),url('/assets/table/main-table.webp') center 48%/cover;border-radius:48%;opacity:.65;mask-image:radial-gradient(ellipse,#000 35%,transparent 72%)}
-.r2-current{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;min-height:36px;color:#bcfff2}.r2-current small{color:#7297a6;font-size:11px}.r2-current strong{font-size:16px}
-.r2-arena{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:clamp(6px,1vw,15px);padding:30px 0 60px;min-height:250px;align-items:center}
-.r2-card-slot{min-width:0;transform:translateY(var(--arc))}.r2-offer{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;position:relative}
-.r2-offer .playing-card{width:100%;max-width:86px;min-width:0;height:auto;aspect-ratio: .69;padding:5px;border-radius:7px;box-shadow:0 9px 18px #0007;transition:box-shadow .2s,filter .2s}
-.r2-offer .card-rank{font-size:clamp(18px,2.2vw,28px)}.r2-offer .card-suit{font-size:clamp(23px,3vw,36px)}
-.r2-offer .playing-card.clickable:hover{box-shadow:0 0 19px #75f4e766;transform:translateY(-4px)}
-.r2-price{border:1px solid #46998f;border-radius:7px;padding:6px 4px;width:100%;max-width:86px;color:#a0f6e9;background:#0b3037;font:600 11px 'DM Mono',sans-serif;white-space:nowrap;cursor:pointer}
-.r2-price:disabled{cursor:not-allowed;color:#8babb6;border-color:#31505c;background:#071e2a;opacity:1}
-.r2-card-status{font-size:10px;text-align:center;color:#9ac2ca;min-height:28px;overflow-wrap:anywhere}.r2-card-slot.is-claimed .playing-card{opacity:.28;filter:grayscale(.6)}.r2-card-slot.is-claimed .r2-price{opacity:.4}.r2-card-slot.is-claimed .r2-card-status{color:#73c1b3}
-.r2-auto-hint{position:relative;text-align:center;font-size:10px;color:#7a9ba8;margin:0}
-.r2-deal-origin{position:absolute;left:50%;top:50%;width:46px;height:62px;transform:translate(-50%,-50%);border:1px solid #7df2e4;border-radius:6px;background:#13424f;display:grid;place-items:center;font-size:30px;color:#acfff8;opacity:0;pointer-events:none}
-.is-dealing .r2-deal-origin{animation:r2-deck-pulse .5s ease-out both}
-.is-dealing .r2-offer{animation:r2-deal .58s cubic-bezier(.2,.7,.3,1) var(--deal-delay) both}
-@keyframes r2-deal{0%{opacity:0;transform:translate(var(--deal-x),var(--deal-y)) scale(.7)}18%{opacity:1}78%{transform:translateY(-2px) scale(1.05)}100%{opacity:1;transform:none}}
-@keyframes r2-deck-pulse{0%{opacity:0;box-shadow:0 0 0 #67e9df}35%{opacity:1;box-shadow:0 0 26px #67e9df88}100%{opacity:0}}
-@media(max-width:1100px) and (orientation:landscape){.r2-draft-layout{grid-template-columns:190px minmax(0,1fr);gap:20px}.r2-order li{padding:7px}.r2-order-name{font-size:11px}.r2-arena{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 18px;padding:20px 15px}.r2-card-slot{transform:none}.r2-offer .playing-card{max-width:72px}.r2-card-status{min-height:14px}}
-@media(max-width:700px),(orientation:portrait){
- .panel.r2-draft{padding:14px 10px}.r2-draft-heading{gap:8px}.r2-draft-heading h2{font-size:18px}
- .r2-draft-layout{display:flex;flex-direction:column;gap:16px}.r2-stage{order:0;width:100%;padding:0}.r2-order-panel{order:1;width:100%;text-align:center}.r2-order-panel h3{margin:0 0 9px;font-size:10px;text-align:center}
- .r2-arena{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px 12px;padding:18px 10px 10px;min-height:0}.r2-card-slot{transform:none}.r2-offer{gap:5px}.r2-offer .playing-card{max-width:80px}.r2-offer .card-rank{font-size:24px}.r2-offer .card-suit{font-size:30px}.r2-card-status{font-size:9px;min-height:13px}.r2-price{padding:5px 3px;font-size:10px}
- .r2-current{min-height:27px}.r2-current strong{font-size:14px}.r2-current small{font-size:10px}.r2-auto-hint{font-size:9px;margin-top:4px}
- .r2-order{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.r2-order li{grid-template-columns:18px minmax(0,1fr) auto;grid-template-rows:auto auto;gap:2px 4px;min-height:52px;padding:6px 5px;align-content:center;justify-items:start;text-align:left}
- .r2-order-number{grid-column:1;grid-row:1;font-size:9px}.r2-order-status{grid-column:3;grid-row:2;font-size:8px;white-space:nowrap;text-align:right}.r2-order-name{grid-column:2/4;grid-row:1;max-width:100%;font-size:10px;line-height:1.2;min-height:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.r2-order-stats{grid-column:1/3;grid-row:2;font-size:8px;text-align:left;white-space:nowrap;letter-spacing:-.04em}
- .r2-order li.is-current{transform:scale(1.03);z-index:1}.r2-order li.is-picked{transform:none}
+/* Round 2 and Round 4 draft arenas share the supplied artwork. */
+main.game-arena:has(.r2-draft) { background: #03101d; }
+main.game-arena:has(.r2-draft)::before {
+  background-image: linear-gradient(180deg,rgba(2,9,22,.15) 0%,rgba(2,10,23,.12) 35%,rgba(2,10,22,.48) 76%,rgba(2,8,19,.9) 100%),url('/assets/draft/r2-arena-landscape.webp');
+  background-position: center top;
+  background-size: cover;
 }
-@media(max-width:700px){
- .r2-draft-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:8px;min-height:0}
- .r2-draft-heading .draft-title-row{grid-column:1/-1;grid-row:1;justify-self:center}
- .r2-draft-heading:has(.r2-clock) .draft-title-row{grid-row:2}
- .r2-draft-heading .r2-clock{position:static;grid-column:2;grid-row:1;transform:none}
+main.game-arena:has(.r2-draft)>nav { border-bottom-color: #70dff438; background: #03111fc7; }
+.page-shell:has(>.r2-draft) { padding-top: 32px; }
+.page-shell:has(>.r2-draft)>.round-header { margin-bottom: 30px; }
+.page-shell:has(>.r2-draft)>.round-header h1 { color: #f6fbff; text-shadow: 0 3px 22px #000,0 0 28px #4cbbff6b; }
+.page-shell:has(>.r2-draft)>.round-header .round-number { color: #63e2f3; letter-spacing: .2em; }
+
+.panel.r2-draft {
+  --r2-line: #59d7e85c;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px,260px) minmax(0,1fr);
+  grid-template-rows: auto minmax(0,1fr);
+  column-gap: clamp(18px,3vw,44px);
+  min-height: 560px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
 }
-@media(prefers-reduced-motion:reduce){.is-dealing .r2-offer,.is-dealing .r2-deal-origin{animation:none}.r2-deal-origin{display:none}.r2-order li{transition:none}}
+.r2-draft-layout { display: contents; }
+.panel.r2-draft:not(.r4-draft) { grid-template-rows: minmax(0,1fr); }
+.r2-draft-heading {
+  position: relative;
+  z-index: 50;
+  isolation: isolate;
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+  margin: 0;
+  padding: 10px 8px;
+}
+.r2-draft-heading .draft-title-row { justify-content: center; }
+.r2-draft-heading h2 { margin: 0; color: #f6fcff; font-size: clamp(16px,1.5vw,21px); line-height: 1.35; text-align: center; text-wrap: balance; }
+.r2-draft-heading .draft-help { z-index: 20; }
+.r2-draft-heading .draft-help-popover { z-index: 100; background: #03141d; box-shadow: 0 14px 34px #000e,0 0 0 1px #68dcd766; }
+.r2-draft:not(.r4-draft) .r2-draft-heading { align-self: center; min-height: 0; margin-bottom: 14px; padding: 0; }
+.r2-clock { position: absolute; top: 0; right: 0; z-index: 3; }
+
+.r2-order-panel {
+  position: relative;
+  z-index: 0;
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  padding: 4px 16px 20px;
+  border: 1px solid var(--r2-line);
+  border-radius: 16px;
+  background: #031726de;
+  backdrop-filter: blur(8px);
+}
+.r2-order-panel h3 { margin: 0 0 13px; color: #76dff0; font: 600 12px/1.3 'DM Mono',monospace; letter-spacing: .13em; }
+.r2-draft:not(.r4-draft) .r2-order-panel { grid-row: 1; padding-top: 10px; }
+.r2-draft:not(.r4-draft) .r2-order-panel h3 { color: #e5faff; font: 800 14px/1.3 sans-serif; text-align: center; letter-spacing: 0; }
+.r2-order-panel h3 small { margin-left: 8px; color: #85aebb; font: 400 10px/1.3 sans-serif; letter-spacing: 0; }
+.r2-order { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.r2-order li {
+  display: grid;
+  grid-template-columns: 25px minmax(0,1fr) 46px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 7px;
+  min-height: 52px;
+  padding: 7px 10px;
+  border: 1px solid #3b7b934d;
+  border-radius: 8px;
+  background: #031522ca;
+  transition: border-color .2s,background .2s,opacity .2s;
+}
+.r2-order-number { grid-column: 1; grid-row: 1/3; color: #8ac6d8; font: 600 11px 'DM Mono',monospace; }
+.r2-order-name { grid-column: 2; grid-row: 1; overflow: hidden; color: #f1fbff; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.r2-order-stats { grid-column: 2; grid-row: 2; color: #90bdca; font: 500 10px 'DM Mono',monospace; white-space: nowrap; }
+.r2-order-status { grid-column: 3; grid-row: 1/3; color: #86a6b3; font-size: 9px; text-align: right; }
+.r2-order li.is-current { border-color: #54e9ed; background: #104253e8; box-shadow: 0 0 18px #27dceb45,inset 3px 0 #67faff; }
+.r2-order li.is-current .r2-order-status { color: #9afff9; font-weight: 800; }
+.r2-order li.is-picked { opacity: .63; }
+
+.r2-stage {
+  position: relative;
+  z-index: 0;
+  grid-column: 2;
+  grid-row: 1/3;
+  align-self: center;
+  min-width: 0;
+  padding: 72px 14px 34px;
+  border-top: 1px solid #55d4e12e;
+  border-bottom: 1px solid #55d4e14d;
+  border-radius: 30px;
+  background: linear-gradient(180deg,#03132405,#031324b0 52%,#0313249c);
+}
+.r2-draft:not(.r4-draft) .r2-stage { display: flex; flex-direction: column; justify-content: center; grid-row: 1; align-self: stretch; padding: 16px 14px 20px; border: 1px solid #64dbe6a8; box-shadow: inset 0 0 0 1px #83f1f01c,0 0 22px #008ca51c; }
+.r2-current { display: flex; align-items: baseline; justify-content: center; gap: 10px; min-height: 36px; color: #e0fdff; text-align: center; }
+.r2-current small { color: #8ee4ee; font-size: 11px; }
+.r2-current strong { font-size: clamp(15px,1.6vw,20px); text-shadow: 0 0 13px #3bdfeb8c; }
+.r2-arena { position: relative; display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); align-items: start; gap: clamp(5px,.9vw,14px); min-height: 220px; padding: 30px 2px 25px; }
+.r2-draft:not(.r4-draft) .r2-arena { padding-bottom: 45px; }
+.r2-card-slot { min-width: 0; transform: translateY(var(--arc)); }
+.r2-offer { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+.r2-offer .playing-card { width: 100%; max-width: 108px; min-width: 0; height: auto; aspect-ratio: .69; padding: 5px; border-radius: 8px; box-shadow: 0 8px 20px #000b; transition: box-shadow .2s,filter .2s,transform .2s; }
+.r2-offer .card-rank { font-size: clamp(19px,2.5vw,31px); }
+.r2-offer .card-suit { font-size: clamp(24px,3.3vw,40px); }
+.r2-offer .playing-card.clickable:hover,.r2-offer .playing-card.clickable:focus-visible { box-shadow: 0 0 0 2px #7afaff,0 0 24px #37e7f1; transform: translateY(-5px); }
+.r2-price { width: 100%; max-width: 108px; min-height: 29px; padding: 4px 3px; border: 1px solid #64d9eea8; border-radius: 7px; background: #041927de; color: #d3faff; font: 600 11px 'DM Mono',monospace; white-space: nowrap; cursor: pointer; }
+.r2-price:disabled { border-color: #34617a9e; background: #04131fd9; color: #aac1cc; cursor: not-allowed; opacity: 1; }
+.r2-card-status { width: 100%; min-height: 18px; overflow: hidden; color: #b3d6e0; font-size: 10px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.r2-card-slot.is-claimed .playing-card { filter: grayscale(.55); opacity: .37; }
+.r2-card-slot.is-claimed .r2-price { opacity: .5; }
+.r2-card-slot.is-claimed .r2-card-status { color: #83f2ed; }
+.draft-private-hand { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 0; padding: 12px 8px 2px; border-top: 1px solid #64d9ee55; }
+.draft-private-copy { display: flex; align-items: center; justify-content: center; gap: 6px; color: #e7fbff; text-align: center; }
+.draft-private-copy b { font-size: 13px; }
+.draft-private-help { position: relative; z-index: 5; }
+.draft-private-help summary { display: grid; place-items: center; width: 17px; height: 17px; border: 1px solid #68dcd7; border-radius: 50%; color: #9cfff4; cursor: pointer; font: 800 11px/1 'DM Mono',monospace; list-style: none; }
+.draft-private-help summary::-webkit-details-marker { display: none; }
+.draft-private-help summary:focus-visible { outline: 2px solid #8afff2; outline-offset: 2px; }
+.draft-private-help span { position: absolute; top: calc(100% + 6px); left: 50%; width: max-content; max-width: min(200px,calc(100vw - 40px)); padding: 7px 9px; border: 1px solid #68dcd7; border-radius: 7px; background: #03141df7; color: #d3faff; box-shadow: 0 10px 20px #0009; font-size: 11px; white-space: normal; transform: translateX(-50%); }
+.draft-private-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; min-width: 0; max-width: 100%; }
+.draft-private-cards .playing-card { flex: 0 0 auto; }
+.r2-draft:not(.r4-draft) .draft-private-hand { --draft-private-card-width: clamp(60px,7vw,86px); --draft-private-card-height: clamp(85px,9.9vw,122px); position: relative; width: 100%; }
+.r2-draft:not(.r4-draft) .draft-private-cards .playing-card { width: var(--draft-private-card-width); height: var(--draft-private-card-height); }
+.r2-draft:not(.r4-draft) .draft-private-cards .card-rank { font-size: clamp(21px,2.7vw,29px); }
+.r2-draft:not(.r4-draft) .draft-private-cards .card-suit { font-size: clamp(28px,3.6vw,40px); }
+.draft-private-timer { position: absolute; right: 8px; bottom: 2px; }
+.draft-private-timer .phase-timer { width: clamp(78px,8vw,94px); height: var(--draft-private-card-height); min-width: 0; align-content: center; justify-items: center; padding: 5px; }
+.draft-private-timer .phase-timer>span { margin-bottom: 2px; font-size: 10px; }
+.draft-private-timer .phase-timer strong { font-size: 28px; }
+.draft-private-timer .phase-timer strong i { font-size: 10px; }
+.r2-deal-origin { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 46px; height: 62px; border: 1px solid #7df2e4; border-radius: 6px; background: #13424f; color: #acfff8; font-size: 30px; opacity: 0; pointer-events: none; transform: translate(-50%,-50%); }
+.is-dealing .r2-deal-origin { animation: r2-deck-pulse .5s ease-out both; }
+.is-dealing .r2-offer { animation: r2-deal .58s cubic-bezier(.2,.7,.3,1) var(--deal-delay) both; }
+@keyframes r2-deal { 0% { opacity:0; transform:translate(var(--deal-x),var(--deal-y)) scale(.7); } 18% { opacity:1; } 78% { transform:translateY(-2px) scale(1.05); } 100% { opacity:1; transform:none; } }
+@keyframes r2-deck-pulse { 0% { opacity:0; box-shadow:0 0 0 #67e9df; } 35% { opacity:1; box-shadow:0 0 26px #67e9df88; } 100% { opacity:0; } }
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .panel.r2-draft { grid-template-columns: 190px minmax(0,1fr); column-gap: 16px; }
+  .r2-order-panel { padding-inline: 10px; }
+  .r2-stage { padding-inline: 7px; }
+  .r2-arena { gap: 4px; }
+  .r2-offer .card-rank { font-size: 19px; }
+  .r2-offer .card-suit { font-size: 23px; }
+}
+@media (max-width: 700px), (orientation: portrait) {
+  main.game-arena:has(.r2-draft)::before {
+    background-image: linear-gradient(180deg,#020c1b25 0%,#020c1b12 28%,#020c1b66 57%,#020b19ed 100%),url('/assets/draft/r2-arena-portrait.webp');
+    background-position: center top;
+    background-attachment: scroll;
+  }
+  .page-shell:has(>.r2-draft) { width: calc(100% - 24px); padding-top: 22px; }
+  .page-shell:has(>.r2-draft)>.round-header { justify-content: center; margin-bottom: 40px; text-align: center; }
+  .page-shell:has(>.r2-draft:not(.r4-draft))>.round-header { margin-bottom: 16px; }
+  .page-shell:has(>.r2-draft)>.round-header h1 { font-size: clamp(39px,10vw,58px); }
+  .page-shell:has(>.r2-draft)>.round-header .round-number { font-size: 10px; }
+  .page-shell:has(>.r2-draft)>.round-header .phase-badge { display: none; }
+  .panel.r2-draft { display: flex; flex-direction: column; min-height: 0; }
+  .panel.r2-draft:not(.r4-draft) { display: flex; }
+  .r2-draft-heading { order: 1; width: 100%; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; transform: translateY(22px); }
+  .r2-draft:not(.r4-draft) .r2-draft-heading { min-height: 0; margin-bottom: 8px; transform: none; }
+  .r2-draft-heading .draft-title-row { width: 100%; justify-content: center; }
+  .r2-draft-heading h2 { font-size: clamp(16px,4.5vw,20px); }
+  .r2-draft-heading .draft-help { position: static; }
+  .r2-draft-heading .draft-help-popover { left: 0; width: min(320px,calc(100vw - 48px)); }
+  .r2-clock { top: -32px; right: 0; }
+  .r2-clock.phase-timer { min-width: 82px; padding: 5px 7px; }
+  .r2-clock.phase-timer strong { font-size: 24px; }
+  .r2-stage { order: 2; width: 100%; margin-top: 6px; padding: 10px 4px 8px; border-radius: 16px; }
+  .r2-draft:not(.r4-draft) .r2-stage { display: block; padding: 5px 4px 0; border-color: #68e0eab8; }
+  .r2-current { gap: 6px; min-height: 29px; }
+  .r2-current small { font-size: 9px; }
+  .r2-current strong { font-size: 13px; }
+  .r2-arena { grid-template-columns: repeat(8,minmax(0,1fr)); gap: 3px; min-height: 0; padding: 8px 0 0; }
+  .r2-draft:not(.r4-draft) .r2-arena { padding-bottom: 0; }
+  .r2-card-slot { transform: none; }
+  .r2-offer { gap: 4px; }
+  .r2-offer .playing-card { max-width: none; padding: 2px; border-radius: 5px; }
+  .r2-offer .card-rank { font-size: clamp(20px,5.5vw,39px); }
+  .r2-offer .card-suit { font-size: clamp(26px,6.7vw,52px); }
+  .r2-price { min-height: 24px; padding: 3px 1px; font-size: clamp(7px,2vw,10px); }
+  .r2-card-status { min-height: 12px; font-size: 8px; }
+  .draft-private-hand { gap: 5px; padding: 8px 0 0; }
+  .draft-private-copy b { font-size: 11px; }
+  .r2-draft:not(.r4-draft) .draft-private-hand { margin-top: 10px; padding-top: 6px; }
+  .r2-draft:not(.r4-draft) .draft-private-hand { --draft-private-card-width: clamp(43px,12vw,58px); --draft-private-card-height: clamp(61px,17vw,82px); }
+  .r2-draft:not(.r4-draft) .draft-private-cards .card-rank { font-size: clamp(16px,4.5vw,20px); }
+  .r2-draft:not(.r4-draft) .draft-private-cards .card-suit { font-size: clamp(22px,6vw,28px); }
+  .draft-private-timer { right: 3px; bottom: 0; }
+  .draft-private-timer .phase-timer { width: clamp(68px,18vw,82px); padding: 3px; }
+  .draft-private-timer .phase-timer>span { font-size: 8px; }
+  .draft-private-timer .phase-timer strong { font-size: 22px; }
+  .draft-private-timer .phase-timer strong i { margin-left: 2px; font-size: 8px; }
+  .r2-draft:not(.r4-draft) .r2-order-panel { margin-top: 7px; }
+  .draft-private-cards .playing-card { width: 37px; height: 52px; }
+  .draft-private-cards .card-rank { font-size: 15px; }
+  .draft-private-cards .card-suit { font-size: 20px; }
+  .r2-order-panel { order: 3; width: 100%; margin-top: 10px; padding: 8px 12px 10px; border: 1px solid var(--r2-line); border-radius: 13px; }
+  .r2-order-panel h3 { margin-bottom: 6px; }
+  .r2-order { gap: 3px; }
+  .r2-order li { grid-template-columns: 24px minmax(0,max-content) max-content minmax(0,1fr); grid-template-rows: 1fr; gap: 8px; min-height: 31px; padding: 2px 10px; }
+  .r2-order-number { grid-column: 1; grid-row: 1; font-size: 11px; }
+  .r2-order-name { grid-column: 2; grid-row: 1; font-size: clamp(13px,2vw,17px); line-height: 1.1; }
+  .r2-order-stats { grid-column: 3; grid-row: 1; font-size: clamp(12px,1.7vw,15px); line-height: 1.1; }
+  .r2-order-status { grid-column: 4; grid-row: 1; justify-self: end; min-width: 0; overflow: hidden; margin-left: 5px; font-size: clamp(10px,1.5vw,13px); text-overflow: ellipsis; white-space: nowrap; }
+}
+@media (max-width: 700px) and (min-height: 760px), (orientation: portrait) and (min-height: 760px) {
+  .r2-stage { margin-top: clamp(6px,2.5vh,26px); }
+  .r2-draft:not(.r4-draft) .r2-stage { margin-top: 6px; }
+  .r2-order-panel { margin-top: clamp(10px,3vh,34px); }
+  .r2-order li { min-height: clamp(31px,4.8vh,48px); }
+  .r2-draft:not(.r4-draft) .r2-order-panel { margin-top: 7px; }
+}
+@media (max-width: 380px) {
+  .r2-stage { padding-inline: 2px; }
+  .r2-arena { gap: 2px; }
+  .r2-card-status { font-size: 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-dealing .r2-offer,.is-dealing .r2-deal-origin { animation: none; }
+  .r2-deal-origin { display: none; }
+  .r2-order li { transition: none; }
+}

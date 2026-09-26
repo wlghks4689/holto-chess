@@ -5,6 +5,7 @@ import { CardView } from "./CardView";
 import { useLocalCountdown } from "./useLocalCountdown";
 import "./open-draft.css";
 import { R2DraftArena } from "./R2DraftArena";
+import { R4DraftArena } from "./R4DraftArena";
 import { PhaseTimer } from "./PhaseTimer";
 import { DraftRuleTooltip } from "./DraftRuleTooltip";
 import { useTranslation } from "../i18n";
@@ -16,12 +17,12 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
   const draft = view.draft;
   if (!draft) return null;
   if (view.round === 2) return <R2DraftArena view={view} send={send} disabled={disabled} seconds={seconds} />;
+  if (view.round === 4) return <R4DraftArena view={view} send={send} disabled={disabled} seconds={seconds} />;
   const name = (id: string) => view.players.find((p) => p.playerId === id)?.name ?? id;
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
   return <section className="open-draft panel" aria-label={t("draft.roundAria", { round: view.round })}>
     <header><small className="draft-kicker">ROUND {view.round} · DRAFT PHASE</small><div className="draft-title-row"><h2>{t(ordering ? "draft.title" : "draft.pickOne")}</h2><DraftRuleTooltip round={view.round} /></div>{(ordering || myTurn) && <PhaseTimer className="draft-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} />}</header>
-    {view.round === 4 && <div className="draft-private-inventory"><small>{t("draft.privateCards")}</small><div className="card-row centered">{view.me.ownedCards.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>}
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
       <b>{String(index + 1).padStart(2, "0")}</b><span>{name(entry.playerId)}</span><small>{entry.points}P · {entry.stackBB}BB</small>
     </li>)}</ol>
