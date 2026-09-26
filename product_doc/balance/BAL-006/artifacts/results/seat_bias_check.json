@@ -1,0 +1,170 @@
+[
+  {
+    "poolId": "distinct-strength",
+    "group": "winner",
+    "seed": 1,
+    "perOrder": [
+      {
+        "order": [
+          0,
+          1,
+          2
+        ],
+        "placeByOriginalHand": [
+          1,
+          3,
+          2
+        ]
+      },
+      {
+        "order": [
+          1,
+          2,
+          0
+        ],
+        "placeByOriginalHand": [
+          1,
+          3,
+          2
+        ]
+      },
+      {
+        "order": [
+          2,
+          0,
+          1
+        ],
+        "placeByOriginalHand": [
+          1,
+          3,
+          2
+        ]
+      },
+      {
+        "order": [
+          0,
+          2,
+          1
+        ],
+        "placeByOriginalHand": [
+          1,
+          3,
+          2
+        ]
+      }
+    ],
+    "allMatch": true
+  },
+  {
+    "poolId": "near-mirror-pairs",
+    "group": "winner",
+    "seed": 2,
+    "perOrder": [
+      {
+        "order": [
+          0,
+          1,
+          2
+        ],
+        "placeByOriginalHand": [
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "order": [
+          1,
+          2,
+          0
+        ],
+        "placeByOriginalHand": [
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "order": [
+          2,
+          0,
+          1
+        ],
+        "placeByOriginalHand": [
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "order": [
+          0,
+          2,
+          1
+        ],
+        "placeByOriginalHand": [
+          2,
+          2,
+          1
+        ]
+      }
+    ],
+    "allMatch": true
+  },
+  {
+    "poolId": "weak-disconnected-trio",
+    "group": "loser",
+    "seed": 1,
+    "perOrder": [
+      {
+        "order": [
+          0,
+          1,
+          2
+        ],
+        "placeByOriginalHand": [
+          3,
+          1,
+          2
+        ]
+      },
+      {
+        "order": [
+          1,
+          2,
+          0
+        ],
+        "placeByOriginalHand": [
+          3,
+          1,
+          2
+        ]
+      },
+      {
+        "order": [
+          2,
+          0,
+          1
+        ],
+        "placeByOriginalHand": [
+          3,
+          1,
+          2
+        ]
+      },
+      {
+        "order": [
+          0,
+          2,
+          1
+        ],
+        "placeByOriginalHand": [
+          3,
+          1,
+          2
+        ]
+      }
+    ],
+    "allMatch": true
+  }
+]
