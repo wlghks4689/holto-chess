@@ -6,6 +6,7 @@
 - 결정: rank 2=2BB, rank 3=3BB, rank 4=4BB. rank 5=5BB 및 나머지 가격·경제 규칙은 유지.
 - 출처: `codex/balance-latest`의 구현 커밋 `7700060bf40d89c729aee4d3c97f0a56e0bebfe8`, 승인 기록 `c7b2315`. 분석 브랜치 전체를 통합하지 않고 현재 `main`의 `BALANCE.rankPrices`와 관련 회귀 테스트에만 반영.
 - 통합 검증: `npm test -- --run` 463/463, `npm run test:workers` 13/13, `npm run lint`, `npm run build`, `npx wrangler deploy --dry-run` 통과. Worker 테스트의 로컬 로그 쓰기 경고는 테스트 실패가 아님.
+- 통합 커밋·운영 배포: `2bf09ba` (`main`, `origin/main`), Cloudflare Worker `porena` Version ID `32d66834-bd57-495f-bd9b-c39c43c065a3`. `https://porena.kr/api/health` HTTP 200, 운영 HTML에서 새 `index-BGBl7o-a.js` 확인.
 - 잔여 위험: BAL-004 분석에서 구매율 상승은 확인했으나 최종 성과 향상은 확인되지 않음. 운영에서 낮은 랭크 구매율·종료 BB·후속 라운드 성과를 관찰.
 
 ## MP-2026-09-24 — 멀티플레이 공개·종료·관전 경계
