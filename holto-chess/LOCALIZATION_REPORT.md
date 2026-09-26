@@ -6,6 +6,8 @@ The existing typed `src/i18n` architecture remains the source of truth. Korean a
 
 I18N-001 and I18N-002 code migrations are implemented. One mixed-locale multiplayer run reached R5 and exercised reconnect/spectator behavior. Release-level QA remains **NOT VERIFIED**: the Korean participant was eliminated after R3 (then observed R4/R5), a second full Korean participant run was not completed, five genuine responsive viewport sizes were not verified, and native-speaker review remains open.
 
+The user requested and authorized release despite these remaining QA gaps. Code commit `2bf09ba` was pushed to `origin/main` and deployed to Cloudflare Worker `porena` as Version ID `32d66834-bd57-495f-bd9b-c39c43c065a3`; the health endpoint returned HTTP 200 and the live HTML referenced the new client asset. Deployment does not change the NOT VERIFIED items into passes.
+
 ## UI coverage
 
 Home, settings, guide, local and online game, lobby, shop, draft, R2 loadout, showdown and preparation, round results, survival, spectator, reconnect, final standings, match history, tutorial, dialogs, tooltips, empty/waiting states, and accessibility labels use the current locale. Tutorial chapter source data stays Korean for the Korean path; `src/tutorial/englishCopy.ts` provides complete English chapter/step copy without changing lesson logic.
