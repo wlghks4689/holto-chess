@@ -1,0 +1,882 @@
+{
+  "distinct-strength:winner:SOLO_1ST": {
+    "seed": 1,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        3,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        10,
+        3,
+        5
+      ]
+    }
+  },
+  "distinct-strength:winner:TIED_2ND_ONLY": {
+    "seed": 348,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        3,
+        10,
+        3
+      ]
+    }
+  },
+  "distinct-strength:loser:SOLO_1ST": {
+    "seed": 1,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        3,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "distinct-strength:loser:TIED_2ND_ONLY": {
+    "seed": 196,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "near-mirror-pairs:winner:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 1,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        2,
+        3
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        10,
+        5,
+        3
+      ]
+    }
+  },
+  "near-mirror-pairs:winner:TIED_2ND_ONLY": {
+    "seed": 2,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        3,
+        3,
+        10
+      ]
+    }
+  },
+  "near-mirror-pairs:winner:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 3,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        5,
+        10,
+        3
+      ]
+    }
+  },
+  "near-mirror-pairs:winner:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 5,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        5,
+        10,
+        3
+      ]
+    }
+  },
+  "near-mirror-pairs:winner:SOLO_1ST": {
+    "seed": 6,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        3,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        10,
+        3,
+        5
+      ]
+    }
+  },
+  "near-mirror-pairs:loser:SOLO_1ST": {
+    "seed": 1,
+    "group": "loser",
+    "trial": {
+      "place": [
+        3,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "near-mirror-pairs:loser:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 2,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "near-mirror-pairs:loser:TIED_2ND_ONLY": {
+    "seed": 4,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "near-mirror-pairs:loser:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 6,
+    "group": "loser",
+    "trial": {
+      "place": [
+        1,
+        2,
+        3
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "near-mirror-pairs:loser:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 9,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "weak-disconnected-trio:winner:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 1,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        3,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        10,
+        3,
+        5
+      ]
+    }
+  },
+  "weak-disconnected-trio:winner:TIED_2ND_ONLY": {
+    "seed": 2,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        3,
+        10,
+        3
+      ]
+    }
+  },
+  "weak-disconnected-trio:winner:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 5,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        3,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        10,
+        3,
+        5
+      ]
+    }
+  },
+  "weak-disconnected-trio:winner:SOLO_1ST": {
+    "seed": 6,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        2,
+        3
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        10,
+        5,
+        3
+      ]
+    }
+  },
+  "weak-disconnected-trio:winner:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 33,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        3,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        5,
+        3,
+        10
+      ]
+    }
+  },
+  "weak-disconnected-trio:loser:SOLO_1ST": {
+    "seed": 1,
+    "group": "loser",
+    "trial": {
+      "place": [
+        3,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "weak-disconnected-trio:loser:TIED_2ND_ONLY": {
+    "seed": 4,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "weak-disconnected-trio:loser:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 5,
+    "group": "loser",
+    "trial": {
+      "place": [
+        1,
+        3,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "weak-disconnected-trio:loser:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 6,
+    "group": "loser",
+    "trial": {
+      "place": [
+        1,
+        3,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "weak-disconnected-trio:loser:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 58,
+    "group": "loser",
+    "trial": {
+      "place": [
+        1,
+        3,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "two-strong-one-weak:winner:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 1,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        2,
+        3
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        10,
+        5,
+        3
+      ]
+    }
+  },
+  "two-strong-one-weak:winner:SOLO_1ST": {
+    "seed": 2,
+    "group": "winner",
+    "trial": {
+      "place": [
+        3,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        3,
+        10,
+        5
+      ]
+    }
+  },
+  "two-strong-one-weak:winner:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 3,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        5,
+        10,
+        3
+      ]
+    }
+  },
+  "two-strong-one-weak:winner:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 4,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        5,
+        10,
+        3
+      ]
+    }
+  },
+  "two-strong-one-weak:winner:TIED_2ND_ONLY": {
+    "seed": 5,
+    "group": "winner",
+    "trial": {
+      "place": [
+        2,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        3,
+        3,
+        10
+      ]
+    }
+  },
+  "two-strong-one-weak:loser:SOLO_1ST": {
+    "seed": 1,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "two-strong-one-weak:loser:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 4,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "two-strong-one-weak:loser:TIED_2ND_ONLY": {
+    "seed": 5,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "two-strong-one-weak:loser:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 6,
+    "group": "loser",
+    "trial": {
+      "place": [
+        1,
+        2,
+        3
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "two-strong-one-weak:loser:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 9,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        1,
+        3
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "all-suited-runup:winner:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 1,
+    "group": "winner",
+    "trial": {
+      "place": [
+        3,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        3,
+        5,
+        10
+      ]
+    }
+  },
+  "all-suited-runup:winner:SOLO_1ST": {
+    "seed": 2,
+    "group": "winner",
+    "trial": {
+      "place": [
+        3,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        3,
+        5,
+        10
+      ]
+    }
+  },
+  "all-suited-runup:winner:TIED_2ND_ONLY": {
+    "seed": 6,
+    "group": "winner",
+    "trial": {
+      "place": [
+        1,
+        2,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        10,
+        3,
+        3
+      ]
+    }
+  },
+  "all-suited-runup:winner:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 50,
+    "group": "winner",
+    "trial": {
+      "place": [
+        3,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        3,
+        10,
+        5
+      ]
+    }
+  },
+  "all-suited-runup:winner:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 65,
+    "group": "winner",
+    "trial": {
+      "place": [
+        3,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        3,
+        5,
+        10
+      ]
+    }
+  },
+  "all-suited-runup:loser:SOLO_1ST": {
+    "seed": 1,
+    "group": "loser",
+    "trial": {
+      "place": [
+        2,
+        3,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "all-suited-runup:loser:TIE_1ST_2_SUDDEN_DEATH": {
+    "seed": 21,
+    "group": "loser",
+    "trial": {
+      "place": [
+        3,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": false,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "all-suited-runup:loser:TIED_2ND_ONLY": {
+    "seed": 22,
+    "group": "loser",
+    "trial": {
+      "place": [
+        1,
+        2,
+        2
+      ],
+      "winnerIndex": 0,
+      "suddenDeathCount": 0,
+      "hadHighCardDraw": false,
+      "boardsUsed": 1,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "all-suited-runup:loser:TIE_1ST_1_SUDDEN_DEATH": {
+    "seed": 30,
+    "group": "loser",
+    "trial": {
+      "place": [
+        3,
+        2,
+        1
+      ],
+      "winnerIndex": 2,
+      "suddenDeathCount": 1,
+      "hadHighCardDraw": false,
+      "boardsUsed": 2,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "all-suited-runup:loser:TIE_1ST_HIGH_CARD_DRAW": {
+    "seed": 622,
+    "group": "loser",
+    "trial": {
+      "place": [
+        3,
+        1,
+        2
+      ],
+      "winnerIndex": 1,
+      "suddenDeathCount": 2,
+      "hadHighCardDraw": true,
+      "boardsUsed": 3,
+      "pointAwards": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

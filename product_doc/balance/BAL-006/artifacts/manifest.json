@@ -1,0 +1,45 @@
+{
+  "analysisId": "BAL-006",
+  "baseCommit": "d5e62cb2af4ae0f1dcd3ccccf52e18a2c48052db",
+  "requestCommit": "cee690b1737ab882d4c1f18ddc707f0a6c6c9f7b",
+  "branch": "balance/BAL-006-latest",
+  "environment": {
+    "node": "v22.22.2",
+    "npm": "as pinned by holto-chess/package-lock.json (npm ci)",
+    "note": "All scripts run via `node --experimental-strip-types --experimental-loader ./lib/tsExtLoader.mjs <script>.ts` from artifacts/scripts/. The loader only resolves extensionless relative imports to .ts; it does not modify anything under holto-chess/."
+  },
+  "scripts": {
+    "lib/paths.ts": "절대 경로 상수 (이 worktree의 실제 앱 소스 경로)",
+    "lib/tsExtLoader.mjs": "Node ESM 로더 훅 — 확장자 없는 상대 import 해석용(분석 전용, holto-chess/ 미수정)",
+    "lib/fixture.ts": "createGame()+releasePlayerCards로 R4 SHOWDOWN_SECONDARY 3인 매치를 구성하는 실제 엔진 상태 빌더 (loserBracketReview.test.ts와 동일한 기법)",
+    "lib/fullEngineMC.ts": "resolveSecondary()를 실제로 호출하는 Monte Carlo 하네스 — 최종 승률/기대승점/생존확률",
+    "lib/regulationEquity.ts": "규정 보드 전용 계산기 — findBestFive/compareHands/rankPlayers/placeInRanking만 사용, 전수 계산 가능",
+    "lib/cases.ts": "5개 손-조합 풀 정의 + 카드 중복 검증",
+    "lib/prng.ts": "독립 RNG(mulberry32), 95% CI 계산기",
+    "smoke.ts": "fixture+resolveSecondary 최초 동작 확인용 1회 실행 스크립트",
+    "benchmark.ts": "resolveSecondary 1회 호출당 실측 비용(N=500) — §3.3 근거",
+    "benchExact.ts": "규정 보드 전수 계산 실측(C(37,5)=435,897) — §3.1 근거",
+    "mcSmoke.ts": "fullEngineMC 하네스 소규모(N=300) 동작 확인",
+    "sweepBranches.ts": "5개 손-조합 풀 × winner/loser × 최대 4000 seed 스윕 → 분기별 첫 발생 seed(branch_exemplars.json)와 발생률(branch_counts.json)",
+    "caseMatrix.ts": "sweepBranches 결과에서 24건의 결정적 사례를 선정하고 좌석-순서 편향 검증 수행 — §5 근거",
+    "findThreeWayCollapse.ts": "3명 전원이 규정 보드에서 1위 동점인 사례를 찾아 '동점자는 모두 2위로 수렴' 규칙을 재현 — §5.4 근거",
+    "pairwiseVsThreeWay.ts": "2인 heads-up 승률을 결합하는 방식이 진짜 3-way와 왜 다른지 실측 비교 — §4 근거",
+    "canonicalSeedProof.ts": "N-way 카드 순서/배열 순서 불변 시드 제안의 프로토타입 검증 — §6 근거",
+    "edgeCases.ts": "카드 부족/4인 그룹/중복 카드 등 §7 edge case를 실제 엔진 호출로 확인"
+  },
+  "results": {
+    "benchExact.log": "benchExact.ts 원본 로그 (git-ignored *.log, 재실행으로 재생성 가능)",
+    "sweepBranches.log": "sweepBranches.ts 원본 로그 (git-ignored *.log)",
+    "pairwiseVsThreeWay.log": "pairwiseVsThreeWay.ts 원본 로그 (git-ignored *.log)",
+    "findThreeWayCollapse.log": "findThreeWayCollapse.ts 부분 실행 로그 — 필요한 exemplar를 찾은 뒤 중단함 (git-ignored *.log)",
+    "branch_exemplars.json": "(pool,group,branch)별 첫 발생 seed",
+    "branch_counts.json": "(pool,group,branch)별 4000-seed 중 발생 횟수/비율",
+    "case_matrix.json": "§5 표의 원본 데이터(24건)",
+    "seat_bias_check.json": "§5.3 좌석-순서 편향 검증 원본 데이터"
+  },
+  "tests": {
+    "edge_case_checks.md": "edgeCases.ts 실행 로그 — 카드 부족/4인 그룹/중복 카드 확인 (§7 근거, .md로 저장해 *.log gitignore를 피함)",
+    "canonical_seed_proof.md": "canonicalSeedProof.ts 실행 로그 — N-way 시드 불변성 6개 변형 전부 통과 (§6 근거)"
+  },
+  "note": "REQUEST.md의 쓰기 허용 경로(product_doc/balance/BAL-006/REPORT.md, artifacts/**) 안에서만 작성했으며 게임 소스·UI·공용 테스트·config.ts·lockfile은 전혀 수정하지 않았다. 모든 수치는 실제 프로덕션 함수(resolveSecondary, findBestFive, compareHands, rankPlayers, placeInRanking)를 직접 호출해 얻었다 — 별도 판정 로직 재구현 없음. *.log 파일은 리포지토리 전역 .gitignore(*.log) 때문에 커밋되지 않지만 모든 스크립트가 결정적(seed 고정)이라 언제든 재실행해 재생성할 수 있다."
+}
