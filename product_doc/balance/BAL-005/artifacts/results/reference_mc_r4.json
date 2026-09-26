@@ -1,0 +1,631 @@
+{
+  "round": 4,
+  "tag": "best-five 5v5",
+  "n": 40000,
+  "results": [
+    {
+      "id": "r4-01",
+      "round": 4,
+      "label": "AAKK2 vs 7 3 9 J 4 scattered",
+      "category": "메이드(투페어) vs 산개",
+      "left": [
+        "As",
+        "Ah",
+        "Kd",
+        "Kc",
+        "2s"
+      ],
+      "right": [
+        "7c",
+        "3d",
+        "9h",
+        "Jc",
+        "4s"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 72.2825,
+      "ci95LowPercent": 71.84430845683269,
+      "ci95HighPercent": 72.72069154316732,
+      "ci95HalfWidthPercentPoints": 0.4381915431673074,
+      "ms": 30714
+    },
+    {
+      "id": "r4-02",
+      "round": 4,
+      "label": "AK94(2)(4флаш) vs T9876 커넥티드",
+      "category": "4-플러시 드로우 vs 커넥티드",
+      "left": [
+        "As",
+        "Ks",
+        "9s",
+        "4s",
+        "2h"
+      ],
+      "right": [
+        "Tc",
+        "9d",
+        "8h",
+        "7c",
+        "6s"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 64.4975,
+      "ci95LowPercent": 64.02945334207834,
+      "ci95HighPercent": 64.96554665792166,
+      "ci95HalfWidthPercentPoints": 0.4680466579216578,
+      "ms": 32880
+    },
+    {
+      "id": "r4-03",
+      "round": 4,
+      "label": "QQQ77 vs AKJ94 scattered",
+      "category": "풀하우스 재료 vs 산개 높은카드",
+      "left": [
+        "Qs",
+        "Qh",
+        "Qc",
+        "7d",
+        "7c"
+      ],
+      "right": [
+        "Ac",
+        "Kd",
+        "Jh",
+        "9s",
+        "4c"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 94.74000000000001,
+      "ci95LowPercent": 94.52125577739776,
+      "ci95HighPercent": 94.95874422260225,
+      "ci95HalfWidthPercentPoints": 0.21874422260224788,
+      "ms": 35761
+    },
+    {
+      "id": "r4-04",
+      "round": 4,
+      "label": "98762 vs KKQ93",
+      "category": "오픈엔드 드로우 vs 메이드 페어",
+      "left": [
+        "9s",
+        "8h",
+        "7d",
+        "6c",
+        "2s"
+      ],
+      "right": [
+        "Kd",
+        "Kh",
+        "Qc",
+        "9h",
+        "3d"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 41.58625,
+      "ci95LowPercent": 41.10445696890089,
+      "ci95HighPercent": 42.06804303109911,
+      "ci95HalfWidthPercentPoints": 0.48179303109911076,
+      "ms": 37982
+    },
+    {
+      "id": "r4-05",
+      "round": 4,
+      "label": "3388K vs JT982",
+      "category": "산개 투페어 vs 드로우",
+      "left": [
+        "3s",
+        "3h",
+        "8d",
+        "8c",
+        "Kh"
+      ],
+      "right": [
+        "Jc",
+        "Tc",
+        "9d",
+        "8s",
+        "2h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 45.945,
+      "ci95LowPercent": 45.45754295344276,
+      "ci95HighPercent": 46.43245704655724,
+      "ci95HalfWidthPercentPoints": 0.48745704655723543,
+      "ms": 38635
+    },
+    {
+      "id": "r4-06",
+      "round": 4,
+      "label": "AKQJ9 vs TT762",
+      "category": "높은 카드 산개 vs 메이드 페어",
+      "left": [
+        "As",
+        "Kd",
+        "Qh",
+        "Jc",
+        "9s"
+      ],
+      "right": [
+        "Th",
+        "Td",
+        "7c",
+        "6d",
+        "2h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 47.31625,
+      "ci95LowPercent": 46.82707906846935,
+      "ci95HighPercent": 47.80542093153065,
+      "ci95HalfWidthPercentPoints": 0.4891709315306472,
+      "ms": 36171
+    },
+    {
+      "id": "r4-07",
+      "round": 4,
+      "label": "AK952(완성 플러시) vs AAKK7",
+      "category": "완성된 플러시 vs 더블페어",
+      "left": [
+        "As",
+        "Ks",
+        "9s",
+        "5s",
+        "2s"
+      ],
+      "right": [
+        "Ac",
+        "Ad",
+        "Kc",
+        "Kh",
+        "7h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 67.00125,
+      "ci95LowPercent": 66.54062912559273,
+      "ci95HighPercent": 67.46187087440727,
+      "ci95HalfWidthPercentPoints": 0.46062087440727467,
+      "ms": 36448
+    },
+    {
+      "id": "r4-08",
+      "round": 4,
+      "label": "97642 vs KKJ83",
+      "category": "갭 스트레이트 드로우 vs 탑페어",
+      "left": [
+        "9s",
+        "7h",
+        "6d",
+        "4c",
+        "2s"
+      ],
+      "right": [
+        "Kc",
+        "Kd",
+        "Jh",
+        "8s",
+        "3c"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 34.63875,
+      "ci95LowPercent": 34.17264165738581,
+      "ci95HighPercent": 35.10485834261419,
+      "ci95HalfWidthPercentPoints": 0.4661083426141902,
+      "ms": 36334
+    },
+    {
+      "id": "r4-09",
+      "round": 4,
+      "label": "TTJ48 vs QJ983",
+      "category": "페어+산개 vs 투톤 드로우",
+      "left": [
+        "Th",
+        "Tc",
+        "Jd",
+        "4s",
+        "8h"
+      ],
+      "right": [
+        "Qs",
+        "Js",
+        "9d",
+        "8c",
+        "3h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 68.3025,
+      "ci95LowPercent": 67.85092076638229,
+      "ci95HighPercent": 68.7540792336177,
+      "ci95HalfWidthPercentPoints": 0.4515792336177069,
+      "ms": 37366
+    },
+    {
+      "id": "r4-10",
+      "round": 4,
+      "label": "24689 vs KKQJ9",
+      "category": "낮은 산개 vs 강한 페어",
+      "left": [
+        "2s",
+        "4h",
+        "6d",
+        "8c",
+        "9d"
+      ],
+      "right": [
+        "Kh",
+        "Kd",
+        "Qc",
+        "Js",
+        "9h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 25.837500000000002,
+      "ci95LowPercent": 25.409713304344145,
+      "ci95HighPercent": 26.26528669565586,
+      "ci95HalfWidthPercentPoints": 0.4277866956558572,
+      "ms": 37489
+    },
+    {
+      "id": "r4-11",
+      "round": 4,
+      "label": "AAK72 vs JT986",
+      "category": "AAxx 메이드 vs 런다운 드로우",
+      "left": [
+        "As",
+        "Ah",
+        "Kd",
+        "7c",
+        "2h"
+      ],
+      "right": [
+        "Jc",
+        "Tc",
+        "9d",
+        "8s",
+        "6h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 50.956250000000004,
+      "ci95LowPercent": 50.466388635655655,
+      "ci95HighPercent": 51.44611136434435,
+      "ci95HalfWidthPercentPoints": 0.4898613643443498,
+      "ms": 38051
+    },
+    {
+      "id": "r4-12",
+      "round": 4,
+      "label": "999K4 vs QQJ73",
+      "category": "트립스 vs 투페어 산개",
+      "left": [
+        "9s",
+        "9h",
+        "9c",
+        "Kd",
+        "4h"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Jh",
+        "7s",
+        "3d"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 78.06625,
+      "ci95LowPercent": 77.66074535955217,
+      "ci95HighPercent": 78.47175464044784,
+      "ci95HalfWidthPercentPoints": 0.40550464044784185,
+      "ms": 35187
+    },
+    {
+      "id": "r4-13",
+      "round": 4,
+      "label": "76543 vs AKQ92",
+      "category": "낮은 스트레이트 메이드 vs 산개",
+      "left": [
+        "7s",
+        "6h",
+        "5d",
+        "4c",
+        "3s"
+      ],
+      "right": [
+        "Ac",
+        "Kd",
+        "Qh",
+        "9s",
+        "2c"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 66.59625,
+      "ci95LowPercent": 66.13453763803957,
+      "ci95HighPercent": 67.05796236196043,
+      "ci95HalfWidthPercentPoints": 0.4617123619604304,
+      "ms": 35955
+    },
+    {
+      "id": "r4-14",
+      "round": 4,
+      "label": "AK853(4플) vs 888Q2",
+      "category": "너트 플러시 드로우 vs 메이드 트립스",
+      "left": [
+        "Ah",
+        "Kh",
+        "8h",
+        "5h",
+        "3s"
+      ],
+      "right": [
+        "8c",
+        "8d",
+        "8s",
+        "Qc",
+        "2d"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 16.9075,
+      "ci95LowPercent": 16.540844235052898,
+      "ci95HighPercent": 17.274155764947103,
+      "ci95HalfWidthPercentPoints": 0.36665576494710195,
+      "ms": 36551
+    },
+    {
+      "id": "r4-15",
+      "round": 4,
+      "label": "2s7hJcKd4h vs 3d8hTc Qh9s",
+      "category": "산개 vs 산개",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd",
+        "4h"
+      ],
+      "right": [
+        "3d",
+        "8h",
+        "Tc",
+        "Qh",
+        "9s"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 37.0825,
+      "ci95LowPercent": 36.60958562791169,
+      "ci95HighPercent": 37.555414372088315,
+      "ci95HalfWidthPercentPoints": 0.4729143720883125,
+      "ms": 38153
+    },
+    {
+      "id": "r4-16",
+      "round": 4,
+      "label": "AAKK3 vs QQJJ6",
+      "category": "더블페어 vs 더블페어",
+      "left": [
+        "As",
+        "Ah",
+        "Kd",
+        "Kc",
+        "3s"
+      ],
+      "right": [
+        "Qh",
+        "Qc",
+        "Jd",
+        "Jh",
+        "6s"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 65.15625,
+      "ci95LowPercent": 64.68990928001617,
+      "ci95HighPercent": 65.62259071998385,
+      "ci95HalfWidthPercentPoints": 0.4663407199838399,
+      "ms": 36700
+    },
+    {
+      "id": "r4-17",
+      "round": 4,
+      "label": "65432(스트레이트 완성) vs AKQJ8",
+      "category": "낮은 커넥티드 드로우 vs 높은 산개",
+      "left": [
+        "6s",
+        "5h",
+        "4d",
+        "3c",
+        "2s"
+      ],
+      "right": [
+        "Ac",
+        "Kd",
+        "Qh",
+        "Jc",
+        "8s"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 49.6075,
+      "ci95LowPercent": 49.11783984886014,
+      "ci95HighPercent": 50.09716015113985,
+      "ci95HalfWidthPercentPoints": 0.4896601511398509,
+      "ms": 36268
+    },
+    {
+      "id": "r4-18",
+      "round": 4,
+      "label": "AAJ73 vs KKQQ9",
+      "category": "AAxx vs 프리미엄 더블페어",
+      "left": [
+        "Ad",
+        "Ac",
+        "Jh",
+        "7s",
+        "3d"
+      ],
+      "right": [
+        "Kh",
+        "Kc",
+        "Qd",
+        "Qs",
+        "9h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 53.488749999999996,
+      "ci95LowPercent": 53.00020223317663,
+      "ci95HighPercent": 53.97729776682336,
+      "ci95HalfWidthPercentPoints": 0.488547766823367,
+      "ms": 36579
+    },
+    {
+      "id": "r4-19",
+      "round": 4,
+      "label": "2299J vs 7788K",
+      "category": "약한 페어 vs 약한 페어",
+      "left": [
+        "2s",
+        "2h",
+        "9d",
+        "9c",
+        "Jh"
+      ],
+      "right": [
+        "7s",
+        "7h",
+        "8d",
+        "8c",
+        "Kh"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 53.14875,
+      "ci95LowPercent": 52.66001730388062,
+      "ci95HighPercent": 53.63748269611938,
+      "ci95HalfWidthPercentPoints": 0.4887326961193754,
+      "ms": 37428
+    },
+    {
+      "id": "r4-20",
+      "round": 4,
+      "label": "97642(2) vs QQT85",
+      "category": "스트레이트 드로우 double gutshot vs 메이드",
+      "left": [
+        "9h",
+        "7d",
+        "6c",
+        "4s",
+        "2h"
+      ],
+      "right": [
+        "Qs",
+        "Qh",
+        "Tc",
+        "8d",
+        "5c"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 31.51375,
+      "ci95LowPercent": 31.058577187488602,
+      "ci95HighPercent": 31.9689228125114,
+      "ci95HalfWidthPercentPoints": 0.45517281251140257,
+      "ms": 38561
+    },
+    {
+      "id": "r4-21",
+      "round": 4,
+      "label": "AKQJT(브로드웨이 산개) vs 3344 6",
+      "category": "브로드웨이 산개 vs 낮은 메이드 페어",
+      "left": [
+        "Ac",
+        "Kh",
+        "Qd",
+        "Jc",
+        "Ts"
+      ],
+      "right": [
+        "3s",
+        "3h",
+        "4d",
+        "4c",
+        "6h"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 56.12625,
+      "ci95LowPercent": 55.640077828648224,
+      "ci95HighPercent": 56.612422171351774,
+      "ci95HalfWidthPercentPoints": 0.48617217135177815,
+      "ms": 38587
+    },
+    {
+      "id": "r4-22",
+      "round": 4,
+      "label": "T8642(완성 플러시) vs 9876 5(완성 스트레이트)",
+      "category": "완성 플러시 vs 완성 스트레이트",
+      "left": [
+        "Th",
+        "8h",
+        "6h",
+        "4h",
+        "2h"
+      ],
+      "right": [
+        "9c",
+        "8s",
+        "7d",
+        "6c",
+        "5s"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 76.40249999999999,
+      "ci95LowPercent": 75.98910114152883,
+      "ci95HighPercent": 76.81589885847116,
+      "ci95HalfWidthPercentPoints": 0.4133988584711536,
+      "ms": 37942
+    },
+    {
+      "id": "r4-23",
+      "round": 4,
+      "label": "AKQ97 vs AJT86",
+      "category": "산개 킥커 싸움",
+      "left": [
+        "As",
+        "Kd",
+        "Qh",
+        "9c",
+        "7s"
+      ],
+      "right": [
+        "Ah",
+        "Jc",
+        "Td",
+        "8h",
+        "6d"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 46.98,
+      "ci95LowPercent": 46.492351123430325,
+      "ci95HighPercent": 47.467648876569676,
+      "ci95HalfWidthPercentPoints": 0.487648876569675,
+      "ms": 38516
+    },
+    {
+      "id": "r4-24",
+      "round": 4,
+      "label": "2s4h7c9dTc vs 3d5h6c8s Jc",
+      "category": "낮은 카드 산개 vs 낮은 카드 산개",
+      "left": [
+        "2s",
+        "4h",
+        "7c",
+        "9d",
+        "Tc"
+      ],
+      "right": [
+        "3d",
+        "5h",
+        "6c",
+        "8s",
+        "Jc"
+      ],
+      "n": 40000,
+      "leftEquityPercent": 46.42875,
+      "ci95LowPercent": 45.940948110126676,
+      "ci95HighPercent": 46.916551889873325,
+      "ci95HalfWidthPercentPoints": 0.48780188987332174,
+      "ms": 39126
+    }
+  ]
+}

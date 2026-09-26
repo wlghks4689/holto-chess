@@ -1,0 +1,485 @@
+{
+  "round": 1,
+  "results": [
+    {
+      "id": "r1-01",
+      "round": 1,
+      "label": "AA vs 72o",
+      "category": "강한 vs 약한",
+      "left": [
+        "As",
+        "Ah"
+      ],
+      "right": [
+        "7c",
+        "2d"
+      ],
+      "shownLeftPercent": 87,
+      "shownRightPercent": 13,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 87
+    },
+    {
+      "id": "r1-02",
+      "round": 1,
+      "label": "AA vs KK",
+      "category": "강한 vs 강한",
+      "left": [
+        "As",
+        "Ah"
+      ],
+      "right": [
+        "Kc",
+        "Kd"
+      ],
+      "shownLeftPercent": 81,
+      "shownRightPercent": 19,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 80
+    },
+    {
+      "id": "r1-03",
+      "round": 1,
+      "label": "KK vs AQo",
+      "category": "지배 구조",
+      "left": [
+        "Ks",
+        "Kh"
+      ],
+      "right": [
+        "Ac",
+        "Qd"
+      ],
+      "shownLeftPercent": 72,
+      "shownRightPercent": 28,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 73
+    },
+    {
+      "id": "r1-04",
+      "round": 1,
+      "label": "QQ vs AKs",
+      "category": "코인플립",
+      "left": [
+        "Qs",
+        "Qh"
+      ],
+      "right": [
+        "Ac",
+        "Kc"
+      ],
+      "shownLeftPercent": 51,
+      "shownRightPercent": 49,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 55
+    },
+    {
+      "id": "r1-05",
+      "round": 1,
+      "label": "AKs vs AKo(다른 슈트)",
+      "category": "suitedness",
+      "left": [
+        "As",
+        "Ks"
+      ],
+      "right": [
+        "Ad",
+        "Kc"
+      ],
+      "shownLeftPercent": 53,
+      "shownRightPercent": 47,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52
+    },
+    {
+      "id": "r1-06",
+      "round": 1,
+      "label": "AKo vs KQo",
+      "category": "지배 구조",
+      "left": [
+        "Ah",
+        "Kd"
+      ],
+      "right": [
+        "Kc",
+        "Qs"
+      ],
+      "shownLeftPercent": 74,
+      "shownRightPercent": 26,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 73
+    },
+    {
+      "id": "r1-07",
+      "round": 1,
+      "label": "22 vs AKo",
+      "category": "약한 페어 vs 오버카드",
+      "left": [
+        "2s",
+        "2h"
+      ],
+      "right": [
+        "Ac",
+        "Kd"
+      ],
+      "shownLeftPercent": 54,
+      "shownRightPercent": 46,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 54
+    },
+    {
+      "id": "r1-08",
+      "round": 1,
+      "label": "55 vs 44",
+      "category": "낮은 페어 레이스",
+      "left": [
+        "5s",
+        "5h"
+      ],
+      "right": [
+        "4c",
+        "4d"
+      ],
+      "shownLeftPercent": 82,
+      "shownRightPercent": 18,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 80
+    },
+    {
+      "id": "r1-09",
+      "round": 1,
+      "label": "JTs vs 92o",
+      "category": "connectedness",
+      "left": [
+        "Js",
+        "Ts"
+      ],
+      "right": [
+        "9c",
+        "2d"
+      ],
+      "shownLeftPercent": 71,
+      "shownRightPercent": 29,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 72
+    },
+    {
+      "id": "r1-10",
+      "round": 1,
+      "label": "76s vs 98s",
+      "category": "connectedness",
+      "left": [
+        "7s",
+        "6s"
+      ],
+      "right": [
+        "9d",
+        "8d"
+      ],
+      "shownLeftPercent": 37,
+      "shownRightPercent": 63,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 37
+    },
+    {
+      "id": "r1-11",
+      "round": 1,
+      "label": "A2s vs 76s",
+      "category": "낮은 카드",
+      "left": [
+        "As",
+        "2s"
+      ],
+      "right": [
+        "7d",
+        "6d"
+      ],
+      "shownLeftPercent": 53,
+      "shownRightPercent": 47,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52
+    },
+    {
+      "id": "r1-12",
+      "round": 1,
+      "label": "33 vs 22",
+      "category": "낮은 페어 레이스",
+      "left": [
+        "3s",
+        "3h"
+      ],
+      "right": [
+        "2c",
+        "2d"
+      ],
+      "shownLeftPercent": 79,
+      "shownRightPercent": 21,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 80
+    },
+    {
+      "id": "r1-13",
+      "round": 1,
+      "label": "AJo vs KTo",
+      "category": "높은 카드",
+      "left": [
+        "As",
+        "Jd"
+      ],
+      "right": [
+        "Kc",
+        "Th"
+      ],
+      "shownLeftPercent": 63,
+      "shownRightPercent": 37,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 62
+    },
+    {
+      "id": "r1-14",
+      "round": 1,
+      "label": "K9s vs Q9s",
+      "category": "suitedness",
+      "left": [
+        "Ks",
+        "9s"
+      ],
+      "right": [
+        "Qd",
+        "9d"
+      ],
+      "shownLeftPercent": 72,
+      "shownRightPercent": 28,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 70
+    },
+    {
+      "id": "r1-15",
+      "round": 1,
+      "label": "84o vs 73o",
+      "category": "약한 vs 약한",
+      "left": [
+        "8s",
+        "4h"
+      ],
+      "right": [
+        "7c",
+        "3d"
+      ],
+      "shownLeftPercent": 62,
+      "shownRightPercent": 38,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 60
+    },
+    {
+      "id": "r1-16",
+      "round": 1,
+      "label": "AKo vs QQ",
+      "category": "코인플립",
+      "left": [
+        "Ah",
+        "Kd"
+      ],
+      "right": [
+        "Qs",
+        "Qc"
+      ],
+      "shownLeftPercent": 44,
+      "shownRightPercent": 56,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 42
+    },
+    {
+      "id": "r1-17",
+      "round": 1,
+      "label": "TT vs AKs",
+      "category": "코인플립",
+      "left": [
+        "Ts",
+        "Th"
+      ],
+      "right": [
+        "Ac",
+        "Kc"
+      ],
+      "shownLeftPercent": 53,
+      "shownRightPercent": 47,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 53
+    },
+    {
+      "id": "r1-18",
+      "round": 1,
+      "label": "89s vs KQo",
+      "category": "connectedness",
+      "left": [
+        "8s",
+        "9s"
+      ],
+      "right": [
+        "Kd",
+        "Qh"
+      ],
+      "shownLeftPercent": 40,
+      "shownRightPercent": 60,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 43
+    },
+    {
+      "id": "r1-19",
+      "round": 1,
+      "label": "AA vs 22",
+      "category": "강한 vs 약한",
+      "left": [
+        "As",
+        "Ah"
+      ],
+      "right": [
+        "2c",
+        "2d"
+      ],
+      "shownLeftPercent": 82,
+      "shownRightPercent": 18,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 82
+    },
+    {
+      "id": "r1-20",
+      "round": 1,
+      "label": "65s vs A9o",
+      "category": "낮은 카드",
+      "left": [
+        "6s",
+        "5s"
+      ],
+      "right": [
+        "Ad",
+        "9c"
+      ],
+      "shownLeftPercent": 43,
+      "shownRightPercent": 57,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 43
+    },
+    {
+      "id": "r1-21",
+      "round": 1,
+      "label": "KQs vs JTs",
+      "category": "높은 카드",
+      "left": [
+        "Ks",
+        "Qs"
+      ],
+      "right": [
+        "Jd",
+        "Td"
+      ],
+      "shownLeftPercent": 63,
+      "shownRightPercent": 37,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 60
+    },
+    {
+      "id": "r1-22",
+      "round": 1,
+      "label": "72o vs 83o",
+      "category": "약한 vs 약한",
+      "left": [
+        "7s",
+        "2h"
+      ],
+      "right": [
+        "8c",
+        "3d"
+      ],
+      "shownLeftPercent": 39,
+      "shownRightPercent": 61,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 39
+    },
+    {
+      "id": "r1-23",
+      "round": 1,
+      "label": "AKo(hs) vs AKo(dc)",
+      "category": "블로커/미러",
+      "left": [
+        "Ah",
+        "Ks"
+      ],
+      "right": [
+        "Ad",
+        "Kc"
+      ],
+      "shownLeftPercent": 50,
+      "shownRightPercent": 50,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 50
+    },
+    {
+      "id": "r1-24",
+      "round": 1,
+      "label": "A5s vs 66",
+      "category": "suitedness",
+      "left": [
+        "As",
+        "5s"
+      ],
+      "right": [
+        "6d",
+        "6c"
+      ],
+      "shownLeftPercent": 33,
+      "shownRightPercent": 67,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 38
+    }
+  ]
+}

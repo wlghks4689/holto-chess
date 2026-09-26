@@ -1,0 +1,583 @@
+{
+  "round": 3,
+  "tag": "omaha 4v4",
+  "n": 150000,
+  "results": [
+    {
+      "id": "r3-01",
+      "round": 3,
+      "label": "AAKKds vs 876ss+5d",
+      "category": "강한 double-suited vs 약한",
+      "left": [
+        "As",
+        "Ac",
+        "Ks",
+        "Kc"
+      ],
+      "right": [
+        "8h",
+        "7h",
+        "6d",
+        "5d"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 58.565999999999995,
+      "ci95LowPercent": 58.316705267622936,
+      "ci95HighPercent": 58.815294732377055,
+      "ci95HalfWidthPercentPoints": 0.24929473237705999,
+      "ms": 29440
+    },
+    {
+      "id": "r3-02",
+      "round": 3,
+      "label": "JT98ds vs AA72 rainbow",
+      "category": "런다운 vs AAxx rainbow",
+      "left": [
+        "Js",
+        "Ts",
+        "9h",
+        "8h"
+      ],
+      "right": [
+        "Ad",
+        "Ac",
+        "7d",
+        "2c"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 44.13733333333333,
+      "ci95LowPercent": 43.88604300921498,
+      "ci95HighPercent": 44.38862365745169,
+      "ci95HalfWidthPercentPoints": 0.2512903241183517,
+      "ms": 30104
+    },
+    {
+      "id": "r3-03",
+      "round": 3,
+      "label": "AAJT(ss) vs KQ98 rainbow",
+      "category": "AAxx single-suited vs scattered",
+      "left": [
+        "As",
+        "Ac",
+        "Js",
+        "Th"
+      ],
+      "right": [
+        "Kd",
+        "Qc",
+        "9h",
+        "8s"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 69.09333333333333,
+      "ci95LowPercent": 68.85949153197521,
+      "ci95HighPercent": 69.32717513469146,
+      "ci95HalfWidthPercentPoints": 0.2338418013581302,
+      "ms": 30680
+    },
+    {
+      "id": "r3-04",
+      "round": 3,
+      "label": "9876ds vs 5544",
+      "category": "런다운 vs 투페어",
+      "left": [
+        "9s",
+        "8h",
+        "7s",
+        "6h"
+      ],
+      "right": [
+        "5c",
+        "5d",
+        "4h",
+        "4s"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 61.17066666666666,
+      "ci95LowPercent": 60.924026694114595,
+      "ci95HighPercent": 61.41730663921873,
+      "ci95HalfWidthPercentPoints": 0.24663997255206702,
+      "ms": 31678
+    },
+    {
+      "id": "r3-05",
+      "round": 3,
+      "label": "KJ83 rainbow vs TT99ds",
+      "category": "높은 카드 rainbow vs 더블페어",
+      "left": [
+        "Kd",
+        "Jc",
+        "8h",
+        "3s"
+      ],
+      "right": [
+        "Ts",
+        "Td",
+        "9h",
+        "9c"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 37.753,
+      "ci95LowPercent": 37.507700869485575,
+      "ci95HighPercent": 37.99829913051442,
+      "ci95HalfWidthPercentPoints": 0.2452991305144208,
+      "ms": 28797
+    },
+    {
+      "id": "r3-06",
+      "round": 3,
+      "label": "A234ds(wheel) vs KQJT rainbow",
+      "category": "낮은 카드 double-suited vs broadway rainbow",
+      "left": [
+        "As",
+        "2s",
+        "3h",
+        "4h"
+      ],
+      "right": [
+        "Kd",
+        "Qc",
+        "Jh",
+        "Ts"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 52.690666666666665,
+      "ci95LowPercent": 52.43799755683229,
+      "ci95HighPercent": 52.94333577650103,
+      "ci95HalfWidthPercentPoints": 0.252669109834366,
+      "ms": 28473
+    },
+    {
+      "id": "r3-07",
+      "round": 3,
+      "label": "AA27 rainbow vs QJT9ds",
+      "category": "AAxx 함정",
+      "left": [
+        "Ad",
+        "Ah",
+        "2c",
+        "7s"
+      ],
+      "right": [
+        "Qs",
+        "Js",
+        "Th",
+        "9h"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 51.913333333333334,
+      "ci95LowPercent": 51.66048291070757,
+      "ci95HighPercent": 52.166183755959096,
+      "ci95HalfWidthPercentPoints": 0.25285042262576185,
+      "ms": 28750
+    },
+    {
+      "id": "r3-08",
+      "round": 3,
+      "label": "KK98ss vs QQJTss",
+      "category": "더블페어 vs 더블페어",
+      "left": [
+        "Kc",
+        "Kd",
+        "9h",
+        "8h"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Jh",
+        "Th"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 66.70066666666666,
+      "ci95LowPercent": 66.46217749032162,
+      "ci95HighPercent": 66.9391558430117,
+      "ci95HalfWidthPercentPoints": 0.23848917634504116,
+      "ms": 28882
+    },
+    {
+      "id": "r3-09",
+      "round": 3,
+      "label": "AAKKds vs 2c3c9hTh",
+      "category": "강한 double-suited vs 약한 scattered",
+      "left": [
+        "As",
+        "Ad",
+        "Ks",
+        "Kd"
+      ],
+      "right": [
+        "2c",
+        "3c",
+        "9h",
+        "Th"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 62.562666666666665,
+      "ci95LowPercent": 62.31774795372822,
+      "ci95HighPercent": 62.807585379605115,
+      "ci95HalfWidthPercentPoints": 0.244918712938444,
+      "ms": 30135
+    },
+    {
+      "id": "r3-10",
+      "round": 3,
+      "label": "2sJcKd scattered vs 6789ds",
+      "category": "산개 vs 런다운",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd"
+      ],
+      "right": [
+        "6s",
+        "7s",
+        "8h",
+        "9h"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 44.812999999999995,
+      "ci95LowPercent": 44.561661309311305,
+      "ci95HighPercent": 45.06433869068869,
+      "ci95HalfWidthPercentPoints": 0.2513386906886943,
+      "ms": 31961
+    },
+    {
+      "id": "r3-11",
+      "round": 3,
+      "label": "AKQ2(3-flush) vs JT98ds",
+      "category": "3-flush vs 런다운",
+      "left": [
+        "As",
+        "Ks",
+        "Qs",
+        "2h"
+      ],
+      "right": [
+        "Jd",
+        "Td",
+        "9c",
+        "8c"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 46.66866666666667,
+      "ci95LowPercent": 46.41621176101236,
+      "ci95HighPercent": 46.92112157232097,
+      "ci95HalfWidthPercentPoints": 0.25245490565430223,
+      "ms": 31564
+    },
+    {
+      "id": "r3-12",
+      "round": 3,
+      "label": "AA92 rainbow vs KKQJds",
+      "category": "AAxx rainbow vs 강한 KK",
+      "left": [
+        "Ac",
+        "Ad",
+        "9h",
+        "2s"
+      ],
+      "right": [
+        "Ks",
+        "Kh",
+        "Qs",
+        "Jh"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 58.14533333333334,
+      "ci95LowPercent": 57.895677760113486,
+      "ci95HighPercent": 58.394988906553195,
+      "ci95HalfWidthPercentPoints": 0.24965557321984944,
+      "ms": 30020
+    },
+    {
+      "id": "r3-13",
+      "round": 3,
+      "label": "9876(단일suited) vs KK44",
+      "category": "단일-suited 런다운 vs 더블페어",
+      "left": [
+        "9c",
+        "8c",
+        "7d",
+        "6h"
+      ],
+      "right": [
+        "Ks",
+        "Kd",
+        "4h",
+        "4c"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 43.358000000000004,
+      "ci95LowPercent": 43.107206775189674,
+      "ci95HighPercent": 43.60879322481033,
+      "ci95HalfWidthPercentPoints": 0.2507932248103273,
+      "ms": 31045
+    },
+    {
+      "id": "r3-14",
+      "round": 3,
+      "label": "3345(휠드로우) vs QQKKds",
+      "category": "낮은 페어 드로우 vs 프리미엄 더블페어",
+      "left": [
+        "3s",
+        "3h",
+        "4d",
+        "5c"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Ks",
+        "Kh"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 33.42066666666666,
+      "ci95LowPercent": 33.181946469219625,
+      "ci95HighPercent": 33.659386864113706,
+      "ci95HalfWidthPercentPoints": 0.23872019744704012,
+      "ms": 28702
+    },
+    {
+      "id": "r3-15",
+      "round": 3,
+      "label": "AAK3(단일suited) vs T987ds",
+      "category": "AAxx 단일-suited vs 런다운",
+      "left": [
+        "As",
+        "Ah",
+        "Kc",
+        "3c"
+      ],
+      "right": [
+        "Ts",
+        "9s",
+        "8h",
+        "7h"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 54.102,
+      "ci95LowPercent": 53.8498172186353,
+      "ci95HighPercent": 54.35418278136469,
+      "ci95HalfWidthPercentPoints": 0.2521827813646995,
+      "ms": 28086
+    },
+    {
+      "id": "r3-16",
+      "round": 3,
+      "label": "229K rainbow vs 789Sk",
+      "category": "약한 페어 vs 약한 페어",
+      "left": [
+        "2c",
+        "2d",
+        "9h",
+        "Ks"
+      ],
+      "right": [
+        "7c",
+        "7d",
+        "8h",
+        "9s"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 41.26533333333333,
+      "ci95LowPercent": 41.01618853608676,
+      "ci95HighPercent": 41.51447813057991,
+      "ci95HalfWidthPercentPoints": 0.24914479724657754,
+      "ms": 27915
+    },
+    {
+      "id": "r3-17",
+      "round": 3,
+      "label": "AK92(넛플드로우) vs JJTT",
+      "category": "너트 플러시 드로우 vs 메이드 투페어",
+      "left": [
+        "As",
+        "Ks",
+        "9h",
+        "2d"
+      ],
+      "right": [
+        "Jc",
+        "Jd",
+        "Th",
+        "Ts"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 42.231,
+      "ci95LowPercent": 41.98105535180316,
+      "ci95HighPercent": 42.480944648196854,
+      "ci95HalfWidthPercentPoints": 0.24994464819685044,
+      "ms": 29560
+    },
+    {
+      "id": "r3-18",
+      "round": 3,
+      "label": "2s7hJcKd vs 3d8hTcQh",
+      "category": "산개 vs 산개",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd"
+      ],
+      "right": [
+        "3d",
+        "8h",
+        "Tc",
+        "Qh"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 45.60366666666666,
+      "ci95LowPercent": 45.35168968967109,
+      "ci95HighPercent": 45.85564364366223,
+      "ci95HalfWidthPercentPoints": 0.25197697699557026,
+      "ms": 28587
+    },
+    {
+      "id": "r3-19",
+      "round": 3,
+      "label": "AAKKds(별슈트) vs 5432ds",
+      "category": "높은 페어 double-suited vs 런다운",
+      "left": [
+        "Ah",
+        "Ac",
+        "Kh",
+        "Kc"
+      ],
+      "right": [
+        "5s",
+        "4s",
+        "3d",
+        "2d"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 61.714,
+      "ci95LowPercent": 61.468006441443116,
+      "ci95HighPercent": 61.95999355855689,
+      "ci95HalfWidthPercentPoints": 0.24599355855688432,
+      "ms": 29345
+    },
+    {
+      "id": "r3-20",
+      "round": 3,
+      "label": "TT99 vs JJ88",
+      "category": "중복 rank 트리플-투페어",
+      "left": [
+        "Ts",
+        "Td",
+        "9h",
+        "9c"
+      ],
+      "right": [
+        "Jh",
+        "Jc",
+        "8s",
+        "8d"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 34.339999999999996,
+      "ci95LowPercent": 34.099704065861886,
+      "ci95HighPercent": 34.580295934138114,
+      "ci95HalfWidthPercentPoints": 0.24029593413811273,
+      "ms": 28064
+    },
+    {
+      "id": "r3-21",
+      "round": 3,
+      "label": "AAK5 vs AAQ4 (덱 충돌 회피용 별 슈트)",
+      "category": "AAxx vs AAxx(다른 킥커)",
+      "left": [
+        "As",
+        "Ah",
+        "Ks",
+        "5h"
+      ],
+      "right": [
+        "Ad",
+        "Ac",
+        "Qd",
+        "4c"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 50.096666666666664,
+      "ci95LowPercent": 49.90899276952004,
+      "ci95HighPercent": 50.2843405638133,
+      "ci95HalfWidthPercentPoints": 0.18767389714662921,
+      "ms": 29332
+    },
+    {
+      "id": "r3-22",
+      "round": 3,
+      "label": "2469 rainbow vs 3456ds",
+      "category": "낮은 카드 rainbow vs 낮은 카드 런다운",
+      "left": [
+        "2c",
+        "4d",
+        "6h",
+        "9s"
+      ],
+      "right": [
+        "3s",
+        "4s",
+        "5h",
+        "6d"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 56.22933333333333,
+      "ci95LowPercent": 55.983342557932446,
+      "ci95HighPercent": 56.47532410873421,
+      "ci95HalfWidthPercentPoints": 0.2459907754008847,
+      "ms": 29223
+    },
+    {
+      "id": "r3-23",
+      "round": 3,
+      "label": "KQJTds vs 5566",
+      "category": "강한 브로드웨이 double-suited vs 약한 페어",
+      "left": [
+        "Ks",
+        "Qs",
+        "Jh",
+        "Th"
+      ],
+      "right": [
+        "5c",
+        "5d",
+        "6s",
+        "6h"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 59.144666666666666,
+      "ci95LowPercent": 58.89589892545292,
+      "ci95HighPercent": 59.39343440788042,
+      "ci95HalfWidthPercentPoints": 0.24876774121375625,
+      "ms": 29191
+    },
+    {
+      "id": "r3-24",
+      "round": 3,
+      "label": "AA83 rainbow vs KQJ9 rainbow",
+      "category": "AAxx vs 브로드웨이 rainbow",
+      "left": [
+        "Ad",
+        "Ah",
+        "8c",
+        "3s"
+      ],
+      "right": [
+        "Kc",
+        "Qd",
+        "Jh",
+        "9s"
+      ],
+      "n": 150000,
+      "leftEquityPercent": 62.08533333333334,
+      "ci95LowPercent": 61.83980024912672,
+      "ci95HighPercent": 62.33086641753995,
+      "ci95HalfWidthPercentPoints": 0.24553308420661332,
+      "ms": 31798
+    }
+  ]
+}

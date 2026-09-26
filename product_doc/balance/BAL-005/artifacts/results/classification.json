@@ -1,0 +1,2192 @@
+{
+  "r1": [
+    {
+      "id": "r1-01",
+      "round": 1,
+      "label": "AA vs 72o",
+      "category": "강한 vs 약한",
+      "left": [
+        "As",
+        "Ah"
+      ],
+      "right": [
+        "7c",
+        "2d"
+      ],
+      "shownLeftPercent": 87,
+      "shownRightPercent": 13,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 87,
+      "refLeftPercent": 87.53425,
+      "refCiHalf": 0.1441931377564791,
+      "exactLeftPercent": 87.42244367822536,
+      "baselineLabel": "exact",
+      "delta": -0.42244367822536333,
+      "tolerance": 1.8761823872496233,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-02",
+      "round": 1,
+      "label": "AA vs KK",
+      "category": "강한 vs 강한",
+      "left": [
+        "As",
+        "Ah"
+      ],
+      "right": [
+        "Kc",
+        "Kd"
+      ],
+      "shownLeftPercent": 81,
+      "shownRightPercent": 19,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 80,
+      "refLeftPercent": 81.285,
+      "refCiHalf": 0.17039781291797568,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.2849999999999966,
+      "tolerance": 2.3772109929810274,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-03",
+      "round": 1,
+      "label": "KK vs AQo",
+      "category": "지배 구조",
+      "left": [
+        "Ks",
+        "Kh"
+      ],
+      "right": [
+        "Ac",
+        "Qd"
+      ],
+      "shownLeftPercent": 72,
+      "shownRightPercent": 28,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 73,
+      "refLeftPercent": 71.53575,
+      "refCiHalf": 0.19735672575672153,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.46425000000000693,
+      "tolerance": 2.750510003339023,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-04",
+      "round": 1,
+      "label": "QQ vs AKs",
+      "category": "코인플립",
+      "left": [
+        "Qs",
+        "Qh"
+      ],
+      "right": [
+        "Ac",
+        "Kc"
+      ],
+      "shownLeftPercent": 51,
+      "shownRightPercent": 49,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 55,
+      "refLeftPercent": 53.918,
+      "refCiHalf": 0.21801472368944233,
+      "exactLeftPercent": 53.7855427540904,
+      "baselineLabel": "exact",
+      "delta": -2.7855427540904003,
+      "tolerance": 2.8208965166421223,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-05",
+      "round": 1,
+      "label": "AKs vs AKo(다른 슈트)",
+      "category": "suitedness",
+      "left": [
+        "As",
+        "Ks"
+      ],
+      "right": [
+        "Ad",
+        "Kc"
+      ],
+      "shownLeftPercent": 53,
+      "shownRightPercent": 47,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52,
+      "refLeftPercent": 52.533249999999995,
+      "refCiHalf": 0.06594770564505921,
+      "exactLeftPercent": 52.49213924630206,
+      "baselineLabel": "exact",
+      "delta": 0.5078607536979405,
+      "tolerance": 2.825500066651772,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-06",
+      "round": 1,
+      "label": "AKo vs KQo",
+      "category": "지배 구조",
+      "left": [
+        "Ah",
+        "Kd"
+      ],
+      "right": [
+        "Kc",
+        "Qs"
+      ],
+      "shownLeftPercent": 74,
+      "shownRightPercent": 26,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 73,
+      "refLeftPercent": 74.05775,
+      "refCiHalf": 0.19070239144038445,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.057749999999998636,
+      "tolerance": 2.6707186334611066,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-07",
+      "round": 1,
+      "label": "22 vs AKo",
+      "category": "약한 페어 vs 오버카드",
+      "left": [
+        "2s",
+        "2h"
+      ],
+      "right": [
+        "Ac",
+        "Kd"
+      ],
+      "shownLeftPercent": 54,
+      "shownRightPercent": 46,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 54,
+      "refLeftPercent": 53.003750000000004,
+      "refCiHalf": 0.21811451056626477,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.9962499999999963,
+      "tolerance": 3.042021247396393,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-08",
+      "round": 1,
+      "label": "55 vs 44",
+      "category": "낮은 페어 레이스",
+      "left": [
+        "5s",
+        "5h"
+      ],
+      "right": [
+        "4c",
+        "4d"
+      ],
+      "shownLeftPercent": 82,
+      "shownRightPercent": 18,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 80,
+      "refLeftPercent": 80.6655,
+      "refCiHalf": 0.1692641615224436,
+      "exactLeftPercent": 80.78343565161326,
+      "baselineLabel": "exact",
+      "delta": 1.2165643483867399,
+      "tolerance": 2.229279284088215,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-09",
+      "round": 1,
+      "label": "JTs vs 92o",
+      "category": "connectedness",
+      "left": [
+        "Js",
+        "Ts"
+      ],
+      "right": [
+        "9c",
+        "2d"
+      ],
+      "shownLeftPercent": 71,
+      "shownRightPercent": 29,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 72,
+      "refLeftPercent": 72.07375,
+      "refCiHalf": 0.1951589221673413,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -1.073750000000004,
+      "tolerance": 2.733560439083302,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-10",
+      "round": 1,
+      "label": "76s vs 98s",
+      "category": "connectedness",
+      "left": [
+        "7s",
+        "6s"
+      ],
+      "right": [
+        "9d",
+        "8d"
+      ],
+      "shownLeftPercent": 37,
+      "shownRightPercent": 63,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 37,
+      "refLeftPercent": 36.868,
+      "refCiHalf": 0.20836869042932357,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.1319999999999979,
+      "tolerance": 2.938069268142564,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-11",
+      "round": 1,
+      "label": "A2s vs 76s",
+      "category": "낮은 카드",
+      "left": [
+        "As",
+        "2s"
+      ],
+      "right": [
+        "7d",
+        "6d"
+      ],
+      "shownLeftPercent": 53,
+      "shownRightPercent": 47,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52,
+      "refLeftPercent": 53.41625,
+      "refCiHalf": 0.21808046005875875,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.416249999999998,
+      "tolerance": 3.0404856980277115,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-12",
+      "round": 1,
+      "label": "33 vs 22",
+      "category": "낮은 페어 레이스",
+      "left": [
+        "3s",
+        "3h"
+      ],
+      "right": [
+        "2c",
+        "2d"
+      ],
+      "shownLeftPercent": 79,
+      "shownRightPercent": 21,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 80,
+      "refLeftPercent": 79.67450000000001,
+      "refCiHalf": 0.1694270370254985,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.674500000000009,
+      "tolerance": 2.446336387716986,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-13",
+      "round": 1,
+      "label": "AJo vs KTo",
+      "category": "높은 카드",
+      "left": [
+        "As",
+        "Jd"
+      ],
+      "right": [
+        "Kc",
+        "Th"
+      ],
+      "shownLeftPercent": 63,
+      "shownRightPercent": 37,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 62,
+      "refLeftPercent": 62.74575,
+      "refCiHalf": 0.21148459033410696,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.254249999999999,
+      "tolerance": 2.947040012914547,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-14",
+      "round": 1,
+      "label": "K9s vs Q9s",
+      "category": "suitedness",
+      "left": [
+        "Ks",
+        "9s"
+      ],
+      "right": [
+        "Qd",
+        "9d"
+      ],
+      "shownLeftPercent": 72,
+      "shownRightPercent": 28,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 70,
+      "refLeftPercent": 70.5545,
+      "refCiHalf": 0.19632546037064605,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 1.4454999999999956,
+      "tolerance": 2.775241921194131,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-15",
+      "round": 1,
+      "label": "84o vs 73o",
+      "category": "약한 vs 약한",
+      "left": [
+        "8s",
+        "4h"
+      ],
+      "right": [
+        "7c",
+        "3d"
+      ],
+      "shownLeftPercent": 62,
+      "shownRightPercent": 38,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 60,
+      "refLeftPercent": 62.36175000000001,
+      "refCiHalf": 0.20659695844288997,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.3617500000000078,
+      "tolerance": 2.947788017280134,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-16",
+      "round": 1,
+      "label": "AKo vs QQ",
+      "category": "코인플립",
+      "left": [
+        "Ah",
+        "Kd"
+      ],
+      "right": [
+        "Qs",
+        "Qc"
+      ],
+      "shownLeftPercent": 44,
+      "shownRightPercent": 56,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 42,
+      "refLeftPercent": 42.99,
+      "refCiHalf": 0.21657543739695756,
+      "exactLeftPercent": 42.8351507676207,
+      "baselineLabel": "exact",
+      "delta": 1.1648492323792965,
+      "tolerance": 2.799820115669561,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-17",
+      "round": 1,
+      "label": "TT vs AKs",
+      "category": "코인플립",
+      "left": [
+        "Ts",
+        "Th"
+      ],
+      "right": [
+        "Ac",
+        "Kc"
+      ],
+      "shownLeftPercent": 53,
+      "shownRightPercent": 47,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 53,
+      "refLeftPercent": 53.783,
+      "refCiHalf": 0.21812326948603047,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.7830000000000013,
+      "tolerance": 3.039030706301591,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-18",
+      "round": 1,
+      "label": "89s vs KQo",
+      "category": "connectedness",
+      "left": [
+        "8s",
+        "9s"
+      ],
+      "right": [
+        "Kd",
+        "Qh"
+      ],
+      "shownLeftPercent": 40,
+      "shownRightPercent": 60,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 43,
+      "refLeftPercent": 40.217000000000006,
+      "refCiHalf": 0.21422718665204324,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.21700000000000585,
+      "tolerance": 2.988563690950203,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-19",
+      "round": 1,
+      "label": "AA vs 22",
+      "category": "강한 vs 약한",
+      "left": [
+        "As",
+        "Ah"
+      ],
+      "right": [
+        "2c",
+        "2d"
+      ],
+      "shownLeftPercent": 82,
+      "shownRightPercent": 18,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 82,
+      "refLeftPercent": 81.6,
+      "refCiHalf": 0.16910594697990441,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.4000000000000057,
+      "tolerance": 2.361504158984284,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-20",
+      "round": 1,
+      "label": "65s vs A9o",
+      "category": "낮은 카드",
+      "left": [
+        "6s",
+        "5s"
+      ],
+      "right": [
+        "Ad",
+        "9c"
+      ],
+      "shownLeftPercent": 43,
+      "shownRightPercent": 57,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 43,
+      "refLeftPercent": 42.02375,
+      "refCiHalf": 0.21588063490662032,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.9762500000000003,
+      "tolerance": 3.0086682567845497,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-21",
+      "round": 1,
+      "label": "KQs vs JTs",
+      "category": "높은 카드",
+      "left": [
+        "Ks",
+        "Qs"
+      ],
+      "right": [
+        "Jd",
+        "Td"
+      ],
+      "shownLeftPercent": 63,
+      "shownRightPercent": 37,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 60,
+      "refLeftPercent": 62.518249999999995,
+      "refCiHalf": 0.2113391094278931,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.48175000000000523,
+      "tolerance": 2.950255560403093,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-22",
+      "round": 1,
+      "label": "72o vs 83o",
+      "category": "약한 vs 약한",
+      "left": [
+        "7s",
+        "2h"
+      ],
+      "right": [
+        "8c",
+        "3d"
+      ],
+      "shownLeftPercent": 39,
+      "shownRightPercent": 61,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 39,
+      "refLeftPercent": 37.81725,
+      "refCiHalf": 0.20673374568691338,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 1.1827499999999986,
+      "tolerance": 2.9504890862016704,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-23",
+      "round": 1,
+      "label": "AKo(hs) vs AKo(dc)",
+      "category": "블로커/미러",
+      "left": [
+        "Ah",
+        "Ks"
+      ],
+      "right": [
+        "Ad",
+        "Kc"
+      ],
+      "shownLeftPercent": 50,
+      "shownRightPercent": 50,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 50,
+      "refLeftPercent": 49.999,
+      "refCiHalf": 0.04581445924183035,
+      "exactLeftPercent": 50,
+      "baselineLabel": "exact",
+      "delta": 0,
+      "tolerance": 2.8290163190291664,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r1-24",
+      "round": 1,
+      "label": "A5s vs 66",
+      "category": "suitedness",
+      "left": [
+        "As",
+        "5s"
+      ],
+      "right": [
+        "6d",
+        "6c"
+      ],
+      "shownLeftPercent": 33,
+      "shownRightPercent": 67,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 38,
+      "refLeftPercent": 34.77,
+      "refCiHalf": 0.20822444401153106,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -1.7700000000000031,
+      "tolerance": 2.9028069316707974,
+      "verdict": "표본오차"
+    }
+  ],
+  "r3": [
+    {
+      "id": "r3-01",
+      "round": 3,
+      "label": "AAKKds vs 876ss+5d",
+      "category": "강한 double-suited vs 약한",
+      "left": [
+        "As",
+        "Ac",
+        "Ks",
+        "Kc"
+      ],
+      "right": [
+        "8h",
+        "7h",
+        "6d",
+        "5d"
+      ],
+      "shownLeftPercent": 60,
+      "shownRightPercent": 40,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 56,
+      "refLeftPercent": 58.565999999999995,
+      "refCiHalf": 0.24929473237705999,
+      "exactLeftPercent": 58.52314163431577,
+      "baselineLabel": "exact",
+      "delta": 1.4768583656842296,
+      "tolerance": 3.9422774778350393,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-02",
+      "round": 3,
+      "label": "JT98ds vs AA72 rainbow",
+      "category": "런다운 vs AAxx rainbow",
+      "left": [
+        "Js",
+        "Ts",
+        "9h",
+        "8h"
+      ],
+      "right": [
+        "Ad",
+        "Ac",
+        "7d",
+        "2c"
+      ],
+      "shownLeftPercent": 45,
+      "shownRightPercent": 55,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 42,
+      "refLeftPercent": 44.13733333333333,
+      "refCiHalf": 0.2512903241183517,
+      "exactLeftPercent": 43.967723994666706,
+      "baselineLabel": "exact",
+      "delta": 1.0322760053332942,
+      "tolerance": 3.9716097701949007,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-03",
+      "round": 3,
+      "label": "AAJT(ss) vs KQ98 rainbow",
+      "category": "AAxx single-suited vs scattered",
+      "left": [
+        "As",
+        "Ac",
+        "Js",
+        "Th"
+      ],
+      "right": [
+        "Kd",
+        "Qc",
+        "9h",
+        "8s"
+      ],
+      "shownLeftPercent": 72,
+      "shownRightPercent": 28,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 67,
+      "refLeftPercent": 69.09333333333333,
+      "refCiHalf": 0.2338418013581302,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 2.9066666666666663,
+      "tolerance": 3.9314816028010466,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-04",
+      "round": 3,
+      "label": "9876ds vs 5544",
+      "category": "런다운 vs 투페어",
+      "left": [
+        "9s",
+        "8h",
+        "7s",
+        "6h"
+      ],
+      "right": [
+        "5c",
+        "5d",
+        "4h",
+        "4s"
+      ],
+      "shownLeftPercent": 64,
+      "shownRightPercent": 36,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 58,
+      "refLeftPercent": 61.17066666666666,
+      "refCiHalf": 0.24663997255206702,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 2.829333333333338,
+      "tolerance": 4.146347349997904,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-05",
+      "round": 3,
+      "label": "KJ83 rainbow vs TT99ds",
+      "category": "높은 카드 rainbow vs 더블페어",
+      "left": [
+        "Kd",
+        "Jc",
+        "8h",
+        "3s"
+      ],
+      "right": [
+        "Ts",
+        "Td",
+        "9h",
+        "9c"
+      ],
+      "shownLeftPercent": 35,
+      "shownRightPercent": 65,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 42,
+      "refLeftPercent": 37.753,
+      "refCiHalf": 0.2452991305144208,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -2.753,
+      "tolerance": 4.12425994990613,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-06",
+      "round": 3,
+      "label": "A234ds(wheel) vs KQJT rainbow",
+      "category": "낮은 카드 double-suited vs broadway rainbow",
+      "left": [
+        "As",
+        "2s",
+        "3h",
+        "4h"
+      ],
+      "right": [
+        "Kd",
+        "Qc",
+        "Jh",
+        "Ts"
+      ],
+      "shownLeftPercent": 55,
+      "shownRightPercent": 45,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52,
+      "refLeftPercent": 52.690666666666665,
+      "refCiHalf": 0.252669109834366,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 2.309333333333335,
+      "tolerance": 4.247705200199916,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-07",
+      "round": 3,
+      "label": "AA27 rainbow vs QJT9ds",
+      "category": "AAxx 함정",
+      "left": [
+        "Ad",
+        "Ah",
+        "2c",
+        "7s"
+      ],
+      "right": [
+        "Qs",
+        "Js",
+        "Th",
+        "9h"
+      ],
+      "shownLeftPercent": 49,
+      "shownRightPercent": 51,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52,
+      "refLeftPercent": 51.913333333333334,
+      "refCiHalf": 0.25285042262576185,
+      "exactLeftPercent": 51.87263813894557,
+      "baselineLabel": "exact",
+      "delta": -2.872638138945568,
+      "tolerance": 3.99802625857235,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-08",
+      "round": 3,
+      "label": "KK98ss vs QQJTss",
+      "category": "더블페어 vs 더블페어",
+      "left": [
+        "Kc",
+        "Kd",
+        "9h",
+        "8h"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Jh",
+        "Th"
+      ],
+      "shownLeftPercent": 67,
+      "shownRightPercent": 33,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 68,
+      "refLeftPercent": 66.70066666666666,
+      "refCiHalf": 0.23848917634504116,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.2993333333333368,
+      "tolerance": 4.0095479654797215,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-09",
+      "round": 3,
+      "label": "AAKKds vs 2c3c9hTh",
+      "category": "강한 double-suited vs 약한 scattered",
+      "left": [
+        "As",
+        "Ad",
+        "Ks",
+        "Kd"
+      ],
+      "right": [
+        "2c",
+        "3c",
+        "9h",
+        "Th"
+      ],
+      "shownLeftPercent": 66,
+      "shownRightPercent": 34,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 64,
+      "refLeftPercent": 62.562666666666665,
+      "refCiHalf": 0.244918712938444,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 3.437333333333335,
+      "tolerance": 4.117410676980739,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-10",
+      "round": 3,
+      "label": "2sJcKd scattered vs 6789ds",
+      "category": "산개 vs 런다운",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd"
+      ],
+      "right": [
+        "6s",
+        "7s",
+        "8h",
+        "9h"
+      ],
+      "shownLeftPercent": 41,
+      "shownRightPercent": 59,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 44,
+      "refLeftPercent": 44.812999999999995,
+      "refCiHalf": 0.2513386906886943,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -3.8129999999999953,
+      "tolerance": 4.230585242296507,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-11",
+      "round": 3,
+      "label": "AKQ2(3-flush) vs JT98ds",
+      "category": "3-flush vs 런다운",
+      "left": [
+        "As",
+        "Ks",
+        "Qs",
+        "2h"
+      ],
+      "right": [
+        "Jd",
+        "Td",
+        "9c",
+        "8c"
+      ],
+      "shownLeftPercent": 45,
+      "shownRightPercent": 55,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 46,
+      "refLeftPercent": 46.66866666666667,
+      "refCiHalf": 0.25245490565430223,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -1.6686666666666667,
+      "tolerance": 4.2443982004925624,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-12",
+      "round": 3,
+      "label": "AA92 rainbow vs KKQJds",
+      "category": "AAxx rainbow vs 강한 KK",
+      "left": [
+        "Ac",
+        "Ad",
+        "9h",
+        "2s"
+      ],
+      "right": [
+        "Ks",
+        "Kh",
+        "Qs",
+        "Jh"
+      ],
+      "shownLeftPercent": 56,
+      "shownRightPercent": 44,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 63,
+      "refLeftPercent": 58.14533333333334,
+      "refCiHalf": 0.24965557321984944,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -2.1453333333333404,
+      "tolerance": 4.197043624840219,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-13",
+      "round": 3,
+      "label": "9876(단일suited) vs KK44",
+      "category": "단일-suited 런다운 vs 더블페어",
+      "left": [
+        "9c",
+        "8c",
+        "7d",
+        "6h"
+      ],
+      "right": [
+        "Ks",
+        "Kd",
+        "4h",
+        "4c"
+      ],
+      "shownLeftPercent": 42,
+      "shownRightPercent": 58,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 41,
+      "refLeftPercent": 43.358000000000004,
+      "refCiHalf": 0.2507932248103273,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -1.358000000000004,
+      "tolerance": 4.216169067522171,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-14",
+      "round": 3,
+      "label": "3345(휠드로우) vs QQKKds",
+      "category": "낮은 페어 드로우 vs 프리미엄 더블페어",
+      "left": [
+        "3s",
+        "3h",
+        "4d",
+        "5c"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Ks",
+        "Kh"
+      ],
+      "shownLeftPercent": 34,
+      "shownRightPercent": 66,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 36,
+      "refLeftPercent": 33.42066666666666,
+      "refCiHalf": 0.23872019744704012,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.5793333333333379,
+      "tolerance": 4.0132053528519664,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-15",
+      "round": 3,
+      "label": "AAK3(단일suited) vs T987ds",
+      "category": "AAxx 단일-suited vs 런다운",
+      "left": [
+        "As",
+        "Ah",
+        "Kc",
+        "3c"
+      ],
+      "right": [
+        "Ts",
+        "9s",
+        "8h",
+        "7h"
+      ],
+      "shownLeftPercent": 52,
+      "shownRightPercent": 48,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 56,
+      "refLeftPercent": 54.102,
+      "refCiHalf": 0.2521827813646995,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -2.1019999999999968,
+      "tolerance": 4.23952936909143,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-16",
+      "round": 3,
+      "label": "229K rainbow vs 789Sk",
+      "category": "약한 페어 vs 약한 페어",
+      "left": [
+        "2c",
+        "2d",
+        "9h",
+        "Ks"
+      ],
+      "right": [
+        "7c",
+        "7d",
+        "8h",
+        "9s"
+      ],
+      "shownLeftPercent": 40,
+      "shownRightPercent": 60,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 41,
+      "refLeftPercent": 41.26533333333333,
+      "refCiHalf": 0.24914479724657754,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -1.2653333333333308,
+      "tolerance": 4.188456798542085,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-17",
+      "round": 3,
+      "label": "AK92(넛플드로우) vs JJTT",
+      "category": "너트 플러시 드로우 vs 메이드 투페어",
+      "left": [
+        "As",
+        "Ks",
+        "9h",
+        "2d"
+      ],
+      "right": [
+        "Jc",
+        "Jd",
+        "Th",
+        "Ts"
+      ],
+      "shownLeftPercent": 41,
+      "shownRightPercent": 59,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 44,
+      "refLeftPercent": 42.231,
+      "refCiHalf": 0.24994464819685044,
+      "exactLeftPercent": 42.356409897532984,
+      "baselineLabel": "exact",
+      "delta": -1.3564098975329841,
+      "tolerance": 3.953807565156898,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-18",
+      "round": 3,
+      "label": "2s7hJcKd vs 3d8hTcQh",
+      "category": "산개 vs 산개",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd"
+      ],
+      "right": [
+        "3d",
+        "8h",
+        "Tc",
+        "Qh"
+      ],
+      "shownLeftPercent": 47,
+      "shownRightPercent": 53,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 45,
+      "refLeftPercent": 45.60366666666666,
+      "refCiHalf": 0.25197697699557026,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 1.396333333333338,
+      "tolerance": 4.2373147978873975,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-19",
+      "round": 3,
+      "label": "AAKKds(별슈트) vs 5432ds",
+      "category": "높은 페어 double-suited vs 런다운",
+      "left": [
+        "Ah",
+        "Ac",
+        "Kh",
+        "Kc"
+      ],
+      "right": [
+        "5s",
+        "4s",
+        "3d",
+        "2d"
+      ],
+      "shownLeftPercent": 62,
+      "shownRightPercent": 38,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 63,
+      "refLeftPercent": 61.714,
+      "refCiHalf": 0.24599355855688432,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.28600000000000136,
+      "tolerance": 4.135480267384155,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-20",
+      "round": 3,
+      "label": "TT99 vs JJ88",
+      "category": "중복 rank 트리플-투페어",
+      "left": [
+        "Ts",
+        "Td",
+        "9h",
+        "9c"
+      ],
+      "right": [
+        "Jh",
+        "Jc",
+        "8s",
+        "8d"
+      ],
+      "shownLeftPercent": 34,
+      "shownRightPercent": 66,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 35,
+      "refLeftPercent": 34.339999999999996,
+      "refCiHalf": 0.24029593413811273,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.3399999999999963,
+      "tolerance": 4.039836020130977,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-21",
+      "round": 3,
+      "label": "AAK5 vs AAQ4 (덱 충돌 회피용 별 슈트)",
+      "category": "AAxx vs AAxx(다른 킥커)",
+      "left": [
+        "As",
+        "Ah",
+        "Ks",
+        "5h"
+      ],
+      "right": [
+        "Ad",
+        "Ac",
+        "Qd",
+        "4c"
+      ],
+      "shownLeftPercent": 52,
+      "shownRightPercent": 48,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 49,
+      "refLeftPercent": 50.096666666666664,
+      "refCiHalf": 0.18767389714662921,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 1.903333333333336,
+      "tolerance": 4.188499666572699,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-22",
+      "round": 3,
+      "label": "2469 rainbow vs 3456ds",
+      "category": "낮은 카드 rainbow vs 낮은 카드 런다운",
+      "left": [
+        "2c",
+        "4d",
+        "6h",
+        "9s"
+      ],
+      "right": [
+        "3s",
+        "4s",
+        "5h",
+        "6d"
+      ],
+      "shownLeftPercent": 58,
+      "shownRightPercent": 42,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 56,
+      "refLeftPercent": 56.22933333333333,
+      "refCiHalf": 0.2459907754008847,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 1.7706666666666706,
+      "tolerance": 4.215652447076715,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-23",
+      "round": 3,
+      "label": "KQJTds vs 5566",
+      "category": "강한 브로드웨이 double-suited vs 약한 페어",
+      "left": [
+        "Ks",
+        "Qs",
+        "Jh",
+        "Th"
+      ],
+      "right": [
+        "5c",
+        "5d",
+        "6s",
+        "6h"
+      ],
+      "shownLeftPercent": 58,
+      "shownRightPercent": 42,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 61,
+      "refLeftPercent": 59.144666666666666,
+      "refCiHalf": 0.24876774121375625,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -1.1446666666666658,
+      "tolerance": 4.182117983032178,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r3-24",
+      "round": 3,
+      "label": "AA83 rainbow vs KQJ9 rainbow",
+      "category": "AAxx vs 브로드웨이 rainbow",
+      "left": [
+        "Ad",
+        "Ah",
+        "8c",
+        "3s"
+      ],
+      "right": [
+        "Kc",
+        "Qd",
+        "Jh",
+        "9s"
+      ],
+      "shownLeftPercent": 62,
+      "shownRightPercent": 38,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 57,
+      "refLeftPercent": 62.08533333333334,
+      "refCiHalf": 0.24553308420661332,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.08533333333333815,
+      "tolerance": 4.127739078552802,
+      "verdict": "표본오차"
+    }
+  ],
+  "r4": [
+    {
+      "id": "r4-01",
+      "round": 4,
+      "label": "AAKK2 vs 7 3 9 J 4 scattered",
+      "category": "메이드(투페어) vs 산개",
+      "left": [
+        "As",
+        "Ah",
+        "Kd",
+        "Kc",
+        "2s"
+      ],
+      "right": [
+        "7c",
+        "3d",
+        "9h",
+        "Jc",
+        "4s"
+      ],
+      "shownLeftPercent": 73,
+      "shownRightPercent": 27,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 75,
+      "refLeftPercent": 72.2825,
+      "refCiHalf": 0.4381915431673074,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.7175000000000011,
+      "tolerance": 6.10115893679511,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-02",
+      "round": 4,
+      "label": "AK94(2)(4флаш) vs T9876 커넥티드",
+      "category": "4-플러시 드로우 vs 커넥티드",
+      "left": [
+        "As",
+        "Ks",
+        "9s",
+        "4s",
+        "2h"
+      ],
+      "right": [
+        "Tc",
+        "9d",
+        "8h",
+        "7c",
+        "6s"
+      ],
+      "shownLeftPercent": 70,
+      "shownRightPercent": 30,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 59,
+      "refLeftPercent": 64.4975,
+      "refCiHalf": 0.4680466579216578,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 5.502499999999998,
+      "tolerance": 6.52217131663919,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-03",
+      "round": 4,
+      "label": "QQQ77 vs AKJ94 scattered",
+      "category": "풀하우스 재료 vs 산개 높은카드",
+      "left": [
+        "Qs",
+        "Qh",
+        "Qc",
+        "7d",
+        "7c"
+      ],
+      "right": [
+        "Ac",
+        "Kd",
+        "Jh",
+        "9s",
+        "4c"
+      ],
+      "shownLeftPercent": 96,
+      "shownRightPercent": 4,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 95,
+      "refLeftPercent": 94.74000000000001,
+      "refCiHalf": 0.21874422260224788,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 1.259999999999991,
+      "tolerance": 3.043038933853179,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-04",
+      "round": 4,
+      "label": "98762 vs KKQ93",
+      "category": "오픈엔드 드로우 vs 메이드 페어",
+      "left": [
+        "9s",
+        "8h",
+        "7d",
+        "6c",
+        "2s"
+      ],
+      "right": [
+        "Kd",
+        "Kh",
+        "Qc",
+        "9h",
+        "3d"
+      ],
+      "shownLeftPercent": 49,
+      "shownRightPercent": 51,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 48,
+      "refLeftPercent": 41.58625,
+      "refCiHalf": 0.48179303109911076,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 7.41375,
+      "tolerance": 6.717459451010158,
+      "verdict": "계산 오류 후보"
+    },
+    {
+      "id": "r4-05",
+      "round": 4,
+      "label": "3388K vs JT982",
+      "category": "산개 투페어 vs 드로우",
+      "left": [
+        "3s",
+        "3h",
+        "8d",
+        "8c",
+        "Kh"
+      ],
+      "right": [
+        "Jc",
+        "Tc",
+        "9d",
+        "8s",
+        "2h"
+      ],
+      "shownLeftPercent": 45,
+      "shownRightPercent": 55,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 48,
+      "refLeftPercent": 45.945,
+      "refCiHalf": 0.48745704655723543,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.9450000000000003,
+      "tolerance": 6.792492228576444,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-06",
+      "round": 4,
+      "label": "AKQJ9 vs TT762",
+      "category": "높은 카드 산개 vs 메이드 페어",
+      "left": [
+        "As",
+        "Kd",
+        "Qh",
+        "Jc",
+        "9s"
+      ],
+      "right": [
+        "Th",
+        "Td",
+        "7c",
+        "6d",
+        "2h"
+      ],
+      "shownLeftPercent": 49,
+      "shownRightPercent": 51,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": true,
+      "reorderedLeftPercent": 49,
+      "refLeftPercent": 47.31625,
+      "refCiHalf": 0.4891709315306472,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 1.6837500000000034,
+      "tolerance": 6.805924720060499,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-07",
+      "round": 4,
+      "label": "AK952(완성 플러시) vs AAKK7",
+      "category": "완성된 플러시 vs 더블페어",
+      "left": [
+        "As",
+        "Ks",
+        "9s",
+        "5s",
+        "2s"
+      ],
+      "right": [
+        "Ac",
+        "Ad",
+        "Kc",
+        "Kh",
+        "7h"
+      ],
+      "shownLeftPercent": 72,
+      "shownRightPercent": 28,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 69,
+      "refLeftPercent": 67.00125,
+      "refCiHalf": 0.46062087440727467,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 4.998750000000001,
+      "tolerance": 6.40957537849085,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-08",
+      "round": 4,
+      "label": "97642 vs KKJ83",
+      "category": "갭 스트레이트 드로우 vs 탑페어",
+      "left": [
+        "9s",
+        "7h",
+        "6d",
+        "4c",
+        "2s"
+      ],
+      "right": [
+        "Kc",
+        "Kd",
+        "Jh",
+        "8s",
+        "3c"
+      ],
+      "shownLeftPercent": 37,
+      "shownRightPercent": 63,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 33,
+      "refLeftPercent": 34.63875,
+      "refCiHalf": 0.4661083426141902,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 2.3612499999999983,
+      "tolerance": 6.486042355679138,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-09",
+      "round": 4,
+      "label": "TTJ48 vs QJ983",
+      "category": "페어+산개 vs 투톤 드로우",
+      "left": [
+        "Th",
+        "Tc",
+        "Jd",
+        "4s",
+        "8h"
+      ],
+      "right": [
+        "Qs",
+        "Js",
+        "9d",
+        "8c",
+        "3h"
+      ],
+      "shownLeftPercent": 69,
+      "shownRightPercent": 31,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 70,
+      "refLeftPercent": 68.3025,
+      "refCiHalf": 0.4515792336177069,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 0.6975000000000051,
+      "tolerance": 6.338405998235892,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-10",
+      "round": 4,
+      "label": "24689 vs KKQJ9",
+      "category": "낮은 산개 vs 강한 페어",
+      "left": [
+        "2s",
+        "4h",
+        "6d",
+        "8c",
+        "9d"
+      ],
+      "right": [
+        "Kh",
+        "Kd",
+        "Qc",
+        "Js",
+        "9h"
+      ],
+      "shownLeftPercent": 25,
+      "shownRightPercent": 75,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 24,
+      "refLeftPercent": 25.837500000000002,
+      "refCiHalf": 0.4277866956558572,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.8375000000000021,
+      "tolerance": 5.9659770129549115,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-11",
+      "round": 4,
+      "label": "AAK72 vs JT986",
+      "category": "AAxx 메이드 vs 런다운 드로우",
+      "left": [
+        "As",
+        "Ah",
+        "Kd",
+        "7c",
+        "2h"
+      ],
+      "right": [
+        "Jc",
+        "Tc",
+        "9d",
+        "8s",
+        "6h"
+      ],
+      "shownLeftPercent": 54,
+      "shownRightPercent": 46,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 53,
+      "refLeftPercent": 50.956250000000004,
+      "refCiHalf": 0.4898613643443498,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 3.0437499999999957,
+      "tolerance": 6.814577163933523,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-12",
+      "round": 4,
+      "label": "999K4 vs QQJ73",
+      "category": "트립스 vs 투페어 산개",
+      "left": [
+        "9s",
+        "9h",
+        "9c",
+        "Kd",
+        "4h"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Jh",
+        "7s",
+        "3d"
+      ],
+      "shownLeftPercent": 78,
+      "shownRightPercent": 22,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 81,
+      "refLeftPercent": 78.06625,
+      "refCiHalf": 0.40550464044784185,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.06624999999999659,
+      "tolerance": 5.64076824531114,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-13",
+      "round": 4,
+      "label": "76543 vs AKQ92",
+      "category": "낮은 스트레이트 메이드 vs 산개",
+      "left": [
+        "7s",
+        "6h",
+        "5d",
+        "4c",
+        "3s"
+      ],
+      "right": [
+        "Ac",
+        "Kd",
+        "Qh",
+        "9s",
+        "2c"
+      ],
+      "shownLeftPercent": 66,
+      "shownRightPercent": 34,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 68,
+      "refLeftPercent": 66.59625,
+      "refCiHalf": 0.4617123619604304,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.5962499999999977,
+      "tolerance": 6.428944735926292,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-14",
+      "round": 4,
+      "label": "AK853(4플) vs 888Q2",
+      "category": "너트 플러시 드로우 vs 메이드 트립스",
+      "left": [
+        "Ah",
+        "Kh",
+        "8h",
+        "5h",
+        "3s"
+      ],
+      "right": [
+        "8c",
+        "8d",
+        "8s",
+        "Qc",
+        "2d"
+      ],
+      "shownLeftPercent": 19,
+      "shownRightPercent": 81,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 16,
+      "refLeftPercent": 16.9075,
+      "refCiHalf": 0.36665576494710195,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 2.092500000000001,
+      "tolerance": 5.10875962395578,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-15",
+      "round": 4,
+      "label": "2s7hJcKd4h vs 3d8hTc Qh9s",
+      "category": "산개 vs 산개",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd",
+        "4h"
+      ],
+      "right": [
+        "3d",
+        "8h",
+        "Tc",
+        "Qh",
+        "9s"
+      ],
+      "shownLeftPercent": 34,
+      "shownRightPercent": 66,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 36,
+      "refLeftPercent": 37.0825,
+      "refCiHalf": 0.4729143720883125,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -3.082500000000003,
+      "tolerance": 6.584032547563649,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-16",
+      "round": 4,
+      "label": "AAKK3 vs QQJJ6",
+      "category": "더블페어 vs 더블페어",
+      "left": [
+        "As",
+        "Ah",
+        "Kd",
+        "Kc",
+        "3s"
+      ],
+      "right": [
+        "Qh",
+        "Qc",
+        "Jd",
+        "Jh",
+        "6s"
+      ],
+      "shownLeftPercent": 57,
+      "shownRightPercent": 43,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 67,
+      "refLeftPercent": 65.15625,
+      "refCiHalf": 0.4663407199838399,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -8.15625,
+      "tolerance": 6.494586288049748,
+      "verdict": "계산 오류 후보"
+    },
+    {
+      "id": "r4-17",
+      "round": 4,
+      "label": "65432(스트레이트 완성) vs AKQJ8",
+      "category": "낮은 커넥티드 드로우 vs 높은 산개",
+      "left": [
+        "6s",
+        "5h",
+        "4d",
+        "3c",
+        "2s"
+      ],
+      "right": [
+        "Ac",
+        "Kd",
+        "Qh",
+        "Jc",
+        "8s"
+      ],
+      "shownLeftPercent": 49,
+      "shownRightPercent": 51,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 50,
+      "refLeftPercent": 49.6075,
+      "refCiHalf": 0.4896601511398509,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.6075000000000017,
+      "tolerance": 6.815338038894253,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-18",
+      "round": 4,
+      "label": "AAJ73 vs KKQQ9",
+      "category": "AAxx vs 프리미엄 더블페어",
+      "left": [
+        "Ad",
+        "Ac",
+        "Jh",
+        "7s",
+        "3d"
+      ],
+      "right": [
+        "Kh",
+        "Kc",
+        "Qd",
+        "Qs",
+        "9h"
+      ],
+      "shownLeftPercent": 50,
+      "shownRightPercent": 50,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 55,
+      "refLeftPercent": 53.488749999999996,
+      "refCiHalf": 0.488547766823367,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -3.488749999999996,
+      "tolerance": 6.799002861280203,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-19",
+      "round": 4,
+      "label": "2299J vs 7788K",
+      "category": "약한 페어 vs 약한 페어",
+      "left": [
+        "2s",
+        "2h",
+        "9d",
+        "9c",
+        "Jh"
+      ],
+      "right": [
+        "7s",
+        "7h",
+        "8d",
+        "8c",
+        "Kh"
+      ],
+      "shownLeftPercent": 53,
+      "shownRightPercent": 47,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 54,
+      "refLeftPercent": 53.14875,
+      "refCiHalf": 0.4887326961193754,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.14874999999999972,
+      "tolerance": 6.802049300263053,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-20",
+      "round": 4,
+      "label": "97642(2) vs QQT85",
+      "category": "스트레이트 드로우 double gutshot vs 메이드",
+      "left": [
+        "9h",
+        "7d",
+        "6c",
+        "4s",
+        "2h"
+      ],
+      "right": [
+        "Qs",
+        "Qh",
+        "Tc",
+        "8d",
+        "5c"
+      ],
+      "shownLeftPercent": 31,
+      "shownRightPercent": 69,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 36,
+      "refLeftPercent": 31.51375,
+      "refCiHalf": 0.45517281251140257,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -0.5137500000000017,
+      "tolerance": 6.332802042516154,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-21",
+      "round": 4,
+      "label": "AKQJT(브로드웨이 산개) vs 3344 6",
+      "category": "브로드웨이 산개 vs 낮은 메이드 페어",
+      "left": [
+        "Ac",
+        "Kh",
+        "Qd",
+        "Jc",
+        "Ts"
+      ],
+      "right": [
+        "3s",
+        "3h",
+        "4d",
+        "4c",
+        "6h"
+      ],
+      "shownLeftPercent": 59,
+      "shownRightPercent": 41,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52,
+      "refLeftPercent": 56.12625,
+      "refCiHalf": 0.48617217135177815,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 2.873750000000001,
+      "tolerance": 6.7643822216293445,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-22",
+      "round": 4,
+      "label": "T8642(완성 플러시) vs 9876 5(완성 스트레이트)",
+      "category": "완성 플러시 vs 완성 스트레이트",
+      "left": [
+        "Th",
+        "8h",
+        "6h",
+        "4h",
+        "2h"
+      ],
+      "right": [
+        "9c",
+        "8s",
+        "7d",
+        "6c",
+        "5s"
+      ],
+      "shownLeftPercent": 75,
+      "shownRightPercent": 25,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 81,
+      "refLeftPercent": 76.40249999999999,
+      "refCiHalf": 0.4133988584711536,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -1.4024999999999892,
+      "tolerance": 5.785414056385714,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-23",
+      "round": 4,
+      "label": "AKQ97 vs AJT86",
+      "category": "산개 킥커 싸움",
+      "left": [
+        "As",
+        "Kd",
+        "Qh",
+        "9c",
+        "7s"
+      ],
+      "right": [
+        "Ah",
+        "Jc",
+        "Td",
+        "8h",
+        "6d"
+      ],
+      "shownLeftPercent": 49,
+      "shownRightPercent": 51,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 48,
+      "refLeftPercent": 46.98,
+      "refCiHalf": 0.487648876569675,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": 2.020000000000003,
+      "tolerance": 6.801972234143311,
+      "verdict": "표본오차"
+    },
+    {
+      "id": "r4-24",
+      "round": 4,
+      "label": "2s4h7c9dTc vs 3d5h6c8s Jc",
+      "category": "낮은 카드 산개 vs 낮은 카드 산개",
+      "left": [
+        "2s",
+        "4h",
+        "7c",
+        "9d",
+        "Tc"
+      ],
+      "right": [
+        "3d",
+        "5h",
+        "6c",
+        "8s",
+        "Jc"
+      ],
+      "shownLeftPercent": 42,
+      "shownRightPercent": 58,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 49,
+      "refLeftPercent": 46.42875,
+      "refCiHalf": 0.48780188987332174,
+      "exactLeftPercent": null,
+      "baselineLabel": "mc",
+      "delta": -4.428750000000001,
+      "tolerance": 6.797518239770221,
+      "verdict": "표본오차"
+    }
+  ]
+}

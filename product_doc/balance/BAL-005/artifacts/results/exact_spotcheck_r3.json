@@ -1,0 +1,101 @@
+{
+  "round": 3,
+  "results": [
+    {
+      "id": "r3-01",
+      "round": 3,
+      "label": "AAKKds vs 876ss+5d",
+      "category": "강한 double-suited vs 약한",
+      "left": [
+        "As",
+        "Ac",
+        "Ks",
+        "Kc"
+      ],
+      "right": [
+        "8h",
+        "7h",
+        "6d",
+        "5d"
+      ],
+      "totalBoards": 1086008,
+      "leftWins": 635566,
+      "ties": 0,
+      "leftLosses": 450442,
+      "leftEquityPercent": 58.52314163431577,
+      "ms": 222089
+    },
+    {
+      "id": "r3-02",
+      "round": 3,
+      "label": "JT98ds vs AA72 rainbow",
+      "category": "런다운 vs AAxx rainbow",
+      "left": [
+        "Js",
+        "Ts",
+        "9h",
+        "8h"
+      ],
+      "right": [
+        "Ad",
+        "Ac",
+        "7d",
+        "2c"
+      ],
+      "totalBoards": 1086008,
+      "leftWins": 477493,
+      "ties": 0,
+      "leftLosses": 608515,
+      "leftEquityPercent": 43.967723994666706,
+      "ms": 232852
+    },
+    {
+      "id": "r3-07",
+      "round": 3,
+      "label": "AA27 rainbow vs QJT9ds",
+      "category": "AAxx 함정",
+      "left": [
+        "Ad",
+        "Ah",
+        "2c",
+        "7s"
+      ],
+      "right": [
+        "Qs",
+        "Js",
+        "Th",
+        "9h"
+      ],
+      "totalBoards": 1086008,
+      "leftWins": 563341,
+      "ties": 0,
+      "leftLosses": 522667,
+      "leftEquityPercent": 51.87263813894557,
+      "ms": 234777
+    },
+    {
+      "id": "r3-17",
+      "round": 3,
+      "label": "AK92(넛플드로우) vs JJTT",
+      "category": "너트 플러시 드로우 vs 메이드 투페어",
+      "left": [
+        "As",
+        "Ks",
+        "9h",
+        "2d"
+      ],
+      "right": [
+        "Jc",
+        "Jd",
+        "Th",
+        "Ts"
+      ],
+      "totalBoards": 1086008,
+      "leftWins": 459922,
+      "ties": 144,
+      "leftLosses": 625942,
+      "leftEquityPercent": 42.356409897532984,
+      "ms": 256055
+    }
+  ]
+}

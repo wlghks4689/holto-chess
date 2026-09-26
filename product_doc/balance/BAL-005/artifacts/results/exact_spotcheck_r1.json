@@ -1,0 +1,125 @@
+{
+  "round": 1,
+  "results": [
+    {
+      "id": "r1-01",
+      "round": 1,
+      "label": "AA vs 72o",
+      "category": "강한 vs 약한",
+      "left": [
+        "As",
+        "Ah"
+      ],
+      "right": [
+        "7c",
+        "2d"
+      ],
+      "totalBoards": 1712304,
+      "leftWins": 1493820,
+      "ties": 6236,
+      "leftLosses": 212248,
+      "leftEquityPercent": 87.42244367822536,
+      "ms": 129113
+    },
+    {
+      "id": "r1-04",
+      "round": 1,
+      "label": "QQ vs AKs",
+      "category": "코인플립",
+      "left": [
+        "Qs",
+        "Qh"
+      ],
+      "right": [
+        "Ac",
+        "Kc"
+      ],
+      "totalBoards": 1712304,
+      "leftWins": 917606,
+      "ties": 6732,
+      "leftLosses": 787966,
+      "leftEquityPercent": 53.7855427540904,
+      "ms": 128413
+    },
+    {
+      "id": "r1-05",
+      "round": 1,
+      "label": "AKs vs AKo(다른 슈트)",
+      "category": "suitedness",
+      "left": [
+        "As",
+        "Ks"
+      ],
+      "right": [
+        "Ad",
+        "Kc"
+      ],
+      "totalBoards": 1712304,
+      "leftWins": 122556,
+      "ties": 1552538,
+      "leftLosses": 37210,
+      "leftEquityPercent": 52.49213924630206,
+      "ms": 133669
+    },
+    {
+      "id": "r1-08",
+      "round": 1,
+      "label": "55 vs 44",
+      "category": "낮은 페어 레이스",
+      "left": [
+        "5s",
+        "5h"
+      ],
+      "right": [
+        "4c",
+        "4d"
+      ],
+      "totalBoards": 1712304,
+      "leftWins": 1360338,
+      "ties": 45840,
+      "leftLosses": 306126,
+      "leftEquityPercent": 80.78343565161326,
+      "ms": 125435
+    },
+    {
+      "id": "r1-16",
+      "round": 1,
+      "label": "AKo vs QQ",
+      "category": "코인플립",
+      "left": [
+        "Ah",
+        "Kd"
+      ],
+      "right": [
+        "Qs",
+        "Qc"
+      ],
+      "totalBoards": 1712304,
+      "leftWins": 730541,
+      "ties": 5854,
+      "leftLosses": 975909,
+      "leftEquityPercent": 42.8351507676207,
+      "ms": 121247
+    },
+    {
+      "id": "r1-23",
+      "round": 1,
+      "label": "AKo(hs) vs AKo(dc)",
+      "category": "블로커/미러",
+      "left": [
+        "Ah",
+        "Ks"
+      ],
+      "right": [
+        "Ad",
+        "Kc"
+      ],
+      "totalBoards": 1712304,
+      "leftWins": 37210,
+      "ties": 1637884,
+      "leftLosses": 37210,
+      "leftEquityPercent": 50,
+      "ms": 134170
+    }
+  ]
+}

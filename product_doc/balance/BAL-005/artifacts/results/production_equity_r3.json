@@ -1,0 +1,581 @@
+{
+  "round": 3,
+  "results": [
+    {
+      "id": "r3-01",
+      "round": 3,
+      "label": "AAKKds vs 876ss+5d",
+      "category": "강한 double-suited vs 약한",
+      "left": [
+        "As",
+        "Ac",
+        "Ks",
+        "Kc"
+      ],
+      "right": [
+        "8h",
+        "7h",
+        "6d",
+        "5d"
+      ],
+      "shownLeftPercent": 60,
+      "shownRightPercent": 40,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 56
+    },
+    {
+      "id": "r3-02",
+      "round": 3,
+      "label": "JT98ds vs AA72 rainbow",
+      "category": "런다운 vs AAxx rainbow",
+      "left": [
+        "Js",
+        "Ts",
+        "9h",
+        "8h"
+      ],
+      "right": [
+        "Ad",
+        "Ac",
+        "7d",
+        "2c"
+      ],
+      "shownLeftPercent": 45,
+      "shownRightPercent": 55,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 42
+    },
+    {
+      "id": "r3-03",
+      "round": 3,
+      "label": "AAJT(ss) vs KQ98 rainbow",
+      "category": "AAxx single-suited vs scattered",
+      "left": [
+        "As",
+        "Ac",
+        "Js",
+        "Th"
+      ],
+      "right": [
+        "Kd",
+        "Qc",
+        "9h",
+        "8s"
+      ],
+      "shownLeftPercent": 72,
+      "shownRightPercent": 28,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 67
+    },
+    {
+      "id": "r3-04",
+      "round": 3,
+      "label": "9876ds vs 5544",
+      "category": "런다운 vs 투페어",
+      "left": [
+        "9s",
+        "8h",
+        "7s",
+        "6h"
+      ],
+      "right": [
+        "5c",
+        "5d",
+        "4h",
+        "4s"
+      ],
+      "shownLeftPercent": 64,
+      "shownRightPercent": 36,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 58
+    },
+    {
+      "id": "r3-05",
+      "round": 3,
+      "label": "KJ83 rainbow vs TT99ds",
+      "category": "높은 카드 rainbow vs 더블페어",
+      "left": [
+        "Kd",
+        "Jc",
+        "8h",
+        "3s"
+      ],
+      "right": [
+        "Ts",
+        "Td",
+        "9h",
+        "9c"
+      ],
+      "shownLeftPercent": 35,
+      "shownRightPercent": 65,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 42
+    },
+    {
+      "id": "r3-06",
+      "round": 3,
+      "label": "A234ds(wheel) vs KQJT rainbow",
+      "category": "낮은 카드 double-suited vs broadway rainbow",
+      "left": [
+        "As",
+        "2s",
+        "3h",
+        "4h"
+      ],
+      "right": [
+        "Kd",
+        "Qc",
+        "Jh",
+        "Ts"
+      ],
+      "shownLeftPercent": 55,
+      "shownRightPercent": 45,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52
+    },
+    {
+      "id": "r3-07",
+      "round": 3,
+      "label": "AA27 rainbow vs QJT9ds",
+      "category": "AAxx 함정",
+      "left": [
+        "Ad",
+        "Ah",
+        "2c",
+        "7s"
+      ],
+      "right": [
+        "Qs",
+        "Js",
+        "Th",
+        "9h"
+      ],
+      "shownLeftPercent": 49,
+      "shownRightPercent": 51,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 52
+    },
+    {
+      "id": "r3-08",
+      "round": 3,
+      "label": "KK98ss vs QQJTss",
+      "category": "더블페어 vs 더블페어",
+      "left": [
+        "Kc",
+        "Kd",
+        "9h",
+        "8h"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Jh",
+        "Th"
+      ],
+      "shownLeftPercent": 67,
+      "shownRightPercent": 33,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 68
+    },
+    {
+      "id": "r3-09",
+      "round": 3,
+      "label": "AAKKds vs 2c3c9hTh",
+      "category": "강한 double-suited vs 약한 scattered",
+      "left": [
+        "As",
+        "Ad",
+        "Ks",
+        "Kd"
+      ],
+      "right": [
+        "2c",
+        "3c",
+        "9h",
+        "Th"
+      ],
+      "shownLeftPercent": 66,
+      "shownRightPercent": 34,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 64
+    },
+    {
+      "id": "r3-10",
+      "round": 3,
+      "label": "2sJcKd scattered vs 6789ds",
+      "category": "산개 vs 런다운",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd"
+      ],
+      "right": [
+        "6s",
+        "7s",
+        "8h",
+        "9h"
+      ],
+      "shownLeftPercent": 41,
+      "shownRightPercent": 59,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 44
+    },
+    {
+      "id": "r3-11",
+      "round": 3,
+      "label": "AKQ2(3-flush) vs JT98ds",
+      "category": "3-flush vs 런다운",
+      "left": [
+        "As",
+        "Ks",
+        "Qs",
+        "2h"
+      ],
+      "right": [
+        "Jd",
+        "Td",
+        "9c",
+        "8c"
+      ],
+      "shownLeftPercent": 45,
+      "shownRightPercent": 55,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 46
+    },
+    {
+      "id": "r3-12",
+      "round": 3,
+      "label": "AA92 rainbow vs KKQJds",
+      "category": "AAxx rainbow vs 강한 KK",
+      "left": [
+        "Ac",
+        "Ad",
+        "9h",
+        "2s"
+      ],
+      "right": [
+        "Ks",
+        "Kh",
+        "Qs",
+        "Jh"
+      ],
+      "shownLeftPercent": 56,
+      "shownRightPercent": 44,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 63
+    },
+    {
+      "id": "r3-13",
+      "round": 3,
+      "label": "9876(단일suited) vs KK44",
+      "category": "단일-suited 런다운 vs 더블페어",
+      "left": [
+        "9c",
+        "8c",
+        "7d",
+        "6h"
+      ],
+      "right": [
+        "Ks",
+        "Kd",
+        "4h",
+        "4c"
+      ],
+      "shownLeftPercent": 42,
+      "shownRightPercent": 58,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 41
+    },
+    {
+      "id": "r3-14",
+      "round": 3,
+      "label": "3345(휠드로우) vs QQKKds",
+      "category": "낮은 페어 드로우 vs 프리미엄 더블페어",
+      "left": [
+        "3s",
+        "3h",
+        "4d",
+        "5c"
+      ],
+      "right": [
+        "Qc",
+        "Qd",
+        "Ks",
+        "Kh"
+      ],
+      "shownLeftPercent": 34,
+      "shownRightPercent": 66,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 36
+    },
+    {
+      "id": "r3-15",
+      "round": 3,
+      "label": "AAK3(단일suited) vs T987ds",
+      "category": "AAxx 단일-suited vs 런다운",
+      "left": [
+        "As",
+        "Ah",
+        "Kc",
+        "3c"
+      ],
+      "right": [
+        "Ts",
+        "9s",
+        "8h",
+        "7h"
+      ],
+      "shownLeftPercent": 52,
+      "shownRightPercent": 48,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 56
+    },
+    {
+      "id": "r3-16",
+      "round": 3,
+      "label": "229K rainbow vs 789Sk",
+      "category": "약한 페어 vs 약한 페어",
+      "left": [
+        "2c",
+        "2d",
+        "9h",
+        "Ks"
+      ],
+      "right": [
+        "7c",
+        "7d",
+        "8h",
+        "9s"
+      ],
+      "shownLeftPercent": 40,
+      "shownRightPercent": 60,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 41
+    },
+    {
+      "id": "r3-17",
+      "round": 3,
+      "label": "AK92(넛플드로우) vs JJTT",
+      "category": "너트 플러시 드로우 vs 메이드 투페어",
+      "left": [
+        "As",
+        "Ks",
+        "9h",
+        "2d"
+      ],
+      "right": [
+        "Jc",
+        "Jd",
+        "Th",
+        "Ts"
+      ],
+      "shownLeftPercent": 41,
+      "shownRightPercent": 59,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 44
+    },
+    {
+      "id": "r3-18",
+      "round": 3,
+      "label": "2s7hJcKd vs 3d8hTcQh",
+      "category": "산개 vs 산개",
+      "left": [
+        "2s",
+        "7h",
+        "Jc",
+        "Kd"
+      ],
+      "right": [
+        "3d",
+        "8h",
+        "Tc",
+        "Qh"
+      ],
+      "shownLeftPercent": 47,
+      "shownRightPercent": 53,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 45
+    },
+    {
+      "id": "r3-19",
+      "round": 3,
+      "label": "AAKKds(별슈트) vs 5432ds",
+      "category": "높은 페어 double-suited vs 런다운",
+      "left": [
+        "Ah",
+        "Ac",
+        "Kh",
+        "Kc"
+      ],
+      "right": [
+        "5s",
+        "4s",
+        "3d",
+        "2d"
+      ],
+      "shownLeftPercent": 62,
+      "shownRightPercent": 38,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 63
+    },
+    {
+      "id": "r3-20",
+      "round": 3,
+      "label": "TT99 vs JJ88",
+      "category": "중복 rank 트리플-투페어",
+      "left": [
+        "Ts",
+        "Td",
+        "9h",
+        "9c"
+      ],
+      "right": [
+        "Jh",
+        "Jc",
+        "8s",
+        "8d"
+      ],
+      "shownLeftPercent": 34,
+      "shownRightPercent": 66,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 35
+    },
+    {
+      "id": "r3-21",
+      "round": 3,
+      "label": "AAK5 vs AAQ4 (덱 충돌 회피용 별 슈트)",
+      "category": "AAxx vs AAxx(다른 킥커)",
+      "left": [
+        "As",
+        "Ah",
+        "Ks",
+        "5h"
+      ],
+      "right": [
+        "Ad",
+        "Ac",
+        "Qd",
+        "4c"
+      ],
+      "shownLeftPercent": 52,
+      "shownRightPercent": 48,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 49
+    },
+    {
+      "id": "r3-22",
+      "round": 3,
+      "label": "2469 rainbow vs 3456ds",
+      "category": "낮은 카드 rainbow vs 낮은 카드 런다운",
+      "left": [
+        "2c",
+        "4d",
+        "6h",
+        "9s"
+      ],
+      "right": [
+        "3s",
+        "4s",
+        "5h",
+        "6d"
+      ],
+      "shownLeftPercent": 58,
+      "shownRightPercent": 42,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 56
+    },
+    {
+      "id": "r3-23",
+      "round": 3,
+      "label": "KQJTds vs 5566",
+      "category": "강한 브로드웨이 double-suited vs 약한 페어",
+      "left": [
+        "Ks",
+        "Qs",
+        "Jh",
+        "Th"
+      ],
+      "right": [
+        "5c",
+        "5d",
+        "6s",
+        "6h"
+      ],
+      "shownLeftPercent": 58,
+      "shownRightPercent": 42,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 61
+    },
+    {
+      "id": "r3-24",
+      "round": 3,
+      "label": "AA83 rainbow vs KQJ9 rainbow",
+      "category": "AAxx vs 브로드웨이 rainbow",
+      "left": [
+        "Ad",
+        "Ah",
+        "8c",
+        "3s"
+      ],
+      "right": [
+        "Kc",
+        "Qd",
+        "Jh",
+        "9s"
+      ],
+      "shownLeftPercent": 62,
+      "shownRightPercent": 38,
+      "sumTo100": true,
+      "repeatable": true,
+      "orderStable": false,
+      "reorderedLeftPercent": 57
+    }
+  ]
+}
