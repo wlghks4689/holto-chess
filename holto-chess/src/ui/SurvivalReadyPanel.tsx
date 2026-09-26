@@ -1,4 +1,5 @@
 import { isSurvivalParticipant } from "./survivalReadyPresentation";
+import { useTranslation } from "../i18n";
 
 type Props = {
   playerIds: string[];
@@ -8,11 +9,12 @@ type Props = {
 };
 
 export function SurvivalReadyPanel({ playerIds, eliminateCount, viewerId, name }: Props) {
+  const { t } = useTranslation();
   const participant = isSurvivalParticipant(playerIds, viewerId);
-  return <section className="panel transition-panel survival-ready-panel" aria-label="타이 브레이크 안내">
-    <h2>동점자가 발생하여 타이 브레이크 경기를 진행합니다.</h2>
+  return <section className="panel transition-panel survival-ready-panel" aria-label={t("survival.noticeAria")}>
+    <h2>{t("survival.tiebreakMessage")}</h2>
     <p>{playerIds.map(name).join(" · ")}</p>
-    <strong>{playerIds.length - eliminateCount}명 생존 · {eliminateCount}명 탈락</strong>
-    {!participant && <p>타이 브레이크 대상자가 아닙니다. 동점자들의 경기를 관전합니다.</p>}
+    <strong>{t("survival.outcomeCount", { survived: playerIds.length - eliminateCount, eliminated: eliminateCount })}</strong>
+    {!participant && <p>{t("survival.spectatorHelp")}</p>}
   </section>;
 }

@@ -101,6 +101,7 @@
 .start-settings header small { color:#7ed8e4; font:10px 'DM Mono',monospace; letter-spacing:.15em; }
 .start-settings h2 { margin:8px 0; }
 .start-settings header button { background:none; border:0; font-size:28px; cursor:pointer; padding:8px; }
+.start-settings .locale-setting { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:14px 0 22px; color:#a4b9c6; font-size:13px; }
 .start-settings p { font-size:13px; color:#a3b9c6; line-height:1.8; }
 .start-settings fieldset { border:1px solid #2b414c; margin:22px 0; border-radius:6px; padding:12px 16px; }
 .start-settings legend { font-size:12px; color:#8dabbc; padding:0 8px; }

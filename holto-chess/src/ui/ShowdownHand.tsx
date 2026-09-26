@@ -3,6 +3,7 @@ import type { HandCategory } from "../core/poker/evaluate";
 import { CardView } from "./CardView";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
+import { useTranslation } from "../i18n";
 
 /** Hold'em showdown focus, using PORENA's round-specific evaluator results. */
 
@@ -10,7 +11,8 @@ export function ShowdownHand({ cards, usedCardIds, winner, displayName, category
   cards: Card[]; usedCardIds: readonly string[]; winner: boolean; displayName: string;
   category: HandCategory; kickers: readonly number[];
 }) {
-  const label = displayName === "몰수패" ? { title: "몰수패", kicker: "보유 카드 부족" } : detailedHandLabel(category, kickers, cards, usedCardIds);
+  const { t } = useTranslation();
+  const label = displayName === "몰수패" ? { title: t("hand.forfeit"), kicker: t("hand.forfeitDetails") } : detailedHandLabel(category, kickers, cards, usedCardIds, t);
   const usesFiveCards = usedCardIds.length >= 5;
   return <div className={`showdown-hand ${usesFiveCards ? "uses-five-cards" : ""} made-${madeTone(displayName)}`}>
     <div className="card-row mini">{cards.map((card) => <CardView key={card.id} card={card} compact

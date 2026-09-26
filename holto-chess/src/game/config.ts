@@ -32,7 +32,7 @@ export const BALANCE = {
   sellRate: 0.6,
   stackScoreUnitBB: 10,
   handLimits: { 1: 2, 2: 3, 3: 4, 4: 5, 5: 7 },
-  rankPrices: { 14: 20, 13: 18, 12: 15, 11: 12, 10: 10, 9: 9, 8: 8, 7: 7, 6: 6, 5: 5, 4: 5, 3: 5, 2: 5 },
+  rankPrices: { 14: 20, 13: 18, 12: 15, 11: 12, 10: 10, 9: 9, 8: 8, 7: 7, 6: 6, 5: 5, 4: 4, 3: 3, 2: 2 },
   points: ROUND_POINTS,
   handScores: { HIGH_CARD: 0, PAIR: 1, TWO_PAIR: 2, TRIPS: 5, STRAIGHT: 8, FLUSH: 12, FULL_HOUSE: 15, QUADS: 20, STRAIGHT_FLUSH: 30, ROYAL_FLUSH: 40 } satisfies Record<HandCategory, number>,
 } as const;

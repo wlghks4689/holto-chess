@@ -7,7 +7,7 @@ import { calculateIcm } from "./icm";
 import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
-import type { PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
+import type { GameLog, PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
 
 function nextRandom(state: PorenaGameState): number {
   if (state.randomMode === "secure") return crypto.getRandomValues(new Uint32Array(1))[0]! / 4294967296;
@@ -17,8 +17,8 @@ function nextRandom(state: PorenaGameState): number {
   return state.seed / 4294967296;
 }
 
-function log(state: PorenaGameState, message: string, tone: "info" | "win" | "danger" | "economy" = "info"): void {
-  state.logs.unshift({ id: ++state.logSequence, message, tone });
+function log(state: PorenaGameState, message: string, tone: GameLog["tone"] = "info", structured?: Pick<GameLog, "event" | "params" | "playerId">): void {
+  state.logs.unshift({ id: ++state.logSequence, message, tone, ...structured });
   state.logs = state.logs.slice(0, 24);
 }
 
@@ -89,7 +89,7 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
   };
   for (const player of players) giveRandomOwnedCard(state, player);
   for (const player of players) reserveShopCards(state, player);
-  log(state, "8명의 플레이어에게 공용 풀에서 카드 1장씩 지급했습니다.");
+  log(state, "8명의 플레이어에게 공용 풀에서 카드 1장씩 지급했습니다.", "info", { event: "INITIAL_CARDS_DEALT" });
   assertPoolIntegrity(state);
   return state;
 }
@@ -105,7 +105,7 @@ export function buyCard(source: PorenaGameState, playerId: string, cardId: strin
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
   player.stackBB -= price; player.purchasesThisRound += 1;
   transferReservedCardToOwned(state, player, cardId);
-  log(state, `${player.name} · ${entry.card.id} 구매 −${price}BB`, "economy");
+  log(state, `${player.name} · ${entry.card.id} 구매 −${price}BB`, "economy", { event: "CARD_PURCHASED", playerId, params: { player: player.name, card: entry.card.id, amount: price } });
   assertPoolIntegrity(state); return state;
 }
 
@@ -121,7 +121,7 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
   const refund = Math.floor(cardPrice(entry.card.rank) * rate);
   player.stackBB += refund; player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId); player.selectedCardIds = player.selectedCardIds.filter((id) => id !== cardId);
   entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
-  log(state, `${player.name} · ${entry.card.id} 판매 +${refund}BB`, "economy");
+  log(state, `${player.name} · ${entry.card.id} 판매 +${refund}BB`, "economy", { event: "CARD_SOLD", playerId, params: { player: player.name, card: entry.card.id, amount: refund } });
   assertPoolIntegrity(state); return state;
 }
 
@@ -136,7 +136,7 @@ export function rerollShop(source: PorenaGameState, playerId: string): PorenaGam
   assertPoolIntegrity(state);
   releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
   player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
-  log(state, `${player.name} · 상점 리롤 −${cost}BB`, "economy");
+  log(state, `${player.name} · 상점 리롤 −${cost}BB`, "economy", { event: "SHOP_REROLLED", playerId, params: { player: player.name, amount: cost } });
   assertPoolIntegrity(state); return state;
 }
 
@@ -151,7 +151,7 @@ export function toggleShopLock(source: PorenaGameState, playerId: string, cardId
     player.stackBB -= BALANCE.cardLockCostBB;
     player.lockedShopCardIds = [...locked, cardId];
   }
-  log(state, `${player.name} · 카드 잠금 ${locked.includes(cardId) ? "해제" : "−3BB"}`, "economy");
+  log(state, `${player.name} · 카드 잠금 ${locked.includes(cardId) ? "해제" : "−3BB"}`, "economy", { event: locked.includes(cardId) ? "CARD_UNLOCKED" : "CARD_LOCKED", playerId, params: { player: player.name, amount: BALANCE.cardLockCostBB } });
   assertPoolIntegrity(state); return state;
 }
 
@@ -294,7 +294,7 @@ export function confirmSelection(source: PorenaGameState): PorenaGameState {
   const state = structuredClone(source); const human = playerById(state, "p1");
   const required = state.round === 2 ? 2 : 0;
   if (!required || human.selectedCardIds.length !== required) throw new Error(`R${state.round} 출전 카드를 올바르게 나누세요.`);
-  state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); log(state, "R2 홀카드 2장을 확정했습니다."); return state;
+  state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); log(state, "R2 홀카드 2장을 확정했습니다.", "info", { event: "R2_HOLE_CARDS_LOCKED" }); return state;
 }
 
 /** A missing required hand loses to every legal hand, even a board-only royal.
@@ -600,7 +600,7 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
         if (playerById(state, reward.playerId).eliminated) reward.outcome = "ELIMINATED";
       }
     }
-    log(state, omaha ? "R3 Omaha Swiss 3경기 종료 · 승리 4P / Split 2P · 누적 승점 탈락 판정" : "R1 스위스 3경기 종료 · 승리 3P / Split 1P · 전원 생존", "win");
+    log(state, omaha ? "R3 Omaha Swiss 3경기 종료 · 승리 4P / Split 2P · 누적 승점 탈락 판정" : "R1 스위스 3경기 종료 · 승리 3P / Split 1P · 전원 생존", "win", { event: omaha ? "R3_SWISS_COMPLETE" : "R1_SWISS_COMPLETE" });
     return state;
   }
   if (state.round === 2 && state.rulesVersion === 2) return resolveSplitRuns(state, state.primaryPairings ?? pair(alive));
@@ -624,12 +624,12 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
     rewardFinalPlacements(state, matches[0]!);
     captureRewards(source, state, matches);
     matches[0]!.standingsAfterRuns = [pointSnapshot(state)];
-    state.phase = "GAME_RESULT"; log(state, "The Last Hand · 최종 점수 집계 완료", "win");
+    state.phase = "GAME_RESULT"; log(state, "The Last Hand · 최종 점수 집계 완료", "win", { event: "FINAL_SCORE_COMPLETE" });
   }
-  else if (state.round === 2 || state.round === 4) { state.phase = "GROUP_ASSIGNMENT"; log(state, `승자조 ${state.winnerGroup.length}명 · 패자조 ${state.loserGroup.length}명`); }
+  else if (state.round === 2 || state.round === 4) { state.phase = "GROUP_ASSIGNMENT"; log(state, `승자조 ${state.winnerGroup.length}명 · 패자조 ${state.loserGroup.length}명`, "info", { event: "BRACKETS_ASSIGNED", params: { winners: state.winnerGroup.length, survivors: state.loserGroup.length } }); }
   else {
     state.phase = "ROUND_RESULT";
-    log(state, `R${state.round} 쇼다운 종료`, "win");
+    log(state, `R${state.round} 쇼다운 종료`, "win", { event: "SHOWDOWN_COMPLETE", params: { round: state.round } });
   }
   return state;
 }
@@ -669,7 +669,7 @@ function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGame
     } satisfies MatchResult;
   });
   state.matches.push(...matches); state.roundResults = matches; state.phase = "ROUND_RESULT";
-  log(state, "R2 RUN1·RUN2 종료 · 전원 생존", "win"); return state;
+  log(state, "R2 RUN1·RUN2 종료 · 전원 생존", "win", { event: "R2_RUNS_COMPLETE" }); return state;
 }
 
 function assignSurvivalBoundary(state: PorenaGameState): void {
@@ -745,7 +745,7 @@ function eliminate(state: PorenaGameState, ids: string[]): void {
     };
     player.eliminated = true; player.eliminatedRound = state.round;
     releasePlayerCards(state, player);
-    log(state, `${player.name} 탈락 · R${state.round} 핸드·스택 기록 후 점유 카드 전량 반환`, "danger");
+    log(state, `${player.name} 탈락 · R${state.round} 핸드·스택 기록 후 점유 카드 전량 반환`, "danger", { event: "PLAYER_ELIMINATED", playerId: player.id, params: { player: player.name, round: state.round } });
   }
 }
 
@@ -764,7 +764,7 @@ export function resolveSecondary(source: PorenaGameState): PorenaGameState {
   eliminate(state, loserMatches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id))));
   captureRewards(source, state, [...winnerMatches, ...loserMatches]);
   state.matches.push(...winnerMatches, ...loserMatches); state.roundResults = [...winnerMatches, ...loserMatches];
-  state.phase = "ROUND_RESULT"; log(state, `R${state.round} 종료 · ${state.players.filter((player) => !player.eliminated).length}명 생존`, "win");
+  state.phase = "ROUND_RESULT"; log(state, `R${state.round} 종료 · ${state.players.filter((player) => !player.eliminated).length}명 생존`, "win", { event: "ROUND_COMPLETE", params: { round: state.round, survivors: state.players.filter((player) => !player.eliminated).length } });
   assertPoolIntegrity(state); return state;
 }
 
@@ -837,7 +837,7 @@ export function autoPickDraft(source: PorenaGameState): PorenaGameState {
   if (!best) {
     const state = structuredClone(source);
     state.draft!.picks.push({ playerId: id, cardId: null, price: 0 });
-    log(state, `${p.name} · BB 부족으로 드래프트 구매 없이 진행`, "danger");
+    log(state, `${p.name} · BB 부족으로 드래프트 구매 없이 진행`, "danger", { event: "DRAFT_SKIPPED_INSUFFICIENT_BB", playerId: p.id, params: { player: p.name } });
     finishDraftIfComplete(state);
     assertPoolIntegrity(state); return state;
   }

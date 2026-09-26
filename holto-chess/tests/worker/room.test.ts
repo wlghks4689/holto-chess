@@ -332,7 +332,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
     await one.wait((m) => m.type === "PLAYER_VIEW" && m.payload.phase === "SHOP");
     const before = one.view().me.stackBB;
     const invalid = await one.send({ type: "BUY_CARD", cardId: two.view().me.shopCards[0].card.id });
-    expect(invalid).toMatchObject({ type: "ERROR", code: "ACTION_REJECTED" });
+    expect(invalid).toMatchObject({ type: "ERROR", code: "CARD_NOT_IN_SHOP" });
     expect(one.view().me.stackBB).toBe(before);
     const requestId = crypto.randomUUID();
     const card = one.view().me.shopCards[0];
@@ -365,7 +365,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
     const ws = res.webSocket!; ws.accept(); sockets.push(ws);
     const message = new Promise<ServerMessage>((resolve) => ws.addEventListener("message", (e) => resolve(JSON.parse(e.data as string)), { once: true }));
     ws.send(JSON.stringify({ type: "JOIN_ROOM", token: b.token }));
-    expect(await message).toMatchObject({ type: "ERROR", code: "UNAUTHORIZED" });
+    expect(await message).toMatchObject({ type: "ERROR", code: "SESSION_INVALID" });
   });
   it("serializes simultaneous purchases and rejects caller-supplied player identity", async () => {
     const a = await session(); const b = await session(a.roomId);
@@ -381,6 +381,6 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(saved!.game.players[1].stackBB).toBe(50 - second.price);
     const requestId = crypto.randomUUID();
     one.ws.send(JSON.stringify({ type: "REROLL", playerId: "p2", stackBB: 999, requestId, turnKey: one.view().turnKey }));
-    expect(await one.wait((m) => m.type === "ERROR")).toMatchObject({ type: "ERROR", code: "ACTION_REJECTED" });
+    expect(await one.wait((m) => m.type === "ERROR")).toMatchObject({ type: "ERROR", code: "INVALID_REQUEST" });
   });
 });

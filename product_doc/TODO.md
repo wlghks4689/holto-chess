@@ -123,3 +123,25 @@
 #### 8.2.1 최초 확인 기반 자동 표시
 
 - [x] UI-007 | 담당 Codex | 상태 DONE | 의존 UI-006 | 완료 조건: 자동 표시 환경설정 기본 ON, 라운드별 확인 기록 및 초기화, Local/Online 자동 안내, 수동 `?` 열람, 저장 기록·미확인·OFF 동작을 테스트한다. Online server timer는 계속 authoritative다. | 증거: 기본 ON·라운드별 유일 기록·OFF 분리·초기화·무효값·미확인 조건 테스트, RoundGuide 수동 복귀 문구 테스트 5개, 전체 443 테스트·Workers 13·lint·타입 검사·build 통과. Online은 안내 중에도 서버 barrier timer를 변경하지 않으며 안내문으로 고지한다.
+
+## 9. 메이드 전용 효과음
+
+### 9.1 오디오 에셋 및 재생 연결
+
+#### 9.1.1 최종 공개 후 최고 족보 효과음
+
+- [ ] SFX-001 | 담당 Codex | 상태 REVIEW | 의존 사용자 음질 피드백 | 완료 조건: 스트레이트·플러시·풀하우스·포카드·로열 플러시 전용 오프라인 WAV 5종 제작, 일반/R2 RUN/R3 매치/R4 다인/R5 메이드 연출에 장면 단위 최고 족보 한 번 재생 연결, SF 기존 연결 확인, 설정·미리듣기·회귀 테스트 완료. 판정·타임라인 불변. | 증거: 사용자 제공 SF core/tail 2개를 `public/assets/audio/`에 복사하고 동시 레이어 재생으로 연결. 전체 451 테스트·Workers 13·lint·typecheck/build 통과. 사용자가 생성 5종 음질 불만족을 전달해 이 5종은 승인 전이며 후속 재작업 필요. `/fx`에서 개별 비교 미리듣기 가능. 미커밋·미배포.
+
+## 10. 글로벌 Localization 기반 및 전면 적용
+
+### 10.1 언어 리소스 기반
+
+#### 10.1.1 한국어·영어 locale 선택과 기반 화면 이전
+
+- [ ] I18N-001 | 담당 Codex | 상태 IN_PROGRESS (코드 이전 완료, 출시 QA 미완료) | 의존 사용자 localization 요청 | 완료 조건: ko-KR/en-US key parity, 최초 브라우저 언어 감지·영어 fallback·저장 우선순위·즉시 언어 전환·문서 lang·접근성 문자열 및 앱 전 화면 이전 완료. | 증거: ko/en 각 697-key parity, `src/ui` 한국어 포함 TSX 56줄 분류 및 production 노출 미번역 0줄. 브라우저 viewport override가 실제 크기에 적용되지 않아 5개 viewport 점검은 NOT VERIFIED. 영어 참가자 R1→R5, 한국어 참가자 R1→R3·R4/R5 관전 및 재접속은 확인했으나 한국어 참가자 R1→R5·오류 화면 전수 QA는 NOT VERIFIED. 상세 `holto-chess/LOCALIZATION_REPORT.md`.
+
+### 10.2 로그, 오류, 전면 검수
+
+#### 10.2.1 안정적 서버 이벤트 키 및 제품 전 화면 QA
+
+- [ ] I18N-002 | 담당 Codex | 상태 IN_PROGRESS (구조 이전 완료, 출시 QA 미완료) | 의존 I18N-001 | 완료 조건: worker ERROR 및 Player Log를 event/error code + params로 현행·재접속 호환성을 유지하며 현지화하고, 사용자 노출 hardcoded audit 분류/수정, 5개 viewport 한국어·영어 전체 흐름 QA, 번역 검수 문서/리뷰 완료. | 증거: semantic ERROR code + legacy message, GameLog optional event/params/playerId + legacy fallback, 언어별 재렌더링, seeded ko/en R1→R5 동일 상태 테스트, 혼합 언어 로컬 멀티플레이 R5 및 재접속/관전 확인; 앱 463·Worker 13·lint·typecheck·build 통과. 실제 5개 viewport·한국어 참가자 전체 완주·원어민 검수는 NOT VERIFIED. 상세 `holto-chess/LOCALIZATION_REPORT.md`.
