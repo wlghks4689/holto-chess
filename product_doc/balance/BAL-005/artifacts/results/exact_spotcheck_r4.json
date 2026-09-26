@@ -1,0 +1,83 @@
+{
+  "round": 4,
+  "results": [
+    {
+      "id": "r4-01",
+      "round": 4,
+      "label": "AAKK2 vs 7 3 9 J 4 scattered",
+      "category": "메이드(투페어) vs 산개",
+      "left": [
+        "As",
+        "Ah",
+        "Kd",
+        "Kc",
+        "2s"
+      ],
+      "right": [
+        "7c",
+        "3d",
+        "9h",
+        "Jc",
+        "4s"
+      ],
+      "totalBoards": 850668,
+      "leftWins": 612200,
+      "ties": 1150,
+      "leftLosses": 237318,
+      "leftEquityPercent": 72.03456577654266,
+      "ms": 715780
+    },
+    {
+      "id": "r4-07",
+      "round": 4,
+      "label": "AK952(완성 플러시) vs AAKK7",
+      "category": "완성된 플러시 vs 더블페어",
+      "left": [
+        "As",
+        "Ks",
+        "9s",
+        "5s",
+        "2s"
+      ],
+      "right": [
+        "Ac",
+        "Ad",
+        "Kc",
+        "Kh",
+        "7h"
+      ],
+      "totalBoards": 850668,
+      "leftWins": 571111,
+      "ties": 526,
+      "leftLosses": 279031,
+      "leftEquityPercent": 67.16768469014939,
+      "ms": 672745
+    },
+    {
+      "id": "r4-14",
+      "round": 4,
+      "label": "AK853(4플) vs 888Q2",
+      "category": "너트 플러시 드로우 vs 메이드 트립스",
+      "left": [
+        "Ah",
+        "Kh",
+        "8h",
+        "5h",
+        "3s"
+      ],
+      "right": [
+        "8c",
+        "8d",
+        "8s",
+        "Qc",
+        "2d"
+      ],
+      "totalBoards": 850668,
+      "leftWins": 143950,
+      "ties": 1958,
+      "leftLosses": 704760,
+      "leftEquityPercent": 17.037081446580803,
+      "ms": 584799
+    }
+  ]
+}

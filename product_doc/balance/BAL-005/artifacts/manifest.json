@@ -1,0 +1,41 @@
+{
+  "analysisId": "BAL-005",
+  "baseCommit": "c7b2315",
+  "requestCommit": "2e4bbdd7062625cee0cf588dcb7e276a8b108b1c",
+  "branch": "balance/BAL-005-latest",
+  "scripts": {
+    "lib/paths.ts": "공용 상수 — 실제 앱 소스 경로, 산출물 디렉터리",
+    "lib/cases.ts": "R1/R3/R4 각 24건의 결정적 헤즈업 사례와 카드ID 중복 검증기(validateCases)",
+    "lib/evalRound.ts": "라운드별 실제 판정 함수(findBestFive/findBestOmaha/compareHands) 래퍼 — showdownEquity.ts, engine.ts와 동일한 함수 재사용",
+    "lib/prng.ts": "프로덕션과 무관한 독립 RNG(mulberry32)와 95% CI 계산기",
+    "lib/tsExtLoader.mjs": "Node ESM 로더 훅 — 앱 소스의 확장자 없는 상대 import를 해석하기 위한 용도(분석 전용, holto-chess/ 내부는 읽기만 함)",
+    "validate.ts": "사례 검증 실행기(중복 카드 여부만 확인)",
+    "referenceMC.ts": "독립 RNG 대형 몬테카를로 기준값(R1 N=200000, R3 N=150000, R4 N=40000) — reference_mc_r*.json 생성",
+    "exactSpotCheck.ts": "전수 계산(잔여 덱 전체 보드 enumeration) — 대표 사례(R1 6건/R3 4건/R4 3건)에 대해 exact_spotcheck_r*.json 생성",
+    "productionEquity.ts": "실제 showdownEquity() 직접 호출 — 표시값, 반복성, 순서-안정성 검증 — production_equity_r*.json 생성",
+    "omahaConstraint.ts": "findBestOmaha의 '홀 2장+보드 3장' 제약을 5가지 적대적 케이스로 검증",
+    "botR3TwoBoardBias.ts": "botStrategy.ts R3 이중보드 평균이 단일보드 기대값과 통계적으로 다른지 검증(편향 없음 확인)",
+    "classify.ts": "production/reference/exact 결과를 합쳐 사례별 판정(표본오차 vs 계산오류후보) 및 REPORT.md용 표 생성 — classification.json, tables.md 생성"
+  },
+  "results": {
+    "reference_mc_r1.json": "R1 24건 대형 MC 기준값(N=200000, 95% CI)",
+    "reference_mc_r3.json": "R3 24건 대형 MC 기준값(N=150000, 95% CI)",
+    "reference_mc_r4.json": "R4 24건 대형 MC 기준값(N=40000, 95% CI)",
+    "exact_spotcheck_r1.json": "R1 대표 6건 전수 계산(표본오차 0)",
+    "exact_spotcheck_r3.json": "R3 대표 4건 전수 계산(표본오차 0)",
+    "exact_spotcheck_r4.json": "R4 대표 3건 전수 계산(표본오차 0)",
+    "production_equity_r1.json": "R1 24건 실제 showdownEquity() 표시값 + 반복성/순서-안정성 결과",
+    "production_equity_r3.json": "R3 24건 실제 showdownEquity() 표시값 + 반복성/순서-안정성 결과",
+    "production_equity_r4.json": "R4 24건 실제 showdownEquity() 표시값 + 반복성/순서-안정성 결과",
+    "classification.json": "72건 전체의 표시값/기준값/Δ/허용오차/판정/순서-안정성 통합 결과",
+    "tables.md": "REPORT.md §5에 삽입된 원본 마크다운 표",
+    "referenceMC.log": "referenceMC.ts 실행 원본 콘솔 로그(참고용, git-ignored — *.log)",
+    "exactSpotCheck.log": "exactSpotCheck.ts 실행 원본 콘솔 로그(참고용, git-ignored — *.log)",
+    "bot_r3_twoboard_bias.log": "botR3TwoBoardBias.ts 실행 원본 콘솔 로그(참고용, git-ignored — *.log)"
+  },
+  "tests": {
+    "omaha_constraint_checks.md": "findBestOmaha 제약 검증 5건 실행 로그(레포 .gitignore의 *.log 패턴을 피하려고 .md로 저장 — omaha_constraint_checks.log와 내용 동일)",
+    "omaha_constraint_checks.log": "위와 동일한 내용의 원본 로그(참고용, git-ignored)"
+  },
+  "note": "REQUEST.md의 쓰기 허용 경로(product_doc/balance/BAL-005/REPORT.md, artifacts/**) 안에서만 작성했으며 게임 소스·UI·공용 테스트·lockfile은 전혀 수정하지 않았다. *.log 파일은 리포지토리 전역 .gitignore(*.log) 때문에 커밋되지 않지만, 모든 스크립트가 결정적이라 언제든 재실행해 재생성할 수 있다."
+}

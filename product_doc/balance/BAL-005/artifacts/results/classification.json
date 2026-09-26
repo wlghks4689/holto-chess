@@ -1423,10 +1423,10 @@
       "reorderedLeftPercent": 75,
       "refLeftPercent": 72.2825,
       "refCiHalf": 0.4381915431673074,
-      "exactLeftPercent": null,
-      "baselineLabel": "mc",
-      "delta": 0.7175000000000011,
-      "tolerance": 6.10115893679511,
+      "exactLeftPercent": 72.03456577654266,
+      "baselineLabel": "exact",
+      "delta": 0.9654342234573363,
+      "tolerance": 5.67847483303111,
       "verdict": "표본오차"
     },
     {
@@ -1621,10 +1621,10 @@
       "reorderedLeftPercent": 69,
       "refLeftPercent": 67.00125,
       "refCiHalf": 0.46062087440727467,
-      "exactLeftPercent": null,
-      "baselineLabel": "mc",
-      "delta": 4.998750000000001,
-      "tolerance": 6.40957537849085,
+      "exactLeftPercent": 67.16768469014939,
+      "baselineLabel": "exact",
+      "delta": 4.832315309850614,
+      "tolerance": 5.941298800943244,
       "verdict": "표본오차"
     },
     {
@@ -1852,10 +1852,10 @@
       "reorderedLeftPercent": 16,
       "refLeftPercent": 16.9075,
       "refCiHalf": 0.36665576494710195,
-      "exactLeftPercent": null,
-      "baselineLabel": "mc",
-      "delta": 2.092500000000001,
-      "tolerance": 5.10875962395578,
+      "exactLeftPercent": 17.037081446580803,
+      "baselineLabel": "exact",
+      "delta": 1.9629185534191969,
+      "tolerance": 4.756528038431679,
       "verdict": "표본오차"
     },
     {
