@@ -145,3 +145,11 @@
 #### 10.2.1 안정적 서버 이벤트 키 및 제품 전 화면 QA
 
 - [ ] I18N-002 | 담당 Codex | 상태 IN_PROGRESS (구조 이전 완료, 출시 QA 미완료) | 의존 I18N-001 | 완료 조건: worker ERROR 및 Player Log를 event/error code + params로 현행·재접속 호환성을 유지하며 현지화하고, 사용자 노출 hardcoded audit 분류/수정, 5개 viewport 한국어·영어 전체 흐름 QA, 번역 검수 문서/리뷰 완료. | 증거: semantic ERROR code + legacy message, GameLog optional event/params/playerId + legacy fallback, 언어별 재렌더링, seeded ko/en R1→R5 동일 상태 테스트, 혼합 언어 로컬 멀티플레이 R5 및 재접속/관전 확인; 앱 463·Worker 13·lint·typecheck·build 통과. 실제 5개 viewport·한국어 참가자 전체 완주·원어민 검수는 NOT VERIFIED. 상세 `holto-chess/LOCALIZATION_REPORT.md`.
+
+## 11. 파이널 동점 및 속도 설정 정리
+
+### 11.1 승인된 UI·정렬 변경
+
+#### 11.1.1 구현·검증
+
+- [x] GAME-2026-09-26 | 담당 Codex | 상태 DONE | 의존 사용자 직접 승인 | 완료 조건: 총점 동점에서 R5 순위만 게임 기준으로 사용하고 별도 카드 랭크 비교 제거, 속도 설정·조절 UI 제거, 관련 회귀 테스트·린트·빌드 통과 | 증거: 앱 테스트 464개·Workers 테스트 13개·린트·빌드 통과.

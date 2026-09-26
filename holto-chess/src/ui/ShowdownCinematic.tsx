@@ -22,8 +22,8 @@ import { useTranslation, type TranslationKey } from "../i18n";
 
 type Profile = { playerId: string; name: string; points?: number; alive?: boolean };
 /**
- * `controls` exposes speed/skip for local simulation only. `elapsedMs` hands playback to an outside
- * clock (the server-synced gate): no local timer, no speed, no per-match confirm.
+ * `controls` exposes skip for local simulation only. `elapsedMs` hands playback to an outside
+ * clock (the server-synced gate): no local timer or per-match confirm.
  */
 type Props = { match: MatchView; profiles: Profile[]; viewerId: string; identityId?: string; onComplete: () => void; controls?: boolean; elapsedMs?: number; catchUp?: boolean; nextMatchSeconds?: number; soundSessionId?: string };
 /** A jump larger than this (hidden tab, reconnect) lands on the current frame without replaying transitions. */
@@ -88,8 +88,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, identityId = view
   const motion = useCinematicMotion();
   const synced = elapsedMs !== undefined;
   const [localElapsed, setElapsed] = useState(0);
-  const [localSpeed, setSpeed] = useState(1);
-  const speed = synced ? 1 : localSpeed;
   const frames = match.disclosure?.frames ?? cinematicTimeline(match);
   const authorized = match.disclosure && frameAt(frames, match.disclosure.elapsedMs);
   const nextAuthorizedAt = authorized ? frames[frames.indexOf(authorized) + 1]?.at ?? Infinity : Infinity;
@@ -126,10 +124,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, identityId = view
       const now = performance.now();
       // Active viewing time: background-tab throttling cannot skip the whole reveal.
       const delta = document.hidden ? 0 : Math.min(now - last, 100);
-      last = now; setElapsed((current) => current + delta * speed);
+      last = now; setElapsed((current) => current + delta);
     }, 30);
     return () => clearInterval(timer);
-  }, [synced, speed, frame.phase]);
+  }, [synced, frame.phase]);
 
   const results = final ? match.results : match.boardResults[frame.boardIndex] ?? [];
   const streetIndex = displayedStreetIndex(frame.phase);
@@ -164,10 +162,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, identityId = view
   const readStage = finalReadStage(frame.phase);
   return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-phase={frame.phase} data-match-id={match.id}
-    style={{ "--flip-duration": `${420 / speed}ms`, "--river-duration": `${600 / speed}ms`, "--suspense-duration": `${250 / speed}ms`, "--final-beat": `${1 / speed}`, "--phase-duration": `${phaseMs / speed}ms` } as CSSProperties}>
+    style={{ "--flip-duration": "420ms", "--river-duration": "600ms", "--suspense-duration": "250ms", "--final-beat": 1, "--phase-duration": `${phaseMs}ms` } as CSSProperties}>
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : displayedMatchNumber(match)}</span>}<h2>{final ? finalHeadingTitle : title}</h2></div>
-      {controls && !synced && <div className="cinema-controls"><label>{t("cinema.speed")} <select aria-label={t("cinema.speed")} value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value={1}>1x</option><option value={2}>2x</option></select></label>
-        <button className="secondary" onClick={onComplete}>{t("cinema.skip")}</button></div>}</header>
+      {controls && !synced && <div className="cinema-controls"><button className="secondary" onClick={onComplete}>{t("cinema.skip")}</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
     {cardSwitch && <p className="hint" role="status">{t("cinema.cardSwitch")}</p>}
     {match.highCardDraw && frame.phase === "HIGH_CARD_NOTICE" && <HighCardDrawNotice survival={match.group === "loser"} surviveCount={match.highCardDraw.surviveCount} seconds={Math.max(1, Math.ceil((frame.at + phaseMs - elapsed) / 1000))} />}
@@ -234,7 +231,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, identityId = view
           const used = result?.usedCardIds.includes(card.id) ?? false;
           if (final) {
             const slot = finalRevealSlot(cardIndex);
-            const slotStyle = { "--flip-delay": `${slot.offset * FINAL_REVEAL_STAGGER_MS[slot.batch] / speed}ms` } as CSSProperties;
+            const slotStyle = { "--flip-delay": `${slot.offset * FINAL_REVEAL_STAGGER_MS[slot.batch]}ms` } as CSSProperties;
             return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used}
             className={`batch-${slot.batch} ${!visible && slot.batch === nextBatch ? "is-next" : ""}`} style={slotStyle} key={cardIndex} />;
           }

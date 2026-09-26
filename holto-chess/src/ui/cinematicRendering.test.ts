@@ -297,10 +297,10 @@ describe("cinematic initial rendering", () => {
     const winnersBracket = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...threeWay, group: "winner" }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(winnersBracket).toContain("cinema-r4-threeway");
   });
-  it("offers speed and skip only when the local simulation opts in", () => {
+  it("offers skip without speed control when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));
     expect(html).toContain("연출 건너뛰기");
-    expect(html).toContain('aria-label="속도"');
+    expect(html).not.toContain('aria-label="속도"');
   });
   it("removes the redundant settlement status line from the final reward", () => {
     const rewardAt = cinematicTimeline(match).find((entry) => entry.phase === "REWARD")!.at;
