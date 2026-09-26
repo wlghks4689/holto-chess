@@ -36,8 +36,13 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
   if (!group) return undefined;
   const seat = (playerId: string) => {
     const player = game.players.find((candidate) => candidate.id === playerId)!;
-    const cardIds = game.round === 2 ? player.selectedCardIds : player.ownedCardIds;
-    return { playerId, name: player.name, points: player.points, cards: cardIds.slice(0, 7).map((id) => getCard(game, id)) };
+    const cards = player.ownedCardIds.map((id) => getCard(game, id));
+    const selected = player.selectedCardIds;
+    const runIds = game.round !== 2 ? undefined : game.rulesVersion === 2 && selected.length === 3
+      ? [[selected[0]!, selected[1]!], [selected[0]!, selected[2]!]] as [string[], string[]]
+      : selected.length === 2 ? [selected, selected] as [string[], string[]] : undefined;
+    return { playerId, name: player.name, points: player.points, cards: (game.round === 2 ? cards : cards.slice(0, 7)),
+      ...(runIds ? { runCards: runIds.map((ids) => ids.map((id) => getCard(game, id))) as [ReturnType<typeof getCard>[], ReturnType<typeof getCard>[]] } : {}) };
   };
   const opponents = group.filter((id) => id !== viewerPlayerId).map(seat);
   return { matchNumber: game.phase === "SHOWDOWN_SECONDARY" ? 2 : 1, viewer: seat(viewerPlayerId),

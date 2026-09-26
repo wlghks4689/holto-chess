@@ -37,9 +37,8 @@ export function R4DraftArena({ view, send, disabled, seconds }: {
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
   const currentIndex = draft.order.findIndex((entry) => entry.playerId === draft.currentPlayerId);
   return <section className={`panel r2-draft r4-draft ${dealing ? "is-dealing" : "is-dealt"}`} aria-label={t("draft.roundAria", { round: 4 })}>
-    <header className="r2-draft-heading"><div className="draft-title-row"><h2>{t(ordering ? "draft.title" : "draft.pickOne")}</h2><DraftRuleTooltip round={4} /></div></header>
     <div className="r2-draft-layout">
-      <aside className="r2-order-panel" aria-label={t("draft.pickOrder")}><h3>DRAFT ORDER <small>{t("draft.pickOrder")} · {draft.order.length}</small></h3><ol className="r2-order">{draft.order.map((entry,index) => {
+      <aside className="r2-order-panel" aria-label={t("draft.pickOrder")}><h3>{t("draft.orderHeading")}</h3><ol className="r2-order">{draft.order.map((entry,index) => {
         const player = view.players.find((candidate) => candidate.playerId === entry.playerId);
         const picked = !ordering && index < currentIndex;
         const current = !ordering && !picked && entry.playerId === draft.currentPlayerId;
@@ -48,7 +47,7 @@ export function R4DraftArena({ view, send, disabled, seconds }: {
         </li>;
       })}</ol></aside>
       <div className="r2-stage">
-        {(ordering || myTurn) && <PhaseTimer className="r2-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} />}
+        <header className="r2-draft-heading"><div className="draft-title-row"><h2>{t(ordering ? "draft.title" : "draft.pickOne")}</h2><DraftRuleTooltip round={4} /></div></header>
         {!ordering && <div className="r2-current" aria-live="polite"><small>{t("draft.currentPicker")}</small><strong>{draft.currentPlayerId ? myTurn ? t("draft.playerYourTurn", { player: name(draft.currentPlayerId) }) : name(draft.currentPlayerId) : t("draft.finished")}</strong></div>}
         <div className="r2-arena" ref={arena} aria-label={t("draft.poolAria", { count: draft.cards.length })} aria-busy={dealing}>
           <div className="r2-deal-origin" aria-hidden="true">◇</div>
@@ -60,7 +59,7 @@ export function R4DraftArena({ view, send, disabled, seconds }: {
             </div>;
           })}
         </div>
-        <DraftPrivateHand cards={view.me.ownedCards} />
+        <DraftPrivateHand cards={view.me.ownedCards} timer={(ordering || myTurn) && <PhaseTimer seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} />} />
       </div>
     </div>
   </section>;

@@ -14,13 +14,14 @@ function seededRandom(seed: string): () => number {
   };
 }
 
-/** Heads-up pre-board equity. Only the two shown hands are removed from the deck. */
-export function showdownEquity(round: Round, left: readonly Card[], right: readonly Card[]): [number, number] | null {
+/** Heads-up pre-board equity, optionally excluding other known dead cards. */
+export function showdownEquity(round: Round, left: readonly Card[], right: readonly Card[], deadCards: readonly Card[] = []): [number, number] | null {
   const required = REQUIRED_CARDS[round];
   if (left.length !== required || right.length !== required) return null;
-  const known = [...left, ...right];
-  const ids = new Set(known.map((card) => card.id));
-  if (ids.size !== known.length) return null;
+  const shown = [...left, ...right], shownIds = new Set(shown.map((card) => card.id));
+  const deadIds = new Set(deadCards.map((card) => card.id));
+  if (shownIds.size !== shown.length || deadIds.size !== deadCards.length) return null;
+  const ids = new Set([...shownIds, ...deadIds]);
   const evaluate = (cards: readonly Card[], board: readonly Card[]) => round === 3
     ? findBestOmaha(cards, board)
     : findBestFive([...cards, ...board]);
@@ -30,8 +31,9 @@ export function showdownEquity(round: Round, left: readonly Card[], right: reado
   }
   const available = makeDeck().filter((card) => !ids.has(card.id));
   // Sampling must depend on the card set, not on how cards were acquired or ordered in state.
-  const canonicalCardIds = known.map((card) => card.id).sort();
-  const random = seededRandom(`${round}:${canonicalCardIds.join(":")}`);
+  const canonicalCardIds = [...ids].sort();
+  const canonicalHands = [left, right].map((hand) => hand.map((card) => card.id).sort().join(",")).sort();
+  const random = seededRandom(`${round}:${canonicalCardIds.join(":")}:${canonicalHands.join("|")}`);
   let leftShare = 0;
   for (let sample = 0; sample < SAMPLES[round]; sample += 1) {
     const deck = [...available];

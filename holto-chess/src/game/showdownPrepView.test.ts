@@ -4,6 +4,27 @@ import { createPlayerView } from "./playerView";
 import { addSession, createRoom } from "./room";
 
 describe("showdown prep view", () => {
+  it("provides each R2 player's full dead-card hand and the actual split-run pairs", () => {
+    const room = addSession(createRoom("R2PREP", 20260927, "secure"), "player").room;
+    room.status = "PLAYING";
+    room.game.round = 2;
+    room.game.rulesVersion = 2;
+    room.game.phase = "SHOWDOWN_PRIMARY";
+    const p1 = room.game.players.find((player) => player.id === "p1")!;
+    const p2 = room.game.players.find((player) => player.id === "p2")!;
+    p1.ownedCardIds = room.game.ownershipCardPool.slice(0, 3).map((entry) => entry.card.id);
+    p2.ownedCardIds = room.game.ownershipCardPool.slice(3, 6).map((entry) => entry.card.id);
+    p1.selectedCardIds = [...p1.ownedCardIds];
+    p2.selectedCardIds = [...p2.ownedCardIds];
+    room.game.primaryPairings = [["p1", "p2"]];
+
+    const preview = createPlayerView(room, "p1").showdownPrep!;
+    expect(preview.viewer.cards.map((card) => card.id)).toEqual(p1.ownedCardIds);
+    expect(preview.viewer.runCards?.map((run) => run.map((card) => card.id))).toEqual([[p1.ownedCardIds[0], p1.ownedCardIds[1]], [p1.ownedCardIds[0], p1.ownedCardIds[2]]]);
+    expect(preview.opponent?.cards.map((card) => card.id)).toEqual(p2.ownedCardIds);
+    expect(preview.opponent?.runCards?.map((run) => run.map((card) => card.id))).toEqual([[p2.ownedCardIds[0], p2.ownedCardIds[1]], [p2.ownedCardIds[0], p2.ownedCardIds[2]]]);
+  });
+
   it("reveals locked cards only in the prep phase and keeps the preview opponent for resolution", () => {
     const joined = addSession(createRoom("PREP01", 20260923, "secure"), "player");
     const before = joined.room;

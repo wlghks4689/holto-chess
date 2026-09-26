@@ -76,7 +76,7 @@ export type SpectatorPlayerView = {
   roundHistory: MatchView[];
   presentation?: PresentationView;
 };
-export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[] };
+export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; runCards?: [Card[], Card[]] };
 export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView; opponents?: ShowdownPrepSeatView[] };
 export type PlayerView = {
   survival?: { playerIds: string[]; eliminateCount: number };
