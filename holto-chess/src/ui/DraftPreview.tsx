@@ -30,6 +30,14 @@ function ShowdownPrepPreview() {
   const matchup = { matchNumber:1, viewer:{playerId:"p1",name:"나",points:12,cards:[{id:"As",rank:14 as const,suit:"s" as const},{id:"Kh",rank:13 as const,suit:"h" as const},{id:"Qd",rank:12 as const,suit:"d" as const},{id:"8c",rank:8 as const,suit:"c" as const}]}, opponent:{playerId:"p2",name:"블러프 폭스",points:16,cards:[{id:"Th",rank:10 as const,suit:"h" as const},{id:"Tc",rank:10 as const,suit:"c" as const},{id:"7d",rank:7 as const,suit:"d" as const},{id:"2s",rank:2 as const,suit:"s" as const}]} };
   return <main className="game-arena"><div className="page-shell"><ShowdownPrepPanel round={3} playerName="나" seconds={3} matchup={matchup} /></div></main>;
 }
+function RunTwicePrepPreview() {
+  const deck = makeDeck();
+  const viewerCards = deck.slice(0, 3), opponentCards = deck.slice(10, 13);
+  const matchup = { matchNumber: 1,
+    viewer: { playerId: "p1", name: "나", points: 12, cards: viewerCards, runCards: [[viewerCards[0]!, viewerCards[1]!], [viewerCards[0]!, viewerCards[2]!]] as [typeof viewerCards, typeof viewerCards] },
+    opponent: { playerId: "p2", name: "블러프 폭스", points: 16, cards: opponentCards, runCards: [[opponentCards[0]!, opponentCards[1]!], [opponentCards[0]!, opponentCards[2]!]] as [typeof opponentCards, typeof opponentCards] } };
+  return <main className="game-arena"><div className="page-shell"><ShowdownPrepPanel round={2} playerName="나" seconds={3} matchup={matchup} /></div></main>;
+}
 function MultiwayShowdownPrepPreview() {
   const round = 4;
   const handSize = 5;
@@ -112,6 +120,7 @@ function R4DraftConceptPreview() {
 }
 export function DraftPreview() {
   const params = new URLSearchParams(location.search);
+  if (params.get("showdownPrep") === "2") return <RunTwicePrepPreview />;
   if (params.get("showdownPrep") === "3") return <MultiwayShowdownPrepPreview />;
   if (params.get("showdownPrep") === "4") return <main className="game-arena"><div className="page-shell"><FinalRoundTransition /></div></main>;
   if (params.has("showdownPrep")) return <ShowdownPrepPreview />;

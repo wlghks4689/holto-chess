@@ -32,6 +32,27 @@ describe("showdown preparation presentation", () => {
     for (const removed of ["매치업 동기화 중", "READY", "SYNC", "다음 상대와", "남은 시간"]) expect(html).not.toContain(removed);
   });
 
+  it("uses a separate R2 split-run layout with two cards and independent odds per run", () => {
+    const deck = makeDeck();
+    const left = deck.slice(0, 3), right = deck.slice(10, 13);
+    const runCards = (cards: typeof left) => [[cards[0]!, cards[1]!], [cards[0]!, cards[2]!]] as [typeof left, typeof left];
+    const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round: 2, playerName: "나", seconds: 3, matchup: {
+      matchNumber: 2,
+      viewer: { playerId: "p1", name: "나", points: 12, cards: left, runCards: runCards(left) },
+      opponent: { playerId: "p2", name: "블러프 폭스", points: 16, cards: right, runCards: runCards(right) },
+    } }));
+    expect(html).toContain("ROUND 02 · MATCH 2");
+    expect(html).toContain("RUN IT TWICE");
+    expect(html).toContain('class="r2-match-vs"');
+    expect(html.indexOf('class="r2-match-player is-viewer')).toBeLessThan(html.indexOf('class="r2-match-vs"'));
+    expect(html.indexOf('class="r2-match-vs"')).toBeLessThan(html.indexOf('class="r2-match-player is-opponent'));
+    expect(html.match(/aria-label="RUN [12]"/g)).toHaveLength(4);
+    expect(html.match(/class="playing-card[^"]* compact/g)).toHaveLength(8);
+    expect(html.match(/class="r2-run-equity"><small>예상 승률<\/small><strong>\d+%<\/strong>/g)).toHaveLength(4);
+    expect(html).toContain("각 RUN 승률은 개별 보드 기준 예상치입니다.");
+    for (const removed of ["SAME HAND", "보유 카드", "READY", "SYNC"]) expect(html).not.toContain(removed);
+  });
+
   it("labels the second match without restoring the removed phrase", () => {
     const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, {
       round: 4, playerName: "턴 샤크", seconds: null, secondary: true,

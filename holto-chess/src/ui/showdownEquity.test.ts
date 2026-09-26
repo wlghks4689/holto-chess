@@ -30,6 +30,13 @@ describe("heads-up matchup equity", () => {
     }
   });
 
+  it("excludes all known R2 hand cards from independent run-board samples", () => {
+    const left = hand("As", "Ah"), right = hand("2c", "7d"), fullHands = hand("As", "Ah", "Qs", "2c", "7d", "Jd");
+    const result = showdownEquity(2, left, right, fullHands)!;
+    expect(result[0] + result[1]).toBe(100);
+    expect(showdownEquity(2, left, right, [fullHands[2]!, fullHands[2]!])).toBeNull();
+  });
+
   it("scores the boardless final exactly and hides incomplete or duplicate hands", () => {
     expect(showdownEquity(5, hand("Ts", "Js", "Qs", "Ks", "As", "2c", "3d"),
       hand("2h", "3h", "4c", "5d", "6c", "7d", "8h"))).toEqual([100, 0]);
