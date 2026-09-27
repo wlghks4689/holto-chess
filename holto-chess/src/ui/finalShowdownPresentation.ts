@@ -36,15 +36,13 @@ export const FINAL_REVEAL_STAGGER_MS = [310, 320, 380] as const;
 
 export type FinalHeading = { kicker: string; title: string };
 
-const RESULT_PHASES: readonly CinematicPhase[] = ["FINAL_PLACE", "FINAL_WINNER", "REWARD", "COMPLETE"];
-
 /**
- * Top heading for R5. The title stays fixed for the whole reveal and switches once when placements
- * start; only the small kicker tracks the stage. Point deltas live inside each player's seat.
+ * Top heading for R5. The title stays fixed through settlement; only the small kicker tracks the
+ * stage. Point deltas live inside each player's seat.
  */
 export function finalHeadingCopy(frame: Pick<CinematicFrame, "phase">): FinalHeading {
   const { phase } = frame;
-  const title = RESULT_PHASES.includes(phase) ? "SHOWDOWN RESULTS" : "FINAL SHOWDOWN";
+  const title = "FINAL SHOWDOWN";
   if (["FINAL_FIRST_REVEAL", "FINAL_FIRST_HAND"].includes(phase)) return { kicker: "FIRST REVEAL", title };
   if (["FINAL_SECOND_REVEAL", "FINAL_SECOND_HAND"].includes(phase)) return { kicker: "SECOND REVEAL", title };
   if (["FINAL_LAST_REVEAL", "FINAL_SEVEN_SETTLE"].includes(phase)) return { kicker: "LAST REVEAL", title };

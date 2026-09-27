@@ -43,7 +43,7 @@
   .r4-draft .draft-private-cards .playing-card.compact .card-suit { font-size: clamp(18px,6.7vw,30px); }
   .r4-draft .r2-price { min-height: 21px; font-size: clamp(8px,calc(2vw + 1px),11px); }
   .r4-draft .r2-card-status { min-height: 11px; font-size: clamp(7px,1.7vw,10px); }
-  .r4-draft .draft-private-cards { padding-right: clamp(70px,18vw,82px); }
+  .r4-draft .draft-private-hand.has-timer .draft-private-cards { padding-right: clamp(70px,18vw,82px); }
   .r4-draft .draft-private-timer { right: 3px; bottom: 0; }
   .r4-draft .draft-private-timer .phase-timer { width: max(68px,var(--r4-card-cap)); padding: 3px; }
   .r4-draft .draft-private-timer .phase-timer>span { font-size: 8px; }

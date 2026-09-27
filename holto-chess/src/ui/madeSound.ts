@@ -85,7 +85,7 @@ let playbackRequest = 0;
 
 export function madeSoundMasterGain(id: MadeSoundId, layered: boolean): number {
   const base = layered ? 0.34 : 0.55;
-  return base * (id === "full-house" || id === "quads" ? 1.2 : 1);
+  return base * (id === "full-house" || id === "quads" || id === "royal-flush" ? 1.2 : 1);
 }
 
 function audioContext() {

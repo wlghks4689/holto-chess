@@ -185,6 +185,19 @@ describe("cinematic initial rendering", () => {
     expect(riverHand).toContain("cinema-made");
     expect(riverHand).toContain("A 하이");
   });
+  it("shows the five used hole and board cards for a royal flush and applies its made-hand effect", () => {
+    const cards = new Map(deck.map((card) => [card.id, card]));
+    const royalCards = ["As", "Ks", "Qs", "Js", "Ts"].map((id) => cards.get(id)!);
+    const royal = { playerId: "p1", place: 1, category: "ROYAL_FLUSH" as const, kickers: [14], displayName: "로열 플러시", usedCardIds: royalCards.map(({ id }) => id) };
+    const view: MatchView = { ...match, id: "royal-flush-board-detail", round: 1, participantIds: ["p1", "p2"], winnerIds: ["p1"],
+      boards: [royalCards.slice(2)], boardResults: [[royal]], boardWinnerIds: [["p1"]], results: [royal], runoutCount: 1,
+      revealedCards: { p1: royalCards.slice(0, 2), p2: deck.slice(5, 7) } };
+    const glowAt = cinematicTimeline(view).find((frame) => frame.phase === "BEST5_GLOW")!.at;
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: view, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: glowAt }));
+    const seat = html.slice(html.indexOf('data-player-id="p1"'), html.indexOf('data-player-id="p2"'));
+    expect(seat).toContain("A♠ K♠ Q♠ J♠ 10♠");
+    expect(html).toContain("made-royal cinema-made-fx");
+  });
   it("pre-mounts RUN 2 face-down during the RUN 1 result beat", () => {
     const runTwice: MatchView = { ...match, id: "run-twice", round: 2, participantIds: ["p1", "p2"],
       boards: [deck.slice(10, 15), deck.slice(15, 20)], boardResults: [[], []], boardWinnerIds: [[], []], results: [], runoutCount: 2,
@@ -317,7 +330,8 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("승점 정산 완료");
     expect(html).not.toContain("POINT SETTLEMENT");
     expect(html).not.toContain("FINAL BEST 5");
-    expect(html).toContain("최종 쇼다운 결과");
+    expect(html).toContain("FINAL SHOWDOWN");
+    expect(html).not.toContain("최종 쇼다운 결과");
   });
   it("keeps scoreboard and logs out of the DOM until the result presentation is dismissed", () => {
     const html = renderToStaticMarkup(createElement(CinematicGate, {
@@ -414,7 +428,7 @@ describe("server-synced cinematic gate", () => {
     } };
     const twoWay = at(beforeSecond, [match, splitRuns]);
     expect(twoWay).toContain("ROUND 02 · MATCH 1");
-    expect(twoWay.match(/class="playing-card[^"]*compact/g)).toHaveLength(6);
+    expect(twoWay.match(/class="playing-card[^"]*compact/g)).toHaveLength(8);
 
     const multiway: MatchView = { ...second, round: 4, stage: "secondary",
       participantIds: match.participantIds.slice(0, 3), revealedCards: match.revealedCards };

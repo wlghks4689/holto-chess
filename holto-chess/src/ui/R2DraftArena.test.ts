@@ -5,6 +5,8 @@ import { createRoom, addSession } from "../game/room";
 import { openDraft, pickDraftCard, prepareShowdown, resolvePrimary, leaveRoundResult, startNextRound } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { OpenDraftPanel } from "./OpenDraft";
+import { R4DraftArena } from "./R4DraftArena";
+import { makeDeck } from "../core/poker/cards";
 import { canPickR2Card, DRAFT_DEAL_MS } from "./r2DraftPresentation";
 
 function fixture(open = false) {
@@ -21,12 +23,12 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   expect(html.match(/class="r2-card-slot /g)).toHaveLength(8);
   expect(html.match(/class="r2-order-name"/g)).toHaveLength(8);
   expect(html).not.toContain("draft-hand");
-  expect(html).toContain('class="draft-private-hand"');
+  expect(html).toMatch(/class="draft-private-hand(?: has-timer)?"/);
   expect(html).toContain("내 보유 카드");
   expect(html).toContain("상대에게 비공개");
   expect(html).toContain('aria-label="보유 카드 공개 범위 보기"');
   expect(html).toContain('<span role="tooltip">상대에게 비공개</span>');
-  expect(html.indexOf('class="draft-private-hand"')).toBeGreaterThan(html.indexOf('class="r2-arena"'));
+  expect(html.indexOf('class="draft-private-hand')).toBeGreaterThan(html.indexOf('class="r2-arena"'));
   const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
   expect(hand.match(/class="playing-card/g)).toHaveLength(view.me.ownedCards.length);
   expect(html).toContain("드래프트 선택 순서");
@@ -97,13 +99,26 @@ it("keeps the R4 draft order compact without showing any opponent hole cards", (
   const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view, send: () => {}, disabled: false, seconds: 20 }));
 
   expect(html).toContain('class="r2-order"');
-  expect(html).toContain('class="draft-private-hand"');
+  expect(html).toMatch(/class="draft-private-hand(?: has-timer)?"/);
   expect(html).toContain("상대에게 비공개");
   expect(html).not.toContain("4장 · 상대에게 비공개");
   expect(html).toContain("16장 공개 풀에서 차례마다 1장을 구매");
   expect(html).toContain('role="tooltip"');
-  expect(html).toContain('class="phase-timer is-normal r2-clock"');
+  expect(html).toContain('class="phase-timer is-normal"');
   expect(html).not.toContain('class="draft-hand"');
   expect(html).not.toContain('class="card-back');
   expect(html).not.toContain('class="draft-acquired"');
+});
+
+it("hides the R4 timer and centers a complete five-card private hand", () => {
+  const view = fixture(true);
+  view.round = 4;
+  view.phase = "DRAFT_ORDER";
+  view.me.handLimit = 5;
+  view.me.ownedCards = makeDeck().slice(0, 5);
+  const html = renderToStaticMarkup(createElement(R4DraftArena, { view, send: () => {}, disabled: false, seconds: 20 }));
+  expect(html).toContain('class="draft-private-hand"');
+  expect(html).not.toContain('class="draft-private-timer"');
+  const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
+  expect(hand.match(/class="playing-card/g)).toHaveLength(5);
 });

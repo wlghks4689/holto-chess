@@ -9,11 +9,10 @@ const timeline = cinematicTimeline({ round: 5, boards: [], revealedCards: Object
   results: [{ place: 1 }, { place: 2 }, { place: 3 }, { place: 4 }] });
 
 describe("R5 final showdown presentation", () => {
-  it("keeps FINAL SHOWDOWN for the whole reveal and switches to SHOWDOWN RESULTS once placements start", () => {
-    const firstPlace = timeline.findIndex((frame) => frame.phase === "FINAL_PLACE");
-    timeline.forEach((frame, index) => {
+  it("keeps FINAL SHOWDOWN through placement and settlement", () => {
+    timeline.forEach((frame) => {
       const heading = finalHeadingCopy(frame);
-      expect(heading.title).toBe(index < firstPlace ? "FINAL SHOWDOWN" : "SHOWDOWN RESULTS");
+      expect(heading.title).toBe("FINAL SHOWDOWN");
       expect(Object.keys(heading)).toEqual(["kicker", "title"]);
       expect(heading.kicker).not.toMatch(/CHAMPION|[+-]\d|POINT$/);
     });

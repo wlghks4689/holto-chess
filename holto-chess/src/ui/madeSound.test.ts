@@ -46,9 +46,10 @@ describe("made sound timing", () => {
 });
 
 describe("made sound output level", () => {
-  it("raises full-house and quads output by exactly 20%", () => {
+  it("raises full-house, quads, and royal flush output by exactly 20%", () => {
     expect(madeSoundMasterGain("full-house", false)).toBeCloseTo(0.55 * 1.2);
     expect(madeSoundMasterGain("quads", false)).toBeCloseTo(0.55 * 1.2);
+    expect(madeSoundMasterGain("royal-flush", false)).toBeCloseTo(0.55 * 1.2);
     expect(madeSoundMasterGain("flush", false)).toBe(0.55);
   });
 });

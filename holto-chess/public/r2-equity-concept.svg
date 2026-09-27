@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#061b17"/><stop offset="1" stop-color="#020d0a"/></linearGradient>
+    <linearGradient id="panel" x2="0" y2="1"><stop stop-color="#0c2a20"/><stop offset="1" stop-color="#071912"/></linearGradient>
+    <linearGradient id="left" x2="0" y2="1"><stop stop-color="#123c30"/><stop offset="1" stop-color="#09251d"/></linearGradient>
+    <linearGradient id="right" x2="0" y2="1"><stop stop-color="#191e3b"/><stop offset="1" stop-color="#0b1427"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style>
+      .sans{font-family:Arial,'Segoe UI',sans-serif}.mono{font-family:Consolas,monospace}.muted{fill:#91aaa0}.white{fill:#edf7f2}.mint{fill:#7cf0b7}.violet{fill:#c6c5ff}
+    </style>
+  </defs>
+  <rect width="1440" height="960" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1440" height="84" fill="#04120e" stroke="#18382b"/>
+  <g class="sans white" font-weight="700"><text x="46" y="49" font-size="25" letter-spacing="2">♜ HOLTO CHESS</text><text x="1278" y="48" font-size="13" class="mono muted">SURVIVORS</text><text x="1375" y="54" font-size="28" class="mint">8</text></g>
+  <g fill="#152e24" stroke="#315344"><circle cx="602" cy="42" r="18" fill="#7cf0b7"/><circle cx="662" cy="42" r="18"/><circle cx="722" cy="42" r="18"/><circle cx="782" cy="42" r="18"/><circle cx="842" cy="42" r="18"/></g>
+  <g class="mono" font-size="11" text-anchor="middle"><text x="602" y="46" fill="#062117">1</text><text x="662" y="46" fill="#8ba79a">R2</text><text x="722" y="46" fill="#8ba79a">R3</text><text x="782" y="46" fill="#8ba79a">R4</text><text x="842" y="46" fill="#8ba79a">R5</text></g>
+  <text x="58" y="144" class="mono mint" font-size="13" font-weight="700" letter-spacing="2">ROUND 02 · MATCH 1</text>
+  <text x="58" y="198" class="sans white" font-size="39" font-weight="700">RUN IT TWICE</text>
+  <text x="1380" y="149" class="mono muted" text-anchor="end" font-size="12">상대와 매치 시작 전 예상치</text>
+  <rect x="42" y="229" width="1356" height="628" rx="20" fill="url(#panel)" stroke="#285340"/>
+  <text x="720" y="273" text-anchor="middle" class="mono mint" font-size="13" letter-spacing="2">RUN별 예상 승률 · 같은 기준 카드, 런마다 보조 카드와 보드가 다릅니다</text>
+
+  <!-- own cards / opponent cards -->
+  <g class="sans">
+    <text x="318" y="324" text-anchor="middle" class="mono muted" font-size="12">나 · 보유 카드</text>
+    <text x="1122" y="324" text-anchor="middle" class="mono muted" font-size="12">상대 · 보유 카드</text>
+  </g>
+  <g class="sans" font-weight="700" text-anchor="middle">
+    <rect x="238" y="340" width="54" height="76" rx="8" fill="#f1f5f3"/><text x="265" y="371" font-size="25" fill="#111">A</text><text x="265" y="400" font-size="24" fill="#111">♠</text>
+    <rect x="300" y="340" width="54" height="76" rx="8" fill="#f1f5f3"/><text x="327" y="371" font-size="25" fill="#e33">8</text><text x="327" y="400" font-size="24" fill="#e33">♦</text>
+    <rect x="362" y="340" width="54" height="76" rx="8" fill="#f1f5f3"/><text x="389" y="371" font-size="25" fill="#111">2</text><text x="389" y="400" font-size="24" fill="#111">♣</text>
+    <rect x="1042" y="340" width="54" height="76" rx="8" fill="#f1f5f3"/><text x="1069" y="371" font-size="25" fill="#e33">K</text><text x="1069" y="400" font-size="24" fill="#e33">♥</text>
+    <rect x="1104" y="340" width="54" height="76" rx="8" fill="#f1f5f3"/><text x="1131" y="371" font-size="25" fill="#111">Q</text><text x="1131" y="400" font-size="24" fill="#111">♠</text>
+    <rect x="1166" y="340" width="54" height="76" rx="8" fill="#f1f5f3"/><text x="1193" y="371" font-size="25" fill="#111">4</text><text x="1193" y="400" font-size="24" fill="#111">♣</text>
+  </g>
+  <g class="mono" font-size="11" text-anchor="middle"><text x="327" y="432" class="mint">기준 A♠</text><text x="1131" y="432" class="violet">기준 K♥</text></g>
+
+  <!-- RUN 1 card pair -->
+  <rect x="82" y="458" width="622" height="153" rx="14" fill="url(#left)" stroke="#348765"/>
+  <text x="108" y="489" class="mono mint" font-size="13" font-weight="700" letter-spacing="1">RUN 1</text>
+  <g class="sans" font-weight="700" text-anchor="middle"><rect x="145" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="167" y="530" font-size="21" fill="#111">A</text><text x="167" y="555" font-size="20" fill="#111">♠</text><rect x="196" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="218" y="530" font-size="21" fill="#e33">8</text><text x="218" y="555" font-size="20" fill="#e33">♦</text><text x="268" y="543" font-size="19" fill="#a2b9ad">vs</text><rect x="300" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="322" y="530" font-size="21" fill="#e33">K</text><text x="322" y="555" font-size="20" fill="#e33">♥</text><rect x="351" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="373" y="530" font-size="21" fill="#111">Q</text><text x="373" y="555" font-size="20" fill="#111">♠</text></g>
+  <text x="458" y="523" class="sans white" font-size="12">예상 승률</text><text x="458" y="565" class="sans mint" font-size="31" font-weight="700">54%</text><text x="553" y="565" class="mono muted" font-size="11">46% 상대</text>
+  <rect x="458" y="581" width="215" height="5" rx="3" fill="#253e34"/><rect x="458" y="581" width="116" height="5" rx="3" fill="#72eab2"/>
+
+  <!-- RUN 2 -->
+  <rect x="736" y="458" width="622" height="153" rx="14" fill="url(#right)" stroke="#7776c4"/>
+  <text x="762" y="489" class="mono violet" font-size="13" font-weight="700" letter-spacing="1">RUN 2</text>
+  <g class="sans" font-weight="700" text-anchor="middle"><rect x="799" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="821" y="530" font-size="21" fill="#111">A</text><text x="821" y="555" font-size="20" fill="#111">♠</text><rect x="850" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="872" y="530" font-size="21" fill="#111">2</text><text x="872" y="555" font-size="20" fill="#111">♣</text><text x="922" y="543" font-size="19" fill="#a2b9ad">vs</text><rect x="954" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="976" y="530" font-size="21" fill="#e33">K</text><text x="976" y="555" font-size="20" fill="#e33">♥</text><rect x="1005" y="503" width="45" height="62" rx="6" fill="#eff5f1"/><text x="1027" y="530" font-size="21" fill="#111">4</text><text x="1027" y="555" font-size="20" fill="#111">♣</text></g>
+  <text x="1112" y="523" class="sans white" font-size="12">예상 승률</text><text x="1112" y="565" class="sans violet" font-size="31" font-weight="700">48%</text><text x="1205" y="565" class="mono muted" font-size="11">52% 상대</text>
+  <rect x="1112" y="581" width="215" height="5" rx="3" fill="#253044"/><rect x="1112" y="581" width="103" height="5" rx="3" fill="#aaa6ff"/>
+
+  <rect x="82" y="636" width="1276" height="77" rx="12" fill="#091711" stroke="#254635"/>
+  <text x="111" y="667" class="mono mint" font-size="12" font-weight="700">해석</text>
+  <text x="210" y="666" class="sans white" font-size="15">런별 승률은 각 보드의 예상치입니다. 매치 전체 승률이 아니며, 실제 두 보드는 참가자 6장의 보유 카드를 제외하고 겹치지 않게 생성됩니다.</text>
+  <text x="210" y="691" class="sans muted" font-size="13">동일한 보드쌍을 함께 표본 추출해 RUN 1 / RUN 2의 예상치를 계산합니다.</text>
+  <rect x="82" y="736" width="1276" height="77" rx="12" fill="#0c251b" stroke="#346849"/>
+  <text x="111" y="766" class="mono mint" font-size="12" font-weight="700">MATCH RESULT</text>
+  <text x="278" y="767" class="sans white" font-size="15">매치 승률은 두 런의 승·무·패 조합과 실제 매치 판정 규칙을 기준으로 따로 산출합니다.</text>
+  <text x="278" y="791" class="sans muted" font-size="13">화면에 표시되는 54% / 48%를 합산하거나 평균해 매치 승률로 오해하지 않도록 구분합니다.</text>
+  <text x="720" y="904" text-anchor="middle" class="mono muted" font-size="12" letter-spacing="1">CONCEPT · R2 SHOWDOWN PREVIEW</text>
+</svg>

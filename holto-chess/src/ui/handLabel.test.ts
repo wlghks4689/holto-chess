@@ -30,6 +30,13 @@ describe("detailed showdown labels", () => {
       .toEqual({ title: "로열 플러시", kicker: expected });
   });
 
+  it("includes the used community cards in a player's straight-flush detail", () => {
+    const holes = [card("As", 14), card("Ks", 13)];
+    const board = [card("Qs", 12), card("Js", 11), card("10s", 10)];
+    expect(detailedHandLabel("ROYAL_FLUSH", [14], holes, [...holes, ...board].map(({ id }) => id), undefined, board))
+      .toEqual({ title: "로열 플러시", kicker: "A♠ K♠ Q♠ J♠ 10♠" });
+  });
+
   it.each([
     ["h", "A♥ 2♥ 3♥ 4♥ 5♥"], ["s", "A♠ 2♠ 3♠ 4♠ 5♠"],
     ["d", "A♦ 2♦ 3♦ 4♦ 5♦"], ["c", "A♣ 2♣ 3♣ 4♣ 5♣"],

@@ -59,7 +59,7 @@ export function R4DraftArena({ view, send, disabled, seconds }: {
             </div>;
           })}
         </div>
-        <DraftPrivateHand cards={view.me.ownedCards} timer={(ordering || myTurn) && <PhaseTimer seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} />} />
+        <DraftPrivateHand cards={view.me.ownedCards} timer={view.me.ownedCards.length < view.me.handLimit && (ordering || myTurn) && <PhaseTimer seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} />} />
       </div>
     </div>
   </section>;

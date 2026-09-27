@@ -21,7 +21,7 @@ const rankPluralKeys: Record<number, TranslationKey> = {
   12: "rank.queenPlural", 13: "rank.kingPlural", 14: "rank.acePlural",
 };
 
-export function detailedHandLabel(category: HandCategory, kickers: readonly number[], playerCards: readonly Card[], usedCardIds: readonly string[], translate: typeof t = t): DetailedHandLabel {
+export function detailedHandLabel(category: HandCategory, kickers: readonly number[], playerCards: readonly Card[], usedCardIds: readonly string[], translate: typeof t = t, communityCards: readonly Card[] = []): DetailedHandLabel {
   const [made = 0, second = 0, ...rest] = kickers;
   const playerKickers = [...new Set(playerCards
     .filter((card) => usedCardIds.includes(card.id) && card.rank !== made)
@@ -30,7 +30,7 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
     ? { title, kicker: translate("hand.kicker", { ranks: ranks(values) }) }
     : { title };
   const rankWord = (value: number) => translate(rankPluralKeys[value] ?? "rank.acePlural");
-  const madeCards = playerCards
+  const madeCards = [...playerCards, ...communityCards]
     .filter((card) => usedCardIds.includes(card.id))
     .sort((a, b) => b.rank - a.rank);
   const straightFlushCards = madeCards.length === 5 && made === 5

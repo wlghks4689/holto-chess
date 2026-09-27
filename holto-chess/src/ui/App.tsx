@@ -92,7 +92,7 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
     </div>
     <div className="market panel">
       <header><div className="shop-heading"><h2>{t("shop.market")}</h2><strong className="shop-count">{me.shopCardIds.length} / {shopSize}</strong></div><span className="purchase-count">{t("shop.purchases", { used: me.purchasesThisRound, limit: purchaseLimit })}</span></header>
-      <div className="card-row market-row">{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
+      <div className={`card-row market-row ${(me.rerollsUsed ?? 0) > 0 ? "has-rerolled" : ""} ${me.shopCardIds.length > 1 ? "has-multiple-cards" : ""}`}>{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">{t("shop.soldOut")}</p> : null}</div>
       <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < BALANCE.rerollCostBB} onClick={() => act((s) => rerollShop(s, me.id))}>{t("shop.rerollStatus", { cost: BALANCE.rerollCostBB, used: me.rerollsUsed ?? 0, limit: rerollLimit })}</button></div>
     </div>

@@ -564,7 +564,7 @@ export const koKR = {
   "cinema.placeReward": "{place} 순위 보상",
   "cinema.rewardPoints": "{points}승점",
   "cinema.finalResults": "최종 쇼다운 결과",
-  "cinema.finalShowdown": "최종 쇼다운",
+  "cinema.finalShowdown": "FINAL SHOWDOWN",
   "cinema.firstReveal": "첫 공개",
   "cinema.secondReveal": "두 번째 공개",
   "cinema.lastReveal": "마지막 공개",

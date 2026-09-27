@@ -12,6 +12,7 @@ import { showdownStage } from "./showdownStage";
 import type { ServerClock } from "./serverClock";
 import { ShowdownCardFlip } from "./ShowdownCardFlip";
 import { CardView } from "./CardView";
+import type { Card } from "../core/poker/cards";
 import { useCinematicMotion } from "./useCinematicMotion";
 import { showdownSeatOrder } from "./showdownSeatOrder";
 import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
@@ -149,12 +150,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const cardSwitch = frame.phase === "CARD_SWITCH_OUT" || frame.phase === "CARD_SWITCH_IN";
   const runIndex = frame.phase === "CARD_SWITCH_OUT" ? 0 : frame.boardIndex;
   const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
-  const labelFor = (id: string, result: RevealedHand) => result.displayName === "몰수패" ? { title: t("hand.forfeit"), kicker: t("hand.forfeitDetails") }
-    : detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds, t);
+  const labelFor = (id: string, result: RevealedHand, communityCards: readonly Card[] = []) => result.displayName === "몰수패" ? { title: t("hand.forfeit"), kicker: t("hand.forfeitDetails") }
+    : detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds, t, communityCards);
   const rankPoints = match.standingsAfterRuns?.[frame.boardIndex - (flags.result || flags.runResult || flags.reward ? 0 : 1)] ?? match.standingsBefore
     ?? Object.fromEntries(profiles.map((p) => [p.playerId, p.points ?? 0]));
   const finalHeading = finalHeadingCopy(frame);
-  const finalHeadingTitle = t(finalHeading.title === "SHOWDOWN RESULTS" ? "cinema.finalResults" : "cinema.finalShowdown");
+  const finalHeadingTitle = t("cinema.finalShowdown");
   const finalHeadingKicker = t(FINAL_KICKER_KEYS[finalHeading.kicker] ?? "cinema.finalTable");
   const placeText = (place: number | undefined) => place === undefined ? "—" : locale === "ko-KR" ? t("cinema.finalPlace", { place }) : ordinalPlace(place);
   const nextBatch = final ? finalNextBatch(frame.phase) : undefined;
@@ -179,7 +180,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const forfeited = result?.displayName === "몰수패";
       const won = !forfeited && winners.includes(id);
       const cards = cardsForRun(id);
-      const label = result ? labelFor(id, result) : undefined;
+      const label = result ? labelFor(id, result, final ? [] : match.boards[frame.boardIndex] ?? []) : undefined;
       const swiss = (flags.result ? match.swissAfter : match.swissBefore)?.[id];
       const reward = (match.runRewards?.[frame.boardIndex] ?? match.rewards).find((r) => r.playerId === id);
       const showReward = !(match.round === 4 && match.group === "loser" && reward?.outcome === "ELIMINATED");
@@ -291,12 +292,16 @@ function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string):
   if (match.participantIds.length < 2) return undefined;
   const ids = match.participantIds.length === 2 ? showdownSeatOrder(match.participantIds, viewerId)
     : match.participantIds.includes(viewerId) ? [viewerId, ...match.participantIds.filter((id) => id !== viewerId)] : match.participantIds;
-  const seat = (id: string) => ({
-    playerId: id,
-    name: profiles.find((profile) => profile.playerId === id)?.name ?? id,
-    points: match.standingsBefore?.[id] ?? profiles.find((profile) => profile.playerId === id)?.points ?? 0,
-    cards: match.runCards?.[id] ? [...new Map(match.runCards[id]!.flat().map((card) => [card.id, card])).values()] : match.revealedCards[id] ?? [],
-  });
+  const seat = (id: string) => {
+    const runCards = match.runCards?.[id];
+    return {
+      playerId: id,
+      name: profiles.find((profile) => profile.playerId === id)?.name ?? id,
+      points: match.standingsBefore?.[id] ?? profiles.find((profile) => profile.playerId === id)?.points ?? 0,
+      cards: runCards ? [...new Map(runCards.flat().map((card) => [card.id, card])).values()] : match.revealedCards[id] ?? [],
+      runCards: runCards && runCards.length >= 2 ? [runCards[0]!, runCards[1]!] as [Card[], Card[]] : undefined,
+    };
+  };
   const opponents = ids.slice(1).map(seat);
   return { matchNumber: displayedMatchNumber(match),
     viewer: seat(ids[0]!), ...(opponents.length === 1 ? { opponent: opponents[0] } : { opponents }) };
