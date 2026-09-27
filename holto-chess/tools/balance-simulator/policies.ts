@@ -1,70 +1,76 @@
 import type { Card } from "../../src/core/poker/cards";
-import { getCard, getCardPrice } from "../../src/game/engine";
-import type { PorenaGameState, PlayerState } from "../../src/game/types";
+import type { BotShopPolicy } from "../../src/game/engine";
+import { makeRandom } from "./stats";
 import type { PolicyName } from "./types";
 
-const rankCounts = (cards: Card[]) => cards.reduce((map, card) => map.set(card.rank, (map.get(card.rank) ?? 0) + 1), new Map<number, number>());
-const suitCounts = (cards: Card[]) => cards.reduce((map, card) => map.set(card.suit, (map.get(card.suit) ?? 0) + 1), new Map<Card["suit"], number>());
+type Priced = { card: Card; price: number };
 
-function policyScore(policy: PolicyName, candidate: Card, owned: Card[], price: number): number {
-  if (policy === "HIGH_RANK") return candidate.rank * 20 - price;
-  if (policy === "ECONOMY") return 500 - price * 20 + candidate.rank;
-  if (policy === "PAIR_BUILDER") return (rankCounts(owned).get(candidate.rank) ?? 0) * 500 + candidate.rank * 5 - price;
-  if (policy === "FLUSH_BUILDER") {
-    const counts = suitCounts(owned);
-    const strongest = Math.max(0, ...counts.values());
-    return (counts.get(candidate.suit) === strongest ? 400 : 0) + (counts.get(candidate.suit) ?? 0) * 40 + candidate.rank - price;
+/**
+ * A seat policy. `ENGINE_BOT` (all nulls) hands the seat to the game's own bot brain, which is what
+ * real AI seats use; the other policies are simple, legible strategies for A/B-ing rule changes.
+ */
+export type Policy = {
+  name: PolicyName;
+  shop: BotShopPolicy | null;
+  pickDraft: ((options: Priced[], owned: readonly Card[]) => string) | null;
+  /** R2 loadout as [anchor, run-1 secondary, run-2 secondary]. */
+  loadout: ((cards: readonly Card[]) => Card[]) | null;
+};
+
+const count = <K>(items: readonly K[]) => items.reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map<K, number>());
+
+function linkCount(rank: number, ranks: ReadonlySet<number>): number {
+  const near = [rank - 2, rank - 1, rank + 1, rank + 2].filter((r) => ranks.has(r)).length;
+  const wheel = (rank === 14 && [...ranks].some((r) => r <= 5)) || (rank <= 5 && ranks.has(14)) ? 1 : 0;
+  return near + wheel;
+}
+
+function scorer(name: Exclude<PolicyName, "ENGINE_BOT" | "RANDOM">): (card: Card, owned: readonly Card[], price: number) => number {
+  return (card, owned, price) => {
+    if (name === "HIGH_RANK") return card.rank * 20 - price;
+    if (name === "ECONOMY") return 500 - price * 20 + card.rank;
+    if (name === "PAIR_BUILDER") return (count(owned.map((c) => c.rank)).get(card.rank) ?? 0) * 500 + card.rank * 5 - price;
+    if (name === "FLUSH_BUILDER") {
+      const suits = count(owned.map((c) => c.suit)); const top = Math.max(0, ...suits.values()); const mine = suits.get(card.suit) ?? 0;
+      return (mine && mine === top ? 400 : 0) + mine * 40 + card.rank - price;
+    }
+    return linkCount(card.rank, new Set(owned.map((c) => c.rank))) * 180 + card.rank - price;
+  };
+}
+
+/** Does the shop hold something that fits the policy's plan? If not, a reroll is worth considering. */
+function hasFit(name: PolicyName, shop: readonly Priced[], owned: readonly Card[]): boolean {
+  if (name === "HIGH_RANK") return shop.some((s) => s.card.rank >= 11);
+  if (name === "PAIR_BUILDER") return shop.some((s) => owned.some((c) => c.rank === s.card.rank));
+  if (name === "STRAIGHT_BUILDER") return shop.some((s) => linkCount(s.card.rank, new Set(owned.map((c) => c.rank))) > 0);
+  if (name === "FLUSH_BUILDER") {
+    const suits = count(owned.map((c) => c.suit)); const top = Math.max(0, ...suits.values());
+    return shop.some((s) => suits.get(s.card.suit) === top);
   }
-  const ranks = new Set<number>(owned.map((card) => card.rank));
-  const links = [candidate.rank - 2, candidate.rank - 1, candidate.rank + 1, candidate.rank + 2]
-    .reduce((total, rank) => total + (ranks.has(rank) ? 1 : 0), 0);
-  const wheelLink = candidate.rank === 14 && [...ranks].some((rank) => rank <= 5) ? 1 : 0;
-  return (links + wheelLink) * 180 + candidate.rank - price;
+  return true;
 }
 
-export function orderedShop(state: PorenaGameState, player: PlayerState, policy: PolicyName): string[] {
-  const owned = player.ownedCardIds.map((id) => getCard(state, id));
-  return [...player.shopCardIds].sort((left, right) => {
-    const a = getCard(state, left); const b = getCard(state, right);
-    return policyScore(policy, b, owned, getCardPrice(state, player.id, right))
-      - policyScore(policy, a, owned, getCardPrice(state, player.id, left)) || left.localeCompare(right);
-  });
-}
-
-export function hasStrategyCandidate(state: PorenaGameState, player: PlayerState, policy: PolicyName): boolean {
-  if (policy === "HIGH_RANK") return player.shopCardIds.some((id) => getCard(state, id).rank >= 11);
-  if (policy === "ECONOMY") return player.shopCardIds.some((id) => getCardPrice(state, player.id, id) <= 7);
-  const owned = player.ownedCardIds.map((id) => getCard(state, id));
-  if (policy === "PAIR_BUILDER") return player.shopCardIds.some((id) => owned.some((card) => card.rank === getCard(state, id).rank));
-  if (policy === "FLUSH_BUILDER") {
-    const suits = suitCounts(owned); const strongest = Math.max(0, ...suits.values());
-    return player.shopCardIds.some((id) => suits.get(getCard(state, id).suit) === strongest);
-  }
-  return player.shopCardIds.some((id) => owned.some((card) => {
-    const delta = Math.abs(card.rank - getCard(state, id).rank);
-    return delta <= 2 || (card.rank === 14 && getCard(state, id).rank <= 5) || (getCard(state, id).rank === 14 && card.rank <= 5);
-  }));
-}
-
-export function shouldReroll(state: PorenaGameState, player: PlayerState, policy: PolicyName): boolean {
-  if (policy === "ECONOMY" || player.shopCardIds.length === 0) return false;
-  return !hasStrategyCandidate(state, player, policy) && player.stackBB >= 15;
-}
-
-export function selectR2Cards(state: PorenaGameState, player: PlayerState, policy: PolicyName): string[] {
-  const owned = player.ownedCardIds.map((id) => ({ id, card: getCard(state, id) }));
-  let best = owned.slice(0, 2).map((entry) => entry.id);
-  let score = Number.NEGATIVE_INFINITY;
-  for (let left = 0; left < owned.length; left += 1) for (let right = left + 1; right < owned.length; right += 1) {
-    const pair = [owned[left]!, owned[right]!];
-    const value = policyScore(policy, pair[0].card, [pair[1].card], 0) + policyScore(policy, pair[1].card, [pair[0].card], 0);
-    if (value > score) { score = value; best = pair.map((entry) => entry.id); }
-  }
-  return best;
-}
-
-export function assignPolicies(playerIds: string[], policies: PolicyName[], mode: "fixed" | "random", seed: number): Record<string, PolicyName> {
-  let value = (seed >>> 0) || 1;
-  const random = () => { value ^= value << 13; value ^= value >>> 17; value ^= value << 5; return (value >>> 0) / 4294967296; };
-  return Object.fromEntries(playerIds.map((id, index) => [id, mode === "fixed" ? policies[index % policies.length]! : policies[Math.floor(random() * policies.length)]!]));
+export function makePolicy(name: PolicyName, seed: number): Policy {
+  if (name === "ENGINE_BOT") return { name, shop: null, pickDraft: null, loadout: null };
+  const random = makeRandom(seed);
+  const score = name === "RANDOM" ? () => 0 : scorer(name);
+  const best = (options: readonly Priced[], owned: readonly Card[]) => name === "RANDOM"
+    ? options[Math.floor(random() * options.length)]!
+    : options.reduce((a, b) => score(b.card, owned, b.price) > score(a.card, owned, a.price) ? b : a);
+  const shop: BotShopPolicy = (input) => {
+    const need = input.handLimit - input.ownedCards.length;
+    if (need <= 0 || input.purchasesLeft <= 0) return { type: "DONE" };
+    const affordable = input.shopCards.filter((s) => s.price <= input.stackBB);
+    // The driver already caps `rerollsLeft` at the configured maximum.
+    const canReroll = name !== "ECONOMY" && name !== "RANDOM" && input.rerollsLeft > 0
+      && input.stackBB >= input.rerollCost + need * 2;
+    if (canReroll && (!affordable.length || !hasFit(name, input.shopCards, input.ownedCards))) return { type: "REROLL" };
+    if (!affordable.length) return { type: "DONE" };
+    return { type: "BUY", cardId: best(affordable, input.ownedCards).card.id };
+  };
+  return {
+    name, shop,
+    pickDraft: (options, owned) => best(options, owned).card.id,
+    loadout: (cards) => [...cards].sort((a, b) => score(b, [], 0) - score(a, [], 0)),
+  };
 }
