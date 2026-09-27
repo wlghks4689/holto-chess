@@ -8,6 +8,7 @@ const FxPreview = lazy(() => import("./FxPreview").then((module) => ({ default: 
 const LocalApp = lazy(() => loadLocalApp().then((module) => ({ default: module.App })));
 const DraftPreview = lazy(() => import("./DraftPreview").then((m) => ({ default: m.DraftPreview })));
 const ShowdownCardPreview = lazy(() => import("./ShowdownCardPreview").then((m) => ({ default: m.ShowdownCardPreview })));
+const AbilityPreview = lazy(() => import("./AbilityPreview").then((m) => ({ default: m.AbilityPreview })));
 // Chapters, practice scenarios and the simple bots load only when the guide is opened.
 const TutorialApp = lazy(() => import("./tutorial/TutorialApp").then((module) => ({ default: module.TutorialApp })));
 export function ModeApp() {
@@ -22,6 +23,7 @@ export function ModeApp() {
     return <Suspense fallback={<main className="local-loading-screen"><div><span>FX PREVIEW</span><b>{t("common.loading")}</b></div></main>}><FxPreview /></Suspense>;
   }
   if (import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("cinemaCards")) return <Suspense fallback={<p>{t("common.loading")}</p>}><ShowdownCardPreview /></Suspense>;
+  if (import.meta.env.DEV && location.pathname === "/abilities-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><AbilityPreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
   if (!mode) return <StartScreen onStart={setMode} />;
   if (mode === "tutorial") return <Suspense fallback={<main className="local-loading-screen"><div><span>TUTORIAL</span><b>{t("common.loading")}</b></div></main>}><TutorialApp onHome={() => setMode(null)} onSinglePlay={() => setMode("single")} /></Suspense>;
