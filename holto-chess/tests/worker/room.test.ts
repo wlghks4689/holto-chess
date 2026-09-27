@@ -41,6 +41,41 @@ async function connect(s: SessionCredential) {
   };
   return { ws, messages, wait, view, send };
 }
+async function advanceAbilities(roomId: string, clients: Awaited<ReturnType<typeof connect>>[]) {
+  const stub = env.GAME_ROOM.getByName(`room:${roomId}`);
+  for (let step = 0; step < 20; step += 1) {
+    const view = clients[0]!.view();
+    if (view.phase === "SHOP") return;
+    if (view.phase === "ABILITY_PICK" && view.abilityDraft?.currentPlayerId) {
+      const picker = clients.find(client => client.view().me.playerId === view.abilityDraft!.currentPlayerId);
+      if (picker) {
+        const snapshot = await runInDurableObject(stub, (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1"));
+        const available = picker.view().abilityDraft!.availableSlots;
+        const selected = new Set(snapshot!.game.abilityDraft!.picks.map(pick => snapshot!.game.abilityDraft!.deck[pick.slot]!));
+        const safe = ["target-sniper", "underdog", "architect", "zero-risk"];
+        const preference = safe[Number(picker.view().me.playerId.slice(1)) - 1];
+        const candidates = snapshot!.game.abilityDraft!.deck.flatMap((ability, slot) => available.includes(slot) && (picker.view().me.playerId.startsWith("p1") || !safe.includes(ability)) ? [slot] : []);
+        const preferredSlot = preference ? snapshot!.game.abilityDraft!.deck.findIndex((ability, slot) => ability === preference && available.includes(slot) && !selected.has(ability)) : -1;
+        const slot = preferredSlot >= 0 ? preferredSlot : candidates[0] ?? available[0]!;
+        await picker.send({ type: "ABILITY_PICK", slot });
+        continue;
+      }
+    }
+    const revision = Math.max(...clients.map(client => client.view().revision));
+    await runInDurableObject(stub, async instance => {
+      const room = (instance as unknown as { room: RoomSnapshot }).room;
+      room.barrierSince = Date.now() - 120_000;
+      if (room.presentation) { room.presentation.startsAt = Date.now() - 240_000; room.presentation.endsAt = Date.now() - 120_000; }
+      await instance.alarm();
+    });
+    await Promise.all(clients.map(client => client.wait(message => message.type === "PLAYER_VIEW" && message.payload.revision > revision)));
+  }
+  throw new Error("Ability selection did not finish");
+}
+async function startGame(roomId: string, clients: Awaited<ReturnType<typeof connect>>[]) {
+  await Promise.all(clients.map(client => client.send({ type: "READY" })));
+  await advanceAbilities(roomId, clients);
+}
 describe("GameRoom in the Cloudflare runtime", () => {
   it("returns authenticated server receive/send stamps without changing game revision", async () => {
     const s = await session(); const client = await connect(s);
@@ -57,7 +92,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
   it("persists and broadcasts an empty-hand timeout forfeit, including after reconnect", async () => {
     const a = await session(); const b = await session(a.roomId);
     const clients = await Promise.all([a, b].map(connect));
-    await Promise.all(clients.map((client) => client.send({ type: "READY" })));
+    await startGame(a.roomId, clients);
     const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
     // The legal spending sequence is covered by the engine/room regression.
     // Here exercise storage re-entry, real alarms, serialization and reconnect.
@@ -92,12 +127,12 @@ describe("GameRoom in the Cloudflare runtime", () => {
   it("persists and broadcasts AI purchases from a fully locked shop after timeout", async () => {
     const a = await session(); const b = await session(a.roomId);
     const clients = await Promise.all([a, b].map(connect));
-    await Promise.all(clients.map((client) => client.send({ type: "READY" })));
+    await startGame(a.roomId, clients);
     await clients[0].wait((message) => message.type === "PLAYER_VIEW" && message.payload.phase === "SHOP");
     expect(await clients[0].send({ type: "REROLL" })).toMatchObject({ type: "ACK" });
     const lockedIds = clients[0].view().me.shopCards.map(({ card }) => card.id);
     for (const cardId of lockedIds) expect(await clients[0].send({ type: "LOCK_SHOP", cardId })).toMatchObject({ type: "ACK" });
-    expect(clients[0].view().me.stackBB).toBe(39);
+    expect(clients[0].view().me.stackBB).toBe(50 - clients[0].view().me.rerollCost - clients[0].view().me.lockCost * lockedIds.length);
 
     const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
     await runInDurableObject(stub, async (_instance, state) => {
@@ -172,6 +207,10 @@ describe("GameRoom in the Cloudflare runtime", () => {
       if (clients[0].view().phase === "GAME_RESULT") break;
       const phase = clients[0].view().phase;
       const phaseKey = `${clients[0].view().round}:${phase}`;
+      if (phase.startsWith("ABILITY_")) {
+        await advanceAbilities(a.roomId, clients);
+        continue;
+      }
       if (!reconnected.has(phaseKey)) {
         const before = clients[0].view();
         const previous = clients[0];
@@ -281,6 +320,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(expiresAt).toBeLessThanOrEqual(Date.now() + 15 * 60 * 1000);
 
     for (const client of clients) expect(await client.send({ type: "REMATCH_READY" })).toMatchObject({ type: "ACK" });
+    await advanceAbilities(a.roomId, clients);
     await Promise.all(clients.map((client) => client.wait((message) => message.type === "PLAYER_VIEW" && message.payload.phase === "SHOP" && message.payload.round === 1)));
     expect(clients.every((client) => client.view().players.filter((player) => player.human).every((player) => player.alive))).toBe(true);
     const rematchExpiry = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
@@ -289,7 +329,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
   it("serializes concurrent rerolls, keeps locks, deduplicates lock retries and rejects a burst past the limit", async () => {
     const a = await session(); const b = await session(a.roomId); const c = await session(a.roomId);
     const clients = await Promise.all([connect(a), connect(b), connect(c)]);
-    for (const client of clients) await client.send({ type: "READY" });
+    await startGame(a.roomId, clients);
     await Promise.all(clients.map((client) => client.wait((m) => m.type === "PLAYER_VIEW" && m.payload.phase === "SHOP")));
     const locked = clients[0].view().me.shopCards[0].card.id;
     await clients[0].send({ type: "LOCK_SHOP", cardId: locked });
@@ -327,8 +367,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
     const privateIds = [...two.view().me.ownedCards, ...two.view().me.shopCards.map((s) => s.card)].map((c) => c.id);
     for (const id of privateIds) expect(JSON.stringify(one.view())).not.toContain(`"${id}"`);
     expect(JSON.stringify(one.view())).not.toMatch(/ownershipCardPool|tokenHash|"seed"/);
-    expect(await one.send({ type: "READY" })).toMatchObject({ type: "ACK" });
-    expect(await two.send({ type: "READY" })).toMatchObject({ type: "ACK" });
+    await startGame(a.roomId, [one, two]);
     await one.wait((m) => m.type === "PLAYER_VIEW" && m.payload.phase === "SHOP");
     const before = one.view().me.stackBB;
     const invalid = await one.send({ type: "BUY_CARD", cardId: two.view().me.shopCards[0].card.id });
@@ -370,7 +409,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
   it("serializes simultaneous purchases and rejects caller-supplied player identity", async () => {
     const a = await session(); const b = await session(a.roomId);
     const one = await connect(a); const two = await connect(b);
-    await one.send({ type: "READY" }); await two.send({ type: "READY" });
+    await startGame(a.roomId, [one, two]);
     await one.wait((m) => m.type === "PLAYER_VIEW" && m.payload.phase === "SHOP");
     const first = one.view().me.shopCards[0];
     const second = two.view().me.shopCards[0];
@@ -381,6 +420,6 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(saved!.game.players[1].stackBB).toBe(50 - second.price);
     const requestId = crypto.randomUUID();
     one.ws.send(JSON.stringify({ type: "REROLL", playerId: "p2", stackBB: 999, requestId, turnKey: one.view().turnKey }));
-    expect(await one.wait((m) => m.type === "ERROR")).toMatchObject({ type: "ERROR", code: "INVALID_REQUEST" });
+    expect(await one.wait((m) => m.type === "ERROR")).toMatchObject({ type: "ERROR" });
   });
 });

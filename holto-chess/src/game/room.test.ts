@@ -61,9 +61,10 @@ describe("server room authority and projections", () => {
     expect(r.game.phase).toBe("GAME_RESULT");
     expect(r.readyIds).toEqual(["p1"]);
     r = act(r, "p2", { type: "REMATCH_READY" });
-    expect(r.game.phase).toBe("SHOP");
+    expect(r.game.phase).toBe("ABILITY_ORDER");
     expect(r.game.round).toBe(1);
     expect(r.readyIds).toEqual([]);
+    expect(r.game.abilityDraft?.order).toHaveLength(8);
     expect(r.game.players.slice(0, 2).map((player) => player.name)).toEqual(["첫 번째", "두 번째"]);
     expect(r.game.players.every((player) => !player.eliminated)).toBe(true);
   });

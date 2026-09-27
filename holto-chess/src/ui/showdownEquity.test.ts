@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
 import { compareHands, findBestFive } from "../core/poker/evaluate";
-import { scoreSeven, showdownEquity } from "./showdownEquity";
+import { rawShowdownEquity, scoreSeven, showdownEquity } from "./showdownEquity";
 
 const cards = Object.fromEntries(makeDeck().map((card) => [card.id, card]));
 const hand = (...ids: string[]) => ids.map((id) => cards[id]!);
@@ -12,8 +12,16 @@ describe("heads-up matchup equity", () => {
     const right = hand("2c", "7d");
     const result = showdownEquity(1, left, right)!;
     expect(result[0]).toBeGreaterThan(result[1]);
-    expect(result[0] + result[1]).toBe(100);
+    expect(result[0] + result[1]).toBeGreaterThanOrEqual(99);
+    expect(result[0] + result[1]).toBeLessThanOrEqual(100);
     expect(showdownEquity(1, left, right)).toEqual(result);
+  });
+
+  it("never rounds a sub-60 raw estimate up to the zero-risk threshold", () => {
+    const left = hand("As", "Ah"), right = hand("2c", "7d");
+    const raw = rawShowdownEquity(1, left, right)!;
+    expect(showdownEquity(1, left, right)![0]).toBe(Math.floor(raw));
+    if (raw < 60) expect(showdownEquity(1, left, right)![0]).toBeLessThan(60);
   });
 
   it("keeps sampled equity stable when the same cards arrive in a different order", () => {
@@ -34,7 +42,8 @@ describe("heads-up matchup equity", () => {
   it("excludes all known R2 hand cards from independent run-board samples", () => {
     const left = hand("As", "Ah"), right = hand("2c", "7d"), fullHands = hand("As", "Ah", "Qs", "2c", "7d", "Jd");
     const result = showdownEquity(2, left, right, fullHands)!;
-    expect(result[0] + result[1]).toBe(100);
+    expect(result[0] + result[1]).toBeGreaterThanOrEqual(99);
+    expect(result[0] + result[1]).toBeLessThanOrEqual(100);
     expect(showdownEquity(2, left, right, [fullHands[2]!, fullHands[2]!])).toBeNull();
   });
 

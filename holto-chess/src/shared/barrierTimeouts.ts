@@ -8,6 +8,8 @@ export const BARRIER_TIMEOUT_MS = {
   DEFAULT: 30_000,
   RESULTS: 30_000,
   DRAFT_DEAL_IN: 3_000,
+  ABILITY_PICK: 12_000,
+  ABILITY_REVEAL: 5_000,
   MATCH_SETUP: 3_000,
   GROUP_REVIEW: 10_000,
   RUN_LOADOUT: 30_000,
@@ -16,6 +18,9 @@ export const BARRIER_TIMEOUT_MS = {
 export function barrierTimeoutMs(phase: string): number {
   if (phase === "OPEN_DRAFT") return 20_000;
   if (phase === "DRAFT_ORDER") return BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN;
+  if (phase === "ABILITY_ORDER") return BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN;
+  if (phase === "ABILITY_PICK") return BARRIER_TIMEOUT_MS.ABILITY_PICK;
+  if (phase === "ABILITY_REVEAL") return BARRIER_TIMEOUT_MS.ABILITY_REVEAL;
   if (phase === "RUN_LOADOUT") return BARRIER_TIMEOUT_MS.RUN_LOADOUT;
   if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return BARRIER_TIMEOUT_MS.MATCH_SETUP;
   if (phase === "GROUP_ASSIGNMENT") return BARRIER_TIMEOUT_MS.GROUP_REVIEW;

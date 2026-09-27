@@ -1,8 +1,9 @@
 import type { Card } from "../core/poker/cards";
 import type { HandValue } from "../core/poker/evaluate";
+import type { AbilityDraft, AbilityEvent, AbilityId, AbilityTotals } from "./abilities";
 
 export type Round = 1 | 2 | 3 | 4 | 5;
-export type Phase = "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
+export type Phase = "ABILITY_ORDER" | "ABILITY_PICK" | "ABILITY_REVEAL" | "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
 export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: number; stackBB: number }[]; picks: { playerId: string; cardId: string | null; price: number }[] };
 export type PoolCardState = "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED";
 
@@ -14,6 +15,10 @@ export type PoolCard = {
 };
 
 export type PlayerState = {
+  abilityId?: AbilityId;
+  firstCardId?: string;
+  abilityWinStreak?: number;
+  abilityTotals?: AbilityTotals;
   id: string;
   name: string;
   stackBB: number;
@@ -51,6 +56,7 @@ export type MatchReward = {
 export type TiebreakKind = "GROUP_DECIDER" | "WINNER_TIEBREAK" | "SURVIVAL_TIEBREAK";
 export type HighCardDraw = { draws: { playerId: string; rank: number }[]; winnerId: string; survivorIds?: string[]; surviveCount?: number };
 export type MatchResult = {
+  equities?: Record<string, { rawPercent: number; insuranceEligible: boolean }>;
   runCards?: Record<string, string[][]>;
   runRewards?: MatchReward[][];
   standingsBefore?: Record<string, number>;
@@ -87,6 +93,9 @@ export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy";
   event?: string; params?: Record<string, string | number>; playerId?: string };
 
 export type PorenaGameState = {
+  abilityDraft?: AbilityDraft;
+  abilityEvents?: AbilityEvent[];
+  abilityInterestRounds?: Round[];
   /** Frozen when a showdown prep phase begins so the VS preview and resolution use the same seats. */
   primaryOrderIds?: string[];
   primaryPairings?: string[][];

@@ -63,12 +63,12 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
   const opponents = matchup?.opponents ?? (matchup?.opponent ? [matchup.opponent] : []);
   const opponent = opponents.length === 1 ? opponents[0] : undefined;
   const equities = useMemo(() => {
-    if (!viewer?.runCards || !opponent?.runCards) return [null, null] as const;
+    if (!viewer?.runCards || !opponent?.runCards) return [[null, null], [null, null]] as const;
     const deadCards = [...viewer.cards, ...opponent.cards];
     return [0, 1].map((run) => {
       const left = viewer.runCards![run]!, right = opponent.runCards![run]!;
-      return left.length === 2 && right.length === 2 ? showdownEquity(2, left, right, deadCards)?.[0] ?? null : null;
-    }) as [number | null, number | null];
+      return left.length === 2 && right.length === 2 ? showdownEquity(2, left, right, deadCards) ?? [null, null] : [null, null];
+    }) as [[number | null, number | null], [number | null, number | null]];
   }, [viewer, opponent]);
   const seats = [viewer, opponent] as const;
   const names = [viewer?.name ?? playerName, opponent?.name ?? t("showdown.findingOpponent")] as const;
@@ -80,7 +80,7 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
           <header className="r2-match-identity"><span className="r2-match-avatar">{seat ? [...seat.name][0] ?? "P" : "?"}</span><div><b title={names[index]}>{names[index]}</b><small>{seat ? t("showdown.points", { points: seat.points }) : "—"}</small></div></header>
           <div className="r2-run-list">{([0, 1] as const).map((run) => {
             const cards = seat?.runCards?.[run] ?? [];
-            const percent = index === 0 ? equities[run] : equities[run] === null ? null : 100 - equities[run]!;
+            const percent = equities[run][index] ?? null;
             return <section className="r2-run-preview" key={run} aria-label={`RUN ${run + 1}`}>
               <h2>RUN {run + 1}</h2>
               <div className="r2-run-preview-body"><div className="r2-run-cards">{cards.slice(0, 2).map((card) => <CardView key={card.id} card={card} compact />)}{Array.from({ length: Math.max(0, 2 - cards.length) }, (_, i) => <span className="r2-run-card-placeholder" key={`empty-${i}`} />)}</div><div className="r2-run-equity"><small>예상 승률</small><strong>{percent === null ? "--" : `${percent}%`}</strong></div></div>

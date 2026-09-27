@@ -13,6 +13,10 @@ const EVENT_KEYS: Record<string, TranslationKey> = {
 
 /** Old snapshots and unknown future events retain their persisted message. */
 export function renderPlayerFeedEntry(entry: PlayerFeedEntry, translate: (key: TranslationKey, params?: TranslationParams) => string): string {
+  if (entry.event === "ABILITY_REWARD" && typeof entry.params?.abilityId === "string") {
+    const ability = translate(`ability.card.${entry.params.abilityId}.name` as TranslationKey);
+    return translate("log.ABILITY_REWARD", { ...entry.params, ability });
+  }
   const key = entry.event && EVENT_KEYS[entry.event];
   return key ? translate(key, entry.params) : entry.message;
 }

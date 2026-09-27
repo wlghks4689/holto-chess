@@ -1,8 +1,10 @@
 import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 import type { HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
+import type { AbilityDraftView, AbilityId } from "../game/abilities";
 
 export type GameAction =
+  | { type: "ABILITY_PICK"; slot: number }
   | { type: "DRAFT_PICK"; cardId: string }
   | { type: "RUN_LOADOUT"; cardIds: string[] }
   | { type: "LOCK_RUN_LOADOUT" }
@@ -23,7 +25,7 @@ export type ClientMessage =
   | { type: "SYNC_CLOCK"; nonce: string }
   | (GameAction & { requestId: string; turnKey: string });
 
-export type PublicPlayer = { playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; departed: boolean };
+export type PublicPlayer = { abilityId?: AbilityId; playerId: string; name: string; stackBB: number; points: number; alive: boolean; human: boolean; connected: boolean; ready: boolean; departed: boolean };
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
@@ -61,7 +63,8 @@ export type RoundSummaryRow = {
 };
 export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
 export type PrivatePlayerView = {
-  playerId: string; stackBB: number; points: number; alive: boolean;
+  abilityId?: AbilityId;
+  playerId: string; stackBB: number; points: number; alive: boolean; lockCost: number;
   ownedCards: Card[]; shopCards: { card: Card; price: number }[];
   selectedCardIds: string[];
   loadoutSlots?: (string | null)[];
@@ -79,6 +82,7 @@ export type SpectatorPlayerView = {
 export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; runCards?: [Card[], Card[]] };
 export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView; opponents?: ShowdownPrepSeatView[] };
 export type PlayerView = {
+  abilityDraft?: AbilityDraftView;
   survival?: { playerIds: string[]; eliminateCount: number };
   draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]> };
   gameId: string; roomId: string; revision: number; turnKey: string;
@@ -131,6 +135,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   }
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+(?::[0-9]+:[0-9]+)?$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
+    ABILITY_PICK: ["slot"],
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
       SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], FINAL_RESULTS_VIEWED: [], LEAVE_ROOM: [],
@@ -143,5 +148,6 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 3 || new Set(v.cardIds).size !== 3 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");
   if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");
+  if (v.type === "ABILITY_PICK" && (typeof v.slot !== "number" || !Number.isInteger(v.slot) || v.slot < 0 || v.slot > 9)) throw new Error("잘못된 어빌리티 카드입니다.");
   return v as ClientMessage;
 }

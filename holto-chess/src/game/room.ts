@@ -1,6 +1,6 @@
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
-import { beginSecondary, buyCard, createGame, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
+import { beginSecondary, buyCard, createGame, createAbilityGame, openAbilitySelection, pickAbility, autoPickAbility, finishAbilitySelection, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
 import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
 import { PRESENTATION_LEAD_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
@@ -29,8 +29,8 @@ export type RoomSnapshot = {
 
 // Re-exported so existing server and test imports keep working.
 export { BARRIER_TIMEOUT_MS, barrierTimeoutMs };
-export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2): RoomSnapshot {
-  const game = createGame(seed, randomMode, rulesVersion);
+export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2, abilities = false): RoomSnapshot {
+  const game = abilities ? createAbilityGame(seed, randomMode) : createGame(seed, randomMode, rulesVersion);
   return { schema: 1, rulesRevision: 2, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [] };
 }
 
@@ -86,9 +86,9 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 }
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
-const BARRIER_PHASES = ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
-const AUTOMATIC_PRESENTATION_PHASES = ["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
-const SPECTATOR_TIMER_PHASES = ["DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
+const BARRIER_PHASES = ["ABILITY_ORDER", "ABILITY_PICK", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
+const AUTOMATIC_PRESENTATION_PHASES = ["ABILITY_ORDER", "ABILITY_REVEAL", "DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
+const SPECTATOR_TIMER_PHASES = ["ABILITY_ORDER", "ABILITY_REVEAL", "DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
 
 /** No human vote exists here; the server clock preserves viewing time and advances the game. */
 function waitingForSpectatorTimer(room: RoomSnapshot): boolean {
@@ -102,6 +102,10 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
   const waiting = activeHumans(room);
   if (room.game.phase === "OPEN_DRAFT") {
     const picker = room.game.draft?.order[room.game.draft.picks.length]?.playerId;
+    return picker ? [picker] : [];
+  }
+  if (room.game.phase === "ABILITY_PICK") {
+    const picker = room.game.abilityDraft?.order[room.game.abilityDraft.picks.length];
     return picker ? [picker] : [];
   }
   if (room.game.phase === "SURVIVAL_READY") return waiting.filter((id) => room.game.survival?.playerIds.includes(id) && !room.readyIds.includes(id));
@@ -125,7 +129,8 @@ function refreshBarrier(room: RoomSnapshot, now: number): void {
  */
 export function barrierDeadline(room: RoomSnapshot): number | undefined {
   if (room.barrierSince === undefined) return undefined;
-  const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId : undefined;
+  const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId
+    : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.order[room.game.abilityDraft.picks.length] : undefined;
   const botDraftTurn = !!draftPicker && !activeHumans(room).includes(draftPicker);
   return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + (botDraftTurn ? BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : barrierTimeoutMs(room.game.phase));
 }
@@ -142,6 +147,8 @@ export function addSession(source: RoomSnapshot, tokenHash: string): { room: Roo
 /** Runs the transition a fully-satisfied READY barrier triggers. */
 function advanceReadyBarrier(room: RoomSnapshot): void {
   switch (room.game.phase) {
+    case "ABILITY_ORDER": room.game = openAbilitySelection(room.game); break;
+    case "ABILITY_REVEAL": room.game = finishAbilitySelection(room.game); break;
     case "DRAFT_ORDER": room.game = openDraft(room.game); break;
     case "RUN_LOADOUT": room.game = lockRunLoadouts(room.game, activeHumans(room)); break;
     case "SURVIVAL_READY": room.game = resolveSurvival(room.game); break;
@@ -180,7 +187,7 @@ function startRematch(room: RoomSnapshot): void {
   room.gameGeneration = (room.gameGeneration ?? 0) + 1;
   const names = Object.fromEntries(room.game.players.map((player) => [player.id, player.name]));
   const seed = (room.game.seed + room.revision + 1) >>> 0 || 1;
-  room.game = createGame(seed, room.game.randomMode, room.game.rulesVersion ?? 2);
+  room.game = createAbilityGame(seed, room.game.randomMode);
   for (const session of room.sessions) room.game.players.find((player) => player.id === session.playerId)!.name = names[session.playerId]!;
   room.status = "PLAYING";
   room.readyIds = [];
@@ -260,6 +267,9 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
   } else if (action.type === "DRAFT_PICK") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
     room.game = pickDraftCard(room.game, playerId, action.cardId);
+  } else if (action.type === "ABILITY_PICK") {
+    if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
+    room.game = pickAbility(room.game, playerId, action.slot);
   } else if (action.type === "RUN_LOADOUT") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("배치 시간이 끝났습니다.");
     if (room.readyIds.includes(playerId)) throw new Error("이미 구성을 확정했습니다.");
@@ -316,7 +326,9 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   const spectatorTimer = waitingForSpectatorTimer(source);
   if (!pending.length && !spectatorTimer) return null;
   const room = structuredClone(source);
-  if (room.game.phase === "OPEN_DRAFT") {
+  if (room.game.phase === "ABILITY_PICK") {
+    room.game = autoPickAbility(room.game);
+  } else if (room.game.phase === "OPEN_DRAFT") {
     room.game = autoPickDraft(room.game);
   } else if (room.game.phase === "SHOP") {
     // Preserve complete human Omaha hands when the shop timer expires.

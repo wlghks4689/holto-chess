@@ -103,7 +103,7 @@ export class GameRoom extends DurableObject<Env> {
       return this.ctx.blockConcurrencyWhile(async () => {
         if (this.room) return new Response("Room exists", { status: 409 });
         const secret = token();
-        const { room, playerId } = addSession(createRoom(roomId, randomSeed(), "secure"), await hash(secret));
+        const { room, playerId } = addSession(createRoom(roomId, randomSeed(), "secure", 2, true), await hash(secret));
         await this.commit(room);
         this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
         await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);

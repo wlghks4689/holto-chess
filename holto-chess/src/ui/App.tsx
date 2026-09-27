@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { assertPoolIntegrity, ownershipCounts } from "../game/cardPool";
-import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../game/config";
+import { BALANCE, purchaseLimitFor } from "../game/config";
+import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilityShopSize } from "../game/abilities";
 import {
-  beginSecondary, buyCard, confirmSelection, createGame, finalStandings, leaveRoundResult,
+  beginSecondary, buyCard, confirmSelection, createAbilityGame, openAbilitySelection, pickAbility, autoPickAbility, finishAbilitySelection, finalStandings, leaveRoundResult,
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   sellCard, toggleSelectedCard, toggleShopLock,
 } from "../game/engine";
@@ -38,6 +39,7 @@ import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { useLocalCountdown } from "./useLocalCountdown";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { SurvivalReadyPanel } from "./SurvivalReadyPanel";
+import { AbilitySelectionPanel } from "./AbilitySelectionPanel";
 import { isSurvivalParticipant } from "./survivalReadyPresentation";
 import { advanceLocalNextRound } from "./localRoundTransition";
 import { markRoundGuideSeen, shouldAutoShowRoundGuide, useRoundGuidePreferences } from "./roundGuidePreferences";
@@ -68,6 +70,11 @@ function LocalRunLoadoutStage({ view, send }: {
   return <RunLoadoutPanel view={view} send={send} disabled={false} seconds={seconds} />;
 }
 
+function LocalAbilityStage({ view, send, duration }: { view: ReturnType<typeof createPlayerView>; send: (action: GameAction) => void; duration: number }) {
+  const seconds = useLocalCountdown(duration);
+  return <AbilitySelectionPanel view={view} send={send} seconds={seconds} />;
+}
+
 function LocalShowdownPrep({ state, matchup }: { state: PorenaGameState; matchup?: ShowdownPrepView }) {
   const { t } = useTranslation();
   const seconds = useLocalCountdown(BARRIER_TIMEOUT_MS.MATCH_SETUP / 1000);
@@ -78,8 +85,8 @@ function LocalShowdownPrep({ state, matchup }: { state: PorenaGameState; matchup
 function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
   const { t } = useTranslation();
   const me = state.players[0]!; const cap = BALANCE.handLimits[state.round];
-  const purchaseLimit = purchaseLimitFor(state.round); const rerollLimit = rerollLimitFor(state.round);
-  const shopSize = state.rulesVersion === 2 ? regularShopSizeFor(state.round) : me.shopSize;
+  const purchaseLimit = purchaseLimitFor(state.round); const rerollLimit = abilityRerollLimit(me, state.round, state.rulesVersion ?? 1);
+  const shopSize = abilityShopSize(me, state.round, state.rulesVersion ?? 1);
   const lockedShopCardCount = me.shopCardIds.filter((id) => me.lockedShopCardIds?.includes(id)).length;
   const allShopCardsLocked = shopSize > 0 && lockedShopCardCount >= shopSize;
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
@@ -92,9 +99,9 @@ function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: Poren
     </div>
     <div className="market panel">
       <header><div className="shop-heading"><h2>{t("shop.market")}</h2><strong className="shop-count">{me.shopCardIds.length} / {shopSize}</strong></div><span className="purchase-count">{t("shop.purchases", { used: me.purchasesThisRound, limit: purchaseLimit })}</span></header>
-      <div className={`card-row market-row ${(me.rerollsUsed ?? 0) > 0 ? "has-rerolled" : ""} ${me.shopCardIds.length > 1 ? "has-multiple-cards" : ""}`}>{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
+      <div className={`card-row market-row ${(me.rerollsUsed ?? 0) > 0 ? "has-rerolled" : ""} ${me.shopCardIds.length > 1 ? "has-multiple-cards" : ""}`}>{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} lockCost={abilityLockCost(me)} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">{t("shop.soldOut")}</p> : null}</div>
-      <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < BALANCE.rerollCostBB} onClick={() => act((s) => rerollShop(s, me.id))}>{t("shop.rerollStatus", { cost: BALANCE.rerollCostBB, used: me.rerollsUsed ?? 0, limit: rerollLimit })}</button></div>
+      <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < abilityRerollCost(me)} onClick={() => act((s) => rerollShop(s, me.id))}>{t("shop.rerollStatus", { cost: abilityRerollCost(me), used: me.rerollsUsed ?? 0, limit: rerollLimit })}</button></div>
     </div>
   </section>;
 }
@@ -162,7 +169,7 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
 
 export function App({ onHome }: { onHome: () => void }) {
   const { t } = useTranslation();
-  const [state, setState] = useState(() => createGame()); const [error, setError] = useState<ReceivedGameError | null>(null);
+  const [state, setState] = useState(() => createAbilityGame()); const [error, setError] = useState<ReceivedGameError | null>(null);
   const [exiting, setExiting] = useState(false);
   const [gameVersion, setGameVersion] = useState(0);
   const [manualGuideRound, setManualGuideRound] = useState<Round | null>(null);
@@ -170,6 +177,8 @@ export function App({ onHome }: { onHome: () => void }) {
   const expireResult = useCallback(() => setState((current) => advanceLocalNextRound(current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current)), []);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
+  const abilityPickIndex = state.abilityDraft?.picks.length ?? 0;
+  const abilityPickerId = state.abilityDraft?.order[abilityPickIndex];
   const guideOpen = manualGuideRound !== null || shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
   const guideRound = manualGuideRound ?? state.round;
   const closeGuide = () => {
@@ -179,18 +188,23 @@ export function App({ onHome }: { onHome: () => void }) {
   useEffect(() => {
     const phase = state.phase;
     if (guideOpen) return;
-    if (!["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
-    const delay = phase === "DRAFT_ORDER" ? BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN
+    if (!["ABILITY_ORDER", "ABILITY_PICK", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
+    const delay = phase === "ABILITY_ORDER" || phase === "DRAFT_ORDER" ? BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN
+      : phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL
+      : phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK
       : phase === "RUN_LOADOUT" ? BARRIER_TIMEOUT_MS.RUN_LOADOUT
       : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
       : draftPickerId === "p1" ? 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
-    const timer = setTimeout(() => setState((s) => advanceLocalNextRound(phase === "DRAFT_ORDER" ? openDraft(s)
+    const timer = setTimeout(() => setState((s) => phase === "ABILITY_ORDER" ? openAbilitySelection(s)
+      : phase === "ABILITY_PICK" ? autoPickAbility(s)
+      : phase === "ABILITY_REVEAL" ? finishAbilitySelection(s)
+      : advanceLocalNextRound(phase === "DRAFT_ORDER" ? openDraft(s)
       : phase === "RUN_LOADOUT" ? lockRunLoadouts(s)
       : phase === "SHOWDOWN_PRIMARY" ? resolvePrimary(s)
       : phase === "SHOWDOWN_SECONDARY" ? resolveSecondary(s)
       : autoPickDraft(s))), delay);
     return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex, draftPickerId, guideOpen]);
+  }, [state.phase, draftPickIndex, draftPickerId, abilityPickIndex, abilityPickerId, guideOpen]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(advanceLocalNextRound(fn(state))); setError(null); } catch (caught) { const message = caught instanceof Error ? caught.message : ""; setError({ ...classifyGameError(message), message }); } };
   const alive = state.players.filter((player) => !player.eliminated).length;
@@ -200,16 +214,18 @@ export function App({ onHome }: { onHome: () => void }) {
   const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [] }, "p1");
   const isShowdownPrep = ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase);
   const draftAction = (a: GameAction) => {
+    if (a.type === "ABILITY_PICK") act(s => pickAbility(s, "p1", a.slot));
     if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId));
     if (a.type === "RUN_LOADOUT") act((s) => setRunLoadout(s, "p1", a.cardIds));
     if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
-  const reset = () => { setGameVersion((value) => value + 1); setState(createGame()); };
+  const reset = () => { setGameVersion((value) => value + 1); setState(createAbilityGame()); };
   return <CinematicGate key={gameVersion} soundSessionId={`local:${gameVersion}`} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {guideOpen ? <RoundGuide round={guideRound} onClose={closeGuide} confirmLabel={manualGuideRound === null ? undefined : t("round.returnToGame")} /> : null}
     <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div><div className="nav-actions"><button type="button" className="secondary round-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
+      {state.phase.startsWith("ABILITY_") && <LocalAbilityStage key={`${state.phase}:${abilityPickIndex}`} view={draftView} send={draftAction} duration={state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? 12 : 2 : state.phase === "ABILITY_REVEAL" ? 5 : 3} />}
       {!isShowdownPrep && (prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : ROUND_TITLES[state.round]}</h1></div>{state.phase !== "GAME_RESULT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "SHOP" && <PoolMeter state={state} />}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} />}

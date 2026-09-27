@@ -1,4 +1,4 @@
-import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
+import { BALANCE, purchaseLimitFor } from "./config";
 import { finalStandings, getCard, getCardPrice } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
@@ -6,21 +6,23 @@ import { createMatchView } from "./matchView";
 import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
 import { concealedCard, discloseMatch, presentationComplete } from "./disclosure";
+import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
 
 function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerView {
   const g = room.game;
   const player = g.players.find((candidate) => candidate.id === playerId)!;
   return {
+    abilityId: player.abilityId,
     playerId: player.id, stackBB: player.stackBB, points: player.points, alive: !player.eliminated,
     ownedCards: player.ownedCardIds.map((id) => getCard(g, id)),
     shopCards: player.shopCardIds.map((id) => ({ card: getCard(g, id), price: getCardPrice(g, player.id, id) })),
     selectedCardIds: [...player.selectedCardIds],
-    handLimit: BALANCE.handLimits[g.round], shopSize: g.rulesVersion === 2 ? regularShopSizeFor(g.round) : player.shopSize,
+    handLimit: BALANCE.handLimits[g.round], shopSize: abilityShopSize(player, g.round, g.rulesVersion ?? 1),
     shopLocked: false, lockedShopCardIds: [...(player.lockedShopCardIds ?? [])],
     purchases: player.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round, g.rulesVersion ?? 1),
-    rerollsUsed: player.rerollsUsed ?? 0, rerollLimit: rerollLimitFor(g.round, g.rulesVersion ?? 1),
-    rerollCost: BALANCE.rerollCostBB,
-    sellPercent: Math.round(BALANCE.sellRate * 100),
+    rerollsUsed: player.rerollsUsed ?? 0, rerollLimit: abilityRerollLimit(player, g.round, g.rulesVersion ?? 1),
+    rerollCost: abilityRerollCost(player), lockCost: abilityLockCost(player),
+    sellPercent: Math.round(abilitySellRate(player) * 100),
     committed: room.endedShopIds.includes(player.id),
   };
 }
@@ -87,6 +89,12 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   };
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
+    ...(room.status === "PLAYING" && g.abilityDraft && g.phase.startsWith("ABILITY_") ? { abilityDraft: {
+      order: [...g.abilityDraft.order], pickedCount: g.abilityDraft.picks.length,
+      availableSlots: g.abilityDraft.deck.flatMap((_, slot) => g.abilityDraft!.picks.some(pick => pick.slot === slot) ? [] : [slot]),
+      currentPlayerId: g.phase === "ABILITY_PICK" ? g.abilityDraft.order[g.abilityDraft.picks.length] : undefined,
+      abilities: g.abilityDraft.picks.map(pick => ({ playerId: pick.playerId, abilityId: g.players.find(player => player.id === pick.playerId)!.abilityId! })),
+    } } : {}),
     gameId: room.gameGeneration ? `${room.roomId}:${room.gameGeneration}` : room.roomId,
     roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),
     serverNow: now, presentation: presentationViewFor(room, viewerPlayerId),
@@ -109,7 +117,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       roundHistory: visible && complete ? roundMatches(g).filter((match) => match.playerIds.includes(player.id)).map((match, index) => ({ ...createMatchView(g, match), matchNumber: index + 1 })) : [],
       ...(presentationViewFor(room, player.id) ? { presentation: presentationViewFor(room, player.id) } : {}),
     })) } : {}),
-    players: g.players.map((p) => ({ playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
+    players: g.players.map((p) => ({ abilityId: p.abilityId, playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
     matches: visible ? publicMatches(me.id) : [],
     roundSummary: visible && complete ? createRoundSummary(g) : [],
     roundHistory: visible && complete ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...createMatchView(g, m), matchNumber: index + 1 })) : [],

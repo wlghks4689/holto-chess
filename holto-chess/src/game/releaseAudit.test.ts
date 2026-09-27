@@ -105,7 +105,7 @@ describe("release audit: deadline and stale-action regressions", () => {
     room.finalResultsReleasedAt = startTime;
     room = act(room, "p1", { type: "REMATCH_READY" });
     room = act(room, "p2", { type: "REMATCH_READY" });
-    expect(room.game.phase).toBe("SHOP");
+    expect(room.game.phase).toBe("ABILITY_ORDER");
     expect(createPlayerView(room, "p1").gameId).not.toBe(oldGameId);
     expect(createPlayerView(room, "p1").roomId).toBe(room.roomId);
     expect(() => applyRoomAction(room, "p1", { type: "REROLL" }, oldTurn, startTime)).toThrow(/단계/);

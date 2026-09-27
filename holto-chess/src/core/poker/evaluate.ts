@@ -82,13 +82,15 @@ export function combinations<T>(items: readonly T[], choose: number): T[][] {
 }
 
 /** Generalized 5–10 card BEST 5. Deterministic ties use card ids only to choose presentation cards, never player rank. */
-export function findBestFive(cards: readonly Card[]): HandValue {
+export function findBestFive(cards: readonly Card[], preferredCardId?: string): HandValue {
   if (cards.length < 5 || cards.length > 10) throw new Error("BEST 5 requires between 5 and 10 cards");
   let best: HandValue | null = null;
   for (const five of combinations(cards, 5)) {
     const candidate = evaluateFive(five);
     const comparison = best ? compareHands(candidate, best) : 1;
-    if (comparison > 0 || (comparison === 0 && five.map((card) => card.id).sort().join("") > best!.bestFive.map((card) => card.id).sort().join(""))) best = candidate;
+    const preferredTie = comparison === 0 && !!preferredCardId && five.some(card => card.id === preferredCardId)
+      && !best!.bestFive.some(card => card.id === preferredCardId);
+    if (comparison > 0 || preferredTie || (comparison === 0 && !preferredTie && five.map((card) => card.id).sort().join("") > best!.bestFive.map((card) => card.id).sort().join(""))) best = candidate;
   }
   return best!;
 }
@@ -105,12 +107,15 @@ export function evaluateOmahaPreflop(holes: readonly Card[]): HandValue {
 }
 
 /** Omaha: exactly two owned cards and exactly three board cards. */
-export function findBestOmaha(holes: readonly Card[], board: readonly Card[]): HandValue {
+export function findBestOmaha(holes: readonly Card[], board: readonly Card[], preferredCardId?: string): HandValue {
   if (holes.length < 2 || board.length < 3) throw new Error("Omaha requires at least two hole and three board cards");
   let best: HandValue | null = null;
   for (const holeTwo of combinations(holes, 2)) for (const boardThree of combinations(board, 3)) {
     const candidate = evaluateFive([...holeTwo, ...boardThree]);
-    if (!best || compareHands(candidate, best) > 0) best = candidate;
+    const comparison = best ? compareHands(candidate, best) : 1;
+    const preferredTie = comparison === 0 && !!preferredCardId && candidate.bestFive.some(card => card.id === preferredCardId)
+      && !best!.bestFive.some(card => card.id === preferredCardId);
+    if (comparison > 0 || preferredTie) best = candidate;
   }
   return best!;
 }
