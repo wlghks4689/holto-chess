@@ -2,10 +2,20 @@ import { Fragment, useMemo, type CSSProperties } from "react";
 import type { ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { CardView } from "./CardView";
 import { showdownEquity } from "./showdownEquity";
+import { ABILITY_CARDS } from "./abilityCatalog";
 import "./showdown-prep.css";
 import { useTranslation } from "../i18n";
 
 const ROUND_TITLES = ["", "TWO HAND", "RUN IT TWICE", "OMAHA SWISS", "BEST FIVE", "THE LAST HAND"];
+
+function PrepAvatar({ seat, viewer, fallback, className }: { seat?: ShowdownPrepSeatView; viewer: boolean; fallback: string; className: string }) {
+  const { t } = useTranslation();
+  const ability = viewer ? seat?.abilityId : undefined;
+  const label = ability ? t(`ability.card.${ability}.name`) : undefined;
+  return ability
+    ? <img className={`${className}-icon`} src={`/assets/abilities/${ABILITY_CARDS[ability]}`} alt={label} title={label} />
+    : <span className={className}>{fallback}</span>;
+}
 
 export function FinalRoundTransition() {
   const { t } = useTranslation();
@@ -18,7 +28,7 @@ function PrepSeat({ seat, viewer, pending = false, winPercent }: { seat?: Showdo
   const avatar = pending ? "?" : [...name][0] ?? "P";
   const cards = seat?.cards.slice(0, 7) ?? [];
   return <article className={`showdown-prep-player ${viewer ? "is-viewer" : "is-opponent"} ${pending ? "is-pending" : ""}`}>
-    <div className="showdown-prep-identity"><span className="showdown-prep-avatar">{avatar}</span><div><b>{name}</b><small>{t("showdown.points", { points: seat?.points ?? "—" })}</small></div></div>
+    <div className="showdown-prep-identity"><PrepAvatar className="showdown-prep-avatar" seat={seat} viewer={viewer} fallback={avatar} /><div><b>{name}</b><small>{t("showdown.points", { points: seat?.points ?? "—" })}</small></div></div>
     <div className="showdown-prep-hand" aria-label={t("showdown.cardsAria", { player: name })}>
       {cards.map((card) => <CardView key={card.id} card={card} compact />)}
     </div>
@@ -77,7 +87,7 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
     <div className="r2-match-stage">
       {seats.map((seat, index) => <Fragment key={seat?.playerId ?? `pending-${index}`}>
         <article className={`r2-match-player ${index === 0 ? "is-viewer" : "is-opponent"} ${seat ? "" : "is-pending"}`}>
-          <header className="r2-match-identity"><span className="r2-match-avatar">{seat ? [...seat.name][0] ?? "P" : "?"}</span><div><b title={names[index]}>{names[index]}</b><small>{seat ? t("showdown.points", { points: seat.points }) : "—"}</small></div></header>
+          <header className="r2-match-identity"><PrepAvatar className="r2-match-avatar" seat={seat} viewer={index === 0} fallback={seat ? [...seat.name][0] ?? "P" : "?"} /><div><b title={names[index]}>{names[index]}</b><small>{seat ? t("showdown.points", { points: seat.points }) : "—"}</small></div></header>
           <div className="r2-run-list">{([0, 1] as const).map((run) => {
             const cards = seat?.runCards?.[run] ?? [];
             const percent = equities[run][index] ?? null;

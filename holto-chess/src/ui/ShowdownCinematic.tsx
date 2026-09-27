@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { MatchView, PresentationView, RevealedHand, ShowdownPrepView } from "../shared/protocol";
+import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
 import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
@@ -21,7 +21,7 @@ import "./cinematic.css";
 import { HighCardDrawNotice, HighCardDrawResult } from "./HighCardDraw";
 import { useTranslation, type TranslationKey } from "../i18n";
 
-type Profile = { playerId: string; name: string; points?: number; alive?: boolean };
+type Profile = { playerId: string; name: string; points?: number; alive?: boolean; abilityId?: ShowdownPrepSeatView["abilityId"] };
 /**
  * `controls` exposes skip for local simulation only. `elapsedMs` hands playback to an outside
  * clock (the server-synced gate): no local timer or per-match confirm.
@@ -293,12 +293,14 @@ function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string):
   const ids = match.participantIds.length === 2 ? showdownSeatOrder(match.participantIds, viewerId)
     : match.participantIds.includes(viewerId) ? [viewerId, ...match.participantIds.filter((id) => id !== viewerId)] : match.participantIds;
   const seat = (id: string) => {
+    const profile = profiles.find((candidate) => candidate.playerId === id);
     const runCards = match.runCards?.[id];
     return {
       playerId: id,
-      name: profiles.find((profile) => profile.playerId === id)?.name ?? id,
-      points: match.standingsBefore?.[id] ?? profiles.find((profile) => profile.playerId === id)?.points ?? 0,
+      name: profile?.name ?? id,
+      points: match.standingsBefore?.[id] ?? profile?.points ?? 0,
       cards: runCards ? [...new Map(runCards.flat().map((card) => [card.id, card])).values()] : match.revealedCards[id] ?? [],
+      abilityId: profile?.abilityId,
       runCards: runCards && runCards.length >= 2 ? [runCards[0]!, runCards[1]!] as [Card[], Card[]] : undefined,
     };
   };
