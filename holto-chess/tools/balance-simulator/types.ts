@@ -1,179 +1,60 @@
 import type { HandCategory } from "../../src/core/poker/evaluate";
-import type { Round } from "../../src/game/types";
 
-export const POLICY_NAMES = ["HIGH_RANK", "PAIR_BUILDER", "STRAIGHT_BUILDER", "FLUSH_BUILDER", "ECONOMY"] as const;
+export const POLICY_NAMES = ["ENGINE_BOT", "HIGH_RANK", "PAIR_BUILDER", "STRAIGHT_BUILDER", "FLUSH_BUILDER", "ECONOMY", "RANDOM"] as const;
 export type PolicyName = (typeof POLICY_NAMES)[number];
-export type PolicyAssignment = "fixed" | "random";
-export type ReportHandCategory = HandCategory;
 
-export type SimulationConfig = {
-  simulationCount: number;
-  baseSeed: number;
-  policies: PolicyName[];
-  assignment: PolicyAssignment;
-  outputPath: string;
-  verbose: boolean;
-  maxRerollsPerPlayerRound: number;
-};
-
-export type EconomyCounter = {
-  purchases: number;
-  sales: number;
-  rerolls: number;
-  purchaseSpend: number;
-  rerollSpend: number;
-};
-
-export type PoolSnapshot = {
-  round: Round;
-  available: number;
-  reserved: number;
-  owned: number;
-  shopFillFailures: number;
-};
-
-export type RoundSnapshot = {
-  round: Round;
-  entered: number;
-  survived: number;
-  stacks: number[];
-};
-
-export type TournamentCounter = {
-  r2PrimaryWins: number;
-  r2WinnerBracketWins: number;
-  r2LoserBracketSurvivals: number;
-  r2Eliminations: number;
-  r4PrimaryWins: number;
-  r4WinnerThreeWayFirsts: number;
-  r4LoserThreeWaySurvivals: number;
-  r4Eliminations: number;
-};
-
-export type PlayerTrace = {
-  playerId: string;
-  policy: PolicyName;
-  economy: EconomyCounter;
-  roundEconomy: Record<Round, EconomyCounter>;
-  finalBB: number;
-  finalRank: number;
-  finalScore: number;
-  preR5Points: number;
-  r5PlacementPoints: number;
-  r5Place: number;
-  roundPoints: number;
-  handScore: number;
-  stackScore: number;
-  reachedR5: boolean;
-  won: boolean;
-  tournament: TournamentCounter;
-};
-
-export type RankCounter = {
-  appearances: number;
-  purchases: number;
-  sales: number;
-  finalOwned: number;
-};
-
-export type GameTrace = {
-  seed: number;
-  actionCount: number;
-  players: PlayerTrace[];
-  rounds: RoundSnapshot[];
-  poolSnapshots: PoolSnapshot[];
-  rankCounters: Record<string, RankCounter>;
-  handCounts: Record<Round, Partial<Record<ReportHandCategory, number>>>;
-  availableZeroEvents: number;
-  rerollShortageEvents: number;
-  repeatedRerollGroups: number;
-  strategyCandidateMissing: Record<PolicyName, number>;
-};
-
-export type FailureRecord = { gameIndex: number; seed: number; message: string; stack?: string };
-
-export type NumericSummary = { average: number; median: number; min: number; max: number };
-export type RoundReport = {
-  entered: number;
-  survived: number;
-  bb: NumericSummary;
-  pool: {
-    averageAvailable: number;
-    minimumAvailable: number;
-    averageReserved: number;
-    averageOwned: number;
-    availableZeroEvents: number;
-    shopFillFailures: number;
-  };
-  economy: EconomyCounter;
-  hands: Record<ReportHandCategory, { count: number; percentage: number }>;
-};
-
-export type PolicyReport = {
-  entries: number;
-  r5Rate: number;
-  winRate: number;
-  averageFinalRank: number;
-  averageBB: number;
-  averageFinalScore: number;
-  economy: EconomyCounter;
-  tournament: TournamentCounter;
-  strategyCandidateMissing: number;
-};
-
-export type PlayerSlotReport = {
+export type SimConfig = {
   games: number;
-  policyMix: Partial<Record<PolicyName, number>>;
-  averageFinalRank: number;
-  averageEndingBB: number;
-  economy: EconomyCounter;
+  seed: number;
+  policies: PolicyName[];
+  /** How policies are dealt to the 8 seats. `rotate` shifts the deal every game so no policy owns a seat. */
+  assignment: "rotate" | "fixed" | "random";
+  maxRerolls: number;
+  /** Runtime overrides of `BALANCE` / `FINAL_ROUND_PLACEMENT_POINTS`, applied only while the run executes. */
+  overrides: Record<string, number>;
+  outputPath: string;
+  writeRows: boolean;
+  verbose: boolean;
 };
 
-export type SimulationResult = {
-  config: Omit<SimulationConfig, "outputPath" | "verbose">;
-  games: { requested: number; completed: number; failed: number; averageActions: number };
-  rounds: Record<Round, RoundReport>;
-  economy: EconomyCounter & {
-    averagePurchasesPerPlayer: number;
-    averageSalesPerPlayer: number;
-    averageRerollsPerPlayer: number;
-    averageEndingBB: number;
-    purchaseSpendRatio: number;
-    rerollSpendRatio: number;
-  };
-  ranks: Record<string, RankCounter & { purchaseRate: number }>;
-  players: Record<string, PlayerSlotReport>;
-  policies: Record<PolicyName, PolicyReport>;
-  score: {
-    averageFinalScore: number;
-    averagePreR5Points: number;
-    averageR5PlacementPoints: number;
-    averageRoundPoints: number;
-    averageHandScore: number;
-    averageStackScore: number;
-    roundVsHand: { roundPointsPercentage: number; handScorePercentage: number };
-    overallShare: { roundPointsPercentage: number; handScorePercentage: number; stackScorePercentage: number };
-    byR5Place: Record<string, {
-      entries: number;
-      averagePreR5Points: number;
-      averagePlacementPoints: number;
-      averageHandScore: number;
-      averageStackScore: number;
-      averageFinalScore: number;
-    }>;
-  };
-  depletion: {
-    availableZeroEvents: number;
-    shopFillFailures: number;
-    rerollShortageEvents: number;
-    repeatedRerollGroups: number;
-  };
-  failures: FailureRecord[];
-  limitations: string[];
+export const ROUNDS = [1, 2, 3, 4, 5] as const;
+/** Survivors each round must leave; anything else is an engine/simulator disagreement. */
+export const EXPECTED_ALIVE_AFTER: Record<number, number> = { 1: 8, 2: 8, 3: 6, 4: 4, 5: 4 };
+
+export type RoundRow = {
+  round: number;
+  entered: boolean;
+  /** Points / BB at round start (after income), just before the showdown, and after the round resolved. */
+  startPoints: number; startBB: number; preShowdownBB: number; endPoints: number; endBB: number;
+  ownedCount: number;
+  buys: { rank: number; price: number; via: "shop" | "draft" }[];
+  sells: { rank: number }[];
+  rerolls: number;
 };
 
-export const emptyEconomy = (): EconomyCounter => ({ purchases: 0, sales: 0, rerolls: 0, purchaseSpend: 0, rerollSpend: 0 });
-export const emptyTournament = (): TournamentCounter => ({
-  r2PrimaryWins: 0, r2WinnerBracketWins: 0, r2LoserBracketSurvivals: 0, r2Eliminations: 0,
-  r4PrimaryWins: 0, r4WinnerThreeWayFirsts: 0, r4LoserThreeWaySurvivals: 0, r4Eliminations: 0,
-});
+export type PlayerRow = {
+  game: number; seed: number; playerId: string; seat: number; policy: PolicyName;
+  r1: { w: number; d: number; l: number } | null;
+  /** Competition rank by Points after R1 (1 = best; ties share). */
+  r1Rank: number;
+  /** 1-based position in the R2 / R4 open draft pick order, null when the round was not reached. */
+  draftOrder: { r2: number | null; r4: number | null };
+  rounds: RoundRow[];
+  eliminatedRound: number | null;
+  placement: number; rankPoints: number;
+  points: number; handScore: number; stackScore: number; total: number;
+  finalHand: HandCategory | null; finalBB: number;
+  finalRanks: number[];
+};
+
+export type MatchRoundStats = {
+  round: number; matches: number; splits: number; suddenDeaths: number; highCardDraws: number; forfeits: number;
+  categories: Partial<Record<HandCategory, number>>;
+};
+
+export type GameRow = {
+  game: number; seed: number; ok: boolean; error?: string; failedAt?: string;
+  aliveAfter: number[]; matchStats: MatchRoundStats[]; ms: number;
+};
+
+export type GameOutcome = { game: GameRow; players: PlayerRow[] };

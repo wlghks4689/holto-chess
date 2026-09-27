@@ -1,58 +1,88 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { createGame } from "../../src/game/engine";
-import { DEFAULT_CONFIG } from "./config";
-import { assertSimulationInvariants } from "./invariants";
-import { runSimulation, writeReports } from "./index";
-import { simulateGame } from "./simulator";
-import type { SimulationConfig } from "./types";
+import { describe, expect, it } from "vitest";
+import { cardPrice, BALANCE } from "../../src/game/config";
+import { summarize } from "./aggregate";
+import { DEFAULT_CONFIG, parseCliArgs } from "./config";
+import { playGame } from "./driver";
+import { applyOverrides } from "./overrides";
+import { POLICY_NAMES, type SimConfig } from "./types";
 
-const temporaryDirectories: string[] = [];
-afterEach(async () => { while (temporaryDirectories.length) await rm(temporaryDirectories.pop()!, { recursive: true, force: true }); });
-
-const config = (overrides: Partial<SimulationConfig> = {}): SimulationConfig => ({
-  ...DEFAULT_CONFIG, simulationCount: 3, maxRerollsPerPlayerRound: 0, ...overrides,
-});
+const config = (patch: Partial<SimConfig> = {}): SimConfig => ({ ...DEFAULT_CONFIG, games: 4, seed: 777, ...patch });
+const strip = (o: ReturnType<typeof playGame>) => JSON.stringify({ ...o, game: { ...o.game, ms: 0 } });
 
 describe("balance simulator", () => {
-  it("reproduces identical results for the same seed and config", () => {
-    expect(runSimulation(config({ baseSeed: 8080 }))).toEqual(runSimulation(config({ baseSeed: 8080 })));
+  it("plays every phase of a full game for all heuristic policies and mixes them with the engine bot", () => {
+    const cfg = config({ policies: [...POLICY_NAMES] });
+    for (let game = 0; game < 3; game += 1) {
+      const outcome = playGame(cfg, game);
+      expect(outcome.game.error).toBeUndefined();
+      expect(outcome.game.aliveAfter).toEqual([8, 8, 6, 4, 4]);
+      expect(outcome.game.matchStats.map((m) => m.round)).toEqual([1, 2, 3, 4, 5]);
+      expect(outcome.players.map((p) => p.placement).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      for (const p of outcome.players) {
+        expect(p.total).toBe(p.points + p.handScore + p.stackScore);
+        expect(p.rounds[0]!.entered && p.rounds[1]!.entered).toBe(true);
+        expect(p.rounds[4]!.entered).toBe(p.placement <= 4);
+      }
+    }
   });
 
-  it("allows different seeds to produce different game traces", () => {
-    const first = simulateGame(config({ baseSeed: 100 }), 0);
-    const second = simulateGame(config({ baseSeed: 101 }), 0);
-    expect(first.seed).not.toBe(second.seed);
-    expect(first.rankCounters).not.toEqual(second.rankCounters);
+  it("is reproducible for the same seed and config, and differs across seeds", () => {
+    const cfg = config({ policies: ["HIGH_RANK", "PAIR_BUILDER", "RANDOM"] });
+    expect(strip(playGame(cfg, 1))).toBe(strip(playGame(cfg, 1)));
+    expect(strip(playGame(cfg, 1))).not.toBe(strip(playGame(cfg, 2)));
   });
 
-  it("aggregates four R5 hands per completed game", () => {
-    const result = runSimulation(config({ simulationCount: 5 }));
-    expect(result.games).toMatchObject({ completed: 5, failed: 0 });
-    expect(Object.values(result.rounds[5].hands).reduce((total, hand) => total + hand.count, 0)).toBe(20);
-    expect(result.rounds[5].survived).toBe(4);
-    expect(result.players.p1).toMatchObject({ games: 5 });
-    expect(Object.values(result.policies).reduce((total, policy) => total + policy.tournament.r2Eliminations, 0)).toBe(10);
-    expect(Object.values(result.policies).reduce((total, policy) => total + policy.tournament.r4Eliminations, 0)).toBe(10);
+  it("drives the engine's own bot brain through a complete game", () => {
+    const outcome = playGame(config({ policies: ["ENGINE_BOT"] }), 0);
+    expect(outcome.game.error).toBeUndefined();
+    expect(outcome.players).toHaveLength(8);
+    expect(outcome.players.every((p) => p.policy === "ENGINE_BOT")).toBe(true);
   });
 
-  it("validates sudden-death boards against their actual tied participants", () => {
-    expect(() => simulateGame(config({ baseSeed: 12_480, simulationCount: 1, maxRerollsPerPlayerRound: 1 }), 0)).not.toThrow();
+  it("aggregates only completed games and reports empty groups as absent, not zero", () => {
+    const cfg = config({ policies: ["HIGH_RANK", "ECONOMY"] });
+    const outcomes = [0, 1, 2].map((g) => playGame(cfg, g));
+    const failed = { game: { game: 3, seed: 780, ok: false, error: "boom", failedAt: "R2 OPEN_DRAFT", aliveAfter: [], matchStats: [], ms: 0 }, players: [] };
+    const summary = summarize(cfg, [...outcomes, failed].map((o) => o.game), [...outcomes, failed].flatMap((o) => o.players));
+    expect(summary.games).toMatchObject({ requested: 4, completed: 3, failed: 1 });
+    expect(summary.games.failures[0]).toMatchObject({ message: "boom", count: 1 });
+    expect(summary.policies.reduce((a, p) => a + p.n, 0)).toBe(24);
+    expect(summary.r1Groups.every((g) => g.n > 0)).toBe(true);
   });
 
-  it("detects duplicate ownership ledger corruption", () => {
-    const state = createGame(42);
-    state.players[1]!.ownedCardIds.push(state.players[0]!.ownedCardIds[0]!);
-    expect(() => assertSimulationInvariants(state)).toThrow(/more than one player|assigned more than once/);
+  describe("overrides", () => {
+    it("applies only inside the run and restores the original constants", () => {
+      const before = cardPrice(2);
+      const restore = applyOverrides({ "rankPrices.2": before + 3, "rerollCostBB": 9 });
+      expect(cardPrice(2)).toBe(before + 3);
+      expect(BALANCE.rerollCostBB).toBe(9);
+      restore();
+      expect(cardPrice(2)).toBe(before);
+      expect(BALANCE.rerollCostBB).toBe(5);
+    });
+
+    it("changes game outcomes, rejects unknown paths, and leaves state clean after a bad path", () => {
+      expect(() => applyOverrides({ "rankPrices.99": 1 })).toThrow(/Cannot override/);
+      expect(() => applyOverrides({ "nope.deep": 1 })).toThrow(/Cannot override/);
+      const cfg = config({ policies: ["HIGH_RANK"] });
+      const base = playGame(cfg, 0);
+      const restore = applyOverrides({ "rankPrices.14": 1 });
+      const changed = playGame(cfg, 0);
+      restore();
+      expect(strip(base)).not.toBe(strip(changed));
+      expect(strip(playGame(cfg, 0))).toBe(strip(base));
+    });
   });
 
-  it("generates parseable JSON and a Markdown report", async () => {
-    const output = await mkdtemp(join(tmpdir(), "porena-balance-")); temporaryDirectories.push(output);
-    const result = runSimulation(config({ simulationCount: 1 }));
-    const paths = await writeReports(result, output, 12.5);
-    expect(JSON.parse(await readFile(paths.jsonPath, "utf8"))).toEqual(result);
-    expect(await readFile(paths.markdownPath, "utf8")).toContain("# PORENA Balance Simulation Report");
+  describe("cli", () => {
+    it("parses options and validates input", () => {
+      const parsed = parseCliArgs(["--games", "5", "--policies", "HIGH_RANK,ECONOMY", "--set", "rankPrices.2=4", "--set=points.r1.win=5", "--compare", "--jobs", "3"]);
+      expect(parsed).toMatchObject({ compare: true, jobs: 3, config: { games: 5, policies: ["HIGH_RANK", "ECONOMY"], overrides: { "rankPrices.2": 4, "points.r1.win": 5 } } });
+      expect(() => parseCliArgs(["--policies", "NOPE"])).toThrow(/Unknown policies/);
+      expect(() => parseCliArgs(["--games", "-1"])).toThrow(/non-negative/);
+      expect(() => parseCliArgs(["--bogus", "1"])).toThrow(/Unknown option/);
+      expect(() => parseCliArgs(["--compare"])).toThrow(/--set/);
+      expect(() => parseCliArgs(["--set", "rankPrices.2"])).toThrow(/path=number/);
+    });
   });
 });
