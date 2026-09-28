@@ -36,7 +36,7 @@ describe("round guide", () => {
 
     expect(html).toContain("홀카드 4장 · 정확히 2장 사용");
     expect(html).toContain("Match 1 상대는 누적 승점 순으로 정합니다.");
-    expect(html).toContain("Match 2와 3은 Swiss 점수가 가까운 상대와 대결합니다.");
+    expect(html).toContain("Match 2,3은 승패가 비슷한 상대와 대결합니다.");
     expect(html).toContain("홀카드 4장 중 정확히 2장, 보드 5장 중 정확히 3장");
     expect(html).toContain("MATCH RULE");
     expect(html).toContain("타이브레이크 3판 모두 SPLIT이면 하이카드 드로우로 승패를 결정합니다.");

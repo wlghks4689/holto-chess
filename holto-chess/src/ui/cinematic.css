@@ -116,6 +116,7 @@
 .cinema-profile b{overflow-wrap:anywhere}
 .cinema-profile .player-avatar{flex-shrink:0}
 .cinema-match-profile{display:grid;grid-template-rows:30px 29px 25px;gap:5px;min-height:94px;margin-bottom:14px}
+.cinema-match-profile:not(:has(.cinema-rank-badge)){grid-template-rows:30px 25px;min-height:60px}
 .cinema-profile-identity{display:flex;width:100%;min-width:0;align-items:center;justify-content:center;gap:8px}
 .cinema-profile-identity>b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cinema-standing-line{display:flex;width:100%;min-width:0;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
@@ -134,7 +135,9 @@
 .cinema .playing-card{flex-shrink:0}
 .cinema-board-stack{display:grid;gap:0;margin:24px auto 8px}
 .cinema-board{margin:0 auto;padding:24px 8px;text-align:center;--made-color:#84f5b6;width:100%;box-sizing:border-box}
-.cinema-board h3{display:flex;justify-content:center;align-items:center;gap:14px;font:500 11px DM Mono;letter-spacing:.12em;color:#92b5a2;margin:0 0 20px}.cinema-board h3 b{color:var(--mint);font-size:9px}
+.cinema-board h3{display:flex;justify-content:center;align-items:center;gap:14px;font:500 11px DM Mono;letter-spacing:.12em;color:#92b5a2;margin:0 0 3px}.cinema-board h3 b{color:var(--mint);font-size:9px}
+.cinema-board-street{height:17px;margin-bottom:0;color:var(--mint);font:600 11px/17px DM Mono;letter-spacing:.1em}
+.cinema-board.is-collapsed h3{margin-bottom:12px}
 .cinema-board-stack.run-it-twice .cinema-board+.cinema-board{border-top:1px solid #294839}
 .cinema-board.complete{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.36)}
 .cinema-board.pending{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.18);opacity:.72}
@@ -154,6 +157,7 @@
 .cinema .playing-card.dimmed{opacity:.4;filter:brightness(.72) saturate(.5)}
 /* Community cards must remain readable even when excluded from the focused BEST 5. */
 .cinema .cinema-board .playing-card.dimmed{opacity:.7;filter:brightness(.9) saturate(.78)}
+.cinema:not(.cinema-final) .cinema-seat.cinema-loser .cinema-hole-cards .playing-card{opacity:.78;filter:brightness(.84) saturate(.72)}
 /* The game preference also disables motion when the OS allows animations. */
 .cinema[data-match-id]:not(.cinema-motion-enabled) *,.cinema[data-match-id]:not(.cinema-motion-enabled) *::before,.cinema[data-match-id]:not(.cinema-motion-enabled) *::after{animation:none!important;transition:none!important}
 .cinema[data-match-id]:not(.cinema-motion-enabled) .cinema-final-arena img{transform:scale(var(--arena-scale))!important}
@@ -230,7 +234,7 @@
 .cinema-street-made strong{font-size:clamp(14px,1.8vw,18px);line-height:1.3}
 .cinema-street-made em{color:#9cb6a9;font:500 9px DM Mono;margin-top:3px}
 .cinema-reward{border-top:1px solid var(--line);padding-top:14px;margin-top:14px;animation:cinema-seat-enter .3s ease-out both}
-.cinema-reward strong{display:block;color:var(--mint);font:700 14px DM Mono;line-height:1.7;text-align:center;white-space:nowrap}.cinema-reward strong i{color:#88aa99;font-style:normal;margin:0 4px}
+.cinema-reward strong{display:block;color:var(--mint);font:700 14px DM Mono;line-height:1.7;text-align:center;white-space:nowrap}.cinema-reward strong i{color:inherit;font-style:normal;margin:0 4px}
 .cinema-footer{margin-top:24px;min-height:42px;display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;color:#9fbdac;font:600 12px DM Mono;letter-spacing:.06em}
 .cinema-next-match{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:48px;padding:8px 14px;border:1px solid #68d9dc88;border-radius:8px;background:#123b43b8;color:#a4f3ee;box-shadow:0 0 20px #69e8dd20;font:700 13px 'DM Mono',monospace;letter-spacing:0}
 .cinema-next-match small{color:#80b8bc;font:600 9px 'DM Mono',monospace;letter-spacing:.12em}
@@ -277,16 +281,17 @@
 @keyframes cinema-card-glow-house{0%{box-shadow:0 0 9px rgba(192,132,252,.55),0 0 20px rgba(139,92,246,.2)}45%{box-shadow:0 0 20px rgba(216,180,254,.96),0 0 44px rgba(167,139,250,.62),0 0 57px rgba(126,34,206,.28)}100%{box-shadow:0 0 15px rgba(192,132,252,.76),0 0 30px rgba(139,92,246,.4)}}
 @keyframes cinema-card-glow-quads{0%{box-shadow:0 0 10px rgba(251,113,133,.48)}45%{box-shadow:0 0 21px rgba(251,113,133,.96),0 0 45px rgba(239,68,68,.67),0 0 58px rgba(190,24,93,.34)}100%{box-shadow:0 0 19px rgba(251,113,133,.84),0 0 38px rgba(239,68,68,.52)}}
 @media(max-width:639px){
-  .cinema{margin:12px 0;padding:14px 10px;border-radius:12px}
-  .cinema-heading{align-items:center;flex-direction:column;margin-bottom:20px}
+  .cinema{margin:0;padding:10px 8px;border-radius:12px}
+  .cinema-heading{align-items:center;flex-direction:column;margin-bottom:12px}
   .cinema-controls{position:static;width:100%;justify-content:space-between}
   .cinema-run-scoreboard{max-width:300px;margin:0 auto 16px;padding:9px 12px}.cinema-run-score{gap:10px;font-size:11px}.cinema-run-score strong{min-width:66px;font-size:24px}
   .cinema-run-matchup{gap:4px;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)}.cinema-board-matchup{width:min(250px,100%);margin:-7px auto 16px;padding:0}.cinema-run-player{gap:3px}.cinema-board-matchup .cinema-run-hand .playing-card.compact{width:32px;height:48px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-rank{font-size:13px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-suit{font-size:19px}
-  .cinema-table.cinema-headsup .cinema-seats{gap:14px}
-  .cinema-seat{padding:12px 5px}
+  .cinema-table.cinema-headsup .cinema-seats{gap:8px}
+  .cinema-seat{padding:9px 5px}
   .cinema-headsup .cinema-reward strong{font-size:12px;white-space:normal;overflow-wrap:anywhere}
-  .cinema-profile{font-size:12px;gap:5px;margin-bottom:12px}
+  .cinema-profile{font-size:12px;gap:5px;margin-bottom:7px}
   .cinema-match-profile{grid-template-rows:25px 25px 23px;gap:4px;min-height:81px}
+  .cinema .cinema-match-profile:not(:has(.cinema-rank-badge)){grid-template-rows:25px 23px;min-height:52px}
   .cinema-profile-identity{gap:5px}
   .cinema-standing-line{gap:5px}
   .cinema-standing-line .cinema-rank-badge{min-height:22px;padding:1px 6px;gap:3px}
@@ -296,12 +301,12 @@
   .cinema-headsup .cinema-vs{left:50%;width:34px;height:34px;font-size:11px}
   .cinema-multi:not(.cinema-final) .cinema-seats{grid-template-columns:1fr}
   .cinema-board-cards{gap:8px}
+  .cinema-board-stack{margin:10px auto 2px}
+  .cinema-footer{margin-top:10px}
   .cinema-board .playing-card.compact{width:43px;height:64px}
   .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:43px;height:64px}
   .cinema-hole-cards{gap:3px}
-  .cinema-hole-cards .playing-card.compact{width:32px;height:48px}
-  .cinema-hole-cards .playing-card.compact .card-rank{font-size:13px}
-  .cinema-hole-cards .playing-card.compact .card-suit{font-size:19px}
+  .cinema-hole-cards .playing-card.compact{width:43px;height:64px}
   /* R4 three-player brackets keep all seats and the community board in the mobile view. */
   .cinema-r4-threeway.cinema-multi:not(.cinema-final) .cinema-seats{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
   .cinema-r4-threeway .cinema-heading{margin-bottom:10px}
@@ -347,6 +352,12 @@
   .cinema-final .cinema-hole-cards{gap:2px}
   .cinema-final .cinema-reward strong{flex-direction:column;gap:0;white-space:normal;line-height:1.35}
   .cinema-final .cinema-reward strong i{display:none}
+}
+@media(min-width:640px) and (max-width:900px){
+  .cinema{margin:0 auto;padding:16px}
+  .cinema-heading{margin-bottom:20px}
+  .cinema-board-stack{margin:16px auto 4px}
+  .cinema-board{padding:16px 8px}
 }
 @media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) *:not(.fx-motion-preview *){animation:none!important;transition:none!important}.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::before,.cinema:not(.cinema-motion-enabled) .cinema-made-fx:is(.made-straight-flush,.made-royal):not(.fx-motion-preview *)::after{animation:none!important;opacity:0}}
 .cinema-card-size-original .cinema-flip-slot{zoom:1}

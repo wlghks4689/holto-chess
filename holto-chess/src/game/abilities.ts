@@ -5,7 +5,7 @@ import type { PlayerState, Round } from "./types";
 export const ABILITY_IDS = ["royal-blood", "target-sniper", "underdog", "first-class", "golden-hand", "trader", "predator", "architect", "capitalism", "zero-risk"] as const;
 export type AbilityId = typeof ABILITY_IDS[number];
 export type AbilityDraft = { order: string[]; deck: AbilityId[]; picks: { playerId: string; slot: number }[] };
-export type AbilityDraftView = { order: string[]; availableSlots: number[]; currentPlayerId?: string; pickedCount: number; abilities: { playerId: string; abilityId: AbilityId }[] };
+export type AbilityDraftView = { order: string[]; availableSlots: number[]; currentPlayerId?: string; pickedCount: number; myPick?: { slot: number; abilityId: AbilityId }; abilities?: { playerId: string; abilityId: AbilityId }[] };
 export type AbilityEvent = { round: Round; playerId: string; abilityId: AbilityId; reason: string; subjectId?: string; bb: number; points: number; savedBB: number; matchId?: string; run?: number };
 export type AbilityTotals = { activations: number; bb: number; points: number; savedBB: number };
 

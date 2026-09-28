@@ -55,6 +55,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   if (!humanIds(room).includes(viewerPlayerId)) throw new Error("Unknown viewer");
   const g = room.game;
   const me = g.players.find((p) => p.id === viewerPlayerId)!;
+  const ownAbilityPick = g.abilityDraft?.picks.find((pick) => pick.playerId === viewerPlayerId);
   // The shop barrier is tracked by endedShopIds, every other barrier by readyIds.
   // Without this the shop shows nobody as ready even once they have committed.
   const readyInPhase = (playerId: string): boolean =>
@@ -93,7 +94,8 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       order: [...g.abilityDraft.order], pickedCount: g.abilityDraft.picks.length,
       availableSlots: g.abilityDraft.deck.flatMap((_, slot) => g.abilityDraft!.picks.some(pick => pick.slot === slot) ? [] : [slot]),
       currentPlayerId: g.phase === "ABILITY_PICK" ? g.abilityDraft.order[g.abilityDraft.picks.length] : undefined,
-      abilities: g.abilityDraft.picks.map(pick => ({ playerId: pick.playerId, abilityId: g.players.find(player => player.id === pick.playerId)!.abilityId! })),
+      ...(g.phase === "ABILITY_PICK" && ownAbilityPick ? { myPick: { slot: ownAbilityPick.slot, abilityId: me.abilityId! } } : {}),
+      ...(g.phase === "ABILITY_REVEAL" ? { abilities: g.abilityDraft.picks.map(pick => ({ playerId: pick.playerId, abilityId: g.players.find(player => player.id === pick.playerId)!.abilityId! })) } : {}),
     } } : {}),
     gameId: room.gameGeneration ? `${room.roomId}:${room.gameGeneration}` : room.roomId,
     roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),

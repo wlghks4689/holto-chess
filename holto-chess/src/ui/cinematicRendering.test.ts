@@ -19,6 +19,22 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("labels the action from the remaining match queue", () => {
+    const completed: MatchView = { ...match, round: 1, disclosure: { elapsedMs: 0, frames: [{ at: 0, phase: "COMPLETE", boardIndex: 0, revealed: 5, finalCards: 2 }] } };
+    const render = (matches: MatchView[]) => renderToStaticMarkup(createElement(CinematicGate, { matches, profiles, viewerId: "p1", children: null }));
+    expect(render([completed, { ...completed, id: "next" }])).toContain("다음 매치 →");
+    expect(render([completed])).toContain("라운드 결과 확인 →");
+  });
+  it("shows streets under the board heading with no narration footer", () => {
+    const view: MatchView = { ...match, round: 1, boards: [deck.slice(10, 15)], runoutCount: 1 };
+    for (const phase of ["FLOP_3", "TURN", "RIVER", "MADE_HAND", "RESULT"] as const) {
+      const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...view, disclosure: { elapsedMs: 0, frames: [{ at: 0, phase, boardIndex: 0, revealed: 5, finalCards: 2 }] } }, profiles, viewerId: "p1", onComplete: () => {} }));
+      expect(html).not.toContain("cinema-footer");
+      expect(html).not.toContain("완성된 족보");
+      expect(html).not.toContain("매치 결과");
+      if (["FLOP_3", "TURN", "RIVER"].includes(phase)) expect(html).toContain(`<h3>커뮤니티 보드</h3><div class="cinema-board-street" aria-live="polite">${phase.split("_")[0]}</div>`);
+    }
+  });
   it("shows the nickname once without appending a self label", () => {
     const namedProfiles = profiles.map((profile) => profile.playerId === "p1" ? { ...profile, name: "나" } : profile);
     for (const round of [1, 5] as const) {
@@ -80,16 +96,16 @@ describe("cinematic initial rendering", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {} }));
     expect(html).toContain("MATCH 2/3");
     expect(html).toContain('<p class="swiss-record">1W 0D 0L</p>');
-    expect(html).toContain('<em class="cinema-current-points">승점 3</em>');
+    expect(html).not.toContain('class="cinema-current-points"');
     expect(html).not.toContain("2W 0D 0L");
     const resultAt = cinematicTimeline(swiss).find((entry) => entry.phase === "RESULT")!.at;
     const resultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: swiss, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: resultAt }));
     expect(resultHtml).toContain('<p class="swiss-record">2W 0D 0L</p>');
-    expect(resultHtml).toContain('<em class="cinema-current-points">승점 6</em>');
+    expect(resultHtml).not.toContain('class="cinema-current-points"');
     const viewerSeat = resultHtml.slice(resultHtml.indexOf('data-player-id="p1"'), resultHtml.indexOf('data-player-id="p2"'));
-    expect(viewerSeat.indexOf("cinema-profile-identity")).toBeLessThan(viewerSeat.indexOf("cinema-standing-line"));
-    expect(viewerSeat.indexOf("cinema-standing-line")).toBeLessThan(viewerSeat.indexOf("cinema-profile-outcome"));
-    expect(viewerSeat).toContain('class="cinema-current-points"');
+    expect(viewerSeat.indexOf("cinema-profile-identity")).toBeLessThan(viewerSeat.indexOf("cinema-profile-outcome"));
+    if (round >= 2) expect(viewerSeat.indexOf("cinema-standing-line")).toBeLessThan(viewerSeat.indexOf("cinema-profile-outcome"));
+    expect(viewerSeat).not.toContain('class="cinema-current-points"');
     expect(viewerSeat).toContain(">승리</span>");
     expect(resultHtml).not.toContain("SWISS PAIRING");
     expect(resultHtml).not.toContain("R3 +");

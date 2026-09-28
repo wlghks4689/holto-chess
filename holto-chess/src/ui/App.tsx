@@ -29,7 +29,6 @@ import { createPlayerView } from "../game/playerView";
 import { RunLoadoutPanel, TimedOpenDraftPanel } from "./OpenDraft";
 import type { GameAction, ShowdownPrepView } from "../shared/protocol";
 import { LocalResultWindow } from "./LocalResultWindow";
-import { playerEventFeed, renderPlayerFeedEntry } from "./playerEventFeed";
 import { classifyGameError } from "../shared/gameErrorCode";
 import { renderGameError, type ReceivedGameError } from "../i18n/gameError";
 import { localizedIcmDetail } from "./rewardDetail";
@@ -146,12 +145,6 @@ function FinalPanel({ state }: { state: PorenaGameState }) {
   return <section className="final-panel"><div className="standings"><FinalStandingsHeader />{standings.map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={state.players.find((p) => p.id === row.playerId)?.name ?? row.playerId} />)}</div></section>;
 }
 
-function EventLog({ state }: { state: PorenaGameState }) {
-  const { t } = useTranslation();
-  const entries = playerEventFeed(state, "p1");
-  return <details className="event-log"><summary><span><i className="eyebrow">PLAYER LOG</i><b>{t("log.myEvents")}</b></span><em>{t(entries.length === 1 ? "log.expandCountOne" : "log.expandCount", { count: entries.length })}</em></summary><div className="event-log-drawer">{entries.map((entry) => <p key={entry.id} className={entry.tone}>{renderPlayerFeedEntry(entry, t)}</p>)}</div></details>;
-}
-
 function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void; reset: () => void }) {
   const { t } = useTranslation();
   const me = state.players[0]!; let label = t("common.continue"); let fn: ((s: PorenaGameState) => PorenaGameState) | null = null;
@@ -224,18 +217,17 @@ export function App({ onHome }: { onHome: () => void }) {
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage key={`${state.phase}:${abilityPickIndex}`} view={draftView} send={draftAction} duration={state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? 12 : 2 : state.phase === "ABILITY_REVEAL" ? 5 : 3} />}
-      {!isShowdownPrep && (prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : ROUND_TITLES[state.round]}</h1>{state.phase !== "GAME_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "GAME_RESULT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
+      {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className="round-header"><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : ROUND_TITLES[state.round]}</h1>{state.phase !== "GAME_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "GAME_RESULT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} />}
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{renderGameError(error, t)}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>{t("spectator.mode")}</h2><p>{t("spectator.cardsReturned")}</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {state.phase === "SURVIVAL_READY" && state.survival ? <SurvivalReadyPanel {...state.survival} viewerId="p1" name={(id) => state.players.find((player) => player.id === id)?.name ?? id} /> : null}
-      {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}
+      {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={pauseLocalResultTimer ? BARRIER_TIMEOUT_MS.RESULTS / 1000 : resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}
       {state.phase === "GAME_RESULT" ? <FinalPanel state={state} /> : null}
       {state.phase === "GAME_RESULT" && <section className="final-exit-actions" aria-label={t("final.nextActionsAria")}><button className="primary" onClick={reset}>{t("action.startNewGame")} <span>↻</span></button><button className="secondary" onClick={onHome}>{t("action.home")} <span>→</span></button></section>}
       <ActionBar state={state} act={act} reset={reset} />
-      {!isShowdownPrep && <EventLog state={state} />}
     </div>
   </main>}</LocalResultWindow></CinematicGate>;
 }

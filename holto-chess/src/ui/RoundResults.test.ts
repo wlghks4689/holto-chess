@@ -24,26 +24,25 @@ describe("round result brackets", () => {
     expect(html.indexOf("턴 샤크")).toBeLessThan(html.indexOf("리버 폭스"));
   });
 
-  it("renders the round leaderboard with movement, separated scores and a deadline", () => {
+  it("renders a compact text-first leaderboard without rank movement", () => {
     const html = renderToStaticMarkup(createElement(RoundResults, { round: 4, rows, viewerId: "p1", secondsLeft: 30, children: null }));
     expect(html).not.toContain("round-bracket-grid");
     expect(html).not.toContain("승자조 브래킷");
     expect(html).toContain("순위표");
     expect(html).not.toContain("ROUND 4 · RESULT");
     expect(html).not.toContain("정렬 기준:");
-    expect(html).toContain('<th class="leaderboard-hand-head">핸드</th>');
+    expect(html).toContain('<span class="leaderboard-heading-word">카드</span>');
     expect(html).not.toContain("공개 핸드");
-    expect(html).toContain('class="leaderboard-chip-icon"');
     expect(html).toContain('class="leaderboard-stack"');
     expect(html).toContain('class="summary-hand" data-count="7"');
     expect(html).toContain('class="mobile-record">1승 0무 0패</span>');
     expect(html).not.toContain("leaderboard-earned");
     expect(html).not.toContain("획득 승점</th>");
-    expect(html).toContain('<span class="score-gain" aria-hidden="true">+10P</span>');
-    expect(html).toContain('<strong class="score-total">20P</strong>');
-    expect(html).toContain("+10P");
+    expect(html).toContain('<td class="leaderboard-points" aria-label="누적 승점 20점">20P</td>');
     expect(html).toContain("20P");
-    expect(html).toContain("↑2");
+    expect(html).not.toContain("↑2");
+    expect(html).not.toContain("NEW");
+    expect(html).not.toContain("leaderboard-movement");
     expect(html).toContain("순위표 남은 시간 30초");
     expect(html.match(/<table(?: |>)/g)).toHaveLength(1);
   });

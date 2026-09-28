@@ -81,6 +81,29 @@ describe("server room authority and projections", () => {
     view.me.ownedCards[0].rank = 2;
     expect(r).not.toHaveProperty("me");
   });
+  it("shows each ability pick only to its owner until the reveal phase", () => {
+    let r = createRoomCurrent("ABCDEF", 303, "seeded", 2, true);
+    r = addSession(r, "hash-0").room;
+    r = addSession(r, "hash-1").room;
+    r.status = "PLAYING";
+    const draft = r.game.abilityDraft!;
+    draft.order = r.game.players.map(player => player.id);
+    draft.picks = [{ playerId: "p1", slot: 0 }];
+    r.game.players[0]!.abilityId = draft.deck[0]!;
+    r.game.phase = "ABILITY_PICK";
+
+    expect(createPlayerView(r, "p1").abilityDraft).toMatchObject({ myPick: { slot: 0, abilityId: draft.deck[0] } });
+    expect(createPlayerView(r, "p1").abilityDraft).not.toHaveProperty("abilities");
+    expect(createPlayerView(r, "p2").abilityDraft).not.toHaveProperty("myPick");
+    expect(createPlayerView(r, "p2").abilityDraft).not.toHaveProperty("abilities");
+
+    draft.picks = draft.order.map((playerId, slot) => {
+      r.game.players.find(player => player.id === playerId)!.abilityId = draft.deck[slot]!;
+      return { playerId, slot };
+    });
+    r.game.phase = "ABILITY_REVEAL";
+    expect(createPlayerView(r, "p1").abilityDraft?.abilities).toHaveLength(8);
+  });
   it("exposes read-only live player perspectives only after the viewer is eliminated", () => {
     const r = start();
     expect(createPlayerView(r, "p1").spectatorViews).toBeUndefined();
