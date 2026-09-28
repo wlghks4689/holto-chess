@@ -218,10 +218,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           {final && <><span className="player-avatar">{id.slice(1)}</span><b>{name(id)}</b></>}
           {!final && <div className="cinema-standing-line">
             {match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span>}
-            {swiss && currentPoints !== undefined && <em className="cinema-current-points">{t("cinema.pointTotal", { points: currentPoints })}</em>}
           </div>}
           {final && match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span>}
-          {final && swiss && currentPoints !== undefined && <em className="cinema-current-points">{t("cinema.pointTotal", { points: currentPoints })}</em>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? t("cinema.finalSplitPlace") : placeText(result?.place)}</span>}
           {!final && <div className="cinema-profile-outcome">
             {showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}
@@ -244,8 +242,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {!final && flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
         {(flags.reward || flags.runResult && match.runRewards) && reward && showReward && <div className="cinema-reward">{final
-          ? <strong><span>{t("cinema.placeReward", { place: placeText(result?.place) })}</span><i>·</i><span>{t("cinema.rewardPoints", { points: `${reward.deltaPoints >= 0 ? "+" : ""}${Number(reward.deltaPoints.toFixed(2))}` })}</span></strong>
-          : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB <i>·</i> {reward.deltaPoints >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaPoints).toFixed(2))}P {t("cinema.earned")}</strong>}</div>}
+          ? <strong>{t("cinema.placeReward", { place: placeText(result?.place) })}</strong>
+          : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB</strong>}</div>}
       </div>;
     })}</div>
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
