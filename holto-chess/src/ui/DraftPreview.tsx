@@ -27,7 +27,7 @@ function fixture(round: 2 | 4) {
   return game;
 }
 function ShowdownPrepPreview() {
-  const matchup = { matchNumber:1, viewer:{playerId:"p1",name:"나",points:12,cards:[{id:"As",rank:14 as const,suit:"s" as const},{id:"Kh",rank:13 as const,suit:"h" as const},{id:"Qd",rank:12 as const,suit:"d" as const},{id:"8c",rank:8 as const,suit:"c" as const}]}, opponent:{playerId:"p2",name:"블러프 폭스",points:16,cards:[{id:"Th",rank:10 as const,suit:"h" as const},{id:"Tc",rank:10 as const,suit:"c" as const},{id:"7d",rank:7 as const,suit:"d" as const},{id:"2s",rank:2 as const,suit:"s" as const}]} };
+  const matchup = { matchNumber:1, viewer:{playerId:"p1",name:"나",points:12,abilityId:"architect" as const,cards:[{id:"As",rank:14 as const,suit:"s" as const},{id:"Kh",rank:13 as const,suit:"h" as const},{id:"Qd",rank:12 as const,suit:"d" as const},{id:"8c",rank:8 as const,suit:"c" as const}]}, opponent:{playerId:"p2",name:"블러프 폭스",points:16,cards:[{id:"Th",rank:10 as const,suit:"h" as const},{id:"Tc",rank:10 as const,suit:"c" as const},{id:"7d",rank:7 as const,suit:"d" as const},{id:"2s",rank:2 as const,suit:"s" as const}]} };
   return <main className="game-arena"><div className="page-shell"><ShowdownPrepPanel round={3} playerName="나" seconds={3} matchup={matchup} /></div></main>;
 }
 function RunTwicePrepPreview() {
@@ -43,7 +43,7 @@ function MultiwayShowdownPrepPreview() {
   const handSize = 5;
   const deck = makeDeck();
   const names = ["나", "블러프 폭스", "리버 폭스", "다이아 바이퍼"];
-  const seats = Array.from({ length: 3 }, (_, index) => ({ playerId: `p${index + 1}`, name: names[index]!,
+  const seats = Array.from({ length: 3 }, (_, index) => ({ playerId: `p${index + 1}`, name: names[index]!, ...(index === 0 ? { abilityId: "architect" as const } : {}),
     points: 12 + index * 2, cards: deck.slice(index * handSize, (index + 1) * handSize) }));
   return <main className="game-arena"><div className="page-shell"><ShowdownPrepPanel round={round} playerName="나" seconds={3}
     matchup={{ matchNumber: 2, viewer: seats[0]!, opponents: seats.slice(1) }} /></div></main>;
@@ -65,7 +65,7 @@ function RunSummaryPreview() {
   while (game.phase === "OPEN_DRAFT") game = autoPickDraft(game);
   game = resolvePrimary(lockRunLoadouts(game));
   const match = createMatchView(game, game.roundResults[0]!);
-  return <ShowdownCinematic match={match} profiles={game.players.map((player)=>({playerId:player.id,name:player.name,points:player.points,alive:!player.eliminated}))} viewerId="p1" onComplete={()=>undefined} elapsedMs={Number.MAX_SAFE_INTEGER} />;
+  return <ShowdownCinematic match={match} profiles={game.players.map((player)=>({playerId:player.id,name:player.name,points:player.points,alive:!player.eliminated,abilityId:player.abilityId}))} viewerId="p1" onComplete={()=>undefined} elapsedMs={Number.MAX_SAFE_INTEGER} />;
 }
 function RunLoadoutPreview() {
   let game = openDraft(fixture(2));
@@ -85,7 +85,7 @@ function DraftFixturePreview() {
     if(a.type==="RUN_LOADOUT") setGame((s)=>setRunLoadout(s,viewer,a.cardIds));
     if(a.type==="LOCK_RUN_LOADOUT") setGame((s)=>resolvePrimary(lockRunLoadouts(s)));
   };
-  if(game.phase==="ROUND_RESULT") return <ShowdownCinematic key={game.roundResults[0]!.id} match={createMatchView(game,game.roundResults[0]!)} profiles={game.players.map((p)=>({playerId:p.id,name:p.name,points:p.points,alive:!p.eliminated}))} viewerId={viewer} controls onComplete={()=>setGame(fixture(2))} />;
+  if(game.phase==="ROUND_RESULT") return <ShowdownCinematic key={game.roundResults[0]!.id} match={createMatchView(game,game.roundResults[0]!)} profiles={game.players.map((p)=>({playerId:p.id,name:p.name,points:p.points,alive:!p.eliminated,abilityId:p.abilityId}))} viewerId={viewer} controls onComplete={()=>setGame(fixture(2))} />;
   return <main className="page-shell"><h1>LOCAL DRAFT PREVIEW</h1><div className="room-controls"><button onClick={()=>setGame(fixture(2))}>R2</button><button onClick={()=>setGame(fixture(4))}>R4</button><button disabled={!["DRAFT_ORDER","OPEN_DRAFT"].includes(game.phase)} onClick={()=>setGame((s)=>s.phase==="DRAFT_ORDER"?openDraft(s):autoPickDraft(s))}>다음 선택</button></div>
     {["DRAFT_ORDER", "OPEN_DRAFT"].includes(game.phase) && <TimedOpenDraftPanel key={`${game.phase}:${draftPickIndex}`} view={view} send={send} disabled={false} seconds={null} durationSeconds={game.phase === "DRAFT_ORDER" ? 3 : 20} />}
     {game.phase==="RUN_LOADOUT" && <TimedRunLoadoutPanel key={game.phase} view={view} send={send} disabled={false} seconds={null} durationSeconds={30} />}

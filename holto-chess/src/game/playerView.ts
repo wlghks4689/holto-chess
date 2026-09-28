@@ -43,7 +43,7 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
     const runIds = game.round !== 2 ? undefined : game.rulesVersion === 2 && selected.length === 3
       ? [[selected[0]!, selected[1]!], [selected[0]!, selected[2]!]] as [string[], string[]]
       : selected.length === 2 ? [selected, selected] as [string[], string[]] : undefined;
-    return { playerId, name: player.name, points: player.points, cards: (game.round === 2 ? cards : cards.slice(0, 7)),
+    return { playerId, name: player.name, points: player.points, cards: (game.round === 2 ? cards : cards.slice(0, 7)), abilityId: player.abilityId,
       ...(runIds ? { runCards: runIds.map((ids) => ids.map((id) => getCard(game, id))) as [ReturnType<typeof getCard>[], ReturnType<typeof getCard>[]] } : {}) };
   };
   const opponents = group.filter((id) => id !== viewerPlayerId).map(seat);
