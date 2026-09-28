@@ -336,15 +336,15 @@ nav{border-color:var(--line);background:rgba(3,10,20,.78);box-shadow:0 10px 34px
   .round-results.is-leaderboard .round-result-heading h2{margin:0;font-size:18px}
   .round-overview .leaderboard-table{font-size:12px}
   .round-overview .leaderboard-table thead th{font-size:11px;height:36px}
-  .round-overview .leaderboard-table tbody th,.round-overview .leaderboard-table tbody td{height:56px;padding:5px 1px!important}
+  .round-overview .leaderboard-table tbody th,.round-overview .leaderboard-table tbody td{height:clamp(34px,calc((100dvh - 410px)/8),56px);padding:4px 1px!important}
   .leaderboard-table .summary-hand{gap:2px}
   .leaderboard-table .summary-hand[data-count="3"]>span,.leaderboard-table .summary-hand[data-count="4"]>span,.leaderboard-table .summary-hand[data-count="5"]>span,.leaderboard-table .summary-hand[data-count="6"]>span,.leaderboard-table .summary-hand[data-count="7"]>span{width:16px;height:30px;font-size:10px}
   .leaderboard-table .summary-record{font-size:10px;letter-spacing:-.04em}
   .round-results.is-leaderboard .personal-history{padding:8px 10px}
   .round-results.is-leaderboard .personal-history summary{font-size:11px}
-  .page-shell:has(>.round-results.is-leaderboard),.page-shell.shop-page{padding-top:10px;padding-bottom:12px}
-  .page-shell:has(>.round-results.is-leaderboard)>.round-header{margin-bottom:8px;align-items:flex-end;gap:6px}
-  .page-shell:has(>.round-results.is-leaderboard)>.round-header h1{font-size:36px}
+  .page-shell:has(>.round-results.is-leaderboard),.page-shell.shop-page{padding-top:10px;padding-bottom:8px}
+  .page-shell:has(>.round-results.is-leaderboard)>.round-header{display:grid;margin-bottom:8px;gap:4px}
+  .page-shell:has(>.round-results.is-leaderboard)>.round-header h1{font-size:clamp(24px,8vw,36px);white-space:nowrap}
   .page-shell:has(>.round-results.is-leaderboard) .round-number{margin-bottom:6px}
   .page-shell:has(>.round-results.is-leaderboard) .phase-badge{padding:0}
   .page-shell:has(>.round-results.is-leaderboard) .phase-badge b{font-size:14px;white-space:nowrap}

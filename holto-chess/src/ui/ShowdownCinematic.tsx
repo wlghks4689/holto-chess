@@ -211,7 +211,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             {showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}
           </div>}
         </div>
-        <div className="cinema-hole-cards">{cards.map((card, cardIndex) => {
+        <div className="cinema-hole-cards" data-count={cards.length}>{cards.map((card, cardIndex) => {
           const visible = (!final && intro) || (!intro && (!final || cardIndex < frame.finalCards));
           const used = result?.usedCardIds.includes(card.id) ?? false;
           if (final) {

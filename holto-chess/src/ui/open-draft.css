@@ -44,6 +44,15 @@
 .run-loadout-timer { grid-column:2; grid-row:1; justify-self:end; display:flex; justify-content:flex-end; margin:0; }
 .run-loadout-slots>label { display:flex; flex-direction:column; align-items:center; gap:14px; padding:20px 8px; border:1px solid #35636d; border-radius:12px; }
 .run-loadout-slots { grid-column:1 / -1; grid-row:2; }
+.run-loadout-slots { width:100%; margin-inline:auto; }
+.page-shell:has(>.run-loadout)>.round-header { display:grid; gap:8px; margin-bottom:12px; }
+.page-shell:has(>.run-loadout)>.round-header .phase-badge { min-height:56px; display:flex; align-items:center; padding:0 100px 0 0; }
+.page-shell:has(>.round-header)>.run-loadout { position:relative; }
+.page-shell:has(>.round-header)>.run-loadout .run-loadout-timer { position:absolute; top:-69px; right:0; }
+@media(max-width:620px) {
+  .page-shell:has(>.run-loadout) { padding-block:10px 12px; }
+  .page-shell:has(>.run-loadout) .round-header h1 { font-size:clamp(24px,8vw,36px); }
+}
 .run-loadout-slot-title { color:#c9f0ec; font-size:14px; font-weight:800; line-height:1.3; letter-spacing:.02em; text-align:center; }
 .run-loadout-slots select { background:#102d38; color:white; padding:8px; width:100%; font-size:14px; text-align:center; text-align-last:center; }
 .run-loadout-help { grid-column:1 / -1; grid-row:3; margin:0; color:#91adb5; font-size:12px; line-height:1.45; text-align:center; }

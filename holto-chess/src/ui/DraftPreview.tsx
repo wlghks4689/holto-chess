@@ -1,4 +1,7 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
+import { createRoundSummary } from "../game/roundSummary";
+import { RoundResults } from "./RoundResults";
 import { makeDeck } from "../core/poker/cards";
 import { createGame, prepareShowdown, resolvePrimary, startNextRound, leaveRoundResult, autoPickDraft, openDraft, lockRunLoadouts, pickDraftCard, setRunLoadout } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
@@ -73,7 +76,16 @@ function RunLoadoutPreview() {
   const viewer = "p1";
   const view = createPlayerView({ schema:1, roomId:"PREVIEW", revision:0, status:"PLAYING", game,
     sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
-  return <main className="page-shell"><TimedRunLoadoutPanel view={view} send={()=>undefined} disabled={false} seconds={null} durationSeconds={30} /></main>;
+  return <RoundTwoLayout phase="RUN 카드 배치"><TimedRunLoadoutPanel view={view} send={()=>undefined} disabled={false} seconds={null} durationSeconds={30} /></RoundTwoLayout>;
+}
+function RoundTwoLayout({ phase, children }: { phase: string; children: ReactNode }) {
+  return <main className="game-arena"><nav><div className="brand"><b>PORENA</b></div><span /><div className="nav-status">8 / 8</div></nav><div className="page-shell"><header className="round-header"><div><span className="round-number">ROUND 02</span><div className="round-title-row"><h1>RUN IT TWICE</h1><button className="secondary round-guide-trigger title-guide-trigger">?</button></div></div><div className="phase-badge"><b>{phase}</b></div></header>{children}</div></main>;
+}
+function RoundTwoResultsPreview() {
+  let game = openDraft(fixture(2));
+  while (game.phase === "OPEN_DRAFT") game = autoPickDraft(game);
+  game = resolvePrimary(lockRunLoadouts(game));
+  return <RoundTwoLayout phase="라운드 결과"><RoundResults round={2} rows={createRoundSummary(game)} viewerId="p1" secondsLeft={30}>{null}</RoundResults><div className="action-bar"><button className="primary">라운드 마감 →</button></div></RoundTwoLayout>;
 }
 function DraftFixturePreview() {
   const [game, setGame] = useState(() => fixture(2));
@@ -127,6 +139,7 @@ export function DraftPreview() {
   if (params.has("roundGuide")) return <RoundGuide round={params.get("roundGuide") === "1" ? 1 : 2} onClose={() => undefined} />;
   if (params.has("shopStyle")) return <ShopStylePreview />;
   if (params.has("runLoadout")) return <RunLoadoutPreview />;
+  if (params.has("roundResults")) return <RoundTwoResultsPreview />;
   if (params.has("finalResults")) return <FinalResultsPreview />;
   if (params.has("r2Arena")) return <R2ArenaStylePreview />;
   if (params.has("r4Concept")) return <R4DraftConceptPreview />;
