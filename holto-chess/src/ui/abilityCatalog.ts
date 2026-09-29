@@ -1,3 +1,6 @@
+import type { AbilityId } from "../game/abilities";
+export { ABILITY_IDS, type AbilityId } from "../game/abilities";
+
 export const ABILITY_CARDS = {
   "royal-blood": "royal-blood.png",
   "target-sniper": "target-sniper.png",
@@ -9,7 +12,6 @@ export const ABILITY_CARDS = {
   architect: "architect.png",
   capitalism: "capitalism.png",
   "zero-risk": "zero-risk.png",
-} as const;
-
-export type AbilityId = keyof typeof ABILITY_CARDS;
-export const ABILITY_IDS = Object.keys(ABILITY_CARDS) as AbilityId[];
+  "quad-core": "quad-core.png",
+  "front-runner": "front-runner.png",
+} as const satisfies Record<AbilityId, string>;

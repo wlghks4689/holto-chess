@@ -1,7 +1,7 @@
 import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 import type { HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
-import type { AbilityDraftView, AbilityId } from "../game/abilities";
+import { ABILITY_IDS, type AbilityDraftView, type AbilityId } from "../game/abilities";
 
 export type GameAction =
   | { type: "ABILITY_PICK"; slot: number }
@@ -148,6 +148,6 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 3 || new Set(v.cardIds).size !== 3 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");
   if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");
-  if (v.type === "ABILITY_PICK" && (typeof v.slot !== "number" || !Number.isInteger(v.slot) || v.slot < 0 || v.slot > 9)) throw new Error("잘못된 어빌리티 카드입니다.");
+  if (v.type === "ABILITY_PICK" && (typeof v.slot !== "number" || !Number.isSafeInteger(v.slot) || v.slot < 0 || v.slot >= ABILITY_IDS.length)) throw new Error("잘못된 어빌리티 카드입니다.");
   return v as ClientMessage;
 }

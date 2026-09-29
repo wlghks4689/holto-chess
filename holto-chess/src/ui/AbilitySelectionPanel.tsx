@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { PlayerView } from "../shared/protocol";
 import type { GameAction } from "../shared/protocol";
@@ -29,14 +29,14 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
   const orderNames = new Map(view.players.map(player => [player.playerId, player.name]));
   const selected = draft.abilities?.find(pick => pick.playerId === (selectedPlayer ?? view.me.playerId));
   const inspect = (playerId: string) => { setSelectedPlayer(playerId); dialog.current?.showModal(); };
-  const cardGrid = <div className="ability-back-grid">{Array.from({ length: 10 }, (_, slot) => {
+  const cardGrid = <div className="ability-back-grid" style={{ "--ability-columns": Math.ceil(draft.slotCount / 2) } as CSSProperties}>{Array.from({ length: draft.slotCount }, (_, slot) => {
     const pick = draft.abilities?.find(pick => pick.slot === slot);
     if (pick) return <button key={slot} type="button" className={`ability-card-back ability-card-thumbnail${pick.playerId === view.me.playerId ? " is-viewer" : ""}`} aria-label={`${orderNames.get(pick.playerId)} · ${t(`ability.card.${pick.abilityId}.name`)} · ${t("ability.viewCard")}`} onClick={() => inspect(pick.playerId)}>
       <AbilityArtwork ability={pick.abilityId} />
       <b>{t(`ability.card.${pick.abilityId}.name`)}</b><small>{pick.playerId === view.me.playerId ? t("round.you") : orderNames.get(pick.playerId)}</small>
     </button>;
     return <button key={slot} type="button" className="ability-card-back" disabled={disabled || phase !== "ABILITY_PICK" || !draft.availableSlots.includes(slot) || draft.currentPlayerId !== view.me.playerId} aria-label={t("ability.selection.card", { number: slot + 1 })} onClick={() => send({ type: "ABILITY_PICK", slot })}><span>?</span></button>;
-  })}{[10, 11].map(slot => <div key={slot} className="ability-card-back ability-card-placeholder" aria-hidden="true"><span>?</span></div>)}</div>;
+  })}{Array.from({ length: (4 - draft.slotCount % 4) % 4 }, (_, index) => <div key={draft.slotCount + index} className="ability-card-back ability-card-placeholder" aria-hidden="true"><span>?</span></div>)}</div>;
   return <section className={`ability-selection is-${phase.toLowerCase()}`}>
     {phase === "ABILITY_ORDER" ? <>
       <p className="ability-selection-kicker">PORENA · ABILITY DRAFT</p>

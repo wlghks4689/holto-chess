@@ -23,7 +23,7 @@ describe("ability draft presentation", () => {
     expect(html.match(/ability-card-thumbnail/g)).toHaveLength(8);
   });
 
-  it("keeps ten selectable slots, adds two inert mobile backs and exposes inspectable thumbnails", () => {
+  it("keeps twelve selectable slots, no inert mobile backs and inspectable thumbnails", () => {
     let game = openAbilitySelection(createAbilityGame(303));
     game.abilityDraft!.order = game.players.map(player => player.id);
     game = pickAbility(game, "p1", 0);
@@ -31,9 +31,8 @@ describe("ability draft presentation", () => {
     const room = { ...addSession(createRoom("UI", 303), "test-session").room, game, status: "PLAYING" as const };
     const view = createPlayerView(room, "p1");
     const html = renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {}, seconds: 12 }));
-    expect(html.match(/<button[^>]*class="ability-card-back/g)).toHaveLength(10);
-    expect(html.match(/ability-card-placeholder/g)).toHaveLength(2);
-    expect(html.match(/ability-card-placeholder" aria-hidden="true"/g)).toHaveLength(2);
+    expect(html.match(/<button[^>]*class="ability-card-back/g)).toHaveLength(12);
+    expect(html).not.toContain("ability-card-placeholder");
     expect(html.match(/ability-card-thumbnail/g)).toHaveLength(2);
     expect(html).toContain("ability-card-thumbnail is-viewer");
     expect(html).not.toContain("ability-picked-preview");

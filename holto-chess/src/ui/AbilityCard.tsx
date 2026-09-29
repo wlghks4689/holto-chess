@@ -11,5 +11,6 @@ export function AbilityCard({ ability }: { ability: AbilityId }) {
     <AbilityArtwork ability={ability} />
     <h2 className="ability-card-name" id={`${id}-name`}>{t(`ability.card.${ability}.name`)}</h2>
     <p className="ability-card-description" id={`${id}-description`}>{t(`ability.card.${ability}.description`)}</p>
+    {(ability === "quad-core" || ability === "front-runner") && <details className="ability-rules"><summary aria-label={t("ability.details")}>?</summary><p>{t(`ability.card.${ability}.details`)}</p></details>}
   </article>;
 }

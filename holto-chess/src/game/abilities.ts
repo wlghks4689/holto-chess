@@ -2,10 +2,10 @@ import type { HandValue } from "../core/poker/evaluate";
 import { BALANCE, cardPrice, regularShopSizeFor, rerollLimitFor } from "./config";
 import type { PlayerState, Round } from "./types";
 
-export const ABILITY_IDS = ["royal-blood", "target-sniper", "underdog", "first-class", "golden-hand", "trader", "predator", "architect", "capitalism", "zero-risk"] as const;
+export const ABILITY_IDS = ["royal-blood", "target-sniper", "underdog", "first-class", "golden-hand", "trader", "predator", "architect", "capitalism", "zero-risk", "quad-core", "front-runner"] as const;
 export type AbilityId = typeof ABILITY_IDS[number];
 export type AbilityDraft = { order: string[]; deck: AbilityId[]; picks: { playerId: string; slot: number }[] };
-export type AbilityDraftView = { order: string[]; availableSlots: number[]; currentPlayerId?: string; pickedCount: number; myPick?: { slot: number; abilityId: AbilityId }; abilities?: { playerId: string; abilityId: AbilityId; slot: number }[] };
+export type AbilityDraftView = { order: string[]; slotCount: number; availableSlots: number[]; currentPlayerId?: string; pickedCount: number; myPick?: { slot: number; abilityId: AbilityId }; abilities?: { playerId: string; abilityId: AbilityId; slot: number }[] };
 export type AbilityEvent = { round: Round; playerId: string; abilityId: AbilityId; reason: string; subjectId?: string; bb: number; points: number; savedBB: number; matchId?: string; run?: number };
 export type AbilityTotals = { activations: number; bb: number; points: number; savedBB: number };
 
@@ -25,6 +25,12 @@ export function abilityLockCost(player: Pick<PlayerState, "abilityId">): number 
 export function abilitySellRate(player: Pick<PlayerState, "abilityId">): number { return player.abilityId === "golden-hand" ? 1 : BALANCE.sellRate; }
 
 const STRAIGHT_OR_BETTER = new Set(["STRAIGHT", "FLUSH", "FULL_HOUSE", "QUADS", "STRAIGHT_FLUSH", "ROYAL_FLUSH"]);
+/** Only the player's already allocated R5 placement award is doubled. */
+export function quadCorePlacementBonus(player: Pick<PlayerState, "abilityId" | "firstCardId" | "ownedCardIds">, hand: HandValue, round: Round, placementPoints: number): number {
+  if (player.abilityId !== "quad-core" || round !== 5 || hand.category !== "QUADS" || placementPoints <= 0) return 0;
+  if (!player.firstCardId || !player.ownedCardIds.includes(player.firstCardId)) return 0;
+  return hand.bestFive.some(card => card.id === player.firstCardId && card.rank === hand.kickers[0]) ? placementPoints : 0;
+}
 export function madeAbilityReward(player: Pick<PlayerState, "abilityId" | "firstCardId" | "ownedCardIds">, hand: HandValue, round: Round): { bb: number; points: number } {
   if (player.abilityId === "architect" && hand.category === "FULL_HOUSE") return { bb: 30, points: 0 };
   if (!STRAIGHT_OR_BETTER.has(hand.category)) return { bb: 0, points: 0 };

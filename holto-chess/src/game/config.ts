@@ -2,6 +2,7 @@ import type { HandCategory } from "../core/poker/evaluate";
 import type { Round } from "./types";
 
 export const FINAL_ROUND_PLACEMENT_POINTS: Readonly<Record<number, number>> = { 1: 20, 2: 12, 3: 5, 4: 3 };
+export const FRONT_RUNNER_POINTS: Readonly<Record<Round, number>> = { 1: 3, 2: 4, 3: 5, 4: 6, 5: 7 };
 
 /** Every round-point award lives here so engine and UI never carry competing constants. */
 export const ROUND_POINTS = {

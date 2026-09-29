@@ -9,7 +9,7 @@ import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
 import { ABILITY_IDS, abilityPrice, abilityShopSize, abilitySellRate, abilityRerollCost, abilityRerollLimit, abilityLockCost } from "./abilities";
 import { rawShowdownEquity } from "./showdownEquity";
-import { rewardAbilities, rewardAbilityInterest } from "./abilityRewards";
+import { rewardAbilities, rewardAbilityInterest, rewardQuadCorePlacement, rewardRoundLeader } from "./abilityRewards";
 import type { GameLog, PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
 
 function nextRandom(state: PorenaGameState): number {
@@ -552,7 +552,7 @@ function rewardMatchWithLedger(state: PorenaGameState, match: MatchResult, point
   match.standingsAfterRuns = [pointSnapshot(state)];
 }
 
-function rewardFinalPlacements(state: PorenaGameState, match: MatchResult): void {
+export function rewardFinalPlacements(state: PorenaGameState, match: MatchResult): void {
   const awards: Record<string, number> = {};
   const details: Record<string, string> = {};
   // Competition ranking can tie at any place, so every tied group — not just
@@ -672,6 +672,7 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
       }
     }
     if (!state.survival) rewardAbilityInterest(state);
+    rewardRoundLeader(state);
     log(state, omaha ? "R3 Omaha Swiss 3경기 종료 · 승리 4P / Split 2P · 누적 승점 탈락 판정" : "R1 스위스 3경기 종료 · 승리 3P / Split 1P · 전원 생존", "win", { event: omaha ? "R3_SWISS_COMPLETE" : "R1_SWISS_COMPLETE" });
     return state;
   }
@@ -699,8 +700,11 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
   if (state.round === 5) {
     matches[0]!.standingsBefore = pointSnapshot(state);
     rewardFinalPlacements(state, matches[0]!);
+    rewardQuadCorePlacement(state, matches[0]!);
     rewardAbilities(state, matches[0]!);
     rewardAbilityInterest(state);
+    state.phase = "GAME_RESULT";
+    rewardRoundLeader(state, matches[0]!);
     captureRewards(source, state, matches);
     matches[0]!.standingsAfterRuns = [pointSnapshot(state)];
     state.phase = "GAME_RESULT"; log(state, "The Last Hand · 최종 점수 집계 완료", "win", { event: "FINAL_SCORE_COMPLETE" });
@@ -752,6 +756,7 @@ function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGame
     } satisfies MatchResult;
   });
   state.matches.push(...matches); state.roundResults = matches; state.phase = "ROUND_RESULT";
+  rewardRoundLeader(state);
   log(state, "R2 RUN1·RUN2 종료 · 전원 생존", "win", { event: "R2_RUNS_COMPLETE" }); return state;
 }
 
@@ -808,7 +813,7 @@ export function resolveSurvival(source: PorenaGameState): PorenaGameState {
   combined.results = allIds.map((playerId) => ({ ...latestResult.get(playerId)!, place: survived.includes(playerId) ? 1 : 2 }));
   eliminate(state, eliminated); rewardAbilityInterest(state); captureRewards(previous, state, [combined]);
   state.matches.push(combined); state.roundResults = [combined]; delete state.survival;
-  state.phase = "ROUND_RESULT"; assertPoolIntegrity(state); return state;
+  state.phase = "ROUND_RESULT"; rewardRoundLeader(state); assertPoolIntegrity(state); return state;
 }
 
 export function beginSecondary(source: PorenaGameState): PorenaGameState {
@@ -849,6 +854,7 @@ export function resolveSecondary(source: PorenaGameState): PorenaGameState {
   captureRewards(source, state, [...winnerMatches, ...loserMatches]);
   state.matches.push(...winnerMatches, ...loserMatches); state.roundResults = [...winnerMatches, ...loserMatches];
   state.phase = "ROUND_RESULT"; log(state, `R${state.round} 종료 · ${state.players.filter((player) => !player.eliminated).length}명 생존`, "win", { event: "ROUND_COMPLETE", params: { round: state.round, survivors: state.players.filter((player) => !player.eliminated).length } });
+  rewardRoundLeader(state);
   assertPoolIntegrity(state); return state;
 }
 

@@ -1,5 +1,7 @@
-import { madeAbilityReward, type AbilityEvent } from "./abilities";
+import { madeAbilityReward, quadCorePlacementBonus, type AbilityEvent } from "./abilities";
 import type { MatchResult, PlayerState, PorenaGameState } from "./types";
+import { FRONT_RUNNER_POINTS } from "./config";
+import { compareRoundStanding } from "./roundRanking";
 
 function record(state: PorenaGameState, player: PlayerState, reason: string, bb = 0, points = 0, savedBB = 0, match?: MatchResult): void {
   if (!player.abilityId || (!bb && !points && !savedBB)) return;
@@ -14,6 +16,22 @@ function record(state: PorenaGameState, player: PlayerState, reason: string, bb 
     state.logs.unshift({ id: ++state.logSequence, tone: "economy", playerId: player.id, event: "ABILITY_REWARD",
       params: { abilityId: player.abilityId, player: player.name, bb, points }, message: `${player.name} · ${player.abilityId} ${bb ? `+${bb}BB` : `+${points}P`}` });
     state.logs = state.logs.slice(0, 24);
+  }
+}
+
+/** Apply after placement/ICM allocation, before other ability payouts. */
+export function rewardQuadCorePlacement(state: PorenaGameState, match: MatchResult): void {
+  if (state.round !== 5 || match.stage !== "final") return;
+  for (const result of match.results) {
+    const player = state.players.find(item => item.id === result.playerId)!;
+    if (state.abilityEvents?.some(event => event.reason === "r5-quad-core" && event.matchId === match.id && event.playerId === player.id)) continue;
+    const base = match.pointAwards?.[player.id] ?? 0;
+    const bonus = quadCorePlacementBonus(player, result.hand, state.round, base);
+    if (!bonus) continue;
+    const detail = match.pointAwardDetails?.[player.id];
+    record(state, player, "r5-quad-core", 0, bonus, 0, match);
+    match.pointAwards![player.id] = base + bonus;
+    match.pointAwardDetails![player.id] = [detail, `QUAD CORE ×2 (+${bonus}P)`].filter(Boolean).join(" · ");
   }
 }
 
@@ -37,6 +55,21 @@ export function rewardAbilities(state: PorenaGameState, match: MatchResult): voi
     if (player.abilityId === "zero-risk" && state.round < 5 && winners.length === 1 && !won && equity?.insuranceEligible)
       record(state, player, "favored-loss", 20, 0, 0, match);
   }
+}
+
+/** Pays at most once after round survival/elimination is known. */
+export function rewardRoundLeader(state: PorenaGameState, finalMatch?: MatchResult): void {
+  if (state.survival || state.abilityLeaderRounds?.includes(state.round)) return;
+  if (state.round === 5 ? state.phase !== "GAME_RESULT" || finalMatch?.stage !== "final" : state.phase !== "ROUND_RESULT") return;
+  const survivors = state.players.filter(player => !player.eliminated);
+  const seats = new Map(state.players.map((player, index) => [player.id, index]));
+  // Freeze the entire qualifying set before any reward mutates points.
+  const leaders = state.round === 5
+    ? survivors.filter(player => finalMatch!.results.some(result => result.playerId === player.id && result.place === 1))
+    : [...survivors].sort((a, b) => compareRoundStanding({ ...a, playerId: a.id }, { ...b, playerId: b.id }, seats)).slice(0, 1);
+  (state.abilityLeaderRounds ??= []).push(state.round);
+  for (const player of leaders) if (player.abilityId === "front-runner")
+    record(state, player, "round-leader", 0, FRONT_RUNNER_POINTS[state.round], 0, finalMatch);
 }
 
 /** Pays at most once after round survival/elimination is known. */

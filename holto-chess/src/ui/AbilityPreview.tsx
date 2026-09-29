@@ -8,7 +8,7 @@ export function AbilityPreview() {
   const dialog = useRef<HTMLDialogElement>(null);
   const [selected, setSelected] = useState<AbilityId>("target-sniper");
   return <main className="ability-preview">
-    <header className="ability-preview-header"><div><span>PORENA / ABILITIES</span><h1>{t("ability.collection")}</h1><p>{t("ability.previewHint")}</p></div>
+    <header className="ability-preview-header"><div><span>PORENA / ABILITIES</span><h1>{t("ability.collection")}</h1><p>{t("ability.previewHint", { count: ABILITY_IDS.length })}</p></div>
       <button type="button" onClick={() => setLocale(locale === "ko-KR" ? "en-US" : "ko-KR")}>{locale === "ko-KR" ? "English" : "한국어"}</button>
     </header>
     <section className="ability-gallery" aria-label={t("ability.collection")}>

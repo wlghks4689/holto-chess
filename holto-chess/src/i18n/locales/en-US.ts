@@ -2,7 +2,14 @@ import type { koKR } from "./ko-KR";
 
 export const enUS: Record<keyof typeof koKR, string> = {
   "ability.collection": "Ability cards",
-  "ability.previewHint": "10 abilities · Enlarge a card to explore its effect.",
+  "ability.previewHint": "{count} abilities · Enlarge a card to explore its effect.",
+  "ability.details": "Detailed activation conditions",
+  "ability.card.front-runner.name": "Front Runner",
+  "ability.card.front-runner.description": "Lead at the end of a round to earn bonus points. R1 +3P / R2 +4P / R3 +5P / R4 +6P / R5 +7P",
+  "ability.card.front-runner.details": "Awarded once per round after all matches and eliminations finish: R1 +3P / R2 +4P / R3 +5P / R4 +6P / R5 +7P.\n\nIn R1–R4, only the leading survivor on the existing standings qualifies (points, then BB, then stable seat order). Eliminated players are excluded. Rank is checked before this bonus.\n\nIn R5, use first place in the final match, not the final total score. Every tied first-place player with Front Runner receives +7P.",
+  "ability.card.quad-core.name": "QUAD CORE",
+  "ability.card.quad-core.description": "Make Quads in the Final Round using your starting card to double your R5 placement points.",
+  "ability.card.quad-core.details": "In R5, your exact starting card must appear in your final BEST5 as one of the four matching cards, not as the kicker. Quads of another rank or in R1–R4 do not qualify.\n\nFor ties, only your own R5 placement award after ICM allocation is doubled. Accumulated points, hand points, BB points, other ability points and the final total are not multiplied.\n\nA sold starting card cannot qualify while absent. Reacquiring the exact same rank and suit allows activation again.",
   "ability.enlarge": "Enlarge {name} ability card",
   "ability.viewCard": "View card",
   "ability.close": "Close",

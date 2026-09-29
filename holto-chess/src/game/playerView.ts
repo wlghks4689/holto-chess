@@ -91,7 +91,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
     ...(room.status === "PLAYING" && g.abilityDraft && g.phase.startsWith("ABILITY_") ? { abilityDraft: {
-      order: [...g.abilityDraft.order], pickedCount: g.abilityDraft.picks.length,
+      order: [...g.abilityDraft.order], pickedCount: g.abilityDraft.picks.length, slotCount: g.abilityDraft.deck.length,
       availableSlots: g.abilityDraft.deck.flatMap((_, slot) => g.abilityDraft!.picks.some(pick => pick.slot === slot) ? [] : [slot]),
       currentPlayerId: g.phase === "ABILITY_PICK" ? g.abilityDraft.order[g.abilityDraft.picks.length] : undefined,
       ...(ownAbilityPick ? { myPick: { slot: ownAbilityPick.slot, abilityId: me.abilityId! } } : {}),

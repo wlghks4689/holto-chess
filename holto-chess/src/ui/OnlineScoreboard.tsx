@@ -1,11 +1,12 @@
 import { useRef } from "react";
 import type { PlayerView } from "../shared/protocol";
 import { useTranslation } from "../i18n";
+import { compareRoundStanding } from "../game/roundRanking";
 
 export function OnlineScoreboard({ view }: { view: PlayerView }) {
   const { t } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
-  const rows = [...view.players].sort((a, b) => b.points - a.points || b.stackBB - a.stackBB || a.playerId.localeCompare(b.playerId));
+  const rows = [...view.players].sort((a, b) => compareRoundStanding(a, b));
   return <section className="online-scoreboard">
     <button className="secondary score-toggle" onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">{t("scoreboard.title")} <span>{t("scoreboard.survivorsExpand", { count: view.players.filter((p) => p.alive).length })} ▾</span></button>
     <dialog ref={dialog} className="online-score-dialog" aria-labelledby="online-score-title" onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close(); }}>

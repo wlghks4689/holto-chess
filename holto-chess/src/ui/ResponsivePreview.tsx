@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BALANCE, cardPrice } from "../game/config";
-import { ABILITY_IDS } from "../game/abilities";
+import { ABILITY_IDS, type AbilityId } from "../game/abilities";
 import type { Round } from "../game/types";
 import { ShopPanel } from "./App";
 import { ShowdownCinematic } from "./ShowdownCinematic";
@@ -27,6 +27,8 @@ for (const round of [1,2,3,4,5] as const) {
   cases.push({ id:`results-r${round}`, screen:"results", round, count:BALANCE.handLimits[round] });
 }
 for (const count of [0,1,4,7,8]) cases.push({ id:`ability-${count}`, screen:"ability", round:1, count });
+cases.push({ id:"ability-quad-core", screen:"ability-quad-core", round:1, count:8 });
+cases.push({ id:"ability-front-runner", screen:"ability-front-runner", round:1, count:8 });
 cases.push({ id:"ability-order", screen:"ability-order", round:1, count:0 }, { id:"final", screen:"final", round:5, count:7 }, { id:"brackets", screen:"brackets", round:4, count:5 }, { id:"loadout", screen:"loadout", round:2, count:3 }, { id:"showdown-r4-headsup", screen:"showdown-headsup", round:4, count:5 });
 for (const round of [2,4] as const) cases.push({ id:`draft-r${round}`, screen:"draft", round, count:BALANCE.handLimits[round] });
 for (const round of [2,4] as const) cases.push({ id:`draft-r${round}-picking`, screen:"draft", round, count:BALANCE.handLimits[round]-1 });
@@ -63,7 +65,9 @@ function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
   if (screen === "final") return <section className="final-panel"><div className="standings"><FinalStandingsHeader />{rows.map(row => <FinalStandingRow key={row.playerId} name={row.name} row={{ playerId:row.playerId, points:row.totalPoints, handScore:50, stackScore:12345, stackBB:row.stackBB, total:111160, displayName:"로열 스트레이트 플러시", finalPlace:row.rank, placement:row.rank, rankPoints:8, cards:row.cards, usedCardIds:row.cards.slice(0,5).map(c=>c.id), ...(row.eliminated ? { eliminatedRound:3 } : {}) }} />)}</div></section>;
   if (screen.startsWith("ability")) {
     view.phase = screen === "ability-order" ? "ABILITY_ORDER" : count === 8 ? "ABILITY_REVEAL" : "ABILITY_PICK";
-    view.abilityDraft = { order:profiles.map(p=>p.playerId), pickedCount:count, availableSlots:Array.from({length:10-count},(_,i)=>i+count), currentPlayerId:profiles[count]?.playerId, abilities:profiles.slice(0,count).map((p,i)=>({playerId:p.playerId, slot:i, abilityId:ABILITY_IDS[i]!})), ...(interactive && count > 0 ? { myPick:{ slot:0, abilityId:ABILITY_IDS[0]! } } : {}) };
+    const featured = screen === "ability-front-runner" ? "front-runner" : screen === "ability-quad-core" ? "quad-core" : undefined;
+    const abilities: readonly AbilityId[] = featured ? [featured, ...ABILITY_IDS.filter(id=>id !== featured)] : ABILITY_IDS;
+    view.abilityDraft = { slotCount:ABILITY_IDS.length, order:profiles.map(p=>p.playerId), pickedCount:count, availableSlots:Array.from({length:ABILITY_IDS.length-count},(_,i)=>i+count), currentPlayerId:profiles[count]?.playerId, abilities:profiles.slice(0,count).map((p,i)=>({playerId:p.playerId, slot:i, abilityId:abilities[i]!})), ...(interactive && count > 0 ? { myPick:{ slot:0, abilityId:abilities[0]! } } : {}) };
     return <AbilitySelectionPanel view={view} send={()=>{}} seconds={30} />;
   }
   if (screen === "loadout") return <RunLoadoutPanel view={view} send={()=>{}} disabled={false} seconds={30} />;

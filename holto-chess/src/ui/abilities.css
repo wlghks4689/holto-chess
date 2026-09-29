@@ -82,3 +82,7 @@
   .ability-preview-header { align-items: flex-start; gap: 10px; }
   .ability-preview { padding-top: 24px; }
 }
+.ability-rules summary{position:absolute;right:11%;bottom:9%;z-index:3;display:grid;place-items:center;width:32px;height:32px;border:1px solid #8fdce5;border-radius:50%;background:#091724;color:#8fdce5;cursor:pointer;list-style:none;font:700 16px system-ui}
+.ability-rules summary::-webkit-details-marker{display:none}
+.ability-rules>p{position:absolute;z-index:4;left:9%;right:9%;bottom:19%;max-height:68%;overflow:auto;margin:0;padding:10px;border:1px solid #8fdce5;border-radius:8px;background:#07121ff5;color:#edf6ff;font:12px/1.55 system-ui,sans-serif;text-align:left;white-space:pre-line}
+.ability-rules summary:focus-visible{outline:2px solid #fff;outline-offset:3px}

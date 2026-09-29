@@ -96,6 +96,8 @@ export type PorenaGameState = {
   abilityDraft?: AbilityDraft;
   abilityEvents?: AbilityEvent[];
   abilityInterestRounds?: Round[];
+  /** Persists even when no front-runner qualifies, so retries cannot re-rank. */
+  abilityLeaderRounds?: Round[];
   /** Frozen when a showdown prep phase begins so the VS preview and resolution use the same seats. */
   primaryOrderIds?: string[];
   primaryPairings?: string[][];
