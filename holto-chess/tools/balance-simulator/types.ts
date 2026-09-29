@@ -1,6 +1,6 @@
 import type { HandCategory } from "../../src/core/poker/evaluate";
 
-export const POLICY_NAMES = ["ENGINE_BOT", "HIGH_RANK", "PAIR_BUILDER", "STRAIGHT_BUILDER", "FLUSH_BUILDER", "ECONOMY", "RANDOM"] as const;
+export const POLICY_NAMES = ["ENGINE_BOT", "HIGH_RANK", "PAIR_BUILDER", "STRAIGHT_BUILDER", "FLUSH_BUILDER", "ECONOMY", "RANDOM", "ABILITY_NEUTRAL", "ABILITY_AWARE"] as const;
 export type PolicyName = (typeof POLICY_NAMES)[number];
 
 export type SimConfig = {

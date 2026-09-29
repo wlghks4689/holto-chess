@@ -4,7 +4,7 @@ import { POLICY_NAMES, type PolicyName, type SimConfig } from "./types";
 export type CliOptions = { config: SimConfig; compare: boolean; jobs: number };
 
 export const DEFAULT_CONFIG: SimConfig = {
-  games: 100, seed: 12_345, policies: ["ENGINE_BOT"], assignment: "rotate", maxRerolls: 1, overrides: {},
+  games: 100, seed: 12_345, policies: ["ENGINE_BOT"], assignment: "rotate", maxRerolls: 1, abilities: false, overrides: {},
   outputPath: resolve("tools/balance-simulator/output"), writeRows: false, verbose: false,
 };
 
@@ -16,7 +16,7 @@ function integer(name: string, value: string | undefined, fallback: number): num
 }
 
 export function parseCliArgs(args: string[]): CliOptions {
-  const flags = new Set(["verbose", "rows", "compare"]);
+  const flags = new Set(["verbose", "rows", "compare", "abilities"]);
   const known = new Set([...flags, "games", "seed", "policies", "assignment", "rerolls", "set", "out", "jobs"]);
   const values = new Map<string, string[]>();
   for (let i = 0; i < args.length; i += 1) {
@@ -47,7 +47,7 @@ export function parseCliArgs(args: string[]): CliOptions {
     compare, jobs: Math.max(1, integer("jobs", one("jobs"), 1)),
     config: {
       games: integer("games", one("games"), DEFAULT_CONFIG.games), seed: integer("seed", one("seed"), DEFAULT_CONFIG.seed),
-      policies, assignment, maxRerolls: integer("rerolls", one("rerolls"), DEFAULT_CONFIG.maxRerolls), overrides,
+      policies, assignment, maxRerolls: integer("rerolls", one("rerolls"), DEFAULT_CONFIG.maxRerolls), abilities: values.has("abilities"), overrides,
       outputPath: resolve(one("out") ?? DEFAULT_CONFIG.outputPath), writeRows: values.has("rows"), verbose: values.has("verbose"),
     },
   };

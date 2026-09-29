@@ -39,6 +39,18 @@ describe("balance simulator", () => {
     expect(outcome.players.every((p) => p.policy === "ENGINE_BOT")).toBe(true);
   });
 
+  it("deals eight distinct abilities through the real draft and plays a full game with each ability brain", () => {
+    for (const policy of ["ENGINE_BOT", "ABILITY_NEUTRAL", "ABILITY_AWARE"] as const) {
+      const outcome = playGame(config({ policies: [policy], abilities: true, maxRerolls: 9 }), 0);
+      expect(outcome.game.error).toBeUndefined();
+      expect(outcome.game.aliveAfter).toEqual([8, 8, 6, 4, 4]);
+      const abilities = outcome.players.map((p) => p.ability);
+      expect(abilities.every(Boolean)).toBe(true);
+      expect(new Set(abilities).size).toBe(8);
+      expect(config({ abilities: true }).abilities).toBe(true);
+    }
+  }, 120_000);
+
   it("aggregates only completed games and reports empty groups as absent, not zero", () => {
     const cfg = config({ policies: ["HIGH_RANK", "ECONOMY"] });
     const outcomes = [0, 1, 2].map((g) => playGame(cfg, g));
