@@ -62,8 +62,8 @@ describe("R5 Final Arena entry", () => {
     // The match-loading window already presented the opponents, so the arena flows straight to the table.
     const gaps = rest.slice(1).map((frame, index) => [frame.phase, frame.at - rest[index]!.at]);
     expect(gaps).toEqual([
-      ["FINAL_FIRST_REVEAL", 400], ["FINAL_FIRST_HAND", 1050], ["FINAL_SECOND_REVEAL", 1400],
-      ["FINAL_SECOND_HAND", 750], ["FINAL_LAST_REVEAL", 1400], ["FINAL_SEVEN_SETTLE", 1000], ["BEST5_GLOW", 500],
+      ["FINAL_FIRST_REVEAL", 400], ["FINAL_FIRST_HAND", 1350], ["FINAL_SECOND_REVEAL", 1400],
+      ["FINAL_SECOND_HAND", 1050], ["FINAL_LAST_REVEAL", 1400], ["FINAL_SEVEN_SETTLE", 1300], ["BEST5_GLOW", 500],
       ["MADE_HAND", 500], ["FINAL_PLACE", 600], ["FINAL_PLACE", 900], ["FINAL_PLACE", 900], ["FINAL_WINNER", 900],
       ["REWARD", 1300], ["COMPLETE", 1600],
     ]);

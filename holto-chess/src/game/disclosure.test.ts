@@ -98,10 +98,10 @@ describe("server-authorized disclosure", () => {
   it("migrates a persisted presentation without restarting playback or changing game results", () => {
     let room = game();
     while (!room.presentation) room = forceBarrier(room, barrierDeadline(room)!)!;
-    room.presentation.version = 8;
+    room.presentation.version = 9;
     const before = structuredClone(room);
     const migrated = migrateRoomSnapshot(room);
-    expect(migrated.presentation!.version).toBe(9);
+    expect(migrated.presentation!.version).toBe(10);
     expect(migrated.presentation!.startsAt).toBe(before.presentation!.startsAt);
     expect(migrated.game).toEqual(before.game);
     expect(room).toEqual(before);

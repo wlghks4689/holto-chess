@@ -10,12 +10,12 @@ describe("showdown reveal timing", () => {
     expect(timeline.some((frame) => frame.phase === "VS_INTRO" || frame.phase === "PREFLOP_HAND")).toBe(false);
     expect(frameAt(timeline, 399).phase).toBe("TABLE_ENTER");
     expect(frameAt(timeline, 400).phase).toBe("FLOP_1");
-    expect(time("FLOP_2") - time("FLOP_1")).toBe(400);
-    expect(time("FLOP_3") - time("FLOP_2")).toBe(400);
+    expect(time("FLOP_2") - time("FLOP_1")).toBe(700);
+    expect(time("FLOP_3") - time("FLOP_2")).toBe(700);
     expect(time("FLOP_HAND") - time("FLOP_SETTLE")).toBe(200);
     expect(time("TURN_HAND") - time("TURN_SETTLE")).toBe(200);
     expect(time("BEST5_GLOW") - time("RIVER_SETTLE")).toBe(200);
-    expect(time("BEST5_GLOW") - time("RIVER")).toBe(600 + 200);
+    expect(time("BEST5_GLOW") - time("RIVER")).toBe(900 + 200);
     expect(displayedStreetIndex("FLOP_SETTLE")).toBe(0);
     expect(displayedStreetIndex("FLOP_HAND")).toBe(1);
     expect(displayedStreetIndex("TURN_SETTLE")).toBe(1);
@@ -28,6 +28,7 @@ describe("showdown reveal timing", () => {
     expect(revealFlags("BEST5_GLOW")).toMatchObject({ glow: true, made: true });
     expect(timeline.some((frame) => frame.phase === "MADE_HAND" || frame.phase === "RUN_RESULT")).toBe(false);
     expect(time("RESULT") - time("BEST5_GLOW")).toBe(650);
+    expect(revealFlags("RESULT")).toMatchObject({ result: true, reward: true });
     expect(time("REWARD") - time("RESULT")).toBe(650);
     expect(time("COMPLETE") - time("REWARD")).toBe(1100);
     expect(time("RESULT")).toBeLessThan(time("REWARD"));
@@ -54,6 +55,9 @@ describe("showdown reveal timing", () => {
       results: [{ place: 1 }, { place: 2 }, { place: 3 }, { place: 4 }] });
     const reveals = timeline.filter((f) => ["FINAL_FIRST_REVEAL", "FINAL_SECOND_REVEAL", "FINAL_LAST_REVEAL"].includes(f.phase));
     expect(reveals.map((f) => f.finalCards)).toEqual([3, 5, 7]);
+    expect(timeline.find((f) => f.phase === "FINAL_FIRST_HAND")!.at - reveals[0]!.at).toBe(1350);
+    expect(timeline.find((f) => f.phase === "FINAL_SECOND_HAND")!.at - reveals[1]!.at).toBe(1050);
+    expect(timeline.find((f) => f.phase === "FINAL_SEVEN_SETTLE")!.at - reveals[2]!.at).toBe(1300);
     expect(timeline.some((f) => f.phase === "FLOP_1" || f.phase === "RIVER")).toBe(false);
     expect(timeline.filter((f) => f.phase === "FINAL_PLACE").map((f) => f.finalPlace)).toEqual([4, 3, 2]);
     expect(timeline.findIndex((f) => f.phase === "BEST5_GLOW")).toBeLessThan(timeline.findIndex((f) => f.phase === "FINAL_PLACE"));

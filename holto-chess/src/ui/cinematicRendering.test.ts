@@ -127,7 +127,7 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("Animation Speed");
   });
   it("renders cumulative point standings as explicit rank badges with shared places", () => {
-    const ranked: MatchView = { ...match, standingsBefore: { p1: 12, p2: 8, p3: 8, p4: 3 } };
+    const ranked: MatchView = { ...match, round: 3, standingsBefore: { p1: 12, p2: 8, p3: 8, p4: 3 } };
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: ranked, profiles, viewerId: "p1", onComplete: () => {} }));
     expect(html).toContain('aria-label="현재 1위"');
     expect(html.match(/aria-label="현재 공동 2위"/g)).toHaveLength(2);
@@ -135,6 +135,8 @@ describe("cinematic initial rendering", () => {
     expect(html).toContain("<small>현재</small><b>1위</b>");
     expect(html).not.toContain("현재 순위");
     expect(html).not.toContain("TIE");
+    const finalHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...ranked, round: 5 }, profiles, viewerId: "p1", onComplete: () => {} }));
+    expect(finalHtml).not.toContain("cinema-rank-badge");
   });
   it("keeps eliminated survival-tiebreak players in the visible risk ranking", () => {
     const riskProfiles = Array.from({ length: 8 }, (_, index) => ({
@@ -321,6 +323,11 @@ describe("cinematic initial rendering", () => {
         { playerId: "p3", beforeBB: 20, afterBB: 20, deltaBB: 0, beforePoints: 0, afterPoints: 0, deltaPoints: 0, outcome: "ELIMINATED" },
       ] };
     const rewardAt = cinematicTimeline(threeWay).find((entry) => entry.phase === "REWARD")!.at;
+    const resultAt = cinematicTimeline(threeWay).find((entry) => entry.phase === "RESULT")!.at;
+    const initialResult = renderToStaticMarkup(createElement(ShowdownCinematic, { match: threeWay, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: resultAt }));
+    expect(initialResult).toContain("승리");
+    expect(initialResult).toContain("+ 20BB");
+    expect(initialResult).toContain("+ 2P 획득");
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: threeWay, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(html).toContain("cinema-r4-threeway");
     expect(html.match(/class="cinema-seat /g)).toHaveLength(3);

@@ -33,6 +33,8 @@
 .cinema .cinema-seat .cinema-hole-cards[data-count]{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;min-width:0}
 .cinema .cinema-seat .cinema-hole-cards>.cinema-flip-slot{width:var(--card-small-width);min-width:0;zoom:1}
 .cinema .cinema-seat .cinema-hole-cards .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio);min-width:0}
+.cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="7"]{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:100%;max-width:360px;gap:2px;margin-inline:auto}
+.cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="7"]>.cinema-flip-slot{width:100%;min-width:0;zoom:1}
 .cinema .cinema-board-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(4px,1.4vw,12px);width:min(100%,330px);margin:auto}
 .cinema .cinema-board-cards>.cinema-flip-slot{min-width:0;width:100%;zoom:1}
 .cinema .cinema-board-cards .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
@@ -382,7 +384,7 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
   .cinema[data-round="3"] .cinema-seat .cinema-hole-cards .card-suit{font-size:calc(clamp(11px,44cqw,25px) + 2px)}
   .cinema .cinema-made{margin-top:5px}
   .cinema .cinema-made strong{font-size:clamp(10px,2.8vw,16px)}
-  .cinema .cinema-made small{font-size:7px}
+  .cinema .cinema-made small{font-size:8px}
   .cinema .cinema-board-cards{max-width:260px;gap:5px}
   .cinema .cinema-boards{margin-top:10px}
   .cinema .cinema-footer{margin-top:10px}
@@ -398,14 +400,14 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
   .cinema[data-round="2"] .cinema-board.is-collapsed .cinema-run-hand .card-suit{font-size:16px}
   .cinema[data-round="2"] .cinema-reward{margin-top:6px;padding-top:6px}
   .cinema.cinema-final .cinema-seats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-  .cinema .cinema-seat .cinema-hole-cards[data-count="7"]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin-inline:auto}
+  .cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="7"]{gap:1px}
   .cinema .cinema-seat .cinema-hole-cards:is([data-count="4"],[data-count="7"])>.cinema-flip-slot{width:100%}
-  .cinema.cinema-final .cinema-profile{font-size:10px;gap:3px;margin-bottom:5px}
+  .cinema.cinema-final .cinema-profile{grid-template-columns:0 minmax(0,1fr) 0;font-size:10px;gap:3px;margin-bottom:5px}
   .cinema.cinema-final .cinema-profile .player-avatar{display:none}
   .cinema.cinema-final .cinema-victory{font-size:10px;padding:2px 4px}
   .cinema.cinema-final .cinema-final-read{min-height:32px;padding-top:5px;margin-top:5px}
   .cinema.cinema-final .cinema-final-read strong{font-size:12px}
-  .cinema.cinema-final .cinema-final-read em{font-size:7px}
+  .cinema.cinema-final .cinema-final-read em{font-size:8px}
 
   .game-arena .ability-selection{margin:0 auto;padding:8px 0}
   .game-arena .ability-selection h2{font-size:22px}

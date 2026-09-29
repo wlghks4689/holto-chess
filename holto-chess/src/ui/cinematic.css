@@ -57,14 +57,17 @@
 .cinema-final-heading .cinema-controls{position:absolute;right:0;top:0}
 .cinema-final .cinema-seats{position:relative;z-index:2;gap:22px}
 .cinema-final .cinema-seat{min-height:150px;text-align:left;background:rgba(4,17,24,.8);border-color:#1d5b53;padding:17px 18px}
-.cinema-final .cinema-profile{justify-content:flex-start;margin-bottom:14px;font-size:14px}
+.cinema-final .cinema-profile{display:grid;grid-template-columns:28px minmax(0,1fr) 28px;justify-items:center;margin-bottom:14px;font-size:14px}
+.cinema-final .cinema-profile>b{grid-column:2;grid-row:1;width:100%;text-align:center}
+.cinema-final .cinema-profile>.player-avatar{grid-column:1;grid-row:1}
+.cinema-final .cinema-profile>.cinema-victory{grid-column:1/-1}
 .cinema-final .cinema-hole-cards{justify-content:center}
 /* R5 hand panel: mounted once per seat, only its copy is swapped (soft fade + small rise). */
 .cinema-final-read{border-top:1px solid rgba(93,163,150,.25);margin:13px 0 0;padding-top:11px;min-height:52px;text-align:center;color:var(--made-color);transition:color .4s ease,border-color .4s ease}
 .cinema-final-read-copy{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;animation:cinema-soft-in calc(320ms * var(--final-beat,1)) ease-out both}
 .cinema-final-read small{color:#70b9ad;font:500 9px DM Mono;letter-spacing:.13em}
 .cinema-final-read strong{font-size:clamp(15px,2.2vw,22px);line-height:1.25;text-align:center}
-.cinema-final-read em{color:#8aa79e;font:500 9px DM Mono;font-style:normal;text-align:center}
+.cinema-final-read em{color:#8aa79e;font:500 10px DM Mono;font-style:normal;text-align:center}
 .cinema-final-read.is-pending strong{color:#3f6259}
 .cinema-final-read.is-final{border-top-color:color-mix(in srgb,var(--made-color) 45%,transparent)}
 .cinema-final-read.is-final small{color:var(--made-color)}
@@ -168,7 +171,7 @@
 .cinema-loser .cinema-victory{color:#90a398}
 .cinema-made{display:flex;min-height:58px;flex-direction:column;align-items:center;justify-content:center;margin:18px 0 8px;color:var(--made-color);animation:cinema-seat-enter .24s ease-out both}
 .cinema-made strong{display:block;font-size:clamp(15px,2.2vw,22px);line-height:1.4;overflow-wrap:anywhere;text-shadow:0 0 12px color-mix(in srgb,var(--made-color) 45%,transparent)}
-.cinema-made small{display:block;font:500 10px DM Mono;color:#adc4b8;margin-top:5px}
+.cinema-made small{display:block;font:500 11px DM Mono;color:#adc4b8;margin-top:5px}
 .cinema-made-fx{isolation:isolate;overflow:hidden;--fx-peak:.9}
 .cinema-made-fx>*{position:relative;z-index:1}
 .cinema-made-fx::before,.cinema-made-fx::after{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;opacity:0}
@@ -229,10 +232,10 @@
 .cinema .cinema-made-fx.made-royal .cinema-victory.place-1{color:#f4d77f;text-shadow:0 0 12px rgba(244,215,127,.6),0 0 24px rgba(206,153,48,.35);box-shadow:0 0 16px rgba(244,215,127,.25)}
 .cinema .cinema-seat.cinema-made-fx:is(.made-straight-flush,.made-royal).cinema-trailing{border-color:color-mix(in srgb,var(--made-color) 38%,#365345);background:#081710;box-shadow:none}
 .cinema .cinema-seat.cinema-loser.cinema-trailing,.cinema .cinema-seat.cinema-made-fx.cinema-loser{--made-color:#737d80;border-color:#374145;background:#080e10;box-shadow:inset 0 0 0 1px rgba(137,149,153,.05)}
-.cinema-street-made{margin:14px 0 4px;min-height:48px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
+.cinema-street-made{margin:18px 0 8px;min-height:58px;color:#d8ebe1;animation:cinema-hand-update .22s ease-out both}
 .cinema-street-made small,.cinema-street-made strong,.cinema-street-made em{display:block;font-style:normal}
 .cinema-street-made strong{font-size:clamp(14px,1.8vw,18px);line-height:1.3}
-.cinema-street-made em{color:#9cb6a9;font:500 9px DM Mono;margin-top:3px}
+.cinema-street-made small{color:#9cb6a9;font:500 10px DM Mono;margin-top:3px}
 .cinema-reward{border-top:1px solid var(--line);padding-top:14px;margin-top:14px;animation:cinema-seat-enter .3s ease-out both}
 .cinema-reward strong{display:block;color:var(--mint);font:700 14px DM Mono;line-height:1.7;text-align:center;white-space:nowrap}.cinema-reward strong i{color:inherit;font-style:normal;margin:0 4px}
 .cinema-footer{margin-top:24px;min-height:42px;display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;color:#9fbdac;font:600 12px DM Mono;letter-spacing:.06em}
@@ -336,7 +339,7 @@
   .cinema-r4-threeway .cinema-hole-cards .card-suit{font-size:15px}
   .cinema-r4-threeway .cinema-made{min-height:37px;margin:7px 0 3px}
   .cinema-r4-threeway .cinema-made strong{font-size:11px;line-height:1.25}
-  .cinema-r4-threeway .cinema-made small{font-size:8px;margin-top:2px}
+  .cinema-r4-threeway .cinema-made small{font-size:9px;margin-top:2px}
   .cinema-r4-threeway .cinema-reward{margin-top:6px;padding-top:6px}
   .cinema-r4-threeway .cinema-reward strong{font-size:9px;line-height:1.35;white-space:normal;overflow-wrap:anywhere}
   .cinema-r4-threeway .cinema-board-stack{margin:10px auto 4px}

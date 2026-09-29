@@ -30,9 +30,9 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
       // Reveal phases cover the staggered flips (310ms / 320ms / 380ms between cards, 420ms flip,
       // 600ms for the last pair); hand phases are the 1400ms read beat; the settle is a 500ms look
       // before BEST 5 lights up.
-      finalCards = 3; add("FINAL_FIRST_REVEAL", 1050); add("FINAL_FIRST_HAND", 1400);
-      finalCards = 5; add("FINAL_SECOND_REVEAL", 750); add("FINAL_SECOND_HAND", 1400);
-      finalCards = 7; add("FINAL_LAST_REVEAL", 1000); add("FINAL_SEVEN_SETTLE", 500);
+      finalCards = 3; add("FINAL_FIRST_REVEAL", 1350); add("FINAL_FIRST_HAND", 1400);
+      finalCards = 5; add("FINAL_SECOND_REVEAL", 1050); add("FINAL_SECOND_HAND", 1400);
+      finalCards = 7; add("FINAL_LAST_REVEAL", 1300); add("FINAL_SEVEN_SETTLE", 500);
       bestFive();
       const places = [...new Set((match.results ?? []).map((result) => result.place).filter((place) => place > 1))].sort((a, b) => b - a);
       for (const place of places) add("FINAL_PLACE", 900, place);
@@ -46,12 +46,12 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     for (boardIndex = 0; boardIndex < match.boards.length; boardIndex++) {
       revealed = 0;
       if (boardIndex === 1 && match.runCards) { add("CARD_SWITCH_OUT", 450); add("CARD_SWITCH_IN", 450); }
-      revealed = 1; add("FLOP_1", 400);
-      revealed = 2; add("FLOP_2", 400);
-      revealed = 3; add("FLOP_3", 420); add("FLOP_SETTLE", 200); add("FLOP_HAND", 800);
-      revealed = 4; add("TURN", 420); add("TURN_SETTLE", 200); add("TURN_HAND", 800);
+      revealed = 1; add("FLOP_1", 700);
+      revealed = 2; add("FLOP_2", 700);
+      revealed = 3; add("FLOP_3", 720); add("FLOP_SETTLE", 200); add("FLOP_HAND", 800);
+      revealed = 4; add("TURN", 720); add("TURN_SETTLE", 200); add("TURN_HAND", 800);
       add("RIVER_SUSPENSE", 250);
-      revealed = 5; add("RIVER", 600); add("RIVER_SETTLE", 200);
+      revealed = 5; add("RIVER", 900); add("RIVER_SETTLE", 200);
       // One hand read, then one outcome. Intermediate run results are needed only
       // when another board follows; the final board flows straight into RESULT.
       bestFive();
@@ -64,6 +64,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     add("HIGH_CARD_NOTICE", 6500);
     add("HIGH_CARD_DRAW", 3000);
   }
+  // Outcome and payout enter together; REWARD remains a hold with no second reveal.
   add("RESULT", 650); add("REWARD", 1100); add("COMPLETE", 0);
   return frames;
 }
@@ -83,7 +84,7 @@ export function revealFlags(phase: CinematicPhase) {
   const finalReveal = ["FINAL_PLACE", "FINAL_WINNER"].includes(phase);
   return { glow: index >= 0 || finalResolution, holeDim: index >= 0 || finalResolution, boardDim: index >= 0 || finalResolution,
     profile: index >= 2 || finalResolution, made: index >= 0 || finalResolution, runResult: phase === "RUN_RESULT",
-    result: index >= 3 || finalReveal, reward: index >= 4, winner: ["FINAL_WINNER", "REWARD", "COMPLETE"].includes(phase) };
+    result: index >= 3 || finalReveal, reward: index >= 3, winner: ["FINAL_WINNER", "REWARD", "COMPLETE"].includes(phase) };
 }
 
 /** Keeps the previous made hand visible while a newly opened street settles for 200ms. */
@@ -102,7 +103,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 9;
+export const PRESENTATION_VERSION = 10;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */
