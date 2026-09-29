@@ -4,13 +4,21 @@
   width: 100%;
   aspect-ratio: 2 / 3;
   flex: none;
-  background: #080a0d url('/assets/abilities/platinum-frame-aligned.png') center / 100% 100% no-repeat;
+  background: #080a0d;
   color: #f3f2ee;
   font-family: 'Batang', 'Noto Serif KR', 'AppleMyungjo', Georgia, serif;
   text-align: center;
   isolation: isolate;
 }
-.ability-card-icon {
+.ability-artwork {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+.ability-artwork[data-ready="true"] { visibility: visible; }
+.ability-artwork-frame { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ability-artwork .ability-card-icon {
   position: absolute;
   top: 30.8%;
   left: 50%;
@@ -20,14 +28,6 @@
   object-fit: contain;
   user-select: none;
 }
-/* The original two emblems have taller ornaments and more transparent padding. */
-.ability-card[data-ability="royal-blood"] .ability-card-icon,
-.ability-card[data-ability="architect"] .ability-card-icon {
-  top: 30.2%;
-  width: 66%;
-  height: 44%;
-}
-.ability-card[data-ability="architect"] .ability-card-icon { left: 52.7%; }
 .ability-card-name {
   position: absolute;
   top: 49.5%;

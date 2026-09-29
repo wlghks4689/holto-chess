@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PlayerView } from "../shared/protocol";
 import type { GameAction } from "../shared/protocol";
-import { ABILITY_CARDS } from "./abilityCatalog";
+import { AbilityArtwork } from "./AbilityArtwork";
+import { preloadAbilityArtwork } from "./abilityArtworkLoader";
 import { AbilityCard } from "./AbilityCard";
 import { PhaseTimer } from "./PhaseTimer";
 import { useTranslation } from "../i18n";
@@ -14,6 +15,7 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
   const dialog = useRef<HTMLDialogElement>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const ownAbility = draft?.myPick?.abilityId;
+  useEffect(() => { preloadAbilityArtwork(); }, []);
   // A turn update must not dismiss or replace the card being inspected.
   useEffect(() => {
     if (ownAbility) dialog.current?.showModal();
@@ -30,11 +32,11 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
   const cardGrid = <div className="ability-back-grid">{Array.from({ length: 10 }, (_, slot) => {
     const pick = draft.abilities?.find(pick => pick.slot === slot);
     if (pick) return <button key={slot} type="button" className={`ability-card-back ability-card-thumbnail${pick.playerId === view.me.playerId ? " is-viewer" : ""}`} aria-label={`${orderNames.get(pick.playerId)} · ${t(`ability.card.${pick.abilityId}.name`)} · ${t("ability.viewCard")}`} onClick={() => inspect(pick.playerId)}>
-      <img src={`/assets/abilities/${ABILITY_CARDS[pick.abilityId]}`} alt="" draggable={false} />
+      <AbilityArtwork ability={pick.abilityId} />
       <b>{t(`ability.card.${pick.abilityId}.name`)}</b><small>{pick.playerId === view.me.playerId ? t("round.you") : orderNames.get(pick.playerId)}</small>
     </button>;
     return <button key={slot} type="button" className="ability-card-back" disabled={disabled || phase !== "ABILITY_PICK" || !draft.availableSlots.includes(slot) || draft.currentPlayerId !== view.me.playerId} aria-label={t("ability.selection.card", { number: slot + 1 })} onClick={() => send({ type: "ABILITY_PICK", slot })}><span>?</span></button>;
-  })}</div>;
+  })}{[10, 11].map(slot => <div key={slot} className="ability-card-back ability-card-placeholder" aria-hidden="true"><span>?</span></div>)}</div>;
   return <section className={`ability-selection is-${phase.toLowerCase()}`}>
     {phase === "ABILITY_ORDER" ? <>
       <p className="ability-selection-kicker">PORENA · ABILITY DRAFT</p>
@@ -50,7 +52,6 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
       {cardGrid}
       <small className="ability-selection-count">{draft.pickedCount} / 8</small>
     </> : phase === "ABILITY_REVEAL" ? <>
-      <p className="ability-selection-kicker">PORENA · ABILITY DRAFT</p>
       <h2>{t("ability.selection.reveal")}</h2>
       <p className="ability-selection-instruction">{t("ability.selection.privateReveal")}</p>
       {cardGrid}<p className="ability-reveal-countdown" role="status">{t("ability.selection.startsIn", { seconds })}</p>
