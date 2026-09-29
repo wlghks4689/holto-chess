@@ -99,7 +99,7 @@ CSS는 분할하지 않았다. OnlineApp과 함께 컴포넌트 CSS를 지연 �
 
 ## 6. 정리한 미사용 에셋
 
-`rg` 전체 검색 결과 런타임, 테스트, 문서에서 참조가 없었다. 아래 SVG 2개와 `platinum-frame.png`는 같은 시기 main(`64923c3`)에서 삭제되어 그 결정을 따랐다(git 기록에는 남음). `r2-equity-concept.svg`는 `holto-chess/asset-source/legacy/`로 옮겼다.
+`rg` 전체 검색 결과 런타임, 테스트, 문서에서 참조가 없었다. 아래 SVG 2개와 `platinum-frame.png`는 같은 시기 main(`4897398`)에서 삭제되어 그 결정을 따랐다(git 기록에는 남음). `r2-equity-concept.svg`는 `holto-chess/asset-source/legacy/`로 옮겼다.
 
 - `abilities/royal-blood.svg` (3.2 MB), `abilities/architect.svg` (2.4 MB): `ABILITY_CARDS.md`의 오래된 표에서만 언급. 표를 갱신함.
 - `abilities/platinum-frame.png` (1.9 MB): 참조 0 (런타임은 `-aligned`를 사용).
@@ -145,4 +145,4 @@ CSS는 분할하지 않았다. OnlineApp과 함께 컴포넌트 CSS를 지연 �
 - 내용: `tools/multiplayer-audit.mjs`가 운영 서버에서 8인 게임을 완주하며 남긴 QA 기록. 점검 6회분(multiplayer, multiplayer-resilience, multiplayer-suspension, fix-resilience, fix-eight, fix-auto-spectator), 화면 캡처 PNG 1,618장, 이벤트 로그 jsonl 6개, 실행 조건·요약 json 12개. 합계 587 MB.
 - 커밋 `4722b36`(2026-09-24)에 함께 들어갔고, 스크립트 기본 출력 경로가 `.gitignore`에 없어서 추적됐던 것으로 보인다.
 - 조치(2026-09-30): `.audit/`를 `holto-chess/.gitignore`에 추가하고 `git rm -r --cached`로 추적을 해제했다. 로컬 폴더는 그대로 남는다. 앞으로 QA 실행 결과는 커밋되지 않는다. 보고서에 쓰는 대표 캡처는 `product_doc/qa/assets/`에 둔다.
-- 남은 선택: 과거 커밋에는 파일이 남아 있어 clone 크기(pack 약 531 MiB)는 그대로다. 줄이려면 `git filter-repo`로 history에서 제거하고 강제 푸시해야 한다. 모든 클론에 영향을 주므로 사용자 결정이 필요하다.
+- 히스토리 정리 완료(2026-09-30): 모든 브랜치 이력에서 `.audit`을 제거하고 강제 푸시했다. 새 clone 크기 538.5 MiB → 57.6 MiB. 위 `4722b36`은 정리 전 SHA다. 상세와 SHA 대응표는 [2026-09-30-history-rewrite.md](2026-09-30-history-rewrite.md).

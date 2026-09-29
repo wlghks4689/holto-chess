@@ -2,7 +2,7 @@
 
 ## 후속 운영 배포
 
-아래 로컬 검수 당시의 미배포 기록 이후 사용자가 커밋·푸시·배포를 승인했다. 변경 커밋 `a797398f5e8296673f087a24af03b0accac1a675`을 origin/main에 푸시하고 버전 `8b21dd73-deb0-4883-a060-dfb4073f450a`로 배포했다. 운영 페이지/health HTTP 200 및 새 PNG 2종·JS·CSS의 SHA256 일치를 확인했다. 상세는 holto-chess/OPERATIONS.md 참고.
+아래 로컬 검수 당시의 미배포 기록 이후 사용자가 커밋·푸시·배포를 승인했다. 변경 커밋 `bc08198b32f6dab6839a8e858af8e084fe98d315`을 origin/main에 푸시하고 버전 `8b21dd73-deb0-4883-a060-dfb4073f450a`로 배포했다. 운영 페이지/health HTTP 200 및 새 PNG 2종·JS·CSS의 SHA256 일치를 확인했다. 상세는 holto-chess/OPERATIONS.md 참고.
 
 ## 후속 공개 문구/PC 검수 — UI-RESP-010
 

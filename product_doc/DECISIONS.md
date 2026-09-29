@@ -96,7 +96,7 @@
 - 결정: rank 2=2BB, rank 3=3BB, rank 4=4BB. rank 5=5BB 및 나머지 가격·경제 규칙은 유지.
 - 출처: `codex/balance-latest`의 구현 커밋 `7700060bf40d89c729aee4d3c97f0a56e0bebfe8`, 승인 기록 `c7b2315`. 분석 브랜치 전체를 통합하지 않고 현재 `main`의 `BALANCE.rankPrices`와 관련 회귀 테스트에만 반영.
 - 통합 검증: `npm test -- --run` 463/463, `npm run test:workers` 13/13, `npm run lint`, `npm run build`, `npx wrangler deploy --dry-run` 통과. Worker 테스트의 로컬 로그 쓰기 경고는 테스트 실패가 아님.
-- 통합 커밋·운영 배포: `2bf09ba` (`main`, `origin/main`), Cloudflare Worker `porena` Version ID `32d66834-bd57-495f-bd9b-c39c43c065a3`. `https://porena.kr/api/health` HTTP 200, 운영 HTML에서 새 `index-BGBl7o-a.js` 확인.
+- 통합 커밋·운영 배포: `4b258ae` (`main`, `origin/main`), Cloudflare Worker `porena` Version ID `32d66834-bd57-495f-bd9b-c39c43c065a3`. `https://porena.kr/api/health` HTTP 200, 운영 HTML에서 새 `index-BGBl7o-a.js` 확인.
 - 잔여 위험: BAL-004 분석에서 구매율 상승은 확인했으나 최종 성과 향상은 확인되지 않음. 운영에서 낮은 랭크 구매율·종료 BB·후속 라운드 성과를 관찰.
 
 ## MP-2026-09-24 — 멀티플레이 공개·종료·관전 경계
@@ -105,7 +105,7 @@
 - 결정: `finalResultsReleasedAt` 서버 선언 분리, 단계별 공개 projection, RTT 보정 및 불확실성 경고, 온라인 상점 필수 정보 표시, 연결·관전 상태의 지속 표시. 점수·보상·경제 수치 변경 없음.
 - 종료 확인: 공통 endsAt 이후 활성 인간 결승 참가자의 보이는 순위표 진입을 확인. 인간 결승 참가자가 전부 탈락/이탈했으면 관전자의 완료 확인 허용. 단말 전체 ACK를 기다리는 정책은 아님.
 - 기준/보고서: `afbad6c` (`b56260f` 제품 기준), `qa/2026-09-24-multiplayer-ux-audit.md`는 로컬 보고서이며 원본 보고서 커밋 SHA 미정. 구현 설명·검증은 `qa/2026-09-24-multiplayer-remediation.md`.
-- 구현 커밋: `9233d51` 단계별 공개·최종 기록 잠금, `666279e` 튜토리얼 쇼다운 체크포인트 정렬, `8155529` 증강 제거 뒤 남은 튜토리얼 테스트 분기 제거. 최신 `main` 통합 커밋으로 push 완료.
+- 구현 커밋: `212326f` 단계별 공개·최종 기록 잠금, `7355127` 튜토리얼 쇼다운 체크포인트 정렬, `28f5141` 증강 제거 뒤 남은 튜토리얼 테스트 분기 제거. 최신 `main` 통합 커밋으로 push 완료.
 - 운영 배포: Cloudflare Worker `porena`, Version ID `ac1c7348-0c50-49e8-ae8f-fd808f4b2f47`. `https://porena.kr/api/health` HTTP 200 및 운영 HTML의 `index-DUXwIxAK.js` 자산 확인.
 - 잔여 위험: 비대칭 회선의 완전 동시성 보장 불가, 구형 탭 전환·실기기·동시 방 부하 별도 검증. MP-08(P3)은 이번 중간 이상 승인과 구분.
 
@@ -168,8 +168,8 @@
 - 결정: R1~R4 승률 추정의 시드 입력에 전체 참가 카드 ID를 정렬해 사용한다. 표본 수, 핸드 평가, 보드 생성, 승/무/패 환산 및 반올림은 유지한다. R5는 보드 샘플링 없이 정확 평가하므로 영향 없음.
 - 승인 근거: 사용자가 “클로드 핵심 권고 1순위는 진행해서 메인에 커밋 할 수 있도록 진행하세요”라고 승인함.
 - 분석 기준: BAL-005 기준 코드 `c7b2315` (의뢰 포함 커밋 `2e4bbdd`); 보고서 커밋 `88a3c8a`, 인계 문서 추가 커밋 `993b0b5`; `product_doc/balance/BAL-005/REPORT.md`, `CODEX_HANDOFF.md`.
-- 현재 버전 검토: 분석 기준 이후 `showdownEquity.ts`와 `core/poker/evaluate.ts`는 `main` HEAD `2b882e3`까지 변경되지 않음을 확인. 주변 엔진·뷰 변경은 시드/평가 구현과 무관함.
-- 구현: `5207f9d` (`main`). 동일 카드 집합에서 R1~R4 카드 배열을 역순으로 바꾸거나 좌우 플레이어를 교환해도 결과가 동일/대칭인 회귀 테스트 추가.
+- 현재 버전 검토: 분석 기준 이후 `showdownEquity.ts`와 `core/poker/evaluate.ts`는 `main` HEAD `d204640`까지 변경되지 않음을 확인. 주변 엔진·뷰 변경은 시드/평가 구현과 무관함.
+- 구현: `357627e` (`main`). 동일 카드 집합에서 R1~R4 카드 배열을 역순으로 바꾸거나 좌우 플레이어를 교환해도 결과가 동일/대칭인 회귀 테스트 추가.
 - 검증: `holto-chess/`에서 `npm test` 466/466, `npm run lint`, `npm run build` 통과. R2 순서 불변 사례를 추가한 뒤 타깃 테스트 `npm test -- src/ui/showdownEquity.test.ts` 3/3 통과.
 - 잔여 위험: 몬테카를로 표본 수에 따른 통계적 오차는 그대로다. 이번 수정은 동일 카드 집합에 대해 순서에 따른 시드 변동만 제거한다. 원격 push 및 운영 배포는 별도 요청 전 수행하지 않음.
 
@@ -179,7 +179,7 @@
 - 근거: 사용자가 “어빌리티가 실제로 발동 되도록 확정 로직 및 판정에 대한 내용을 별도로 만들어서 main에 커밋 푸쉬하세요. 캐릭터 이름만 빼면 되는 내용입니다”라고 요청했고 앞선 대화에서 예외 판정을 확정했다.
 - 정본: [ABILITY_RULES.md](ABILITY_RULES.md). 어빌리티 ID, 가격·정산·BEST5·Split·타이브레이크·승률 경계를 기록한다.
 - 구현 범위: 새 경기의 어빌리티 선택과 서버 권한의 효과 판정. 캐릭터 선택/이름/이미지/인물 아트는 제외한다.
-- 구현 커밋 SHA: `f046881` (`main`).
+- 구현 커밋 SHA: `1b4b918` (`main`).
 - 검증: `npm test` 481/481, `npm run test:workers` 13/13, `npm run lint`, `npm run build` 통과. 배포는 이 커밋 범위에 포함하지 않는다.
 
 ## UI-015 — 어빌리티 픽 비공개 프리뷰와 카드 규격
