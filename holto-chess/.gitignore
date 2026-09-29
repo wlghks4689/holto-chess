@@ -16,3 +16,4 @@ artifacts/
 !eslint.config.js
 tools/balance-simulator/output/
 tools/perf/output/
+.audit/

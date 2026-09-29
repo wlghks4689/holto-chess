@@ -140,9 +140,9 @@ CSS는 분할하지 않았다. OnlineApp과 함께 컴포넌트 CSS를 지연 �
 - 비활성 언어 문자열 지연 로드(약 10 KB gzip): i18n이 동기 구조라 보류.
 - 반복 마운트되는 `porena-mark.webp` 등의 불필요한 재요청(메모리 캐시라 전송량은 거의 0).
 
-## .audit 저장소 정리 제안 (런타임과 별개)
+## .audit 저장소 정리 (런타임과 별개)
 
-- 현재 `holto-chess/.audit`: 587 MB, git 추적 1,636파일. 커밋 `4722b36` 한 번에 추가됨. 저장소 pack 531 MiB의 대부분이다.
-- 필요성: QA 문서(`qa/2026-09-24-*`, TODO)가 원본 증거로 경로를 언급한다. 대표 스크린샷은 이미 `product_doc/qa/assets/`에 있다.
-- 제안: 필요한 증거 이미지만 `product_doc/qa/assets/`로 옮긴 뒤, `.audit/`를 `.gitignore`에 넣고 `git rm -r --cached holto-chess/.audit`로 추적을 해제한다. 체크아웃 크기는 줄지만 과거 커밋에는 남아 clone 크기는 그대로다.
-- clone 크기까지 줄이려면 `git filter-repo`로 history에서 제거하고 강제 푸시해야 한다. 모든 클론에 영향을 주는 작업이라 이번에는 하지 않았고 사용자 결정이 필요하다.
+- 내용: `tools/multiplayer-audit.mjs`가 운영 서버에서 8인 게임을 완주하며 남긴 QA 기록. 점검 6회분(multiplayer, multiplayer-resilience, multiplayer-suspension, fix-resilience, fix-eight, fix-auto-spectator), 화면 캡처 PNG 1,618장, 이벤트 로그 jsonl 6개, 실행 조건·요약 json 12개. 합계 587 MB.
+- 커밋 `4722b36`(2026-09-24)에 함께 들어갔고, 스크립트 기본 출력 경로가 `.gitignore`에 없어서 추적됐던 것으로 보인다.
+- 조치(2026-09-30): `.audit/`를 `holto-chess/.gitignore`에 추가하고 `git rm -r --cached`로 추적을 해제했다. 로컬 폴더는 그대로 남는다. 앞으로 QA 실행 결과는 커밋되지 않는다. 보고서에 쓰는 대표 캡처는 `product_doc/qa/assets/`에 둔다.
+- 남은 선택: 과거 커밋에는 파일이 남아 있어 clone 크기(pack 약 531 MiB)는 그대로다. 줄이려면 `git filter-repo`로 history에서 제거하고 강제 푸시해야 한다. 모든 클론에 영향을 주므로 사용자 결정이 필요하다.
