@@ -1,11 +1,14 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { OnlineApp } from "./OnlineApp";
+import "./gameStyles";
 import { invitedRoom } from "./roomInvite";
 import { StartScreen, type StartMode } from "./StartScreen";
 import { useTranslation } from "../i18n";
 const loadLocalApp = () => import("./App");
 const FxPreview = lazy(() => import("./FxPreview").then((module) => ({ default: module.FxPreview })));
 const LocalApp = lazy(() => loadLocalApp().then((module) => ({ default: module.App })));
+// Multiplayer (lobby, socket session, online views) is only fetched once the player picks it or opens an invite.
+const loadOnlineApp = () => import("./OnlineApp");
+const OnlineApp = lazy(() => loadOnlineApp().then((module) => ({ default: module.OnlineApp })));
 const DraftPreview = lazy(() => import("./DraftPreview").then((m) => ({ default: m.DraftPreview })));
 const ShowdownCardPreview = lazy(() => import("./ShowdownCardPreview").then((m) => ({ default: m.ShowdownCardPreview })));
 const AbilityPreview = lazy(() => import("./AbilityPreview").then((m) => ({ default: m.AbilityPreview })));
@@ -17,6 +20,7 @@ export function ModeApp() {
   const [mode, setMode] = useState<StartMode | null>(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ? "multi" : null);
   useEffect(() => {
     if (mode === "single") void loadLocalApp();
+    if (mode === "multi") void loadOnlineApp();
   }, [mode]);
   // Unlisted effect gallery. The SPA fallback serves it at /fx on any deploy, so
   // the same build can be checked without a local dev server.
@@ -29,5 +33,5 @@ export function ModeApp() {
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
   if (!mode) return <StartScreen onStart={setMode} />;
   if (mode === "tutorial") return <Suspense fallback={<main className="local-loading-screen"><div><span>TUTORIAL</span><b>{t("common.loading")}</b></div></main>}><TutorialApp onHome={() => setMode(null)} onSinglePlay={() => setMode("single")} /></Suspense>;
-  return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>{t("mode.multiplayer")}</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>{t("mode.single")}</button></div>}{mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("home.singleDescription")}</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <OnlineApp onHome={() => setMode(null)} />}</>;
+  return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>{t("mode.multiplayer")}</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>{t("mode.single")}</button></div>}{mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("home.singleDescription")}</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <Suspense fallback={<main className="local-loading-screen"><div><span>MULTIPLAYER</span><b>{t("common.loading")}</b></div></main>}><OnlineApp onHome={() => setMode(null)} /></Suspense>}</>;
 }

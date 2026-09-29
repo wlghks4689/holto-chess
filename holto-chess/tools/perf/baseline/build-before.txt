@@ -1,0 +1,17 @@
+dist/client/index.html                                1.51 kB │ gzip:   0.76 kB
+dist/client/assets/FxPreview-4AMDNsAw.css             4.64 kB │ gzip:   1.39 kB
+dist/client/assets/TutorialApp-c-mSQDLN.css           4.71 kB │ gzip:   1.43 kB
+dist/client/assets/GameOverviewGuide-Txshy0Qr.css    19.40 kB │ gzip:   4.53 kB
+dist/client/assets/index-DXrK01ei.css               228.77 kB │ gzip:  46.15 kB
+dist/client/assets/config-BuY081gX.js                 1.14 kB │ gzip:   0.63 kB
+dist/client/assets/abilities-B15IzS2v.js              1.39 kB │ gzip:   0.67 kB
+dist/client/assets/AbilityPreview-CwdRvs1f.js         1.59 kB │ gzip:   0.68 kB
+dist/client/assets/ShowdownCardPreview-Bq91cxUV.js    1.71 kB │ gzip:   1.06 kB
+dist/client/assets/FxPreview-uJHbigDz.js              6.10 kB │ gzip:   2.43 kB
+dist/client/assets/DraftPreview-Bms8aCwm.js          10.26 kB │ gzip:   3.03 kB
+dist/client/assets/App-DciZCvqr.js                   16.26 kB │ gzip:   5.82 kB
+dist/client/assets/TutorialApp-Df_xB9aD.js           55.14 kB │ gzip:  18.29 kB
+dist/client/assets/GameOverviewGuide-KAJjSHgr.js     57.96 kB │ gzip:  18.91 kB
+dist/client/assets/playerView-biJcrmYJ.js            58.31 kB │ gzip:  19.30 kB
+dist/client/assets/jsx-runtime-BYU3BnRi.js           87.68 kB │ gzip:  30.23 kB
+dist/client/assets/index-CjXAu1Gf.js                348.22 kB │ gzip: 105.37 kB

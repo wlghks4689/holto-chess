@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { ABILITY_CARDS, type AbilityId } from "./abilityCatalog";
-import { ABILITY_FRAME, decodeAbilityImage } from "./abilityArtworkLoader";
+import type { AbilityId } from "./abilityCatalog";
+import { ABILITY_FRAME, abilityIconUrl, decodeAbilityImage } from "./abilityArtworkLoader";
 
 /** One visibility change reveals both decoded images; text never changes their geometry. */
 export function AbilityArtwork({ ability }: { ability: AbilityId }) {
-  const icon = `/assets/abilities/${ABILITY_CARDS[ability]}`;
+  const icon = abilityIconUrl(ability);
   const [decodedIcon, setDecodedIcon] = useState<string | null>(null);
   useEffect(() => {
     let active = true;

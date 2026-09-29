@@ -6,7 +6,7 @@ import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION } from "../sha
 import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalHeadingCopy, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
-import { isMadeSoundStart, playMadeSound, selectMadeSound, stopMadeAudio } from "./madeSound";
+import { isMadeSoundStart, playMadeSound, prefetchMadeSound, selectMadeSound, stopMadeAudio } from "./madeSound";
 import { cinemaSeatClass } from "./madeFxClasses";
 import { showdownStage } from "./showdownStage";
 import type { ServerClock } from "./serverClock";
@@ -106,6 +106,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     const sound = selectMadeSound(sceneResults);
     if (sound) void playMadeSound(sound);
   }, [catchUp, final, frame.boardIndex, frame.phase, match.boardResults, match.id, match.results, soundSessionId]);
+
+  // The match result is known when its cinematic mounts, seconds before BEST5_GLOW: fetch only the cues it will play.
+  useEffect(() => {
+    const scenes = final ? [match.results] : match.boardResults;
+    for (const results of scenes) { const sound = selectMadeSound(results); if (sound) prefetchMadeSound(sound); }
+  }, [final, match.boardResults, match.id, match.results]);
 
   useEffect(() => () => stopMadeAudio(), []);
 

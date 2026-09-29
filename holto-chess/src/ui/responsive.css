@@ -434,7 +434,7 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
 
 /* Match-only artwork and floor anchor: the same image point and the whole seat group
    share a viewport anchor, independent of title/footer height or RUN count. */
-main.game-arena:has(.match-loading){--match-floor-y:57dvh;--match-floor-position:57%;--match-background:url('/assets/table/match-arena-mobile.png')}
+main.game-arena:has(.match-loading){--match-floor-y:57dvh;--match-floor-position:57%;--match-background:url('/assets/table/match-arena-mobile.webp')}
 main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180deg,rgba(2,7,17,.16),rgba(3,10,21,.1) 50%,rgba(3,8,18,.3)),var(--match-background);background-size:cover;background-position:center var(--match-floor-position);background-attachment:scroll}
 .game-arena .showdown-prep :is(.showdown-prep-stage,.r2-match-stage){position:fixed;z-index:1;left:50%;top:var(--match-floor-y);translate:-50% -50%;width:calc(100% - 32px);max-width:1040px;margin:0;align-self:auto}
 .game-arena .showdown-prep-heading{grid-row:1}
@@ -444,7 +444,7 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
 .game-arena .showdown-prep-stage.is-multiway .showdown-prep-player{min-height:0}
 .game-arena .showdown-prep-stage.is-multiway .showdown-prep-vs{width:28px;height:28px;font-size:11px}
 @media(min-width:1024px){
-  main.game-arena:has(.match-loading){--match-floor-y:62dvh;--match-floor-position:62%;--match-background:url('/assets/table/match-arena-pc.png')}
+  main.game-arena:has(.match-loading){--match-floor-y:62dvh;--match-floor-position:62%;--match-background:url('/assets/table/match-arena-pc.webp')}
 }
 @media(max-width:768px){
   .game-arena .showdown-prep :is(.showdown-prep-stage,.r2-match-stage){width:calc(100% - 16px)}

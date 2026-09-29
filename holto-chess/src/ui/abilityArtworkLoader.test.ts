@@ -38,6 +38,17 @@ describe("ability artwork loading", () => {
     expect(ready).toBe(true);
   });
 
+  it("preloads the frame and revealed abilities only, never the unrevealed catalog", async () => {
+    const { ABILITY_FRAME, abilityIconUrl, preloadAbilityArtwork } = await import("./abilityArtworkLoader");
+    const requested = () => images.map((image) => (image as unknown as { src: string }).src);
+    preloadAbilityArtwork();
+    expect(requested()).toEqual([ABILITY_FRAME]);
+    preloadAbilityArtwork(["trader", "quad-core"]);
+    preloadAbilityArtwork(["trader"]);
+    expect(requested()).toEqual([ABILITY_FRAME, abilityIconUrl("trader"), abilityIconUrl("quad-core")]);
+    expect(requested().every((src) => src.endsWith(".webp"))).toBe(true);
+  });
+
   it("allows a failed request to be retried", async () => {
     const { decodeAbilityImage } = await import("./abilityArtworkLoader");
     const failed = decodeAbilityImage("icon.png");

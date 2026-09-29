@@ -1,0 +1,6 @@
+# Vite build output is content-hashed (/assets/<name>-<hash>.js|css): a changed file always gets a new name.
+# public/ media reuse their filenames, so they keep the platform default (revalidate with ETag).
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable

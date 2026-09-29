@@ -2,7 +2,7 @@ import { Fragment, useMemo, type CSSProperties } from "react";
 import type { ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { CardView } from "./CardView";
 import { showdownEquity } from "./showdownEquity";
-import { ABILITY_CARDS } from "./abilityCatalog";
+import { abilityIconUrl } from "./abilityArtworkLoader";
 import "./showdown-prep.css";
 import { useTranslation } from "../i18n";
 
@@ -13,7 +13,7 @@ function PrepAvatar({ seat, fallback, className }: { seat?: ShowdownPrepSeatView
   const ability = seat?.abilityId;
   const label = ability ? t(`ability.card.${ability}.name`) : undefined;
   return ability
-    ? <img className={`${className}-icon`} src={`/assets/abilities/${ABILITY_CARDS[ability]}`} alt={label} title={label} />
+    ? <img className={`${className}-icon`} src={abilityIconUrl(ability)} alt={label} title={label} />
     : <span className={className}>{fallback}</span>;
 }
 

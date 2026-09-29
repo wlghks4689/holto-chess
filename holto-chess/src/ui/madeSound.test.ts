@@ -55,14 +55,14 @@ describe("made sound output level", () => {
 });
 
 describe("made sound assets", () => {
-  it("ships four animation-fitted PCM WAV cues, the supplied straight cue, and both straight-flush layers", () => {
+  it("keeps four animation-fitted PCM WAV masters, the supplied straight cue, and both straight-flush layers", () => {
     const fittedTracks = MADE_SOUND_TRACKS.filter((track) => !["straight", "straight-flush"].includes(track.id));
     const expectedDurations: Record<string, number> = { flush: 1.62, "full-house": 1.77, quads: 1.97, "royal-flush": 2.42 };
     expect(fittedTracks).toHaveLength(4);
     expect(MADE_SOUND_TRACKS.find((track) => track.id === "straight-flush")?.files).toHaveLength(2);
     for (const track of fittedTracks) {
       const file = track.files[0]!;
-      const bytes = readFileSync(new URL(`../../public/assets/audio/${file}`, import.meta.url));
+      const bytes = readFileSync(new URL(`../../asset-source/audio/${file.replace(/\.mp3$/, ".wav")}`, import.meta.url));
       expect(bytes.toString("ascii", 0, 4)).toBe("RIFF");
       expect(bytes.toString("ascii", 8, 12)).toBe("WAVE");
       expect(bytes.readUInt16LE(22)).toBe(1);
@@ -76,7 +76,7 @@ describe("made sound assets", () => {
       for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
       expect(peak / 32768).toBeLessThan(0.5);
     }
-    const straightBytes = readFileSync(new URL("../../public/assets/audio/made_straight.wav", import.meta.url));
+    const straightBytes = readFileSync(new URL("../../asset-source/audio/made_straight.wav", import.meta.url));
     expect(straightBytes.toString("ascii", 0, 4)).toBe("RIFF");
     expect(straightBytes.toString("ascii", 8, 12)).toBe("WAVE");
     expect(straightBytes.readUInt16LE(22)).toBe(1);
@@ -89,11 +89,22 @@ describe("made sound assets", () => {
     for (const sample of straightSamples) straightPeak = Math.max(straightPeak, Math.abs(sample));
     expect(straightPeak / 32768).toBeLessThan(0.9);
     for (const file of MADE_SOUND_TRACKS.find((track) => track.id === "straight-flush")!.files) {
-      const bytes = readFileSync(new URL(`../../public/assets/audio/${file}`, import.meta.url));
+      const bytes = readFileSync(new URL(`../../asset-source/audio/${file.replace(/\.mp3$/, ".wav")}`, import.meta.url));
       expect(bytes.toString("ascii", 0, 4)).toBe("RIFF");
       expect(bytes.toString("ascii", 8, 12)).toBe("WAVE");
       expect(bytes.readUInt32LE(24)).toBe(48_000);
       expect(bytes.readUInt16LE(34)).toBe(16);
     }
+  });
+  it("ships every runtime cue as a compact MP3 encoded from its master", () => {
+    let total = 0;
+    for (const file of MADE_SOUND_TRACKS.flatMap((track) => track.files)) {
+      expect(file).toMatch(/\.mp3$/);
+      const bytes = readFileSync(new URL(`../../public/assets/audio/${file}`, import.meta.url));
+      // MPEG-1 Layer III frame sync (0xFFFB) or an ID3 tag.
+      expect(bytes[0] === 0xff && (bytes[1]! & 0xe0) === 0xe0 || bytes.toString("ascii", 0, 3) === "ID3", file).toBe(true);
+      total += bytes.length;
+    }
+    expect(total).toBeLessThan(400 * 1024);
   });
 });

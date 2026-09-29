@@ -2,14 +2,15 @@ import { useSyncExternalStore } from "react";
 import { CATEGORY_RANK, type HandCategory } from "../core/poker/evaluate";
 import type { RevealedHand } from "../shared/protocol";
 
+/** Runtime cues are 128 kbps mono MP3 encoded from the 48 kHz PCM masters in asset-source/audio (tools/perf/optimize-assets.mjs). */
 export type MadeSoundId = "straight" | "flush" | "full-house" | "quads" | "straight-flush" | "royal-flush";
 export const MADE_SOUND_TRACKS: readonly { id: MadeSoundId; label: string; files: readonly string[] }[] = [
-  { id: "straight", label: "스트레이트", files: ["made_straight.wav"] },
-  { id: "flush", label: "플러시", files: ["made_flush.wav"] },
-  { id: "full-house", label: "풀하우스", files: ["made_full_house.wav"] },
-  { id: "quads", label: "포카드", files: ["made_quads.wav"] },
-  { id: "straight-flush", label: "스트레이트 플러시 · core + tail", files: ["made_straight_flush_core.wav", "made_straight_flush_tail.wav"] },
-  { id: "royal-flush", label: "로열 플러시", files: ["made_royal_flush.wav"] },
+  { id: "straight", label: "스트레이트", files: ["made_straight.mp3"] },
+  { id: "flush", label: "플러시", files: ["made_flush.mp3"] },
+  { id: "full-house", label: "풀하우스", files: ["made_full_house.mp3"] },
+  { id: "quads", label: "포카드", files: ["made_quads.mp3"] },
+  { id: "straight-flush", label: "스트레이트 플러시 · core + tail", files: ["made_straight_flush_core.mp3", "made_straight_flush_tail.mp3"] },
+  { id: "royal-flush", label: "로열 플러시", files: ["made_royal_flush.mp3"] },
 ];
 
 const PREFERENCES_KEY = "porena.made-sound-preferences";
@@ -115,13 +116,22 @@ function loadBuffers(id: MadeSoundId): Promise<AudioBuffer[] | undefined> {
   return request;
 }
 
-/** Call on the first user gesture; audio failures must never affect game progression. */
+/** Call on the first user gesture: unlock the context only. Cues are fetched when a showdown is known to need them. */
 export function unlockMadeAudio() {
   const current = audioContext();
   if (!current) return;
   unlocked = true;
   void current.resume().catch(() => {});
-  for (const track of MADE_SOUND_TRACKS) void loadBuffers(track.id);
+}
+
+/**
+ * Fetch and decode one cue ahead of its BEST5_GLOW so the first play has no network wait. Skipped while sound
+ * is off; a later play still loads on demand. Decoded buffers stay cached for the session.
+ */
+export function prefetchMadeSound(id: MadeSoundId): void {
+  const preferences = readMadeSoundPreferences();
+  if (!preferences.enabled || preferences.volume <= 0) return;
+  void loadBuffers(id);
 }
 
 export function stopMadeAudio() {

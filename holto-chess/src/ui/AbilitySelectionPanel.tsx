@@ -4,6 +4,7 @@ import type { PlayerView } from "../shared/protocol";
 import type { GameAction } from "../shared/protocol";
 import { AbilityArtwork } from "./AbilityArtwork";
 import { preloadAbilityArtwork } from "./abilityArtworkLoader";
+import type { AbilityId } from "./abilityCatalog";
 import { AbilityCard } from "./AbilityCard";
 import { PhaseTimer } from "./PhaseTimer";
 import { useTranslation } from "../i18n";
@@ -15,7 +16,9 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
   const dialog = useRef<HTMLDialogElement>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const ownAbility = draft?.myPick?.abilityId;
-  useEffect(() => { preloadAbilityArtwork(); }, []);
+  // The frame is warmed during the order reveal; icons only once their card is picked and shown.
+  const revealed = draft?.abilities?.map(pick => pick.abilityId).join(",") ?? "";
+  useEffect(() => { preloadAbilityArtwork(revealed ? revealed.split(",") as AbilityId[] : []); }, [revealed]);
   // A turn update must not dismiss or replace the card being inspected.
   useEffect(() => {
     if (ownAbility) dialog.current?.showModal();
