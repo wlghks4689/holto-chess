@@ -245,7 +245,7 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("완료");
     expect(html).not.toContain("p1 승리");
     expect(html).toMatch(/cinema-run-player[^"]*is-winner[\s\S]*?playing-card[^"]*glow/);
-    expect(html).not.toMatch(/cinema-board complete is-collapsed[\s\S]*?cinema-run-player[^"]*is-loser/);
+    expect(html).toMatch(/cinema-board complete is-collapsed[\s\S]*?cinema-run-matchup is-summary[\s\S]*?cinema-run-player[^"]*is-loser/);
     expect(html.match(/cinema-board-cards/g)).toHaveLength(1);
     expect(html).toContain("RUN 2");
     expect(html).toContain("cinema-seats");
@@ -334,6 +334,23 @@ describe("cinematic initial rendering", () => {
     expect(html).not.toContain("+ 0P 획득");
     const winnersBracket = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...threeWay, group: "winner" }, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(winnersBracket).toContain("cinema-r4-threeway");
+  });
+  it("retains all seats, four-card hands and survival results in an R3 three-way tiebreak", () => {
+    const threeWay: MatchView = { ...match, round: 3, stage: "secondary", group: "loser", tiebreakKind: "SURVIVAL_TIEBREAK",
+      participantIds: ["p1", "p2", "p3"], winnerIds: ["p2"], boards: [deck.slice(20,25)],
+      revealedCards: { p1:deck.slice(0,4), p2:deck.slice(4,8), p3:deck.slice(8,12) },
+      rewards: ["p1", "p2", "p3"].map((playerId,i)=>({playerId,beforeBB:20,afterBB:20,deltaBB:0,beforePoints:0,afterPoints:0,deltaPoints:0,outcome:i === 0 ? "ELIMINATED" : "SURVIVED"})),
+    };
+    const rewardAt = cinematicTimeline(threeWay).find(entry=>entry.phase === "REWARD")!.at;
+    const render = (view: MatchView) => renderToStaticMarkup(createElement(ShowdownCinematic, { match:view, profiles, viewerId:"p1", onComplete:()=>{}, elapsedMs:rewardAt }));
+    const html = render(threeWay);
+    expect(html).toContain("cinema-r3-threeway");
+    expect(html.match(/class="cinema-seat /g)).toHaveLength(3);
+    expect(html.match(/data-count="4"/g)).toHaveLength(3);
+    expect(html.match(/class="cinema-flip-slot /g)).toHaveLength(17);
+    expect(html.match(/cinema-status-stamp is-survived/g)).toHaveLength(2);
+    expect(html.match(/cinema-status-stamp is-eliminated/g)).toHaveLength(1);
+    expect(render({...threeWay, participantIds:["p1","p2"]})).not.toContain("cinema-r3-threeway");
   });
   it("offers skip without speed control when the local simulation opts in", () => {
     const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match, profiles, viewerId: "p1", onComplete: () => {}, controls: true }));

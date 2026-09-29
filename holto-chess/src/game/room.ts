@@ -117,7 +117,7 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
 function refreshBarrier(room: RoomSnapshot, now: number): void {
   const pending = pendingBarrierIds(room);
   const blocked = pending.length > 0 || waitingForSpectatorTimer(room);
-  const key = `${turnKey(room)}|${room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : ""}|${blocked ? "waiting" : "done"}`;
+  const key = `${turnKey(room)}|${room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.picks.length : ""}|${blocked ? "waiting" : "done"}`;
   if (room.barrierKey === key) return;
   room.barrierKey = key;
   room.barrierSince = blocked ? now : undefined;

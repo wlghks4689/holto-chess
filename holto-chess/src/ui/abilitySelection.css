@@ -17,6 +17,23 @@
 .ability-selection-heading h2{margin:0;font-size:clamp(21px,3vw,32px);word-break:keep-all}
 .ability-selection-heading .ability-selection-timer{flex:none;margin:0}
 .ability-selection-heading+.ability-selection-instruction{margin:0 auto 14px}
+.ability-card-thumbnail{display:flex;flex-direction:column;justify-content:center;gap:4px;background:#080a0d url('/assets/abilities/platinum-frame-aligned.png') center/100% 100% no-repeat;padding:10% 8%;border-color:#65778a;overflow:hidden}
+.ability-card-thumbnail::before{display:none}
+.ability-card-thumbnail img{width:76%;height:46%;object-fit:contain;flex-shrink:0}
+.ability-card-thumbnail b{font-size:clamp(10px,1.4vw,15px);line-height:1.2;word-break:keep-all;overflow-wrap:anywhere}
+.ability-card-thumbnail small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#a6baca}
+.ability-card-thumbnail.is-viewer{border-color:#9af3ee;box-shadow:0 0 12px #42e6df55,inset 0 0 12px #42e6df22}
+.ability-card-thumbnail.is-viewer small{color:#9af3ee}
+.ability-draft-dialog{width:min(352px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 24px);margin:auto;padding:0;border:1px solid #60758b;border-radius:16px;background:#0a1421;color:#e8edf4;box-shadow:0 24px 80px #000b;overflow:auto;overscroll-behavior:contain}
+.ability-draft-dialog::backdrop{background:#020710d9;backdrop-filter:blur(5px)}
+.ability-draft-dialog.is-viewer{border-color:#91efe8;box-shadow:0 0 35px #42e6df44,0 24px 80px #000b}
+.ability-draft-dialog-content{padding:12px;display:grid;gap:10px;text-align:center}
+.ability-draft-dialog .ability-card{width:100%;max-width:320px;margin:auto}
+.ability-draft-dialog .secondary{min-height:44px;width:100%}
+.ability-draft-dialog button:focus-visible{outline:2px solid #9af3ee;outline-offset:3px}
+body:has(.ability-draft-dialog[open]){overflow:hidden}
+.ability-reveal-countdown{font-size:13px;line-height:1.5}
+@media(prefers-reduced-motion:reduce){.ability-order-die{animation:none}.ability-card-back{transition:none}}
 @media(max-width:600px){
   .page-shell:has(>.ability-selection){padding-top:10px;padding-bottom:12px}
   .ability-selection{margin:0 auto;padding:10px 0}

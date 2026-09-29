@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-29",
+  "page": "http://localhost:5173/responsive-preview",
+  "casesPerViewport": 64,
+  "cardGroupsPerViewport": 188,
+  "settledAnimationGeometry": true,
+  "results": [
+    {"width":320,"height":640,"documentWidth":320,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":360,"height":780,"documentWidth":345,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":375,"height":812,"documentWidth":360,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":390,"height":844,"documentWidth":375,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":402,"height":874,"documentWidth":387,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":412,"height":915,"documentWidth":397,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":430,"height":932,"documentWidth":415,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":768,"height":1024,"documentWidth":753,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":1280,"height":900,"documentWidth":1265,"issues":0},
+    {"width":360,"height":560,"documentWidth":345,"issues":0,"fiveCard3Plus2Groups":8},
+    {"width":874,"height":402,"documentWidth":859,"issues":0}
+  ]
+}

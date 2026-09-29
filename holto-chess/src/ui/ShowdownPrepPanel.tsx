@@ -8,9 +8,9 @@ import { useTranslation } from "../i18n";
 
 const ROUND_TITLES = ["", "TWO HAND", "RUN IT TWICE", "OMAHA SWISS", "BEST FIVE", "THE LAST HAND"];
 
-function PrepAvatar({ seat, viewer, fallback, className }: { seat?: ShowdownPrepSeatView; viewer: boolean; fallback: string; className: string }) {
+function PrepAvatar({ seat, fallback, className }: { seat?: ShowdownPrepSeatView; fallback: string; className: string }) {
   const { t } = useTranslation();
-  const ability = viewer ? seat?.abilityId : undefined;
+  const ability = seat?.abilityId;
   const label = ability ? t(`ability.card.${ability}.name`) : undefined;
   return ability
     ? <img className={`${className}-icon`} src={`/assets/abilities/${ABILITY_CARDS[ability]}`} alt={label} title={label} />
@@ -28,8 +28,8 @@ function PrepSeat({ seat, viewer, pending = false, winPercent }: { seat?: Showdo
   const avatar = pending ? "?" : [...name][0] ?? "P";
   const cards = seat?.cards.slice(0, 7) ?? [];
   return <article className={`showdown-prep-player ${viewer ? "is-viewer" : "is-opponent"} ${pending ? "is-pending" : ""}`}>
-    <div className="showdown-prep-identity"><PrepAvatar className="showdown-prep-avatar" seat={seat} viewer={viewer} fallback={avatar} /><div><b>{name}</b><small>{t("showdown.points", { points: seat?.points ?? "—" })}</small></div></div>
-    <div className="showdown-prep-hand" aria-label={t("showdown.cardsAria", { player: name })}>
+    <div className="showdown-prep-identity"><PrepAvatar className="showdown-prep-avatar" seat={seat} fallback={avatar} /><div><b title={name}>{name}</b><small>{t("showdown.points", { points: seat?.points ?? "—" })}</small></div></div>
+    <div className="showdown-prep-hand" data-count={cards.length} aria-label={t("showdown.cardsAria", { player: name })}>
       {cards.map((card) => <CardView key={card.id} card={card} compact />)}
     </div>
     {winPercent !== undefined && <p className="showdown-prep-equity" aria-label={t("showdown.equityAria", { player: name, percent: winPercent })}>{t("showdown.equityLabel")} <strong>{winPercent}%</strong></p>}
@@ -50,7 +50,7 @@ function StandardShowdownPrepPanel({ round, playerName, seconds, secondary = fal
     return matchup && opponent && (!matchup.opponents || matchup.opponents.length === 1)
       ? showdownEquity(round as 1 | 2 | 3 | 4 | 5, matchup.viewer.cards, opponent.cards) : null;
   }, [round, matchup]);
-  return <section className="showdown-prep match-loading" aria-label={t("showdown.matchLoadingAria")} style={{ "--prep-duration": `${duration}s` } as CSSProperties}>
+  return <section className="showdown-prep match-loading" data-round={round} aria-label={t("showdown.matchLoadingAria")} style={{ "--prep-duration": `${duration}s` } as CSSProperties}>
     <header className="showdown-prep-heading"><small>ROUND {String(round).padStart(2, "0")} · MATCH {matchNumber}</small><h1>{ROUND_TITLES[round] ?? `ROUND ${round}`}</h1></header>
     <div className={`showdown-prep-stage ${multiway ? `is-multiway is-${opponents.length + 1}-way` : ""}`}>
       {multiway ? <>
@@ -87,7 +87,7 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
     <div className="r2-match-stage">
       {seats.map((seat, index) => <Fragment key={seat?.playerId ?? `pending-${index}`}>
         <article className={`r2-match-player ${index === 0 ? "is-viewer" : "is-opponent"} ${seat ? "" : "is-pending"}`}>
-          <header className="r2-match-identity"><PrepAvatar className="r2-match-avatar" seat={seat} viewer={index === 0} fallback={seat ? [...seat.name][0] ?? "P" : "?"} /><div><b title={names[index]}>{names[index]}</b><small>{seat ? t("showdown.points", { points: seat.points }) : "—"}</small></div></header>
+          <header className="r2-match-identity"><PrepAvatar className="r2-match-avatar" seat={seat} fallback={seat ? [...seat.name][0] ?? "P" : "?"} /><div><b title={names[index]}>{names[index]}</b><small>{seat ? t("showdown.points", { points: seat.points }) : "—"}</small></div></header>
           <div className="r2-run-list">{([0, 1] as const).map((run) => {
             const cards = seat?.runCards?.[run] ?? [];
             const percent = equities[run][index] ?? null;

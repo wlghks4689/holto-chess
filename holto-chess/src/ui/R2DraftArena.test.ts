@@ -32,7 +32,8 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
   expect(hand.match(/class="playing-card/g)).toHaveLength(view.me.ownedCards.length);
   expect(html).toContain("드래프트 선택 순서");
-  expect(html).toContain('class="draft-private-timer"');
+  expect(html).toContain('class="draft-heading-timer"');
+  expect(html).not.toContain('class="draft-private-timer"');
   expect(html.indexOf('class="r2-draft-heading"')).toBeGreaterThan(html.indexOf('class="r2-stage"'));
   expect(html.indexOf('class="r2-draft-heading"')).toBeLessThan(html.indexOf('class="r2-arena"'));
   expect(html).not.toContain("ROUND 2 · DRAFT PHASE");

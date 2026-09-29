@@ -81,7 +81,7 @@ describe("server room authority and projections", () => {
     view.me.ownedCards[0].rank = 2;
     expect(r).not.toHaveProperty("me");
   });
-  it("shows each ability pick only to its owner until the reveal phase", () => {
+  it("publishes picked abilities and slots immediately while concealing unpicked cards", () => {
     let r = createRoomCurrent("ABCDEF", 303, "seeded", 2, true);
     r = addSession(r, "hash-0").room;
     r = addSession(r, "hash-1").room;
@@ -93,9 +93,10 @@ describe("server room authority and projections", () => {
     r.game.phase = "ABILITY_PICK";
 
     expect(createPlayerView(r, "p1").abilityDraft).toMatchObject({ myPick: { slot: 0, abilityId: draft.deck[0] } });
-    expect(createPlayerView(r, "p1").abilityDraft).not.toHaveProperty("abilities");
+    expect(createPlayerView(r, "p1").abilityDraft?.abilities).toEqual([{ playerId: "p1", slot: 0, abilityId: draft.deck[0] }]);
     expect(createPlayerView(r, "p2").abilityDraft).not.toHaveProperty("myPick");
-    expect(createPlayerView(r, "p2").abilityDraft).not.toHaveProperty("abilities");
+    expect(createPlayerView(r, "p2").abilityDraft?.abilities).toEqual([{ playerId: "p1", slot: 0, abilityId: draft.deck[0] }]);
+    expect(createPlayerView(r, "p2").abilityDraft).not.toHaveProperty("deck");
 
     draft.picks = draft.order.map((playerId, slot) => {
       r.game.players.find(player => player.id === playerId)!.abilityId = draft.deck[slot]!;
@@ -103,6 +104,25 @@ describe("server room authority and projections", () => {
     });
     r.game.phase = "ABILITY_REVEAL";
     expect(createPlayerView(r, "p1").abilityDraft?.abilities).toHaveLength(8);
+    expect(createPlayerView(r, "p1").abilityDraft?.myPick?.slot).toBe(0);
+  });
+  it("renews each ability turn and guarantees a 30 second reveal before the shop", () => {
+    let r = createRoomCurrent("DRAFT", 303, "seeded", 2, true);
+    for (let i = 0; i < 8; i++) r = addSession(r, `draft-${i}`).room;
+    for (const session of r.sessions) r = applyRoomAction(r, session.playerId, { type: "READY" }, turnKey(r), 1000);
+    r = forceBarrier(r, barrierDeadline(r)!)!;
+    let now = barrierDeadline(r)! - 1000;
+    for (let slot = 0; slot < 8; slot++) {
+      const playerId = r.game.abilityDraft!.order[slot]!;
+      r = applyRoomAction(r, playerId, { type: "ABILITY_PICK", slot }, turnKey(r), now);
+      expect(barrierDeadline(r)).toBe(now + (slot === 7 ? 30_000 : 12_000));
+      now += 1000;
+    }
+    expect(r.game.phase).toBe("ABILITY_REVEAL");
+    const deadline = barrierDeadline(r)!;
+    expect(forceBarrier(r, deadline - 1)).toBeNull();
+    expect(() => applyRoomAction(r, "p1", { type: "READY" }, turnKey(r), deadline - 1)).toThrow();
+    expect(forceBarrier(r, deadline)!.game.phase).toBe("SHOP");
   });
   it("exposes read-only live player perspectives only after the viewer is eliminated", () => {
     const r = start();

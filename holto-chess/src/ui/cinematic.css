@@ -309,9 +309,9 @@
   .cinema-hole-cards .playing-card.compact{width:43px;height:64px}
   .cinema-hole-cards[data-count="4"]{--hole-count:4}
   .cinema-hole-cards[data-count="5"]{--hole-count:5}
-  .cinema:not(.cinema-final):not(.cinema-r4-threeway) .cinema-hole-cards:is([data-count="4"],[data-count="5"]){display:grid;grid-template-columns:repeat(var(--hole-count),minmax(0,43px));gap:3px}
-  .cinema:not(.cinema-final):not(.cinema-r4-threeway) .cinema-hole-cards:is([data-count="4"],[data-count="5"]) .cinema-flip-slot{min-width:0;zoom:1}
-  .cinema:not(.cinema-final):not(.cinema-r4-threeway) .cinema-hole-cards:is([data-count="4"],[data-count="5"]) .playing-card.compact{width:100%;min-width:0;height:auto;aspect-ratio:43/64;padding:2px}
+  .cinema:not(.cinema-final):not(.cinema-r4-threeway) .cinema-hole-cards[data-count="4"]{display:grid;grid-template-columns:repeat(var(--hole-count),minmax(0,43px));gap:3px}
+  .cinema:not(.cinema-final):not(.cinema-r4-threeway) .cinema-hole-cards[data-count="4"] .cinema-flip-slot{min-width:0;zoom:1}
+  .cinema:not(.cinema-final):not(.cinema-r4-threeway) .cinema-hole-cards[data-count="4"] .playing-card.compact{width:100%;min-width:0;height:auto;aspect-ratio:43/64;padding:2px}
   /* R4 three-player brackets keep all seats and the community board in the mobile view. */
   .cinema-r4-threeway.cinema-multi:not(.cinema-final) .cinema-seats{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
   .cinema-r4-threeway .cinema-heading{margin-bottom:10px}

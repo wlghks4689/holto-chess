@@ -41,8 +41,8 @@ function RunMatchup({ match, index, viewerId, complete, winnerGlowOnly = false, 
 }) {
   const [leftId, rightId] = showdownSeatOrder(match.participantIds, viewerId);
   const winners = match.boardWinnerIds[index] ?? [];
-  const dimLeft = complete && !winnerGlowOnly && winners.length === 1 && winners[0] !== leftId;
-  const dimRight = complete && !winnerGlowOnly && winners.length === 1 && winners[0] !== rightId;
+  const dimLeft = complete && winners.length === 1 && winners[0] !== leftId;
+  const dimRight = complete && winners.length === 1 && winners[0] !== rightId;
   const glowLeft = complete && winners.includes(leftId);
   const glowRight = complete && winners.includes(rightId);
   const runHand = (playerId: string) => match.runCards?.[playerId]?.[index] ?? match.revealedCards[playerId] ?? [];
@@ -54,7 +54,7 @@ function RunMatchup({ match, index, viewerId, complete, winnerGlowOnly = false, 
   const rightUsed = usedCards(rightId);
   const leftClass = `cinema-run-player${dimLeft ? " is-loser" : ""}${glowLeft ? " is-winner" : ""}`;
   const rightClass = `cinema-run-player is-right${dimRight ? " is-loser" : ""}${glowRight ? " is-winner" : ""}`;
-  return <div className={`cinema-run-matchup ${className}`.trim()}>
+  return <div className={`cinema-run-matchup ${winnerGlowOnly ? "is-summary" : ""} ${className}`.trim()}>
     <div className={leftClass}><div className="cinema-run-hand">{runHand(leftId).map((card) => <CardView card={card} compact dimmed={dimLeft || complete && !!leftUsed && !leftUsed.has(card.id)} glow={glowLeft && (!leftUsed || leftUsed.has(card.id))} key={card.id} />)}</div></div>
     <strong>VS</strong>
     <div className={rightClass}><div className="cinema-run-hand">{runHand(rightId).map((card) => <CardView card={card} compact dimmed={dimRight || complete && !!rightUsed && !rightUsed.has(card.id)} glow={glowRight && (!rightUsed || rightUsed.has(card.id))} key={card.id} />)}</div></div>
@@ -149,8 +149,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const nextBatch = final ? finalNextBatch(frame.phase) : undefined;
   const phaseMs = (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
   const readStage = finalReadStage(frame.phase);
-  return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
-    aria-label={title} data-phase={frame.phase} data-match-id={match.id}
+  return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 && ids.length === 3 ? "cinema-r3-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
+    aria-label={title} data-round={match.round} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": "420ms", "--river-duration": "600ms", "--suspense-duration": "250ms", "--final-beat": 1, "--phase-duration": `${phaseMs}ms` } as CSSProperties}>
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div key={final ? finalHeading.title : undefined} className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : displayedMatchNumber(match)}</span>}<h2>{final ? finalHeadingTitle : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><button className="secondary" onClick={onComplete}>{t("cinema.skip")}</button></div>}</header>
@@ -194,6 +194,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           : { stage: "pending", tag: t("cinema.handRead"), title: "—", detail: undefined };
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
       const showMatchOutcome = !final && (flags.result || flags.runResult);
+      const showRewardAmount = !!((flags.reward || flags.runResult && match.runRewards) && reward && showReward);
       const outcome = t(won ? winners.length > 1 ? "cinema.matchSplit" : "cinema.matchWin" : "cinema.matchLoss");
       const matchOutcome = (flags.runResult || match.runCards)
         ? t("cinema.runOutcome", { run: frame.boardIndex + 1, outcome })
@@ -207,9 +208,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           {!final && match.round >= 2 && currentRank !== undefined && !showFinalPlace && <div className="cinema-standing-line"><span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span></div>}
           {final && match.round >= 2 && currentRank !== undefined && !showFinalPlace && <span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? t("cinema.finalSplitPlace") : placeText(result?.place)}</span>}
-          {!final && <div className="cinema-profile-outcome">
-            {showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}
-          </div>}
         </div>
         <div className="cinema-hole-cards" data-count={cards.length}>{cards.map((card, cardIndex) => {
           const visible = (!final && intro) || (!intro && (!final || cardIndex < frame.finalCards));
@@ -227,9 +225,11 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           <div className="cinema-final-read-copy" key={read.stage}>{read.tag && <small>{read.tag}</small>}<strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
         {!intro && !final && !flags.made && streetLabel && <div className="cinema-street-made" key={`${frame.boardIndex}-${streetIndex}`}><strong>{streetLabel.title}</strong>{streetLabel.kicker && <em>({streetLabel.kicker})</em>}</div>}
         {!final && flags.made && label && <div className="cinema-made"><strong>{label.title}</strong>{label.kicker && <small>({label.kicker})</small>}</div>}
-        {(flags.reward || flags.runResult && match.runRewards) && reward && showReward && <div className="cinema-reward">{final
-          ? <strong>{t("cinema.placeReward", { place: placeText(result?.place) })}</strong>
-          : <strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB{reward.deltaPoints > 0 && <i>· + {Number(reward.deltaPoints.toFixed(2))}P {t("cinema.earned")}</i>}</strong>}</div>}
+        {!final && (showMatchOutcome || showRewardAmount) && <div className="cinema-result-footer">
+          <div className="cinema-profile-outcome">{showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}</div>
+          {showRewardAmount && reward && <div className="cinema-reward"><strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB{reward.deltaPoints > 0 && <i>· + {Number(reward.deltaPoints.toFixed(2))}P {t("cinema.earned")}</i>}</strong></div>}
+        </div>}
+        {final && showRewardAmount && <div className="cinema-reward"><strong>{t("cinema.placeReward", { place: placeText(result?.place) })}</strong></div>}
       </div>;
     })}</div>
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {

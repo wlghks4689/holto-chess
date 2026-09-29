@@ -5,6 +5,17 @@ import { makeDeck } from "../core/poker/cards";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 
 describe("showdown preparation presentation", () => {
+  it.each([1,2])("uses the same skill icon component for both seats in round %i", (round) => {
+    const cards = makeDeck().slice(0,2);
+    const runCards: [typeof cards, typeof cards] = [cards,cards];
+    const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round, playerName:"나", seconds:3,
+      matchup:{matchNumber:1,viewer:{playerId:"p1",name:"나",points:12,cards,runCards,abilityId:"royal-blood"},opponent:{playerId:"p2",name:"긴 상대 이름",points:12,cards,runCards,abilityId:"target-sniper"}} }));
+    const iconClass = round === 2 ? "r2-match-avatar-icon" : "showdown-prep-avatar-icon";
+    expect(html.match(new RegExp(`class="${iconClass}"`,"g"))).toHaveLength(2);
+    expect(html).toContain('alt="왕가의 혈통"');
+    expect(html).toContain('alt="타겟 스나이퍼"');
+    expect(html).not.toContain(`class="${iconClass.replace("-icon","")}"`);
+  });
   it("keeps the final round on its transition instead of a matchup screen", () => {
     const html = renderToStaticMarkup(createElement(FinalRoundTransition));
     expect(html).toContain("최종전 준비 중");
@@ -88,9 +99,16 @@ describe("showdown preparation presentation", () => {
       seconds: 3, matchup: { matchNumber: 1, viewer: seats[0]!, opponents: seats.slice(1) } }));
     expect(html).toContain(`is-${count}-way`);
     expect(html.match(/class="showdown-prep-player /g)).toHaveLength(count);
-    expect(html.match(/showdown-prep-hand" aria-label=/g)).toHaveLength(count);
+    expect(html.match(/showdown-prep-hand" data-count="7" aria-label=/g)).toHaveLength(count);
     expect(html.match(/class="showdown-prep-vs"/g)).toHaveLength(1);
     expect(html).not.toContain("예상 승률");
     expect(html).not.toContain("상대 확인 중");
+  });
+  it("exposes the five-card count without changing cards or matchup identity", () => {
+    const cards = makeDeck().slice(0,5);
+    const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round:4, playerName:"나", seconds:3,
+      matchup:{ matchNumber:1, viewer:{playerId:"p1",name:"나",points:0,cards}, opponents:[{playerId:"p2",name:"상대",points:0,cards}] } }));
+    expect(html.match(/showdown-prep-hand" data-count="5"/g)).toHaveLength(2);
+    expect(html.match(/class="playing-card/g)).toHaveLength(10);
   });
 });
