@@ -1,5 +1,17 @@
 # PORENA 운영 기록 — 2026-09-19
 
+## 2026-09-29 어빌리티 아트워크 후속 운영 배포
+
+- 사용자 승인: 커밋·origin 푸시·운영 배포까지 진행 요청.
+- 변경 커밋: `a797398f5e8296673f087a24af03b0accac1a675` (origin/main 푸시 완료).
+- Worker `porena`, 기존 계정/도메인/바인딩 유지. 배포 버전: `8b21dd73-deb0-4883-a060-dfb4073f450a`.
+- 변경: 프레임/아이콘 동시 공개, 공용 중심 정렬, 아키텍트/왕가의 혈통 PNG, 모바일 4×3(실제 10칸+장식 2칸), 공개 문구 및 글꼴. 게임 규칙/서버 코드 변경 없음.
+- 관련 테스트 14개 및 lint 통과. 최종 빌드와 dry-run 통과. Wrangler 4.132.0으로 기존 Vite 출력 빌드를 배포하고 `--keep-vars`로 대시보드 변수 보존.
+- 배포 소스와 Git 저장소의 추적된 배포 입력 257개 및 신규 이미지/공용 컴포넌트 일치 확인.
+- 운영 `/` 및 `/api/health` HTTP 200, health ok=true. 새 JS `index-Dktq3bj-.js`, CSS `index-CNqqMjhd.css` 반영.
+- 새 이미지 2개와 JS/CSS 파일의 운영 응답 SHA256이 로컬 배포 빌드와 일치. 운영 전체 게임 완주/부하 테스트는 하지 않았다.
+- 공식 명령/설정 참고: https://developers.cloudflare.com/workers/wrangler/commands/workers/ 및 https://developers.cloudflare.com/workers/wrangler/configuration/.
+
 ## 운영 대상
 
 - 공식 계정: `0a1102b704cf75e79300017e1904fe7e`
