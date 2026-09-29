@@ -411,7 +411,7 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
   .game-arena .ability-selection h2{font-size:22px}
   .game-arena .ability-selection-instruction{font-size:10px;margin:4px auto 8px}
   .game-arena .ability-back-grid{max-width:440px;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-  .game-arena .ability-card-thumbnail b{font-size:clamp(10px,2.8vw,12px)}
+  .game-arena .ability-card-thumbnail b{font-size:clamp(9px,9cqw,12px)}
   .game-arena .ability-card-thumbnail small{font-size:clamp(9px,2.5vw,11px)}
   .game-arena .ability-order-list li{min-height:40px;padding:5px}
   .game-arena .ability-reveal-countdown{margin:10px 0 0;font-size:11px}

@@ -13,18 +13,16 @@
 
 | 어빌리티 | 아이콘 |
 | --- | --- |
-| 왕가의 혈통 | `royal-blood.svg` |
 | 타겟 스나이퍼 | `target-sniper.png` |
 | 언더독 | `underdog.png` |
 | 퍼스트 클래스 | `first-class.png` |
 | 황금의 손 | `golden-hand.png` |
 | 트레이더 | `trader.png` |
 | 포식자 | `predator.png` |
-| 아키텍트 | `architect.svg` |
 | 자본주의 | `capitalism.png` |
 | 제로리스크 | `zero-risk.png` |
 
-왕가의 혈통과 아키텍트 SVG는 승인된 기존 아이콘의 표시 영역을 재사용한다. 나머지 아이콘은 카드 내부 원에 맞춰 크기와 중심을 보정했다. 카드 설명은 읽기 쉬운 고딕 계열 글꼴을 쓴다.
+아이콘은 카드 내부 원에 맞춰 크기와 중심을 보정했다. 카드 설명은 읽기 쉬운 고딕 계열 글꼴을 쓴다.
 
 ## 확인 기준
 

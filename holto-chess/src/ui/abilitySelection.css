@@ -20,13 +20,14 @@
 .ability-selection-heading h2{margin:0;font-size:clamp(21px,3vw,32px);word-break:keep-all}
 .ability-selection-heading .ability-selection-timer{flex:none;margin:0}
 .ability-selection-heading+.ability-selection-instruction{margin:0 auto 14px}
-.ability-card-thumbnail{display:block;background:#080a0d;padding:0;border-color:#65778a;overflow:hidden}
+.ability-card-thumbnail{container-type:inline-size;display:block;background:#080a0d;padding:0;border-color:#65778a;overflow:hidden;font-family:Manrope,'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif}
 .ability-card-thumbnail::before{display:none}
-.ability-card-thumbnail b{position:absolute;z-index:2;top:53%;left:10%;width:80%;font-size:clamp(10px,1.4vw,15px);line-height:1.2;word-break:keep-all;overflow-wrap:anywhere}
-.ability-card-thumbnail small{position:absolute;z-index:2;top:78%;left:10%;width:80%;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#a6baca}
+.ability-card-thumbnail b{position:absolute;z-index:2;top:49%;left:10%;width:80%;height:10%;display:flex;align-items:center;justify-content:center;font-size:clamp(9px,9cqw,13px);line-height:1.1;letter-spacing:-.035em;white-space:nowrap}
+.ability-card-thumbnail .ability-card-owner{position:absolute;z-index:2;top:77%;left:12%;width:76%;transform:translateY(-50%);display:block;min-width:0;font:inherit;text-shadow:0 1px 3px #000,0 0 5px #000;box-sizing:border-box}
+.ability-card-thumbnail small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:700;line-height:1.25;color:#fff}
 .ability-card-placeholder{display:none;opacity:.32;pointer-events:none}
 @media(max-width:768px){.ability-card-placeholder{display:grid}.ability-back-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.ability-selection h2,.ability-card-thumbnail{font-family:'Batang','Noto Serif KR','AppleMyungjo',Georgia,serif}
+.ability-selection h2{font-family:'Batang','Noto Serif KR','AppleMyungjo',Georgia,serif}
 .ability-selection-instruction{font-family:Manrope,'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif}
 .ability-card-thumbnail.is-viewer{border-color:#9af3ee;box-shadow:0 0 12px #42e6df55,inset 0 0 12px #42e6df22}
 .ability-card-thumbnail.is-viewer small{color:#9af3ee}

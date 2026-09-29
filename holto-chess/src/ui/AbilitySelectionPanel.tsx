@@ -33,7 +33,8 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
     const pick = draft.abilities?.find(pick => pick.slot === slot);
     if (pick) return <button key={slot} type="button" className={`ability-card-back ability-card-thumbnail${pick.playerId === view.me.playerId ? " is-viewer" : ""}`} aria-label={`${orderNames.get(pick.playerId)} · ${t(`ability.card.${pick.abilityId}.name`)} · ${t("ability.viewCard")}`} onClick={() => inspect(pick.playerId)}>
       <AbilityArtwork ability={pick.abilityId} />
-      <b>{t(`ability.card.${pick.abilityId}.name`)}</b><small>{pick.playerId === view.me.playerId ? t("round.you") : orderNames.get(pick.playerId)}</small>
+      <b>{t(`ability.card.${pick.abilityId}.name`)}</b>
+      <span className="ability-card-owner"><small>{pick.playerId === view.me.playerId ? t("round.you") : orderNames.get(pick.playerId)}</small></span>
     </button>;
     return <button key={slot} type="button" className="ability-card-back" disabled={disabled || phase !== "ABILITY_PICK" || !draft.availableSlots.includes(slot) || draft.currentPlayerId !== view.me.playerId} aria-label={t("ability.selection.card", { number: slot + 1 })} onClick={() => send({ type: "ABILITY_PICK", slot })}><span>?</span></button>;
   })}{Array.from({ length: (4 - draft.slotCount % 4) % 4 }, (_, index) => <div key={draft.slotCount + index} className="ability-card-back ability-card-placeholder" aria-hidden="true"><span>?</span></div>)}</div>;
