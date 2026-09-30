@@ -9,8 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const dir = path.resolve(process.argv[2] ?? "dist/client/assets");
-// Dev-only and self-contained views never share a page with the game screens.
-const ignored = /^(FxPreview|TutorialApp|GameOverviewGuide)-/;
+// Dev-only and self-contained views (and the separate admin page) never share a page with the game screens.
+const ignored = /^(FxPreview|TutorialApp|GameOverviewGuide|admin)-/;
 
 function parse(css) {
   const rules = [];

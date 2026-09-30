@@ -7,9 +7,10 @@ import "./start-screen.css";
 
 // The guide carries its own copy, examples and styles, so it loads only when opened.
 const GameOverviewGuide = lazy(() => import("./GameOverviewGuide").then((module) => ({ default: module.GameOverviewGuide })));
+const FeedbackDialog = lazy(() => import("./FeedbackDialog").then((module) => ({ default: module.FeedbackDialog })));
 
 export type StartMode = "single" | "multi" | "tutorial";
-type MenuOverlay = "mode" | "guide" | "settings" | null;
+type MenuOverlay = "mode" | "guide" | "settings" | "feedback" | null;
 
 export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void }) {
   const { locale, setLocale, t } = useTranslation();
@@ -53,12 +54,10 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
           <button type="button" onClick={() => onStart("tutorial")}><span>{t("home.tutorial")}</span></button>
           <button type="button" onClick={() => setOverlay("guide")}><span>{t("home.guide")}</span></button>
           <button type="button" onClick={() => setOverlay("settings")}><span>{t("home.settings")}</span></button>
+          <button type="button" onClick={() => setOverlay("feedback")}><span>{t("home.feedback")}</span></button>
         </div>
       </div>
-      <footer className="start-footer">
-        <a href={`mailto:wlghks1778@gmail.com?subject=${encodeURIComponent("[PORENA] " + t("home.bugReport"))}&body=${encodeURIComponent(t("home.bugReportEmailBody"))}`}>{t("home.bugReport")} · wlghks1778@gmail.com</a>
-        {import.meta.env.DEV ? <><span>·</span> DEVELOPMENT PREVIEW</> : null}
-      </footer>
+      {import.meta.env.DEV ? <footer className="start-footer">DEVELOPMENT PREVIEW</footer> : null}
     </div>
     {overlay && <div ref={modal} className="start-overlay">
       {overlay === "mode" ? <div className="start-mode-backdrop"><section className="start-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="start-mode-title">
@@ -68,6 +67,7 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
           <button type="button" onClick={() => onStart("multi")}><span>MULTIPLAYER</span><strong>{t("home.multi")}</strong><small>{t("home.multiDescription")}</small><i>→</i></button>
         </div>
       </section></div> : overlay === "guide" ? <Suspense fallback={<div className="game-guide-backdrop" role="presentation" />}><GameOverviewGuide onClose={() => setOverlay(null)} /></Suspense> :
+        overlay === "feedback" ? <Suspense fallback={<div className="start-settings-backdrop" role="presentation" />}><FeedbackDialog onClose={() => setOverlay(null)} /></Suspense> :
         <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="start-settings-title">
           <header><div><small>PREFERENCES</small><h2 id="start-settings-title">{t("settings.title")}</h2></div><button type="button" aria-label={`${t("settings.title")} · ${t("common.close")}`} onClick={() => setOverlay(null)}>×</button></header>
           <label className="locale-setting"><span>{t("language.label")}</span><select aria-label={t("language.label")} value={locale} onChange={(event) => setLocale(event.target.value as typeof locale)}><option value="ko-KR">한국어</option><option value="en-US">English</option></select></label>
