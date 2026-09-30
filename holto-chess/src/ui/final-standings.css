@@ -4,6 +4,8 @@
 .final-results-tools{display:flex;justify-content:flex-end;margin-bottom:12px}
 .final-standings-head{display:grid;grid-template-columns:62px minmax(82px,1fr) minmax(185px,2fr) repeat(3,minmax(46px,.55fr)) 76px 40px;gap:10px;align-items:center;min-height:38px;padding:3px 10px;color:#b7d4e1;border:1px solid rgba(91,198,217,.55);border-inline-width:5px;border-radius:8px;background:rgba(3,16,27,.78);font:600 12px/1.05 'DM Mono',sans-serif;letter-spacing:.03em;text-align:center}
 .final-standing.standing{position:relative;grid-template-columns:62px minmax(82px,1fr) minmax(185px,2fr) repeat(3,minmax(46px,.55fr)) 76px 40px;gap:10px;padding:10px;min-height:104px;border-radius:14px;text-align:center;background:linear-gradient(120deg,#0b2633,#04121e)}
+.final-standing.is-eliminated{background:linear-gradient(120deg,#0a202b,#061620)}
+.final-standing.is-eliminated :is(.final-rank-panel,.final-player-name,.final-hand,.final-total>button){opacity:.76}
 .final-standing:has(.final-score-popover:not([hidden])){z-index:10}
 .final-rank-panel{position:relative;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #426374;border-radius:10px;color:#ecfaff;background:linear-gradient(150deg,#173645,#061722);overflow:hidden}
 .final-rank-panel strong{font:700 30px 'DM Mono',sans-serif;z-index:1}

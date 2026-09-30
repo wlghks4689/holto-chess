@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
 import type { MatchView } from "../shared/protocol";
-import { cinematicTimeline } from "../shared/presentationTimeline";
+import { PRESENTATION_VERSION, cinematicTimeline } from "../shared/presentationTimeline";
 import { discloseMatch, nextDisclosureAt } from "./disclosure";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, turnKey } from "./room";
 import { createPlayerView } from "./playerView";
@@ -101,7 +101,7 @@ describe("server-authorized disclosure", () => {
     room.presentation.version = 9;
     const before = structuredClone(room);
     const migrated = migrateRoomSnapshot(room);
-    expect(migrated.presentation!.version).toBe(10);
+    expect(migrated.presentation!.version).toBe(PRESENTATION_VERSION);
     expect(migrated.presentation!.startsAt).toBe(before.presentation!.startsAt);
     expect(migrated.game).toEqual(before.game);
     expect(room).toEqual(before);

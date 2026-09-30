@@ -34,12 +34,16 @@ describe("final result panel", () => {
     for (const placement of [4, 5, 8]) {
       const html = renderToStaticMarkup(createElement(FinalStandingRow, { row: { ...row, placement, eliminatedRound: 3 }, name: "테스트" }));
       expect(html.includes("is-card-back")).toBe(placement > 4);
+      expect(html.includes("is-eliminated")).toBe(placement > 4);
       expect(html.includes("is-best")).toBe(placement === 4);
       if (placement > 4) expect(html).not.toContain("A♥");
     }
     const finalist = renderToStaticMarkup(createElement(FinalStandingRow, { row: { ...row, placement: 5 }, name: "결승 참가자" }));
     expect(finalist).not.toContain("is-card-back");
+    expect(finalist).not.toContain("is-eliminated");
     expect(finalist).toContain("is-best");
+    const roundFiveLoser = renderToStaticMarkup(createElement(FinalStandingRow, { row: { ...row, placement: 2, eliminatedRound: 5 }, name: "결승 진출자" }));
+    expect(roundFiveLoser).not.toContain("is-eliminated");
   });
   beforeEach(() => vi.stubGlobal("localStorage", new MemoryStorage()));
 

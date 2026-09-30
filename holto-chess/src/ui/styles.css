@@ -32,17 +32,18 @@ nav { min-height: 78px; padding: 0 max(24px, calc((100vw - 1240px)/2)); display:
 .round-progress.prep-progress { gap: 28px; }
 .prep-progress>.round-step:not(:last-child)::after { width:22px; }
 .prep-progress .prep-step i { border-radius: 7px; font-weight: 700; }
-.nav-status{justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:3px}.survivors { display:flex; gap:10px; align-items:center; justify-content:flex-end; }
+.nav-status{justify-self:end;display:flex;align-items:center;justify-content:flex-end;gap:8px}.survivors { display:flex; gap:10px; align-items:center; justify-content:flex-end; }
 .survivors small { color:#739989; font:500 9px DM Mono; letter-spacing:.12em; }
 .survivors b { font: 800 24px DM Mono; color:var(--mint); }
 .survivors i { font:normal 12px DM Mono; color:#698a7a; }
-.nav-actions{display:flex;align-items:center;justify-content:flex-end;gap:5px}.round-guide-trigger{width:26px;height:24px;min-width:26px;padding:0!important;border-radius:50%;font:700 12px DM Mono!important}.nav-exit{align-self:flex-end;min-width:62px;padding:4px 10px!important;font-size:9px!important;line-height:1.2}
+.nav-actions{display:flex;align-items:center;justify-content:flex-end;gap:5px}.round-guide-trigger{width:26px;height:24px;min-width:26px;padding:0!important;border-radius:50%;font:700 12px DM Mono!important}.nav-exit{min-width:62px;padding:4px 10px!important;font-size:9px!important;line-height:1.2}
 .page-shell { width: min(1240px, calc(100% - 48px)); margin: 0 auto; padding: 52px 0 80px; position: relative; }
 .round-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:30px; }
 .round-title-row{display:flex;align-items:center;gap:9px;max-width:100%}.round-title-row h1{min-width:0}
 .title-guide-trigger{transform:translateY(2px)}
 .final-results-page>.round-header{justify-content:center;text-align:center}
 .final-results-page>.round-header>div{width:100%}
+.final-results-page .round-title-row{justify-content:center}
 .round-number { display:block; color:var(--mint); font:500 13px DM Mono; letter-spacing:.16em; margin-bottom:9px; }
 h1 { margin:0; font-family:Georgia,'Times New Roman',serif; font-size:clamp(38px, calc(7vw - 4px), 72px); line-height:.9; letter-spacing:-.035em; word-spacing:.16em; font-weight:700; text-shadow:0 3px 18px #000; }
 .round-header p { margin:16px 0 0; color:#9ab1a6; font-size:14px; }

@@ -21,6 +21,12 @@ describe("ability draft presentation", () => {
     expect(html).toContain("카드를 선택하면 상세 효과를 볼 수 있습니다.");
     expect(html).not.toContain("ability-selection-kicker");
     expect(html.match(/ability-card-thumbnail/g)).toHaveLength(8);
+    expect(html).toContain("READY · 준비 완료");
+    expect(html).toContain("30초");
+    view.players.find(player => player.playerId === view.me.playerId)!.ready = true;
+    const confirmed = renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {}, seconds: 20 }));
+    expect(confirmed).toContain('class="primary" disabled=""');
+    expect(confirmed).toContain("✓ 준비 완료");
   });
 
   it("keeps twelve selectable slots, no inert mobile backs and inspectable thumbnails", () => {
@@ -37,6 +43,7 @@ describe("ability draft presentation", () => {
     expect(html).toContain("ability-card-thumbnail is-viewer");
     expect(html).not.toContain("ability-picked-preview");
     expect(html).not.toContain("ability-card-description");
+    expect(html).not.toContain("READY · 준비 완료");
     expect(html).toContain("카드 확대");
     expect(html.match(/ability-artwork" aria-hidden="true" data-ready="false"/g)).toHaveLength(2);
     expect(html.match(/ability-artwork-frame/g)).toHaveLength(2);

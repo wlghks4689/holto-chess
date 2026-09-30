@@ -46,10 +46,10 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     for (boardIndex = 0; boardIndex < match.boards.length; boardIndex++) {
       revealed = 0;
       if (boardIndex === 1 && match.runCards) { add("CARD_SWITCH_OUT", 450); add("CARD_SWITCH_IN", 450); }
-      revealed = 1; add("FLOP_1", 700);
-      revealed = 2; add("FLOP_2", 700);
-      revealed = 3; add("FLOP_3", 720); add("FLOP_SETTLE", 200); add("FLOP_HAND", 800);
-      revealed = 4; add("TURN", 720); add("TURN_SETTLE", 200); add("TURN_HAND", 800);
+      revealed = 1; add("FLOP_1", 500);
+      revealed = 2; add("FLOP_2", 500);
+      revealed = 3; add("FLOP_3", 500); add("FLOP_SETTLE", 200); add("FLOP_HAND", 900);
+      revealed = 4; add("TURN", 720); add("TURN_SETTLE", 200); add("TURN_HAND", 920);
       add("RIVER_SUSPENSE", 250);
       revealed = 5; add("RIVER", 900); add("RIVER_SETTLE", 200);
       // One hand read, then one outcome. Intermediate run results are needed only
@@ -103,7 +103,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 10;
+export const PRESENTATION_VERSION = 11;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */

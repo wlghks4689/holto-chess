@@ -106,11 +106,12 @@ describe("server room authority and projections", () => {
     expect(createPlayerView(r, "p1").abilityDraft?.abilities).toHaveLength(8);
     expect(createPlayerView(r, "p1").abilityDraft?.myPick?.slot).toBe(0);
   });
-  it("renews each ability turn and guarantees a 30 second reveal before the shop", () => {
+  it("keeps the 30 second reveal deadline, or advances once every human is ready", () => {
     let r = createRoomCurrent("DRAFT", 303, "seeded", 2, true);
     for (let i = 0; i < 8; i++) r = addSession(r, `draft-${i}`).room;
     for (const session of r.sessions) r = applyRoomAction(r, session.playerId, { type: "READY" }, turnKey(r), 1000);
     r = forceBarrier(r, barrierDeadline(r)!)!;
+    expect(() => applyRoomAction(r, "p1", { type: "READY" }, turnKey(r), barrierDeadline(r)! - 1)).toThrow();
     let now = barrierDeadline(r)! - 1000;
     for (let slot = 0; slot < 8; slot++) {
       const playerId = r.game.abilityDraft!.order[slot]!;
@@ -121,8 +122,16 @@ describe("server room authority and projections", () => {
     expect(r.game.phase).toBe("ABILITY_REVEAL");
     const deadline = barrierDeadline(r)!;
     expect(forceBarrier(r, deadline - 1)).toBeNull();
-    expect(() => applyRoomAction(r, "p1", { type: "READY" }, turnKey(r), deadline - 1)).toThrow();
     expect(forceBarrier(r, deadline)!.game.phase).toBe("SHOP");
+    r = applyRoomAction(r, "p1", { type: "READY" }, turnKey(r), deadline - 10_000);
+    expect(r.game.phase).toBe("ABILITY_REVEAL");
+    expect(barrierDeadline(r)).toBe(deadline);
+    expect(createPlayerView(r, "p1").players[0].ready).toBe(true);
+    r = applyRoomAction(r, "p1", { type: "READY" }, turnKey(r), deadline - 9_000);
+    expect(r.readyIds).toEqual(["p1"]);
+    for (const session of r.sessions.slice(1)) r = applyRoomAction(r, session.playerId, { type: "READY" }, turnKey(r), deadline - 8_000);
+    expect(r.game.phase).toBe("SHOP");
+    expect(r.readyIds).toEqual([]);
   });
   it("exposes read-only live player perspectives only after the viewer is eliminated", () => {
     const r = start();

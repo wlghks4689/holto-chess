@@ -454,7 +454,7 @@ describe("server-synced cinematic gate", () => {
     expect(html).toContain('aria-label="매칭 로딩창"');
     expect(html).toContain('<main class="game-arena">');
     expect(html).toContain('class="brand"');
-    expect(html).toContain("SURVIVORS");
+    expect(html).not.toContain("SURVIVORS");
     expect(html).toContain("MATCH 2");
     expect(html).not.toContain('data-match-id="second-match"');
     expect(phaseOf(at(presentation.startsAt + secondOffset + MATCH_PREP_MS))).toBe("TABLE_ENTER");

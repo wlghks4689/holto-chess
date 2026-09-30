@@ -87,7 +87,7 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
 const BARRIER_PHASES = ["ABILITY_ORDER", "ABILITY_PICK", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
-const AUTOMATIC_PRESENTATION_PHASES = ["ABILITY_ORDER", "ABILITY_REVEAL", "DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
+const AUTOMATIC_PRESENTATION_PHASES = ["ABILITY_ORDER", "DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
 const SPECTATOR_TIMER_PHASES = ["ABILITY_ORDER", "ABILITY_REVEAL", "DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
 
 /** No human vote exists here; the server clock preserves viewing time and advances the game. */
@@ -260,7 +260,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const eligible = activeHumans(room);
     if (!eligible.includes(playerId)) throw new Error("관전자는 READY를 대신할 수 없습니다.");
     if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
-    if (["OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
+    if (["ABILITY_PICK", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
     if (AUTOMATIC_PRESENTATION_PHASES.includes(room.game.phase)) throw new Error("공통 연출이 끝나면 자동으로 진행됩니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     if (allReady(eligible)) advanceReadyBarrier(room);

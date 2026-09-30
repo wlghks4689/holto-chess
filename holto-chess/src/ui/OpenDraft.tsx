@@ -61,7 +61,13 @@ export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = tru
         {owned.find((c) => c.id === ids[index]) && <CardView card={owned.find((c) => c.id === ids[index])!} />}
         <select aria-label={label} disabled={disabled || ready} value={ids[index]} onChange={(e) => change(index, e.target.value)}>{owned.map((c) => <option value={c.id} key={c.id}>{cardLabel(c)}</option>)}</select>
       </label>)}</div>
-      <p className="run-loadout-help">{t("loadout.commonCardHelp")}</p>
+      <div className="run-loadout-preview" aria-label="RUN 1 / RUN 2">{[1, 2].map((run) => <div className="run-loadout-preview-run" key={run}>
+        <b>RUN {run}</b>
+        <div className="run-loadout-preview-cards">{[ids[0], ids[run]].map((id, index) => {
+          const card = owned.find((ownedCard) => ownedCard.id === id);
+          return card ? <CardView card={card} compact key={`${run}-${index}`} /> : null;
+        })}</div>
+      </div>)}</div>
     </div>
     <div className="action-bar run-loadout-action"><button className="primary" disabled={disabled || ready} onClick={() => send({ type: "LOCK_RUN_LOADOUT" })}>{t(ready ? "loadout.locked" : "loadout.confirm")}</button></div>
   </section>;

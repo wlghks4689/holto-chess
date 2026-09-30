@@ -301,11 +301,10 @@ function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string):
 function MatchPrepScreen({ match, profiles, viewerId, seconds }: {
   match: MatchView; profiles: Profile[]; viewerId: string; seconds: number;
 }) {
-  const alive = profiles.filter((profile) => profile.alive !== false).length;
   return <main className="game-arena"><nav className="match-prep-nav">
     <div className="brand"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></div>
     <RoundProgress round={match.round} prep={null} />
-    <div className="nav-status"><div className="survivors"><small>SURVIVORS</small><b>{alive}<i>/ 8</i></b></div></div>
+    <div className="nav-status" />
   </nav><div className="page-shell" id="top"><ShowdownPrepPanel round={match.round}
     playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
     seconds={seconds} matchup={matchPrepView(match, profiles, viewerId)} /></div></main>;

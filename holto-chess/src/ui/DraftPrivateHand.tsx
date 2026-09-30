@@ -5,7 +5,7 @@ import { CardView } from "./CardView";
 export function DraftPrivateHand({ cards }: { cards: Card[] }) {
   const { t } = useTranslation();
   return <div className="draft-private-hand" aria-label={t("draft.myCards")}>
-    <div className="draft-private-copy"><b>{t("draft.myCards")}</b><details className="draft-private-help"><summary aria-label={t("draft.privacyHelpAria")}>?</summary><span role="tooltip">{t("draft.hiddenFromOthers")}</span></details></div>
+    <div className="draft-private-copy"><b>{t("draft.myCards")}</b></div>
     <div className="draft-private-cards">{cards.map((card) => <CardView key={card.id} card={card} compact />)}</div>
   </div>;
 }

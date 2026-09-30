@@ -22,13 +22,13 @@ export function FinalStandingRow({ row, name }: { row: FinalStandingView; name: 
   const [open, setOpen] = useState(false);
   const { t, locale } = useTranslation();
   const popupId = useId();
-  const concealed = row.placement > 4 && row.eliminatedRound !== undefined;
-  return <div className={`standing final-standing podium-${row.placement}`}>
+  const eliminatedBeforeFinal = row.placement > 4 && row.eliminatedRound !== undefined;
+  return <div className={`standing final-standing podium-${row.placement}${eliminatedBeforeFinal ? " is-eliminated" : ""}`}>
     <div className="final-rank-panel"><span className="final-rank-ornament" aria-hidden="true">{row.placement === 1 ? "♛" : row.placement <= 3 ? "✦" : ""}</span><strong>{row.placement}<small>{locale === "ko-KR" ? t("final.placeSuffix") : ordinal(row.placement, locale).slice(String(row.placement).length)}</small></strong></div>
     <div className="final-player-name"><b>{name}</b></div>
     <div className={`final-hand made-${madeTone(row.displayName)}`} aria-label={t("final.lastHandAria", { name })}>
       {(row.cards ?? []).map((card) => {
-        if (concealed) return <span key={card.id} className="final-mini-card is-card-back" aria-label={t("final.hiddenCard")}><i aria-hidden="true">◇</i></span>;
+        if (eliminatedBeforeFinal) return <span key={card.id} className="final-mini-card is-card-back" aria-label={t("final.hiddenCard")}><i aria-hidden="true">◇</i></span>;
         const label = cardLabel(card);
         const best = row.usedCardIds?.includes(card.id);
         return <span key={card.id} aria-label={`${label}${best ? ` ${row.usedCardIds!.length >= 5 ? "BEST 5" : t("final.handUsed")}` : ""}`} className={`final-mini-card ${card.suit === "h" || card.suit === "d" ? "red" : ""} ${best ? "is-best" : "is-unused"}`}><b>{label.slice(0, -1)}</b><i>{label.slice(-1)}</i></span>;

@@ -25,9 +25,8 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   expect(html).not.toContain("draft-hand");
   expect(html).toMatch(/class="draft-private-hand(?: has-timer)?"/);
   expect(html).toContain("내 보유 카드");
-  expect(html).toContain("상대에게 비공개");
-  expect(html).toContain('aria-label="보유 카드 공개 범위 보기"');
-  expect(html).toContain('<span role="tooltip">상대에게 비공개</span>');
+  expect(html).not.toContain('class="draft-private-help"');
+  expect(html).not.toContain('aria-label="보유 카드 공개 범위 보기"');
   expect(html.indexOf('class="draft-private-hand')).toBeGreaterThan(html.indexOf('class="r2-arena"'));
   const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
   expect(hand.match(/class="playing-card/g)).toHaveLength(view.me.ownedCards.length);
@@ -101,7 +100,7 @@ it("keeps the R4 draft order compact without showing any opponent hole cards", (
 
   expect(html).toContain('class="r2-order"');
   expect(html).toMatch(/class="draft-private-hand(?: has-timer)?"/);
-  expect(html).toContain("상대에게 비공개");
+  expect(html).not.toContain('class="draft-private-help"');
   expect(html).not.toContain("4장 · 상대에게 비공개");
   expect(html).toContain("16장 공개 풀에서 차례마다 1장을 구매");
   expect(html).toContain('role="tooltip"');

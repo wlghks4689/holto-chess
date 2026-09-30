@@ -40,4 +40,17 @@ describe("R2 run loadout presentation", () => {
     expect(html).not.toContain('role="timer"');
     expect(html).toContain("배치 확정 · 준비 완료");
   });
+
+  it("previews the representative card with each RUN's selected auxiliary card", () => {
+    const view = viewFixture();
+    const [first, second, third] = view.me.ownedCards;
+    view.me.selectedCardIds = [third!.id, first!.id, second!.id];
+    const html = renderToStaticMarkup(createElement(RunLoadoutPanel, {
+      view, send: () => {}, disabled: false, seconds: 24,
+    }));
+
+    expect(html).toMatch(/RUN 1<\/b><div class="run-loadout-preview-cards">[\s\S]*?aria-label="4♣"[\s\S]*?aria-label="2♣"/);
+    expect(html).toMatch(/RUN 2<\/b><div class="run-loadout-preview-cards">[\s\S]*?aria-label="4♣"[\s\S]*?aria-label="3♣"/);
+    expect(html).not.toContain("대표 카드는 두 RUN에서 공통으로 사용됩니다.");
+  });
 });

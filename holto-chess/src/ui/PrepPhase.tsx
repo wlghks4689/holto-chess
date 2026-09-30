@@ -30,11 +30,11 @@ export function RoundProgress({ round, prep }: { round: Round; prep: PrepPresent
 export function PrepRoundHeader({ prep }: { prep: PrepPresentation }) {
   const { t } = useTranslation();
   const [rulesOpen, setRulesOpen] = useState(false);
-  return <header className="round-header prep-round-header">
+  return <header className="round-header prep-round-header is-centered-phase-header">
     <div className="prep-heading-copy">
-      <h1>PREPARE FOR ROUND {String(prep.targetRound).padStart(2, "0")}</h1>
+      <span className="round-number">ROUND {prep.targetRound}</span>
       <div className={`prep-title-row ${rulesOpen ? "is-open" : ""}`}>
-        <h2>{prep.title}</h2>
+        <h1>{prep.title}</h1>
         <button className="prep-rule-trigger" type="button" aria-label={t("progress.rulesAria", { title: prep.title })} aria-expanded={rulesOpen} onClick={() => setRulesOpen((open) => !open)}>?</button>
         <section className="prep-rule-popover" role="dialog" aria-label={t("progress.rulebookAria", { title: prep.title })}>
           <header><span>ROUND {String(prep.targetRound).padStart(2, "0")} RULEBOOK</span><b>{prep.title}</b></header>
