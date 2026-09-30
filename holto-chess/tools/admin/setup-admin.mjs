@@ -5,7 +5,9 @@
 // The password is typed here, hashed with PBKDF2 and never written anywhere in plain text.
 // Running it again replaces the account and signs every open admin session out (new session secret).
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { hashAdminPassword } from "../../worker/adminAuth.ts";
@@ -40,7 +42,17 @@ if (local) {
   writeFileSync(file, [...kept, ...Object.entries(secrets).map(([name, value]) => `${name}=${JSON.stringify(value)}`)].join("\n") + "\n");
   console.log(".dev.vars에 관리자 계정을 저장했습니다. 개발 서버를 다시 시작하세요.");
 } else {
-  const result = spawnSync("npx", ["wrangler", "secret", "bulk"], { cwd: root, input: JSON.stringify(secrets), stdio: ["pipe", "inherit", "inherit"], shell: process.platform === "win32" });
-  if (result.status !== 0) { console.error("Cloudflare에 저장하지 못했습니다. `npx wrangler login` 상태를 확인하세요."); process.exit(result.status ?? 1); }
+  // Wrangler keeps the terminal (piping stdin would make it non-interactive, so it could not sign in).
+  // The secrets go through a private temp file that is removed right after.
+  const dir = mkdtempSync(join(tmpdir(), "porena-admin-"));
+  const file = join(dir, "secrets.json");
+  let status;
+  try {
+    writeFileSync(file, JSON.stringify(secrets), { mode: 0o600 });
+    status = spawnSync("npx", ["wrangler", "secret", "bulk", `"${file}"`], { cwd: root, stdio: "inherit", shell: true }).status;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  if (status !== 0) { console.error("Cloudflare에 저장하지 못했습니다. `npx wrangler login`으로 로그인한 뒤 다시 실행하세요."); process.exit(status ?? 1); }
   console.log("운영 Worker에 관리자 계정을 저장했습니다. 기존 관리자 세션은 모두 로그아웃됩니다.");
 }
