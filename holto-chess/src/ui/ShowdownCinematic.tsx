@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
 import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
-import { FINAL_ARENA_IMAGE, FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
+import { FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
 import { isMadeSoundStart, playMadeSound, prefetchMadeSound, selectMadeSound, stopMadeAudio } from "./madeSound";
@@ -11,6 +11,7 @@ import { cinemaSeatClass } from "./madeFxClasses";
 import { showdownStage } from "./showdownStage";
 import type { ServerClock } from "./serverClock";
 import { ShowdownCardFlip } from "./ShowdownCardFlip";
+import { FinalArenaBackdrop } from "./FinalArenaBackdrop";
 import { CardView } from "./CardView";
 import type { Card } from "../core/poker/cards";
 import { useCinematicMotion } from "./useCinematicMotion";
@@ -165,7 +166,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     {match.highCardDraw && ["HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase) && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
     {stage && <div className="cinema-stage" aria-hidden="true" style={{ "--stage-focus": stage.focus } as CSSProperties}><img src={stage.image} alt="" /><i /></div>}
     {final && <div className="cinema-final-arena" aria-hidden="true" style={{ "--arena-progress": arenaZoomProgress(elapsed) } as CSSProperties}>
-      <img src={FINAL_ARENA_IMAGE} alt="" /><i /></div>}
+      <FinalArenaBackdrop /><i /></div>}
     <div className="cinema-seats">{intro && !multi && <span className="cinema-vs" aria-hidden="true">VS</span>}{ids.map((id, index) => {
       const result = results.find((r) => r.playerId === id);
       const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);
@@ -232,7 +233,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           <div className="cinema-profile-outcome">{showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}</div>
           {showRewardAmount && reward && <div className="cinema-reward"><strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB{reward.deltaPoints > 0 && <i>· + {Number(reward.deltaPoints.toFixed(2))}P {t("cinema.earned")}</i>}</strong></div>}
         </div>}
-        {final && showRewardAmount && <div className="cinema-reward"><strong>{t("cinema.placeReward", { place: placeText(result?.place) })}</strong></div>}
+        {final && showRewardAmount && reward && match.pointAwards?.[id] !== undefined && <div className="cinema-reward"><strong>{results.filter(r => r.place === result?.place).length > 1 ? `${t("cinema.tied").trim()} ` : ""}{placeText(result?.place)} +{Number(match.pointAwards[id].toFixed(2))}P</strong>{Math.abs(reward.deltaPoints - match.pointAwards[id]) > 0.005 && <small className="final-extra-points">BONUS {reward.deltaPoints - match.pointAwards[id] > 0 ? "+" : ""}{Number((reward.deltaPoints - match.pointAwards[id]).toFixed(2))}P</small>}</div>}
       </div>;
     })}</div>
     {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {

@@ -28,6 +28,7 @@ describe("round showdown stages", () => {
     expect(render(headsUp(3))).toContain('src="/assets/table/showdown-arena-1.webp"');
     const final = render({ ...headsUp(5), boards: [], runoutCount: 0 });
     expect(final).not.toContain("cinema-stage");
-    expect(final).toContain("final-table.webp");
+    expect(final).toContain("final-arena-desktop.webp");
+    expect(final).toContain("final-arena-mobile.webp");
   });
 });

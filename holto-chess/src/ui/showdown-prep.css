@@ -23,3 +23,14 @@
 @media(max-width:620px){.showdown-prep-stage.is-multiway{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:46px}.is-multiway .showdown-prep-player{min-height:160px;padding:10px 5px}.is-multiway .showdown-prep-identity{gap:5px}.is-multiway .showdown-prep-avatar{width:27px;height:27px;font-size:11px}.is-multiway .showdown-prep-identity b{font-size:11px}.is-multiway .showdown-prep-identity small{font-size:7px}.is-multiway .showdown-prep-hand{gap:3px;min-height:40px}.is-multiway .showdown-prep-hand .playing-card.compact{width:clamp(25px,7vw,34px);flex-basis:clamp(25px,7vw,34px)}.is-multiway .showdown-prep-hand .card-rank{font-size:12px}.is-multiway .showdown-prep-hand .card-suit{font-size:16px}.is-3-way .showdown-prep-player:nth-child(3){width:calc((100% - 8px)/2)}}
 @media(min-width:621px) and (max-height:760px){.showdown-prep{padding:16px 22px}.showdown-prep-heading{margin-bottom:10px!important}.showdown-prep-player{padding:12px}.showdown-prep-identity{margin-bottom:9px}.showdown-prep-hand{min-height:62px}.showdown-prep-footer{margin-top:12px!important}}
 @media(prefers-reduced-motion:reduce){.showdown-prep-vs,.showdown-prep-footer>strong,.showdown-prep-footer>span i{animation:none!important}.showdown-prep-footer>span i{width:55%}}
+
+/* R5 keeps the existing four-seat/two-row matchup, with private card backs. */
+.final-match-loading{padding:18px;border-radius:16px;overflow:hidden;--arena-focus:50% 50%;--arena-scale:1}
+.final-match-loading>:not(.cinema-final-arena){position:relative;z-index:2}
+.final-match-loading .showdown-prep-stage{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}
+.final-match-loading .showdown-prep-player{background:#06101cd9;min-width:0}
+.final-match-loading .showdown-prep-hand{flex-wrap:wrap;gap:5px}
+.final-match-loading .showdown-prep-hand .playing-card{width:44px;flex:0 0 44px;aspect-ratio:53/75}
+.final-match-loading .showdown-prep-vs{display:none}
+.final-match-loading .showdown-prep-heading{color:#fff;text-shadow:0 2px 12px #000}
+@media(max-width:768px){.final-match-loading{padding:10px}.final-match-loading .showdown-prep-stage{gap:12px 8px}.final-match-loading .showdown-prep-player{padding:10px 5px;min-height:180px}.final-match-loading .showdown-prep-hand .playing-card{width:27px;flex-basis:27px}.final-match-loading .showdown-prep-identity b{font-size:11px}.final-match-loading .showdown-prep-identity small{font-size:9px}}

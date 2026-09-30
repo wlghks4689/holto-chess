@@ -67,12 +67,14 @@ export function ordinalPlace(place: number | undefined): string {
 }
 
 /** R5 arena artwork, preloaded before the final so the establishing shot never waits on the network. */
-export const FINAL_ARENA_IMAGE = "/assets/table/final-table.webp";
+export const FINAL_ARENA_IMAGE = "/assets/table/final-arena-desktop.webp";
+export const FINAL_ARENA_MOBILE_IMAGE = "/assets/table/final-arena-mobile.webp";
+export const FINAL_ARENA_MOBILE_MEDIA = "(max-width: 768px)";
 let arenaPreload: HTMLImageElement | undefined;
 export function preloadFinalArena(): void {
   if (arenaPreload || typeof Image === "undefined") return;
   arenaPreload = new Image();
-  arenaPreload.src = FINAL_ARENA_IMAGE;
+  arenaPreload.src = window.matchMedia(FINAL_ARENA_MOBILE_MEDIA).matches ? FINAL_ARENA_MOBILE_IMAGE : FINAL_ARENA_IMAGE;
   void arenaPreload.decode?.().catch(() => { /* the CSS fallback background covers a failed load */ });
 }
 

@@ -1,3 +1,4 @@
+import { finalPrepMatchup } from "./finalPrepMatchup";
 import { useCallback, useEffect, useState } from "react";
 import { BALANCE, cardPrice, purchaseLimitFor } from "../game/config";
 import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "../game/abilities";
@@ -134,7 +135,7 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
 
 function ShowdownPanel({ state, secondsLeft, matchup }: { state: PorenaGameState; secondsLeft: number | null; matchup?: ShowdownPrepView }) {
   if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return state.round === 5
-    ? <FinalRoundTransition />
+    ? <FinalRoundTransition matchup={finalPrepMatchup(state.players.filter(p => !p.eliminated).map(p => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId })), "p1")} seconds={secondsLeft} />
     : <LocalShowdownPrep state={state} matchup={matchup} />;
   if (!state.roundResults.length) return null;
   return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"} secondsLeft={state.phase === "ROUND_RESULT" ? secondsLeft : null}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;

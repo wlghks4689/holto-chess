@@ -1,3 +1,4 @@
+import { finalPrepMatchup } from "./finalPrepMatchup";
 import { useEffect, useRef, useState } from "react";
 import type { GameAction, MatchView, PlayerView, ServerMessage, SessionCredential } from "../shared/protocol";
 import { CinematicGate } from "./ShowdownCinematic";
@@ -338,7 +339,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
             <button className={displayView.me.committed ? "secondary" : "primary"} disabled={interactionDisabled || (!displayView.me.committed && (displayView.me.ownedCards.length !== displayView.me.handLimit || (displayView.round === 2 && displayView.me.selectedCardIds.length !== 2)))} onClick={() => send(displayView.me.committed ? { type: "CANCEL_SHOP_READY" } : { type: "END_SHOP_PHASE" })}>{t(displayView.me.committed ? "online.cancelReady" : "online.confirmReady")}</button></div></>}
         {displayView.phase === "GAME_RESULT" && <><FinalResultsPanel view={view} onViewed={finalViewed} /><section className="panel rematch-panel"><span className="eyebrow">NEXT GAME</span><h2>{t("online.nextChoice")}</h2><p>{t("online.rematchHint")}</p><div className="final-exit-actions"><button className="primary" disabled={disabled || !view.finalResultsReleased || meReadyForRematch || rematchHumans.length < 2} onClick={() => send({ type: "REMATCH_READY" })}>{meReadyForRematch ? t("online.rematchWaiting", { ready: rematchReady, total: rematchHumans.length }) : t("action.startNewGame")}</button><button className="secondary" type="button" onClick={onHome}>{t("action.home")}</button></div></section></>}
         {isShowdownPrep && (displayView.round === 5
-          ? <FinalRoundTransition />
+          ? <FinalRoundTransition matchup={finalPrepMatchup(displayView.players.filter(p => p.alive).map(p => ({ playerId: p.playerId, name: p.name, points: p.points, abilityId: p.abilityId })), displayView.me.playerId)} seconds={secondsLeft} />
           : <ShowdownPrepPanel round={displayView.round} playerName={observedName ?? t("results.player")} seconds={secondsLeft} secondary={displayView.phase === "SHOWDOWN_SECONDARY"} matchup={displayView.showdownPrep} />)}
         {!isShowdownPrep && <RoundResults round={displayView.round} rows={displayView.roundSummary ?? []} viewerId={displayView.me.playerId} showBrackets={displayView.round === 4 && displayView.phase === "GROUP_ASSIGNMENT"} secondsLeft={displayView.phase === "ROUND_RESULT" ? secondsLeft : null}>{(displayView.roundHistory ?? displayView.matches).map((m) => <OnlineMatch key={m.id} match={m} view={displayView} />)}</RoundResults>}
         {view.players.find((p) => p.playerId === view.me.playerId)?.departed && <p className="hint">{t("online.departedHint")}</p>}

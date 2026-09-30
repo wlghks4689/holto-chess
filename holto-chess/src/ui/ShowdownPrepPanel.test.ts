@@ -16,11 +16,17 @@ describe("showdown preparation presentation", () => {
     expect(html).toContain('alt="타겟 스나이퍼"');
     expect(html).not.toContain(`class="${iconClass.replace("-icon","")}"`);
   });
-  it("keeps the final round on its transition instead of a matchup screen", () => {
-    const html = renderToStaticMarkup(createElement(FinalRoundTransition));
-    expect(html).toContain("최종전 준비 중");
-    expect(html).toContain('<span class="final-round-mark"><small>ROUND</small><strong>05</strong></span>');
-    expect(html).not.toContain("매칭 로딩창");
+  it("shows four final players with all 28 card backs and no exposed rank or suit", () => {
+    const cards = makeDeck().slice(0,7);
+    const seats = [0,1,2,3].map(i => ({ playerId:`p${i}`, name:`PLAYER ${i}`, points:12, cards }));
+    const html = renderToStaticMarkup(createElement(FinalRoundTransition, {matchup:{matchNumber:1,viewer:seats[0]!,opponents:seats.slice(1)}}));
+    expect(html.match(/class="playing-card card-back compact"/g)).toHaveLength(28);
+    expect(html.match(/class="showdown-prep-identity"/g)).toHaveLength(4);
+    expect(html).not.toContain("card-rank");
+    expect(html).not.toContain("card-suit");
+    expect(html).not.toContain("showdown-prep-equity");
+    expect(html).toContain("final-arena-mobile.webp");
+    expect(html).toContain("final-arena-desktop.webp");
   });
   it("uses a player-versus-player loading composition without the old literal phase label", () => {
     const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, {

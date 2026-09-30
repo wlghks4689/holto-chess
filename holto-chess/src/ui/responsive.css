@@ -522,3 +522,14 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
   .game-arena .shop-page .shop-layout>.panel{padding:8px;gap:6px}
   .game-arena .shop-page .shop-heading h2{font-size:13px}
 }
+/* Keep R5 settlement rewards in view on short desktop windows. */
+@media(min-width:769px) and (max-height:780px){
+  .cinema.cinema-final{padding:12px;min-height:calc(100dvh - 24px)}
+  .cinema.cinema-final .cinema-heading{margin-bottom:12px}
+  .cinema.cinema-final .cinema-heading h2{font-size:36px}
+  .cinema.cinema-final .cinema-seats{gap:12px}
+  .cinema.cinema-final .cinema-seat{padding:12px}
+  .cinema.cinema-final .cinema-hole-cards{margin-block:8px}
+  .cinema.cinema-final .cinema-final-read{min-height:40px;margin-top:8px;padding-top:8px}
+  .cinema.cinema-final .cinema-reward{margin-top:8px;padding-top:8px}
+}

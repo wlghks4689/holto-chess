@@ -500,3 +500,18 @@ describe("server-synced cinematic gate", () => {
     expect(playing).not.toContain("Animation Speed");
   });
 });
+
+describe("final placement reward presentation", () => {
+  it("uses authoritative awards for every place and separates additional points", () => {
+    const awards = {p1:20,p2:14,p3:10,p4:6};
+    const view: MatchView = {...match, pointAwards:awards, results:profiles.map((p,i)=>({playerId:p.playerId,place:i+1,category:"PAIR",kickers:[14],displayName:"PAIR",usedCardIds:[]})), rewards:profiles.map((p,i)=>({playerId:p.playerId,beforeBB:100,afterBB:100,deltaBB:0,beforePoints:0,afterPoints:Object.values(awards)[i]!+(i===0?3:0),deltaPoints:Object.values(awards)[i]!+(i===0?3:0),outcome:"FINAL"})), disclosure:{elapsedMs:0,frames:[{at:0,phase:"COMPLETE",boardIndex:0,revealed:0,finalCards:7}]}};
+    const render = (m: MatchView) => renderToStaticMarkup(createElement(ShowdownCinematic,{match:m,profiles,viewerId:"p1",onComplete:()=>{}})).replace(/<!-- -->/g,"");
+    const html=render(view);
+    for(const [i,amount] of Object.values(awards).entries())expect(html).toContain(`${i+1}위 +${amount}P`);
+    expect(html).toContain("BONUS +3P");
+    expect(html).not.toContain("1위 +23P");
+    const tied=render({...view,results:view.results.map(r=>r.playerId==='p3'?{...r,place:2}:r),pointAwards:{...awards,p2:12.75,p3:11.25}});
+    expect(tied).toContain("공동 2위 +12.75P");
+    expect(tied).toContain("공동 2위 +11.25P");
+  });
+});
