@@ -6,4 +6,3 @@ export function finalPrepMatchup(seats: Omit<ShowdownPrepSeatView, "cards">[], v
   if (!viewer) return undefined;
   return { matchNumber: 1, viewer: { ...viewer, cards: [] }, opponents: seats.filter(seat => seat.playerId !== viewer.playerId).slice(0,3).map(seat => ({ ...seat, cards: [] })) };
 }
-
