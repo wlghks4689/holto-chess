@@ -14,3 +14,13 @@
 .responsive-preview.qa-single>[data-qa-case]{border:0;padding:0}
 .responsive-preview.qa-single .page-shell{padding-top:8px}
 .responsive-preview .qa-toolbar{padding:8px}
+/* Keep the alternate framed-center proposal available for visual comparison. */
+@media(min-width:360px) and (max-width:600px) and (min-height:740px){
+  .responsive-preview.qa-single [data-qa-case="ability-8-full-preview"] .ability-back-grid{grid-template-columns:repeat(3,minmax(0,1fr));width:min(100%,390px);gap:8px 5px}
+  .responsive-preview.qa-single [data-qa-case="ability-8-full-preview"] .ability-back-grid::after{content:"";grid-area:2/2;aspect-ratio:2/3;border:1px solid #73e6eb;border-radius:12px;background-image:url('/favicon-192.webp'),url('/assets/start/porena-wordmark.webp'),radial-gradient(circle at 50% 38%,#144b65,#081b2c 68%,#040c18);background-position:center 32%,center 73%,center;background-size:64% auto,88% auto,cover;background-repeat:no-repeat;box-shadow:inset 0 0 0 3px #071c2b,inset 0 0 0 4px #2a8795,0 0 18px #3ad8e44a;pointer-events:none}
+  .responsive-preview.qa-single [data-qa-case="ability-8-full-preview"] .ability-selection{padding-bottom:0}
+  .responsive-preview.qa-single [data-qa-case="ability-8-full-preview"] .ability-reveal-actions{margin-top:4px;gap:6px}
+  .responsive-preview.qa-single [data-qa-case="ability-8-two-column-preview"] .ability-back-grid{grid-template-columns:repeat(2,82px);justify-content:center;width:100%;gap:6px 34px}
+  .responsive-preview.qa-single [data-qa-case="ability-8-two-column-preview"] .ability-selection{padding-bottom:0}
+  .responsive-preview.qa-single [data-qa-case="ability-8-two-column-preview"] .ability-reveal-actions{margin-top:4px;gap:6px}
+}

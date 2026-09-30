@@ -80,8 +80,8 @@ describe("barrier liveness", () => {
     expect(barrierTimeoutMs(shop.game.phase)).toBe(60_000);
     const ready = finishShop(finishShop(shop, "p1"), "p2");
     expect(ready.game.phase).toBe("SHOWDOWN_PRIMARY");
-    expect(barrierTimeoutMs(ready.game.phase)).toBe(3_000);
-    expect(barrierDeadline(ready)).toBe(T0 + 3_000);
+    expect(barrierTimeoutMs(ready.game.phase)).toBe(3_500);
+    expect(barrierDeadline(ready)).toBe(T0 + 3_500);
   });
 
   it("a silent player cannot strand the shop: the bot finishes their seat", () => {

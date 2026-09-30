@@ -24,7 +24,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "ability.selection.pickedCard": "Your selected ability card",
   "ability.selection.card": "Choose face-down ability card {number}",
   "ability.selection.reveal": "Ability cards confirmed",
-  "ability.selection.startsIn": "Shop in {seconds}s · Card details will close automatically",
+  "ability.selection.startsIn": "The shop opens when all players are ready. (Auto-start in {seconds}s)",
   "ability.selection.seconds": "s",
   "ability.card.royal-blood.name": "Royal Blood",
   "ability.card.royal-blood.description": "Start with one A, K, Q, J or T. Buy those ranks in the shop and draft for half price.",

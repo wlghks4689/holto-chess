@@ -33,7 +33,10 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
   const orderNames = new Map(view.players.map(player => [player.playerId, player.name]));
   const selected = draft.abilities?.find(pick => pick.playerId === (selectedPlayer ?? view.me.playerId));
   const inspect = (playerId: string) => { setSelectedPlayer(playerId); dialog.current?.showModal(); };
-  const cardGrid = <div className="ability-back-grid" style={{ "--ability-columns": Math.ceil(draft.slotCount / 2) } as CSSProperties}>{Array.from({ length: draft.slotCount }, (_, slot) => {
+  const slots = phase === "ABILITY_REVEAL"
+    ? [...(draft.abilities?.map(pick => pick.slot) ?? [])].sort((a, b) => a - b)
+    : Array.from({ length: draft.slotCount }, (_, slot) => slot);
+  const cardGrid = <div className="ability-back-grid" style={{ "--ability-columns": Math.ceil(slots.length / 2) } as CSSProperties}>{slots.map((slot) => {
     const pick = draft.abilities?.find(pick => pick.slot === slot);
     return <AbilityDraftSlot key={slot} ability={pick?.abilityId} own={pick?.playerId === view.me.playerId}
       title={pick ? t(`ability.card.${pick.abilityId}.name`) : undefined}
@@ -41,7 +44,7 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
       label={pick ? `${orderNames.get(pick.playerId)} · ${t(`ability.card.${pick.abilityId}.name`)} · ${t("ability.viewCard")}` : t("ability.selection.card", { number: slot + 1 })}
       disabled={!pick && (disabled || phase !== "ABILITY_PICK" || !draft.availableSlots.includes(slot) || draft.currentPlayerId !== view.me.playerId)}
       onClick={() => pick ? inspect(pick.playerId) : send({ type: "ABILITY_PICK", slot })} />;
-  })}{Array.from({ length: (4 - draft.slotCount % 4) % 4 }, (_, index) => <div key={draft.slotCount + index} className="ability-card-back ability-card-placeholder" aria-hidden="true"><span>?</span></div>)}</div>;
+  })}{phase !== "ABILITY_REVEAL" && Array.from({ length: (4 - draft.slotCount % 4) % 4 }, (_, index) => <div key={draft.slotCount + index} className="ability-card-back ability-card-placeholder" aria-hidden="true"><span>?</span></div>)}</div>;
   return <section className={`ability-selection is-${phase.toLowerCase()}`}>
     {phase === "ABILITY_ORDER" ? <>
       <p className="ability-selection-kicker">PORENA · ABILITY DRAFT</p>

@@ -103,7 +103,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 11;
+export const PRESENTATION_VERSION = 12;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */
@@ -111,7 +111,7 @@ export const MATCH_HOLD_MS = 1500;
 /** Server-clock result hold between distinct match entries; never inserted between R2 runs. */
 export const INTER_MATCH_HOLD_MS = 3000;
 /** Each later match through R4 gets its own opponent and pre-board equity preview. */
-export const MATCH_PREP_MS = 3000;
+export const MATCH_PREP_MS = 3500;
 
 export function presentationDurationMs(match: Parameters<typeof cinematicTimeline>[0]): number {
   return cinematicTimeline(match).at(-1)!.at + MATCH_HOLD_MS;

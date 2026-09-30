@@ -28,6 +28,9 @@ for (const round of [1,2,3,4,5] as const) {
   cases.push({ id:`results-r${round}`, screen:"results", round, count:BALANCE.handLimits[round] });
 }
 for (const count of [0,1,4,7,8]) cases.push({ id:`ability-${count}`, screen:"ability", round:1, count });
+cases.push({ id:"ability-8-full-preview", screen:"ability-full-preview", round:1, count:8 });
+cases.push({ id:"ability-8-logo-only-preview", screen:"ability-logo-only-preview", round:1, count:8 });
+cases.push({ id:"ability-8-two-column-preview", screen:"ability-two-column-preview", round:1, count:8 });
 cases.push({ id:"ability-quad-core", screen:"ability-quad-core", round:1, count:8 });
 cases.push({ id:"ability-front-runner", screen:"ability-front-runner", round:1, count:8 });
 cases.push({ id:"ability-order", screen:"ability-order", round:1, count:0 }, { id:"final", screen:"final", round:5, count:7 }, { id:"brackets", screen:"brackets", round:4, count:5 }, { id:"loadout", screen:"loadout", round:2, count:3 }, { id:"showdown-r4-headsup", screen:"showdown-headsup", round:4, count:5 });
