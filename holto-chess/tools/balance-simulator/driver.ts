@@ -21,7 +21,7 @@ function dealPolicies(config: SimConfig, game: number, seed: number): PolicyName
 }
 
 /**
- * Runs the real ability-draft phases but decides the picks itself: 8 of the 10 abilities in a seeded shuffle, seated at random,
+ * Runs the real ability-draft phases but decides the picks itself: 8 of all abilities in a seeded shuffle, seated at random,
  * so every ability faces every seat and no ability owns a lucky pick order.
  */
 function dealAbilities(source: PorenaGameState, seed: number): PorenaGameState {

@@ -53,17 +53,18 @@ const chi = stats.reduce((a, s) => a + (s.wins - s.n * pooled) ** 2 / (s.n * poo
 const chiP = gammaQ((stats.length - 1) / 2, chi / 2);
 const top = stats[0], rest = stats.slice(1); const restN = rest.reduce((a, s) => a + s.n, 0), restK = rest.reduce((a, s) => a + s.wins, 0);
 const pp = (top.wins + restK) / (top.n + restN); const zTop = (top.win - restK / restN) / Math.sqrt(pp * (1 - pp) * (1 / top.n + 1 / restN));
-const bonferroniZ = 2.807; // two-sided alpha 0.05 over 10 abilities
+// Two-sided alpha 0.05 split over every ability in the run (bisection on the normal tail).
+const bonferroniZ = (() => { let lo = 0, hi = 6; for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (pNormal(mid) > 0.05 / stats.length) lo = mid; else hi = mid; } return Number(hi.toFixed(3)); })();
 
 const lines = [];
 lines.push(`# 어빌리티별 승률 (게임 ${games}판, 플레이어 ${rows.length}명${process.env.POLICY ? `, 정책 ${process.env.POLICY}` : ""})`, "");
 lines.push(`- 승리 = 최종 1위. 어빌리티 효과가 없다면 좌석당 기대 승률은 12.5% (8명 중 1위), R5 진출률은 50%, 평균 순위는 4.5.`);
-lines.push(`- 매 게임 10개 중 8개가 무작위로 배정되고 좌석도 무작위라 특정 어빌리티가 유리한 좌석·뽑기 순서를 갖지 않습니다.`, "");
+lines.push(`- 매 게임 ${stats.length}개 중 8개가 무작위로 배정되고 좌석도 무작위라 특정 어빌리티가 유리한 좌석·뽑기 순서를 갖지 않습니다.`, "");
 lines.push("| 어빌리티 | n | 승률 [95% CI] | z vs 12.5% | R5 진출 | R5 진출 시 승률 | 평균 순위 | R5 진출자 평균 점수 | 발동/판 | 어빌리티 BB | 어빌리티 P | 환산 P |");
 lines.push("|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
 for (const s of stats) lines.push(`| ${s.ability} | ${s.n} | ${pct(s.win)} [${pct(s.winLo)}–${pct(s.winHi)}] | ${s.z.toFixed(2)} | ${pct(s.reachR5)} | ${pct(s.winGivenR5)} | ${s.place.toFixed(2)} ±${s.placeCi.toFixed(2)} | ${s.total.toFixed(1)} | ${s.acts.toFixed(2)} | ${s.bb.toFixed(1)} | ${s.pts.toFixed(2)} | ${s.payoutP.toFixed(2)} |`);
 lines.push("", "## 검정");
-lines.push(`- 10개 어빌리티 승률이 모두 같다는 가설 (카이제곱, df=${stats.length - 1}): χ²=${chi.toFixed(2)}, p=${chiP.toFixed(4)}`);
+lines.push(`- ${stats.length}개 어빌리티 승률이 모두 같다는 가설 (카이제곱, df=${stats.length - 1}): χ²=${chi.toFixed(2)}, p=${chiP.toFixed(4)}`);
 lines.push(`- 최고 승률 ${top.ability} ${pct(top.win)} vs 나머지 합산 ${pct(restK / restN)}: z=${zTop.toFixed(2)}, p=${pNormal(zTop).toFixed(4)}`);
 lines.push(`- 승률과 12.5%의 차이가 다중비교 보정(|z|≥${bonferroniZ})을 넘는 어빌리티: ${stats.filter((s) => Math.abs(s.z) >= bonferroniZ).map((s) => `${s.ability}(${s.z.toFixed(2)})`).join(", ") || "없음"}`);
 lines.push(`- 최고와 최저 승률 격차: ${pct(top.win - stats.at(-1).win)}p (${top.ability} ${pct(top.win)} / ${stats.at(-1).ability} ${pct(stats.at(-1).win)})`);

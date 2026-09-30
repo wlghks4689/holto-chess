@@ -10,12 +10,13 @@ import { renderComparison, renderConsole, renderReport } from "./report";
 import type { GameOutcome, SimConfig } from "./types";
 
 /** Plays the given game indices in this thread with the config's overrides applied. */
-export function runShard(config: SimConfig, indices: readonly number[]): GameOutcome[] {
+export function runShard(config: SimConfig, indices: readonly number[], onGame: () => void = () => {}): GameOutcome[] {
   const restore = applyOverrides(config.overrides);
   try {
     return indices.map((game) => {
       const outcome = playGame(config, game);
       if (config.verbose) console.log(`game ${game} seed ${outcome.game.seed}: ${outcome.game.ok ? "ok" : `FAILED ${outcome.game.failedAt} ${outcome.game.error}`}`);
+      onGame();
       return outcome;
     });
   } finally { restore(); }
@@ -24,11 +25,18 @@ export function runShard(config: SimConfig, indices: readonly number[]): GameOut
 async function runAll(config: SimConfig, jobs: number, root: string): Promise<GameOutcome[]> {
   const indices = Array.from({ length: config.games }, (_, i) => i);
   const width = Math.min(jobs, config.games);
-  if (width <= 1) return runShard(config, indices);
+  // Long runs report every 5% so a background job can be checked without waiting for the end.
+  const step = Math.max(1, Math.round(config.games / 20)); const started = performance.now(); let done = 0;
+  const tick = () => {
+    done += 1;
+    if (done % step === 0 || done === config.games) console.log(`progress ${done}/${config.games} games, ${((performance.now() - started) / 1000).toFixed(0)}s`);
+  };
+  if (width <= 1) return runShard(config, indices, tick);
   const workerUrl = pathToFileURL(join(root, "tools/balance-simulator/worker.mjs"));
   const parts = await Promise.all(Array.from({ length: width }, (_, j) => new Promise<GameOutcome[]>((resolve, reject) => {
     const worker = new Worker(workerUrl, { workerData: { config, shard: indices.filter((i) => i % width === j), root } });
-    worker.once("message", resolve); worker.once("error", reject);
+    worker.on("message", (message: GameOutcome[] | "game") => { if (message === "game") tick(); else resolve(message); });
+    worker.once("error", reject);
   })));
   return parts.flat().sort((a, b) => a.game.game - b.game.game);
 }
