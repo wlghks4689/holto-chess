@@ -4,6 +4,7 @@
 - 서버 판정의 정본은 [ABILITY_RULES.md](ABILITY_RULES.md)다. 카드 문구는 표시용이며 게임 판정을 대체하지 않는다.
 - 미리보기: 개발 서버에서 `/abilities-preview`를 연다.
 - 공통 카드 비율은 2:3 세로형이며 PC·태블릿·모바일에서 유지한다. 카드를 누르면 `<dialog>`로 확대하고 Escape와 닫기 버튼을 지원한다.
+- 확대한 카드를 다시 누르면(탭·클릭·Enter/Space) 뒷면으로 뒤집힌다. 뒷면은 같은 프레임에 판정 기준과 예외(`ability.card.<id>.details`)를 보여 준다. 앞면 설명은 짧게 두고, 스플릿·RUN별 판정·판매 후 재구매 같은 세부 사항은 뒷면에 적는다. 개발 서버 `/abilities-preview?sides=both`에서 12장의 앞·뒷면을 함께 검토한다.
 - 문구는 HTML 텍스트로 렌더링하며 이미지 안에 글자를 굽지 않는다. 번역 키는 `ability.card.<id>.name/description`이다.
 - 게임 시작 때 서버가 12장 중 중복 없이 8장을 순번 선택에 따라 배정한다. 선택 제한시간이 끝나면 서버가 남은 카드 중 하나를 골라 진행한다.
 
@@ -20,7 +21,7 @@
 | 황금의 손 | `golden-hand.webp` | `golden-hand.png` |
 | 트레이더 | `trader.webp` | `trader.png` |
 | 포식자 | `predator.webp` | `predator.png` |
-| 아키텍트 | `architect.webp` | `architect.png` |
+| 건축가 | `architect.webp` | `architect.png` |
 | 자본주의 | `capitalism.webp` | `capitalism.png` |
 | 제로리스크 | `zero-risk.webp` | `zero-risk.png` |
 | 쿼드 코어 | `quad-core.webp` | `quad-core.png` |

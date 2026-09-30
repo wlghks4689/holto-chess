@@ -72,7 +72,7 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
     </>}
     {typeof document !== "undefined" && createPortal(<dialog ref={dialog} className={`ability-draft-dialog${selected?.playerId === view.me.playerId ? " is-viewer" : ""}`} aria-label={selected ? `${orderNames.get(selected.playerId)} · ${t(`ability.card.${selected.abilityId}.name`)}` : t("ability.viewCard")} onClose={() => setSelectedPlayer(null)} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className="ability-draft-dialog-content">
-        {selected && <AbilityCard ability={selected.abilityId} />}
+        {selected && <><AbilityCard key={`${selected.playerId}:${selected.abilityId}`} ability={selected.abilityId} flippable /><p className="ability-flip-hint">{t("ability.flipHint")}</p></>}
         <button type="button" autoFocus className="secondary" onClick={() => dialog.current?.close()}>{t("ability.close")}</button>
       </div>
     </dialog>, document.body)}

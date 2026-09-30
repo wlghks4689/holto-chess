@@ -39,6 +39,8 @@
 .ability-draft-dialog-content{padding:12px;display:grid;gap:10px;text-align:center}
 .ability-draft-dialog .ability-card{width:100%;max-width:320px;margin:auto}
 .ability-draft-dialog .secondary{min-height:44px;width:100%}
+.ability-draft-dialog .ability-flip{max-width:320px;margin:auto}
+.ability-flip-hint{margin:0;color:#8fa6b8;font-size:12px;line-height:1.5}
 .ability-draft-dialog button:focus-visible{outline:2px solid #9af3ee;outline-offset:3px}
 body:has(.ability-draft-dialog[open]){overflow:hidden}
 .ability-reveal-countdown{font-size:13px;line-height:1.5}

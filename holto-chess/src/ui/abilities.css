@@ -69,6 +69,16 @@
 .ability-preview-header span { font-size: 11px; letter-spacing: .24em; color: #a6b5c8; }
 .ability-preview-header h1 { font: 500 clamp(26px,3vw,38px) / 1.2 Georgia,'Batang',serif; margin: 12px 0; }
 .ability-preview-header p { color: #a8b3c4; font-size: 13px; line-height: 1.7; margin: 0; }
+.ability-preview-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.ability-preview-header button[aria-pressed="true"] { border-color: #9af3ee; color: #c9fbf7; }
+/* Review mode (?sides=both): each ability as a front/back pair. */
+.ability-sides-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 36px 28px; }
+.ability-sides-item > h2 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; font: 600 18px/1.3 'Noto Sans KR', sans-serif; color: #eef1f6; }
+.ability-sides-item > h2 span { font: 12px ui-monospace, monospace; color: #95a4b9; }
+.ability-sides-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ability-sides-pair figure { margin: 0; }
+@media (max-width: 600px) { .ability-sides-pair { grid-template-columns: 1fr; gap: 16px; } }
+.ability-sides-pair figcaption { margin-top: 6px; color: #95a4b9; font-size: 12px; text-align: center; }
 .ability-preview-header button { flex: none; border: 1px solid #607188; border-radius: 6px; padding: 10px 15px; background: #142033; color: #edf5ff; cursor: pointer; }
 .ability-gallery { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,290px),1fr)); gap: 30px 20px; align-items: start; }
 .ability-preview-item { width: 100%; max-width: 420px; justify-self: center; }
@@ -82,7 +92,27 @@
   .ability-preview-header { align-items: flex-start; gap: 10px; }
   .ability-preview { padding-top: 24px; }
 }
-.ability-rules summary{position:absolute;right:11%;bottom:9%;z-index:3;display:grid;place-items:center;width:32px;height:32px;border:1px solid #8fdce5;border-radius:50%;background:#091724;color:#8fdce5;cursor:pointer;list-style:none;font:700 16px system-ui}
-.ability-rules summary::-webkit-details-marker{display:none}
-.ability-rules>p{position:absolute;z-index:4;left:9%;right:9%;bottom:19%;max-height:68%;overflow:auto;margin:0;padding:10px;border:1px solid #8fdce5;border-radius:8px;background:#07121ff5;color:#edf6ff;font:12px/1.55 system-ui,sans-serif;text-align:left;white-space:pre-line}
-.ability-rules summary:focus-visible{outline:2px solid #fff;outline-offset:3px}
+/* Enlarged cards flip (tap, click or keyboard) to a reverse face with the finer points. */
+.ability-flip { position: relative; width: 100%; aspect-ratio: 2 / 3; perspective: 1400px; }
+.ability-flip-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .62s cubic-bezier(.3,.7,.2,1); }
+.ability-flip[data-flipped="true"] .ability-flip-inner { transform: rotateY(180deg); }
+.ability-flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.ability-flip-face.is-back { transform: rotateY(180deg); }
+.ability-flip-face .ability-card { height: 100%; }
+.ability-flip-toggle { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 4%; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ability-flip-toggle:focus-visible { outline: 2px solid #9af3ee; outline-offset: 3px; }
+/* Corner cue on both faces; it spins with the card so it always sits bottom-right. */
+.ability-flip-toggle span { position: absolute; right: 10.5%; bottom: 8.5%; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #8fdce5; border-radius: 50%; background: #091724e6; color: #8fdce5; font: 700 17px/1 system-ui, sans-serif; transition: transform .62s cubic-bezier(.3,.7,.2,1); }
+.ability-flip[data-flipped="true"] .ability-flip-toggle span { transform: rotate(-180deg); }
+.ability-flip-toggle:hover span { background: #12303c; color: #c9fbf7; }
+/* The frame's medallion ring and divider would run through the text, so the reverse gets a dark inner panel. */
+.ability-card-reverse .ability-artwork::after { content: ""; position: absolute; inset: 8.5% 16.5% 9% 16.5%; border-radius: 2%; background: radial-gradient(ellipse at 50% 30%, #11161dee, #07090cf5 70%); }
+.ability-reverse-body { position: absolute; inset: 10% 17.5% 12% 17.5%; display: flex; flex-direction: column; align-items: center; font-family: Manrope, 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+.ability-reverse-body small { color: #9fd8e0; font: 600 3.1cqw/1.2 'DM Mono', ui-monospace, monospace; letter-spacing: .2em; }
+.ability-reverse-body h2 { width: 100%; margin: 2.2cqw 0 0; font: 600 6.6cqw/1.15 'Batang', 'Noto Serif KR', 'AppleMyungjo', Georgia, serif; letter-spacing: -.05em; text-shadow: 0 1px 0 #fff6, 0 2px 3px #000; word-break: keep-all; }
+.ability-reverse-body h2::after { content: ""; display: block; width: 46%; height: 1px; margin: 3.2cqw auto 0; background: linear-gradient(90deg, transparent, #cfd8e2aa, transparent); }
+.ability-reverse-body ul { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2.1cqw; width: 100%; margin: 2.6cqw 0 0; padding: 0; list-style: none; text-align: left; }
+.ability-reverse-body li { position: relative; padding-left: 3.6cqw; font-size: 3.85cqw; font-weight: 500; line-height: 1.5; letter-spacing: -.02em; word-break: keep-all; overflow-wrap: anywhere; color: #eef2f6; text-shadow: 0 1px 2px #000; }
+.ability-reverse-body li::before { content: ""; position: absolute; left: 0; top: .72em; width: 1.3cqw; height: 1.3cqw; transform: rotate(45deg); background: #9fd8e0; }
+.ability-card-reverse:lang(en) .ability-reverse-body li { font-size: 3.6cqw; line-height: 1.42; letter-spacing: 0; }
+@media (prefers-reduced-motion: reduce) { .ability-flip-inner, .ability-flip-toggle span { transition: none; } }
