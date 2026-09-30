@@ -1,5 +1,17 @@
 # PORENA 운영 기록 — 2026-09-19
 
+
+## 2026-09-30 정적 에셋 최적화 운영 배포 및 히스토리 정리 반영
+
+- 사용자 승인: 에셋 최적화·.audit 히스토리 정리 후 운영 배포 요청.
+- 배포 소스: `f9963b3` (origin/main, 히스토리 정리 후). 파일 트리는 정리 전 main과 동일. 상세 [2026-09-30-history-rewrite.md](../product_doc/qa/2026-09-30-history-rewrite.md).
+- Worker `porena`, 기존 계정/도메인/바인딩 유지. 운영 버전: `09a43716-36ea-4e03-8071-722ff217c090`. 직전(롤백 기준): `88d112bb-fba1-402f-b234-c1f06458830a`.
+- 반영: 어빌리티·배경 WebP, 족보 사운드 MP3, 공개된 어빌리티만 로드, 사운드 필요 시점 로드, OnlineApp 지연 로드, `public/_headers`(해시 JS/CSS 1년 immutable). 게임 규칙/서버 코드 변경 없음. 상세 [2026-09-30-asset-optimization.md](../product_doc/qa/2026-09-30-asset-optimization.md).
+- 검증: 클린 빌드, `css-order-check` 통과, dry-run 통과, `wrangler deploy --keep-vars`.
+- 운영 `/` 및 `/api/health` HTTP 200, health ok=true. JS `index-BDDrtJhl.js`, CSS `index-CSaqMqwG.css` 및 신규 WebP/MP3의 운영 SHA256이 로컬 빌드와 일치.
+- 운영 헤더: 해시 JS `Cache-Control: public, max-age=31536000, immutable` 적용 확인. HTML·미디어는 `max-age=0, must-revalidate` 유지.
+- 운영 브라우저 확인(Desktop 1440×900, Mobile 390×844, 싱글 플레이 매치 로딩까지): 페이지 오류 0, 시작 화면의 게임 전용 미디어 요청 0, 어빌리티 9파일(프레임+배정 8장)만 요청, 매치 배경 PC/모바일 이미지 정상, 구 PNG/WAV 요청 0.
+- 운영 전체 게임 완주·부하 시험은 이번 배포에서 수행하지 않음(로컬 프로덕션 빌드로 R1~GAME_RESULT 완주 검증함).
 ## 2026-09-29 게임 설명 리뉴얼 및 어빌리티 후속 배포
 
 - 사용자 승인: 전체 커밋·origin 푸시 후 운영 배포, Claude의 게임 설명 리뉴얼 포함.
