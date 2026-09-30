@@ -484,3 +484,41 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
   .cinema[data-round="4"] .cinema-made{margin:10px 0 6px}
   .cinema[data-round="4"] .cinema-footer{margin-top:12px}
 }
+
+/* Shop alone shares a centered title and fixed card size across local/online views.
+   Keep these after density overrides: card count wraps, never changes card size. */
+.game-arena .shop-page{--shop-card-width:79px}
+.game-arena .shop-page>.round-header{justify-content:center;text-align:center}
+.game-arena .shop-page>.round-header>div:first-child{width:100%;max-width:100%;min-width:0}
+.game-arena .shop-page>.round-header :is(.round-title-row,.prep-title-row){position:relative;display:flex;justify-content:center;width:100%;max-width:100%;padding-inline:33px;margin-inline:auto}
+.game-arena .shop-page>.round-header h1{width:100%;min-width:0;margin:0;font:700 clamp(22px,6vw,58px)/1.05 Georgia,'Times New Roman',serif;letter-spacing:-.035em;overflow-wrap:anywhere}
+.game-arena .shop-page>.round-header :is(.title-guide-trigger,.prep-rule-trigger){position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.game-arena .shop-page .round-number{margin-bottom:4px;letter-spacing:.16em}
+.game-arena .shop-page .shop-layout{grid-template-columns:minmax(0,1fr);align-items:stretch}
+.game-arena .shop-page .shop-layout>.panel{display:flex;flex-direction:column;align-items:stretch;min-height:0;gap:8px;padding:16px}
+.game-arena .shop-page .shop-layout>.panel>header{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;width:100%;margin:0;padding:0 0 8px;border-right:0;border-bottom:1px solid var(--line);gap:8px;white-space:normal;text-align:left}
+.game-arena .shop-page .shop-heading{flex-direction:row;gap:7px}
+.game-arena .shop-page .shop-heading h2{margin:0;font-size:16px}
+.game-arena .shop-page .shop-count{margin:0}
+.game-arena .shop-page .stat-block{flex-direction:row;margin:0;gap:4px}
+.game-arena .shop-page :is(.owned-row,.market-row){display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:8px;min-height:0;overflow:visible;padding:4px 0}
+.game-arena .shop-page :is(.owned-card,.empty-card,.shop-card-slot),
+.game-arena .shop-page[data-round="1"] :is(.owned-card,.empty-card){width:var(--shop-card-width);max-width:none;flex:0 0 var(--shop-card-width)}
+.game-arena .shop-page .shop-card-slot{padding:0;gap:6px}
+.game-arena .shop-page .shop-card-reveal{width:100%;height:auto;gap:6px}
+.game-arena .shop-page :is(.owned-card .playing-card,.shop-card-reveal .playing-card,.empty-card){width:var(--shop-card-width);max-width:none;height:auto;aspect-ratio:53/75;flex:none}
+.game-arena .shop-page .card-purchase{position:static;width:100%;min-height:36px;left:auto;right:auto;bottom:auto}
+.game-arena .shop-page :is(.card-lock,.card-sell-button){min-height:36px}
+.game-arena .shop-page .market-actions{margin-top:auto;padding-top:4px}
+.game-arena .shop-page .market-actions>.secondary{min-height:40px;white-space:normal;overflow-wrap:anywhere}
+@media(min-width:1024px){
+  .game-arena .shop-page{--shop-card-width:88px;padding-block:16px 8px}
+  .game-arena .shop-page>.round-header{margin-bottom:16px}
+  .game-arena .shop-page>.action-bar{margin-block:12px 0}
+  .game-arena .shop-page .shop-layout{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+}
+@media(max-width:768px){
+  .game-arena .shop-page{--shop-card-width:62px}
+  .game-arena .shop-page .shop-layout>.panel{padding:8px;gap:6px}
+  .game-arena .shop-page .shop-heading h2{font-size:13px}
+}
