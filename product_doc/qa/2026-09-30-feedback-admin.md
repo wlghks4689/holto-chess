@@ -105,4 +105,4 @@ node tools/admin/setup-admin.mjs
   - 관리자 도메인의 `/api/rooms`는 404다.
   - `porena.kr/admin`과 `porena.kr/api/admin/session`은 404다.
   - 게임 `/`와 딥링크의 캐시 헤더, 정적 파일과 해시 JS의 immutable 헤더는 그대로다.
-- 운영 배포와 실제 `admin.porena.kr` 접속은 아직 하지 않았다.
+- 운영 배포: 2026-09-30 버전 `1b57e5f1` (holto-chess/OPERATIONS.md 참고).

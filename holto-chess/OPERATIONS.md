@@ -1,5 +1,32 @@
 # PORENA 운영 기록 — 2026-09-19
 
+## 2026-09-30 제보·문의 폼과 관리자 수신함(admin.porena.kr) 운영 배포
+
+- 사용자 승인: 시작 화면 버그 제보 이메일 삭제, 제보·문의 폼과 별도 로그인 관리자 페이지 추가 후 커밋·푸시·배포 요청.
+- 배포 소스: `05f8fae` (origin/main). 상세 [2026-09-30-feedback-admin.md](../product_doc/qa/2026-09-30-feedback-admin.md).
+- 신규 리소스:
+  - D1 `porena-feedback`(APAC, `26ec86c4-3904-4eab-8a76-09e3261757dc`): 마이그레이션 `0001_feedback.sql`을 `--remote`로 적용.
+  - Rate limit `FEEDBACK_LIMITER`(3/60s), `ADMIN_LOGIN_LIMITER`(5/60s).
+  - custom domain `admin.porena.kr`: 인증서가 자동으로 발급됨.
+- 관리자 secret 3종은 사용자가 `tools/admin/setup-admin.mjs`로 직접 설정했다(비밀번호는 Claude가 보거나 입력하지 않음).
+  - `secrets.required` 때문에 secret이 없으면 배포가 거부된다. 첫 배포 시도는 이 이유로 중단됐고 운영은 영향이 없었다.
+  - secret을 등록하면서 이전 코드 + secret 버전 `af93b285`가 생성됐다.
+- 운영 버전: `1b57e5f1-b709-4141-a496-4c1c33b0a241`. 롤백 기준: 코드 기준 `09a43716-36ea-4e03-8071-722ff217c090`(secret 포함 `af93b285`).
+  - 롤백해도 D1 데이터와 `admin.porena.kr` 도메인은 남는다.
+- 운영 확인:
+  - `porena.kr`:
+    - `/api/health` ok. JS 3개와 CSS의 운영 SHA256이 로컬 빌드와 일치하고, 해시 JS는 immutable.
+    - 이메일 링크 0건, 메뉴 5개. `/admin`과 `/api/admin/*`는 404, 딥링크 200, www 301.
+  - `admin.porena.kr`:
+    - 관리자 로그인 화면이 CSP 적용 상태로 렌더링된다. no-store, noindex, DENY 헤더가 붙는다.
+    - 게임 API는 404다. 잘못된 로그인과 위조 쿠키는 401이다.
+    - Cloudflare Web Analytics 자동 삽입 스크립트는 CSP로 차단된다(의도).
+  - 제출 API:
+    - 잘못된 분류 400, 교차 출처 403. 허니팟은 201이지만 저장되지 않는다.
+    - 브라우저 제출은 201이고 한글이 UTF-8로 저장된다.
+    - 확인용 테스트 2행은 삭제했다(현재 0행).
+- 관리자 실제 로그인·수신함 조작은 사용자 계정이라 Claude가 운영에서 수행하지 않았다(로컬에서 검증).
+
 
 ## 2026-09-30 정적 에셋 최적화 운영 배포 및 히스토리 정리 반영
 
