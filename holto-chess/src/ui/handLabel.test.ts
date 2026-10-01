@@ -5,6 +5,15 @@ import { compactHandName, detailedHandLabel } from "./handLabel";
 const card = (id: string, rank: Card["rank"]): Card => ({ id, rank, suit: "s" });
 
 describe("detailed showdown labels", () => {
+  it("shows one flush suit and all five ranks, including community cards", () => {
+    const holes = [card("As", 14), { ...card("Kd", 13), suit: "d" as const }];
+    const board = [card("Ts", 10), card("8s", 8), card("6s", 6), card("2s", 2)];
+    const used = ["As", ...board.map(c => c.id)];
+    expect(detailedHandLabel("FLUSH", [14, 10, 8, 6, 2], holes, used, undefined, board))
+      .toEqual({ title: "A 하이 플러시", kicker: "♠ A 10 8 6 2" });
+    expect(detailedHandLabel("FLUSH", [14, 10, 8, 6, 2], [], used, undefined, [holes[0]!, ...board]))
+      .toEqual({ title: "A 하이 플러시", kicker: "♠ A 10 8 6 2" });
+  });
   it("names a straight by its high card", () => {
     expect(detailedHandLabel("STRAIGHT", [13], [card("Qs", 12)], ["Qs"]))
       .toEqual({ title: "K 하이 스트레이트" });

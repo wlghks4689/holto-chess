@@ -1,3 +1,5 @@
+import { AbilityBadge } from "./AbilityVisibility";
+import { activeAbilityCues } from "./abilityPresentation";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
@@ -86,6 +88,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const nextAuthorizedAt = authorized ? frames[frames.indexOf(authorized) + 1]?.at ?? Infinity : Infinity;
   const elapsed = Math.min(synced ? elapsedMs : localElapsed, nextAuthorizedAt - 0.001);
   const frame = frameAt(frames, elapsed);
+  const abilityCues = activeAbilityCues(match, elapsed);
   const previousSoundFrame = useRef<{ scene: string; phase: string } | null>(null);
   const flags = revealFlags(frame.phase);
   const final = match.round === 5;
@@ -161,7 +164,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : displayedMatchNumber(match)}</span>}<h2>{final ? finalHeadingTitle : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><button className="secondary" onClick={onComplete}>{t("cinema.skip")}</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
-    {cardSwitch && <p className="hint" role="status">{t("cinema.cardSwitch")}</p>}
     {match.highCardDraw && frame.phase === "HIGH_CARD_NOTICE" && <HighCardDrawNotice survival={match.group === "loser"} surviveCount={match.highCardDraw.surviveCount} seconds={Math.max(1, Math.ceil((frame.at + phaseMs - elapsed) / 1000))} />}
     {match.highCardDraw && ["HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase) && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}
     {stage && <div className="cinema-stage" aria-hidden="true" style={{ "--stage-focus": stage.focus } as CSSProperties}><img src={stage.image} alt="" /><i /></div>}
@@ -170,7 +172,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     <div className="cinema-seats">{intro && !multi && <span className="cinema-vs" aria-hidden="true">VS</span>}{ids.map((id, index) => {
       const result = results.find((r) => r.playerId === id);
       const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);
-      const streetLabel = streetResult ? labelFor(id, streetResult) : undefined;
+      const streetLabel = streetResult ? labelFor(id, streetResult, (match.boards[frame.boardIndex] ?? []).slice(0, frame.revealed)) : undefined;
       const forfeited = result?.displayName === "몰수패";
       const won = !forfeited && winners.includes(id);
       const cards = cardsForRun(id);
@@ -198,6 +200,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         : interimLabel
           ? { stage: `current-${readCards}`, tag: t(readCards === 3 ? "cinema.currentReadThree" : "cinema.currentBestFive"), title: interimLabel.title, detail: interimLabel.kicker }
           : { stage: "pending", tag: t("cinema.handRead"), title: "—", detail: undefined };
+      const ability = profiles.find(profile => profile.playerId === id)?.abilityId;
+      const activation = abilityCues.find(item => item.cue.playerId === id);
       const showFinalPlace = currentPlaceVisible || finalWinnerStage;
       const showMatchOutcome = !final && (flags.result || flags.runResult);
       const showRewardAmount = !!((final ? showFinalPlace : flags.reward || flags.runResult && match.runRewards) && reward && showReward);
@@ -206,11 +210,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         ? t("cinema.runOutcome", { run: frame.boardIndex + 1, outcome })
         : outcome;
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
+        {!final && ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}
         {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{t(survivalOutcome === "SURVIVED" ? "match.survived" : "results.eliminated")}</span>}
         {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className={`cinema-profile ${!final ? "cinema-match-profile" : ""}`}>
           {!final && <div className="cinema-profile-identity"><b title={name(id)}>{name(id)}</b></div>}
-          {final && <><span className="player-avatar">{id.slice(1)}</span><b>{name(id)}</b></>}
+          {final && <>{ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}<b>{name(id)}</b></>}
           {!final && match.round >= 2 && currentRank !== undefined && !showFinalPlace && <div className="cinema-standing-line"><span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span></div>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? t("cinema.finalSplitPlace") : placeText(result?.place)}</span>}
         </div>

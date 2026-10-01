@@ -1,3 +1,4 @@
+import { ShopAbilityPanel } from "./AbilityVisibility";
 import type { CSSProperties } from "react";
 import { cardLabel } from "../core/poker/cards";
 import type { GameAction, PlayerView } from "../shared/protocol";
@@ -54,6 +55,7 @@ export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = tru
   };
   return <section className="panel run-loadout">
     <h2 className="run-loadout-heading">{t("loadout.headingFirst")}<br className="run-loadout-mobile-break" /> {t("loadout.headingSecond")}</h2>
+    <ShopAbilityPanel ability={view.me.abilityId} benefit={view.me.abilityBenefit} compact />
     <div className="run-loadout-content">
       {showTimer && <div className="run-loadout-timer"><PhaseTimer seconds={seconds ?? 30} ariaLabel={t("loadout.timerAria", { seconds: seconds ?? 30 })} /></div>}
       <div className="run-loadout-slots">{[t("loadout.representative"), t("loadout.run1"), t("loadout.run2")].map((label, index) => <label key={index}>

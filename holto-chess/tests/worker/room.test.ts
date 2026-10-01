@@ -390,7 +390,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
     one.ws.close(1000);
     const reconnect = await connect(a);
     expect(reconnect.view().me.playerId).toBe(a.playerId);
-    expect(reconnect.view().me.stackBB).toBe(purchased.me.stackBB - 3);
+    expect(reconnect.view().me.stackBB).toBe(purchased.me.stackBB - purchased.me.lockCost);
     expect(await reconnect.send({ type: "BUY_CARD", cardId: card.card.id }, requestId)).toMatchObject({ type: "ACK" });
     expect(reconnect.view().me.purchases).toBe(1);
     expect(separate.view().phase).toBe("LOBBY");

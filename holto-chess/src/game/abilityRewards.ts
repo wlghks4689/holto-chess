@@ -1,15 +1,29 @@
-import { madeAbilityReward, quadCorePlacementBonus, type AbilityEvent } from "./abilities";
+import { CAPITALISM_INTEREST_PERCENT, madeAbilityReward, predatorStreakReward, protectorLossReward, quadCorePlacementBonus, targetSniperWinReward, type AbilityEvent } from "./abilities";
 import type { MatchResult, PlayerState, PorenaGameState } from "./types";
 import { FRONT_RUNNER_POINTS } from "./config";
 import { compareRoundStanding } from "./roundRanking";
+
+/** Records an already applied advantage. This must never pay BB/points again. */
+export function recordAbilityBenefit(state: PorenaGameState, player: PlayerState, input: Omit<AbilityEvent, "sequence" | "round" | "playerId" | "abilityId">): void {
+  if (!player.abilityId) return;
+  const sequence = (state.abilityEventSequence ?? Math.max(0, ...(state.abilityEvents ?? []).map(event => event.sequence ?? 0))) + 1;
+  state.abilityEventSequence = sequence;
+  (state.abilityEvents ??= []).push({ ...input, sequence, round: state.round, playerId: player.id, abilityId: player.abilityId });
+  const totals = player.abilityTotals ??= { activations: 0, bb: 0, points: 0, savedBB: 0 };
+  totals.activations++; totals.bb += input.bb; totals.points += input.points; totals.savedBB += input.savedBB;
+}
+
+export function recordAbilitySaving(state: PorenaGameState, player: PlayerState, reason: string, savedBB: number, subjectId?: string): void {
+  if (savedBB <= 0) return;
+  if (reason === "shop-lock" && state.abilityEvents?.some(event => event.round === state.round && event.playerId === player.id && event.reason === reason && event.subjectId === subjectId)) return;
+  recordAbilityBenefit(state, player, { reason, savedBB, bb: 0, points: 0, subjectId });
+}
 
 function record(state: PorenaGameState, player: PlayerState, reason: string, bb = 0, points = 0, savedBB = 0, match?: MatchResult): void {
   if (!player.abilityId || (!bb && !points && !savedBB)) return;
   const event: AbilityEvent = { round: state.round, playerId: player.id, abilityId: player.abilityId, reason, bb, points, savedBB,
     ...(match ? { matchId: match.id, ...(match.gameNumber ? { run: match.gameNumber } : {}) } : {}) };
-  (state.abilityEvents ??= []).push(event);
-  const totals = player.abilityTotals ??= { activations: 0, bb: 0, points: 0, savedBB: 0 };
-  totals.activations++; totals.bb += bb; totals.points += points; totals.savedBB += savedBB;
+  recordAbilityBenefit(state, player, event);
   player.stackBB += bb; player.points += points;
   if (match && (bb || points)) (match.pointAwardDetails ??= {})[player.id] = [match.pointAwardDetails[player.id], `${bb ? `+${bb}BB` : `+${points}P`}`].filter(Boolean).join(" · ");
   if (bb || points) {
@@ -45,15 +59,16 @@ export function rewardAbilities(state: PorenaGameState, match: MatchResult): voi
     const won = winners.length === 1 && winners[0] === player.id && result.hand.categoryRank > 0;
     if (player.abilityId === "predator") {
       player.abilityWinStreak = won ? (player.abilityWinStreak ?? 0) + 1 : 0;
-      if (won && player.abilityWinStreak >= 2) record(state, player, "win-streak", 10, 0, 0, match);
+      if (won) record(state, player, "win-streak", predatorStreakReward(player.abilityWinStreak), 0, 0, match);
     }
+    if (won) record(state, player, "won-with-first-card", targetSniperWinReward(player, result.hand), 0, 0, match);
     if (result.hand.categoryRank > 0) {
       const reward = madeAbilityReward(player, result.hand, state.round);
       if (reward.bb || reward.points) record(state, player, "made-hand", reward.bb, reward.points, 0, match);
     }
     const equity = match.equities?.[player.id];
     if (player.abilityId === "zero-risk" && state.round < 5 && winners.length === 1 && !won && equity?.insuranceEligible)
-      record(state, player, "favored-loss", 20, 0, 0, match);
+      record(state, player, "favored-loss", protectorLossReward(equity.rawPercent), 0, 0, match);
   }
 }
 
@@ -77,5 +92,5 @@ export function rewardAbilityInterest(state: PorenaGameState): void {
   if (state.survival || state.abilityInterestRounds?.includes(state.round)) return;
   (state.abilityInterestRounds ??= []).push(state.round);
   for (const player of state.players.filter(item => !item.eliminated && item.abilityId === "capitalism"))
-    record(state, player, "round-interest", Math.floor(player.stackBB * 0.2));
+    record(state, player, "round-interest", Math.floor(player.stackBB * CAPITALISM_INTEREST_PERCENT / 100));
 }

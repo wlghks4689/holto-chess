@@ -6,7 +6,7 @@ import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts"
 import { PRESENTATION_LEAD_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
 import type { PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
-import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
+import { openDraft, autoPickDraft, pickDraftCard, completeDraft, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
@@ -96,6 +96,11 @@ function waitingForSpectatorTimer(room: RoomSnapshot): boolean {
     && activeHumans(room).length === 0 && controlledHumanIds(room).length > 0;
 }
 
+/** The finished draft is held on screen for everyone; nobody acts, the server clock ends it. */
+function waitingForDraftReveal(room: RoomSnapshot): boolean {
+  return room.status === "PLAYING" && isDraftRevealing(room.game);
+}
+
 /** Who the current barrier is still waiting on. Empty means nothing is blocked. */
 export function pendingBarrierIds(room: RoomSnapshot): string[] {
   if (room.status !== "PLAYING" || !BARRIER_PHASES.includes(room.game.phase)) return [];
@@ -116,7 +121,7 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
 /** A phase has one deadline; another player's confirmation never restarts it. */
 function refreshBarrier(room: RoomSnapshot, now: number): void {
   const pending = pendingBarrierIds(room);
-  const blocked = pending.length > 0 || waitingForSpectatorTimer(room);
+  const blocked = pending.length > 0 || waitingForSpectatorTimer(room) || waitingForDraftReveal(room);
   const key = `${turnKey(room)}|${room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.picks.length : ""}|${blocked ? "waiting" : "done"}`;
   if (room.barrierKey === key) return;
   room.barrierKey = key;
@@ -129,6 +134,7 @@ function refreshBarrier(room: RoomSnapshot, now: number): void {
  */
 export function barrierDeadline(room: RoomSnapshot): number | undefined {
   if (room.barrierSince === undefined) return undefined;
+  if (waitingForDraftReveal(room)) return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.DRAFT_REVEAL;
   const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId
     : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.order[room.game.abilityDraft.picks.length] : undefined;
   const botDraftTurn = !!draftPicker && !activeHumans(room).includes(draftPicker);
@@ -174,7 +180,7 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
 function settleBarrier(room: RoomSnapshot): void {
   for (let guard = 0; guard < 64; guard += 1) {
     if (room.status === "PLAYING" && room.game.phase === "NEXT_ROUND") { advanceReadyBarrier(room); continue; }
-    if (room.status !== "PLAYING" || pendingBarrierIds(room).length || waitingForSpectatorTimer(room)) return;
+    if (room.status !== "PLAYING" || pendingBarrierIds(room).length || waitingForSpectatorTimer(room) || waitingForDraftReveal(room)) return;
     const before = `${room.game.round}:${room.game.phase}`;
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
     else if (BARRIER_PHASES.includes(room.game.phase)) advanceReadyBarrier(room);
@@ -266,7 +272,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     if (allReady(eligible)) advanceReadyBarrier(room);
   } else if (action.type === "DRAFT_PICK") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
-    room.game = pickDraftCard(room.game, playerId, action.cardId);
+    room.game = pickDraftCard(room.game, playerId, action.cardId, true);
   } else if (action.type === "ABILITY_PICK") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
     room.game = pickAbility(room.game, playerId, action.slot);
@@ -324,12 +330,13 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   if (deadline === undefined || now < deadline) return null;
   const pending = pendingBarrierIds(source);
   const spectatorTimer = waitingForSpectatorTimer(source);
-  if (!pending.length && !spectatorTimer) return null;
+  const draftReveal = waitingForDraftReveal(source);
+  if (!pending.length && !spectatorTimer && !draftReveal) return null;
   const room = structuredClone(source);
   if (room.game.phase === "ABILITY_PICK") {
     room.game = autoPickAbility(room.game);
   } else if (room.game.phase === "OPEN_DRAFT") {
-    room.game = autoPickDraft(room.game);
+    room.game = draftReveal ? completeDraft(room.game) : autoPickDraft(room.game, true);
   } else if (room.game.phase === "SHOP") {
     // Preserve complete human Omaha hands when the shop timer expires.
     const loadoutOnly = room.game.round === 3 ? pending.filter((id) => room.game.players.find((p) => p.id === id)!.ownedCardIds.length === BALANCE.handLimits[3]) : [];

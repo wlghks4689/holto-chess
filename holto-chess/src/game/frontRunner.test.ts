@@ -153,7 +153,8 @@ describe("Front Runner round settlement", () => {
     expect(state.abilityEvents ?? []).toEqual([]);
     state.players[0]!.abilityId = "capitalism"; state.phase = "ROUND_RESULT";
     rewardAbilityInterest(state); rewardRoundLeader(state); rewardAbilityInterest(state);
-    expect(state.players[0]!.stackBB).toBe(60);
+    // 15% interest, rounded down: 50BB → +7BB.
+    expect(state.players[0]!.stackBB).toBe(57);
     expect(state.abilityEvents!.filter(event => event.reason === "round-interest")).toHaveLength(1);
   });
   it("accepts slot twelve and restores 12 slots / 8 unique picks / 4 unpicked", () => {

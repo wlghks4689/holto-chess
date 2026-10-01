@@ -8,7 +8,7 @@
 .final-standing.is-eliminated :is(.final-rank-panel,.final-player-name,.final-hand,.final-total>button){opacity:.76}
 .final-standing:has(.final-score-popover:not([hidden])){z-index:10}
 .final-rank-panel{position:relative;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #426374;border-radius:10px;color:#ecfaff;background:linear-gradient(150deg,#173645,#061722);overflow:hidden}
-.final-rank-panel strong{font:700 30px 'DM Mono',sans-serif;z-index:1}
+.final-rank-panel strong{display:inline-flex;align-items:baseline;white-space:nowrap;font:700 30px 'DM Mono',sans-serif;z-index:1}
 .final-rank-panel strong small{font:700 11px sans-serif;color:inherit;margin-left:2px}
 .final-rank-ornament{font-size:16px;line-height:20px;min-height:4px}
 .podium-1 .final-rank-panel{color:#ffe799;border:2px solid #f8d970;box-shadow:0 0 18px #f0c74366,inset 0 0 15px #efb73844;outline:1px solid #b28a37;outline-offset:3px}
@@ -35,6 +35,7 @@
 .final-total>button:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .final-score-popover{position:absolute;right:0;top:calc(100% + 12px);width:220px;padding:15px;text-align:left;border:1px solid #6acbd4;border-radius:12px;background:#0b2635;box-shadow:0 12px 35px #000a;color:#eafaff;z-index:20}
 .final-score-popover[hidden]{display:none}
+.final-standing .final-score-popover :is(b,span,strong,small){font-size:12px}
 .final-score-popover::before{content:"";position:absolute;right:25px;top:-7px;width:12px;height:12px;border-left:1px solid #6acbd4;border-top:1px solid #6acbd4;background:#0b2635;transform:rotate(45deg)}
 .final-score-popover>b{display:block;margin-bottom:12px;color:#7ef1e9;font-size:13px}.final-score-popover>span{display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-top:8px}.final-score-popover>small{display:block;margin-top:3px}.final-score-popover hr{border:0;border-top:1px solid #426374;margin-top:12px}
 .final-standing .rank-point{display:block;grid-column:auto;grid-row:auto;text-align:center;font-size:14px}

@@ -7,6 +7,8 @@ import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presen
 import { createRoundSummary, roundMatches } from "./roundSummary";
 import { concealedCard, discloseMatch, presentationComplete } from "./disclosure";
 import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
+import { isRoundAbilityEvent } from "./abilities";
+import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
 
 function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerView {
   const g = room.game;
@@ -62,8 +64,14 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     room.status === "PLAYING" && g.phase === "SHOP" ? room.endedShopIds.includes(playerId) : room.readyIds.includes(playerId);
   const visible = matchesVisible(room);
   const complete = presentationComplete(room, now);
+  const matchForViewer = (match: Parameters<typeof createMatchView>[1]) => {
+    const full = createMatchView(g, match);
+    full.abilityCues = personalAbilityCues(full.abilityCues ?? [], viewerPlayerId);
+    return full;
+  };
   const publicMatches = (id: string) => visibleMatchesFor(room, id).flatMap(match => {
     const full = createMatchView(g, match);
+    full.abilityCues = personalAbilityCues(full.abilityCues ?? [], viewerPlayerId);
     if (complete) return [full];
     const entry = room.presentation?.perPlayer[id]?.find(entry => entry.matchId === match.id);
     const disclosed = entry && discloseMatch(full, entry, room.presentation!.startsAt, now);
@@ -86,10 +94,16 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       value.ownedCards = value.ownedCards.map((_, i) => concealedCard(`spectator:${id}:${i}`));
       value.shopCards = []; value.selectedCardIds = []; value.lockedShopCardIds = [];
     }
-    return { ...value, ...publicTotals(id), alive: !isEliminated(id) };
+    return { ...value, ...publicTotals(id), alive: !isEliminated(id),
+      ...(!spectator && value.abilityId ? { abilityBenefit: abilityBenefit(visibleAbilityEvents(g.abilityEvents ?? [], g.round, complete,
+        new Set(g.roundResults.map(match => match.id)), publicMatches(id)), id) } : {}) };
   };
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
+    ...(complete && ["ROUND_RESULT", "GAME_RESULT"].includes(g.phase) && !g.survival ? { roundAbilityCues:
+      personalAbilityCues((g.abilityEvents ?? []).filter(event => event.round === g.round && isRoundAbilityEvent(event)).flatMap(event => {
+        const cue = abilityCue(event); return cue ? [cue] : [];
+      }), viewerPlayerId) } : {}),
     ...(room.status === "PLAYING" && g.abilityDraft && g.phase.startsWith("ABILITY_") ? { abilityDraft: {
       order: [...g.abilityDraft.order], pickedCount: g.abilityDraft.picks.length, slotCount: g.abilityDraft.deck.length,
       availableSlots: g.abilityDraft.deck.flatMap((_, slot) => g.abilityDraft!.picks.some(pick => pick.slot === slot) ? [] : [slot]),
@@ -116,13 +130,13 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       playerId: player.id,
       me: privateView(player.id, true),
       matches: visible ? publicMatches(player.id) : [],
-      roundHistory: visible && complete ? roundMatches(g).filter((match) => match.playerIds.includes(player.id)).map((match, index) => ({ ...createMatchView(g, match), matchNumber: index + 1 })) : [],
+      roundHistory: visible && complete ? roundMatches(g).filter((match) => match.playerIds.includes(player.id)).map((match, index) => ({ ...matchForViewer(match), matchNumber: index + 1 })) : [],
       ...(presentationViewFor(room, player.id) ? { presentation: presentationViewFor(room, player.id) } : {}),
     })) } : {}),
     players: g.players.map((p) => ({ abilityId: p.abilityId, playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
     matches: visible ? publicMatches(me.id) : [],
     roundSummary: visible && complete ? createRoundSummary(g) : [],
-    roundHistory: visible && complete ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...createMatchView(g, m), matchNumber: index + 1 })) : [],
+    roundHistory: visible && complete ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...matchForViewer(m), matchNumber: index + 1 })) : [],
     standings: g.phase === "GAME_RESULT" && complete ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, stackBB: s.stackBB, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound, cards: s.cards, usedCardIds: s.usedCardIds })) : [],
   };
   return structuredClone(view);

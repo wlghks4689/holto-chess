@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { createRoom, addSession } from "../game/room";
-import { openDraft, pickDraftCard, prepareShowdown, resolvePrimary, leaveRoundResult, startNextRound } from "../game/engine";
+import { autoPickDraft, openDraft, pickDraftCard, prepareShowdown, resolvePrimary, leaveRoundResult, startNextRound } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { OpenDraftPanel } from "./OpenDraft";
 import { R4DraftArena } from "./R4DraftArena";
@@ -121,4 +121,18 @@ it("hides the R4 timer and centers a complete five-card private hand", () => {
   expect(html).not.toContain('class="draft-private-timer"');
   const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
   expect(hand.match(/class="playing-card/g)).toHaveLength(5);
+});
+
+it("tells everyone where the game goes next while the finished draft is held on screen", () => {
+  const room = addSession(createRoom("DRAFT", 303), "one").room;
+  room.status = "PLAYING";
+  room.game = openDraft(startNextRound(leaveRoundResult(resolvePrimary(prepareShowdown(room.game, [])))));
+  while (room.game.draft!.picks.length < room.game.draft!.order.length) room.game = autoPickDraft(room.game, true);
+  expect(room.game.phase).toBe("OPEN_DRAFT");
+  room.sessions[0]!.playerId = room.game.draft!.order[0]!.playerId;
+  const view = createPlayerView(room, room.sessions[0]!.playerId);
+  const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view, send: () => {}, disabled: false, seconds: 3 }));
+  expect(html).toContain("모든 선택 완료 · 잠시 후 RUN 배치로 이동합니다");
+  // Every claimed card stays visible with its owner during the reveal.
+  expect(html.match(/class="r2-card-slot /g)).toHaveLength(8);
 });

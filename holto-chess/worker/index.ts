@@ -6,6 +6,21 @@ function code(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   return Array.from(crypto.getRandomValues(new Uint8Array(6)), (n) => alphabet[n % alphabet.length]).join("");
 }
+/**
+ * Static files as-is; unknown page paths (client-side routes) get the app shell. A request for a missing *file*
+ * - typically an old bundle chunk from a tab opened before a deploy - stays a 404 that nobody may cache, so the
+ * client can reload onto the new build instead of executing HTML as JavaScript.
+ */
+async function serveApp(request: Request, env: Env, url: URL): Promise<Response> {
+  const response = await env.ASSETS.fetch(request);
+  if (response.status !== 404) return response;
+  const isFile = url.pathname.startsWith("/assets/") || /\.[a-z0-9]{1,8}$/i.test(url.pathname);
+  if (isFile || (request.method !== "GET" && request.method !== "HEAD")) {
+    return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8" } });
+  }
+  return env.ASSETS.fetch(new Request(new URL("/", url), { method: request.method, headers: request.headers }));
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
@@ -18,7 +33,7 @@ export default {
     if (admin === "admin") return handleAdmin(request, env, url);
     if (admin === "hidden") return new Response("Not found", { status: 404 });
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
-    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return serveApp(request, env, url);
     // Same-origin browser credentials. No token in a query string, cookie or routing header.
     if (request.headers.get("Origin") !== url.origin) return new Response("Origin rejected", { status: 403 });
     // No accounts exist yet: use the Cloudflare-provided IP as a coarse abuse

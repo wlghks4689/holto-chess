@@ -95,6 +95,7 @@ export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy";
 export type PorenaGameState = {
   abilityDraft?: AbilityDraft;
   abilityEvents?: AbilityEvent[];
+  abilityEventSequence?: number;
   abilityInterestRounds?: Round[];
   /** Persists even when no front-runner qualifies, so retries cannot re-rank. */
   abilityLeaderRounds?: Round[];
