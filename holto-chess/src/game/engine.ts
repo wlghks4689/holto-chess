@@ -915,7 +915,11 @@ export function openDraft(source: PorenaGameState): PorenaGameState {
   return { ...structuredClone(source), phase: "OPEN_DRAFT" };
 }
 
-export function pickDraftCard(source: PorenaGameState, playerId: string, cardId: string): PorenaGameState {
+/**
+ * `holdReveal`: after the last pick the phase stays OPEN_DRAFT (every pick visible) until `completeDraft`.
+ * The room and the local game pass it so players can see the final picks before the next phase.
+ */
+export function pickDraftCard(source: PorenaGameState, playerId: string, cardId: string, holdReveal = false): PorenaGameState {
   const state = structuredClone(source); const draft = state.draft;
   if (state.phase !== "OPEN_DRAFT" || !draft || draft.order[draft.picks.length]?.playerId !== playerId) throw new Error("내 드래프트 차례가 아닙니다.");
   const player = playerById(state, playerId);
@@ -929,11 +933,11 @@ export function pickDraftCard(source: PorenaGameState, playerId: string, cardId:
   recordAbilitySaving(state, player, "draft-discount", cardPrice(entry.card.rank) - price, cardId);
   entry.state = "OWNED"; entry.ownerPlayerId = playerId;
   draft.picks.push({ playerId, cardId, price });
-  finishDraftIfComplete(state);
+  if (!holdReveal) finishDraftIfComplete(state);
   assertPoolIntegrity(state); return state;
 }
 
-export function autoPickDraft(source: PorenaGameState): PorenaGameState {
+export function autoPickDraft(source: PorenaGameState, holdReveal = false): PorenaGameState {
   const id = source.draft?.order[source.draft.picks.length]?.playerId;
   if (!id) throw new Error("드래프트 차례가 없습니다.");
   const p = playerById(source, id);
@@ -944,10 +948,22 @@ export function autoPickDraft(source: PorenaGameState): PorenaGameState {
     const state = structuredClone(source);
     state.draft!.picks.push({ playerId: id, cardId: null, price: 0 });
     log(state, `${p.name} · BB 부족으로 드래프트 구매 없이 진행`, "danger", { event: "DRAFT_SKIPPED_INSUFFICIENT_BB", playerId: p.id, params: { player: p.name } });
-    finishDraftIfComplete(state);
+    if (!holdReveal) finishDraftIfComplete(state);
     assertPoolIntegrity(state); return state;
   }
-  return pickDraftCard(source, id, best.card.id);
+  return pickDraftCard(source, id, best.card.id, holdReveal);
+}
+
+/** True while a finished open draft is held on screen so every player can see the final picks. */
+export const isDraftRevealing = (state: Pick<PorenaGameState, "phase" | "draft">) =>
+  state.phase === "OPEN_DRAFT" && !!state.draft && state.draft.picks.length === state.draft.order.length;
+
+/** Ends a draft held with `holdReveal`: R2 goes to RUN placement, R4 to the shop. */
+export function completeDraft(source: PorenaGameState): PorenaGameState {
+  if (!isDraftRevealing(source)) throw new Error("드래프트 선택이 끝나지 않았습니다.");
+  const state = structuredClone(source);
+  finishDraftIfComplete(state);
+  assertPoolIntegrity(state); return state;
 }
 
 function finishDraftIfComplete(state: PorenaGameState): void {

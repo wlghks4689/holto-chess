@@ -402,6 +402,8 @@ export const koKR = {
   "draft.currentPicker": "현재 선택 차례",
   "draft.playerYourTurn": "{player} · 내 차례",
   "draft.finished": "드래프트 완료",
+  "draft.revealToShop": "모든 선택 완료 · 잠시 후 상점으로 이동합니다",
+  "draft.revealToLoadout": "모든 선택 완료 · 잠시 후 RUN 배치로 이동합니다",
   "draft.autoPurchase": "시간 안에 선택하지 않으면 남은 카드 중 한 장을 자동으로 구매합니다.",
   "draft.done": "✓ 완료",
   "draft.picking": "선택 중",

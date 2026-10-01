@@ -404,6 +404,8 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "draft.currentPicker": "NOW PICKING",
   "draft.playerYourTurn": "{player} · YOUR TURN",
   "draft.finished": "Draft complete",
+  "draft.revealToShop": "All picks made · Moving to the shop shortly",
+  "draft.revealToLoadout": "All picks made · Moving to RUN placement shortly",
   "draft.autoPurchase": "If time runs out, an affordable card is bought automatically.",
   "draft.done": "✓ DONE",
   "draft.picking": "PICKING",

@@ -28,7 +28,7 @@ import { getPrepPresentation } from "./prepPresentation";
 import { preloadFinalArena } from "./finalShowdownPresentation";
 import { ExitGameDialog } from "./ExitGameDialog";
 import { preloadShowdownStage } from "./showdownStage";
-import { openDraft, autoPickDraft, pickDraftCard, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
+import { openDraft, autoPickDraft, pickDraftCard, completeDraft, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { RunLoadoutPanel, TimedOpenDraftPanel } from "./OpenDraft";
 import type { GameAction, ShowdownPrepView } from "../shared/protocol";
@@ -173,6 +173,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const expireResult = useCallback(() => setState((current) => advanceLocalNextRound(current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current)), []);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
+  const draftRevealing = isDraftRevealing(state);
   const abilityPickIndex = state.abilityDraft?.picks.length ?? 0;
   const abilityPickerId = state.abilityDraft?.order[abilityPickIndex];
   const guideOpen = manualGuideRound !== null || shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
@@ -190,6 +191,7 @@ export function App({ onHome }: { onHome: () => void }) {
       : phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK
       : phase === "RUN_LOADOUT" ? BARRIER_TIMEOUT_MS.RUN_LOADOUT
       : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
+      : draftRevealing ? BARRIER_TIMEOUT_MS.DRAFT_REVEAL
       : draftPickerId === "p1" ? 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
     const timer = setTimeout(() => setState((s) => phase === "ABILITY_ORDER" ? openAbilitySelection(s)
       : phase === "ABILITY_PICK" ? autoPickAbility(s)
@@ -198,9 +200,10 @@ export function App({ onHome }: { onHome: () => void }) {
       : phase === "RUN_LOADOUT" ? lockRunLoadouts(s)
       : phase === "SHOWDOWN_PRIMARY" ? resolvePrimary(s)
       : phase === "SHOWDOWN_SECONDARY" ? resolveSecondary(s)
-      : autoPickDraft(s))), delay);
+      : isDraftRevealing(s) ? completeDraft(s)
+      : autoPickDraft(s, true))), delay);
     return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex, draftPickerId, abilityPickIndex, abilityPickerId, guideOpen]);
+  }, [state.phase, draftPickIndex, draftPickerId, draftRevealing, abilityPickIndex, abilityPickerId, guideOpen]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
   const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(advanceLocalNextRound(fn(state))); setError(null); } catch (caught) { const message = caught instanceof Error ? caught.message : ""; setError({ ...classifyGameError(message), message }); } };
   const prep = getPrepPresentation(state.round, state.phase);
@@ -211,7 +214,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const draftAction = (a: GameAction) => {
     if (a.type === "READY" && state.phase === "ABILITY_REVEAL") act(finishAbilitySelection);
     if (a.type === "ABILITY_PICK") act(s => pickAbility(s, "p1", a.slot));
-    if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId));
+    if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId, true));
     if (a.type === "RUN_LOADOUT") act((s) => setRunLoadout(s, "p1", a.cardIds));
     if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };

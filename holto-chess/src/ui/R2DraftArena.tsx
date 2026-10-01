@@ -48,7 +48,7 @@ export function R2DraftArena({ view, send, disabled, seconds }: {
       })}</ol></aside>
       <div className="r2-stage">
         <header className="r2-draft-heading"><div className="draft-title-row"><h2>{t(ordering ? "draft.title" : "draft.pickOne")}</h2><DraftRuleTooltip round={2} /></div>{(ordering || myTurn) && <div className="draft-heading-timer"><PhaseTimer seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} /></div>}<ShopAbilityPanel ability={view.me.abilityId} benefit={view.me.abilityBenefit} compact /></header>
-        {!ordering && <div className="r2-current" aria-live="polite"><small>{t("draft.currentPicker")}</small><strong>{draft.currentPlayerId ? myTurn ? t("draft.playerYourTurn", { player: name(draft.currentPlayerId) }) : name(draft.currentPlayerId) : t("draft.picked")}</strong></div>}
+        {!ordering && <div className="r2-current" aria-live="polite"><small>{t("draft.currentPicker")}</small><strong>{draft.currentPlayerId ? myTurn ? t("draft.playerYourTurn", { player: name(draft.currentPlayerId) }) : name(draft.currentPlayerId) : t("draft.revealToLoadout")}</strong></div>}
         <div className="r2-arena" ref={arena} aria-label={t("draft.poolAria", { count: 8 })} aria-busy={dealing}>
           <div className="r2-deal-origin" aria-hidden="true">◇</div>
           {draft.cards.map(({ card, price, claimedBy }, index) => {

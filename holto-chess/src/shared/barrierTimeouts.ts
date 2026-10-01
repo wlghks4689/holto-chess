@@ -8,6 +8,8 @@ export const BARRIER_TIMEOUT_MS = {
   DEFAULT: 30_000,
   RESULTS: 30_000,
   DRAFT_DEAL_IN: 3_000,
+  /** After the last open-draft pick, every pick stays on screen this long before the next phase. */
+  DRAFT_REVEAL: 3_500,
   ABILITY_PICK: 12_000,
   ABILITY_REVEAL: 30_000,
   MATCH_SETUP: 3_500,
