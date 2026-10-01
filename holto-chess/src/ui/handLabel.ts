@@ -1,4 +1,4 @@
-import { cardLabel, rankDisplay, type Card } from "../core/poker/cards";
+import { cardLabel, rankDisplay, SUIT_SYMBOL, type Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 import { t, type TranslationKey } from "../i18n";
 
@@ -43,7 +43,10 @@ export function detailedHandLabel(category: HandCategory, kickers: readonly numb
     case "TWO_PAIR": return withKicker(translate("hand.twoPairOf", { high: rankWord(made), low: rankWord(second) }), rest.filter(Boolean));
     case "TRIPS": return withKicker(translate("hand.tripsOf", { rank: rankWord(made) }), [second, ...rest].filter(Boolean));
     case "STRAIGHT": return { title: `${translate("hand.highRank", { rank: rankDisplay(made) })} ${translate("hand.straight")}` };
-    case "FLUSH": return withKicker(translate("hand.flushHigh", { rank: rankDisplay(made) }), [second, ...rest].filter(Boolean));
+    case "FLUSH": return {
+      title: translate("hand.flushHigh", { rank: rankDisplay(made) }),
+      kicker: [madeCards[0] ? SUIT_SYMBOL[madeCards[0].suit] : "", ...kickers.map(rankDisplay)].filter(Boolean).join(" "),
+    };
     case "FULL_HOUSE": return {
       title: translate("hand.fullHouseOf", { trips: rankWord(made), pair: rankWord(second) }),
       kicker: [made, made, made, second, second].map(rankDisplay).join("-"),

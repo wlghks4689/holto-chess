@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { cardLabel } from "../core/poker/cards";
 import type { FinalStandingView } from "../shared/protocol";
 import { compactHandName } from "./handLabel";
@@ -22,6 +22,16 @@ export function FinalStandingRow({ row, name }: { row: FinalStandingView; name: 
   const [open, setOpen] = useState(false);
   const { t, locale } = useTranslation();
   const popupId = useId();
+  const total = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    // Touch may not move focus: dismiss by pointer target as well as blur.
+    const dismissOutside = (event: PointerEvent) => {
+      if (!total.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismissOutside, true);
+    return () => document.removeEventListener("pointerdown", dismissOutside, true);
+  }, [open]);
   const eliminatedBeforeFinal = row.placement > 4 && row.eliminatedRound !== undefined;
   return <div className={`standing final-standing podium-${row.placement}${eliminatedBeforeFinal ? " is-eliminated" : ""}`}>
     <div className="final-rank-panel"><span className="final-rank-ornament" aria-hidden="true">{row.placement === 1 ? "♛" : row.placement <= 3 ? "✦" : ""}</span><strong>{row.placement}<small>{locale === "ko-KR" ? t("final.placeSuffix") : ordinal(row.placement, locale).slice(String(row.placement).length)}</small></strong></div>
@@ -37,7 +47,7 @@ export function FinalStandingRow({ row, name }: { row: FinalStandingView; name: 
     <span className="final-score-part">{display(row.points)}</span>
     <span className="final-score-part">{row.handScore}</span>
     <span className="final-score-part">{row.stackScore}</span>
-    <div className="final-total" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
+    <div ref={total} className="final-total" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
       <button type="button" aria-label={t("final.totalScoreAria", { name, total: display(row.total) })} aria-expanded={open} aria-controls={popupId} onClick={() => setOpen((current) => !current)}>{display(row.total)}<span className="final-total-info" aria-hidden="true">ⓘ</span></button>
       <div id={popupId} className="final-score-popover" hidden={!open} role="region" aria-label={t("final.scoreDetails")}>
         <b>{t("final.scoreCalculation")}</b><span>{t("final.cumulativePoints")} <strong>{display(row.points)}P</strong></span><span>{t("final.handScore")} <strong>{row.handScore}P</strong></span><small>{compactHandName(row.displayName, t) || t("final.noHand")}</small><span>{t("final.bbScore")} <strong>{row.stackScore}P</strong></span><small>{display(row.stackBB)}BB ÷ 10 · {t("final.roundDown")}</small><hr /><span>{t("final.total")} <strong>{display(row.total)}P</strong></span>

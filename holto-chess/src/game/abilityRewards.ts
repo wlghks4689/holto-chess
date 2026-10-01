@@ -3,13 +3,27 @@ import type { MatchResult, PlayerState, PorenaGameState } from "./types";
 import { FRONT_RUNNER_POINTS } from "./config";
 import { compareRoundStanding } from "./roundRanking";
 
+/** Records an already applied advantage. This must never pay BB/points again. */
+export function recordAbilityBenefit(state: PorenaGameState, player: PlayerState, input: Omit<AbilityEvent, "sequence" | "round" | "playerId" | "abilityId">): void {
+  if (!player.abilityId) return;
+  const sequence = (state.abilityEventSequence ?? Math.max(0, ...(state.abilityEvents ?? []).map(event => event.sequence ?? 0))) + 1;
+  state.abilityEventSequence = sequence;
+  (state.abilityEvents ??= []).push({ ...input, sequence, round: state.round, playerId: player.id, abilityId: player.abilityId });
+  const totals = player.abilityTotals ??= { activations: 0, bb: 0, points: 0, savedBB: 0 };
+  totals.activations++; totals.bb += input.bb; totals.points += input.points; totals.savedBB += input.savedBB;
+}
+
+export function recordAbilitySaving(state: PorenaGameState, player: PlayerState, reason: string, savedBB: number, subjectId?: string): void {
+  if (savedBB <= 0) return;
+  if (reason === "shop-lock" && state.abilityEvents?.some(event => event.round === state.round && event.playerId === player.id && event.reason === reason && event.subjectId === subjectId)) return;
+  recordAbilityBenefit(state, player, { reason, savedBB, bb: 0, points: 0, subjectId });
+}
+
 function record(state: PorenaGameState, player: PlayerState, reason: string, bb = 0, points = 0, savedBB = 0, match?: MatchResult): void {
   if (!player.abilityId || (!bb && !points && !savedBB)) return;
   const event: AbilityEvent = { round: state.round, playerId: player.id, abilityId: player.abilityId, reason, bb, points, savedBB,
     ...(match ? { matchId: match.id, ...(match.gameNumber ? { run: match.gameNumber } : {}) } : {}) };
-  (state.abilityEvents ??= []).push(event);
-  const totals = player.abilityTotals ??= { activations: 0, bb: 0, points: 0, savedBB: 0 };
-  totals.activations++; totals.bb += bb; totals.points += points; totals.savedBB += savedBB;
+  recordAbilityBenefit(state, player, event);
   player.stackBB += bb; player.points += points;
   if (match && (bb || points)) (match.pointAwardDetails ??= {})[player.id] = [match.pointAwardDetails[player.id], `${bb ? `+${bb}BB` : `+${points}P`}`].filter(Boolean).join(" · ");
   if (bb || points) {

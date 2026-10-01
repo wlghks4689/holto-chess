@@ -1,0 +1,386 @@
+[
+  {
+    "scene": "draft-r2",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 780,
+    "sw": 360
+  },
+  {
+    "scene": "draft-r4",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 792,
+    "sw": 345
+  },
+  {
+    "scene": "loadout",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 780,
+    "sw": 360
+  },
+  {
+    "scene": "showdown-r1-2",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 780,
+    "sw": 360
+  },
+  {
+    "scene": "showdown-r2-3",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 780,
+    "sw": 360
+  },
+  {
+    "scene": "showdown-r3-tiebreak",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 780,
+    "sw": 360
+  },
+  {
+    "scene": "showdown-r4-5",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 780,
+    "sw": 360
+  },
+  {
+    "scene": "showdown-r5-7",
+    "width": 360,
+    "height": 780,
+    "overlap": false,
+    "sh": 780,
+    "sw": 360
+  },
+  {
+    "scene": "draft-r2",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "draft-r4",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "loadout",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "showdown-r1-2",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "showdown-r2-3",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "showdown-r3-tiebreak",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "showdown-r4-5",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "showdown-r5-7",
+    "width": 390,
+    "height": 844,
+    "overlap": false,
+    "sh": 844,
+    "sw": 390
+  },
+  {
+    "scene": "draft-r2",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "draft-r4",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "loadout",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "showdown-r1-2",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "showdown-r2-3",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "showdown-r3-tiebreak",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "showdown-r4-5",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "showdown-r5-7",
+    "width": 402,
+    "height": 874,
+    "overlap": false,
+    "sh": 874,
+    "sw": 402
+  },
+  {
+    "scene": "draft-r2",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 967,
+    "sw": 1265
+  },
+  {
+    "scene": "draft-r4",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 967,
+    "sw": 1265
+  },
+  {
+    "scene": "loadout",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 802,
+    "sw": 1265
+  },
+  {
+    "scene": "showdown-r1-2",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 751,
+    "sw": 1265
+  },
+  {
+    "scene": "showdown-r2-3",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 974,
+    "sw": 1265
+  },
+  {
+    "scene": "showdown-r3-tiebreak",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 782,
+    "sw": 1265
+  },
+  {
+    "scene": "showdown-r4-5",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 758,
+    "sw": 1265
+  },
+  {
+    "scene": "showdown-r5-7",
+    "width": 1280,
+    "height": 720,
+    "overlap": false,
+    "sh": 744,
+    "sw": 1265
+  },
+  {
+    "scene": "draft-r2",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 967,
+    "sw": 1425
+  },
+  {
+    "scene": "draft-r4",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 967,
+    "sw": 1425
+  },
+  {
+    "scene": "loadout",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 900,
+    "sw": 1440
+  },
+  {
+    "scene": "showdown-r1-2",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 900,
+    "sw": 1440
+  },
+  {
+    "scene": "showdown-r2-3",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 974,
+    "sw": 1425
+  },
+  {
+    "scene": "showdown-r3-tiebreak",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 900,
+    "sw": 1440
+  },
+  {
+    "scene": "showdown-r4-5",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 900,
+    "sw": 1440
+  },
+  {
+    "scene": "showdown-r5-7",
+    "width": 1440,
+    "height": 900,
+    "overlap": false,
+    "sh": 900,
+    "sw": 1440
+  },
+  {
+    "scene": "draft-r2",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  },
+  {
+    "scene": "draft-r4",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  },
+  {
+    "scene": "loadout",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  },
+  {
+    "scene": "showdown-r1-2",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  },
+  {
+    "scene": "showdown-r2-3",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  },
+  {
+    "scene": "showdown-r3-tiebreak",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  },
+  {
+    "scene": "showdown-r4-5",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  },
+  {
+    "scene": "showdown-r5-7",
+    "width": 1920,
+    "height": 1080,
+    "overlap": false,
+    "sh": 1080,
+    "sw": 1920
+  }
+]

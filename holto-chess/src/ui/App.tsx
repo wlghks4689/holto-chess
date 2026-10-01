@@ -1,3 +1,6 @@
+import { ArenaBrand } from "./ArenaBrand";
+import { ShopAbilityPanel, RoundAbilityBenefits } from "./AbilityVisibility";
+import { abilityBenefit, personalAbilityCues } from "../game/abilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
 import { useCallback, useEffect, useState } from "react";
 import { BALANCE, cardPrice, purchaseLimitFor } from "../game/config";
@@ -82,6 +85,7 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
     purchaseLimit, handLimit: cap });
   return <section className="shop-layout">
+    <ShopAbilityPanel ability={me.abilityId} benefit={abilityBenefit(state.abilityEvents ?? [], me.id)} />
     <div className="inventory panel">
       <header><div className="shop-heading"><h2>{t("shop.myCards")}</h2><strong className="shop-count">{me.ownedCardIds.length} / {cap}</strong></div><div className="stat-block"><small>{t("shop.stack")}</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
       <div className="card-row owned-row">{me.ownedCardIds.map((id) => {
@@ -201,7 +205,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(advanceLocalNextRound(fn(state))); setError(null); } catch (caught) { const message = caught instanceof Error ? caught.message : ""; setError({ ...classifyGameError(message), message }); } };
   const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
-  const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => createMatchView(state, match));
+  const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => { const view = createMatchView(state, match); view.abilityCues = personalAbilityCues(view.abilityCues ?? [], "p1"); return view; });
   const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [] }, "p1");
   const isShowdownPrep = ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase);
   const draftAction = (a: GameAction) => {
@@ -214,7 +218,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const reset = () => { setGameVersion((value) => value + 1); setState(createAbilityGame()); };
   return <CinematicGate key={gameVersion} soundSessionId={`local:${gameVersion}`} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated, abilityId: p.abilityId }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase.startsWith("ABILITY_") ? "ABILITY" : state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {guideOpen ? <RoundGuide round={guideRound} onClose={closeGuide} confirmLabel={manualGuideRound === null ? undefined : t("round.returnToGame")} /> : null}
-    <nav><a className="brand" href="#top"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="nav-actions"><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
+    <nav><a className="brand" href="#top"><ArenaBrand /></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="nav-actions"><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN) / 1000} />}
@@ -223,6 +227,7 @@ export function App({ onHome }: { onHome: () => void }) {
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{renderGameError(error, t)}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>{t("spectator.mode")}</h2><p>{t("spectator.cardsReturned")}</p></section> : <ShopPanel state={state} act={act} /> : null}
+      {["ROUND_RESULT", "GAME_RESULT"].includes(state.phase) && <RoundAbilityBenefits cues={draftView.roundAbilityCues} identityId="p1" />}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {state.phase === "SURVIVAL_READY" && state.survival ? <SurvivalReadyPanel {...state.survival} viewerId="p1" name={(id) => state.players.find((player) => player.id === id)?.name ?? id} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={pauseLocalResultTimer ? BARRIER_TIMEOUT_MS.RESULTS / 1000 : resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}

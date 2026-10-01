@@ -1,4 +1,6 @@
+import { ArenaBrand } from "./ArenaBrand";
 import { useState } from "react";
+import { createGame } from "../game/engine";
 import { BALANCE, cardPrice } from "../game/config";
 import { ABILITY_IDS, type AbilityId } from "../game/abilities";
 import type { Round } from "../game/types";
@@ -21,6 +23,7 @@ import { cinematicTimeline } from "./cinematicTimeline";
 
 type Case = { id: string; screen: string; round: Round; count: number };
 const cases: Case[] = [];
+cases.push({ id: "shop-reroll-interaction", screen: "shop", round: 1, count: 1 });
 for (const round of [1,2,3,4,5] as const) {
   for (const count of [...new Set([0, Math.ceil(BALANCE.handLimits[round] / 2), BALANCE.handLimits[round]])]) {
     for (const screen of ["shop", "match", "showdown"]) cases.push({ id:`${screen}-r${round}-${count}`, screen, round, count });
@@ -41,8 +44,21 @@ cases.push({ id:"loadout-two-games", screen:"loadout-two-games", round:3, count:
 cases.push({ id:"match-r4-headsup", screen:"match-headsup", round:4, count:5 });
 cases.push({ id:"showdown-r2-run1-result", screen:"showdown-run1-result", round:2, count:3 }, { id:"showdown-r2-run2-river", screen:"showdown-run2-river", round:2, count:3 });
 cases.push({ id:"showdown-r3-tiebreak", screen:"showdown-tiebreak", round:3, count:4 });
+cases.push({ id:"showdown-flush", screen:"showdown-flush", round:4, count:5 },
+  { id:"showdown-r2-switch-out", screen:"showdown-switch-out", round:2, count:3 },
+  { id:"showdown-r2-switch-in", screen:"showdown-switch-in", round:2, count:3 });
+
+function InteractiveShop() {
+  const [state, setState] = useState(() => {
+    const game = createGame(303);
+    game.players[0]!.abilityId = new URLSearchParams(location.search).get("ability") === "trader" ? "trader" : "first-class";
+    return game;
+  });
+  return <ShopPanel state={state} act={fn => setState(previous => fn(previous))} />;
+}
 
 function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
+  if (scene.id === "shop-reroll-interaction") return <InteractiveShop />;
   const { screen, round, count } = scene;
   const view = qaView(round, count);
   const match = qaMatch(round, count, screen.endsWith("headsup") ? false : screen === "showdown-tiebreak" || round >= 4);
@@ -53,13 +69,35 @@ function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
     match.boardResults = [match.results];
     match.rewards = match.rewards?.map((reward,i)=>({...reward,deltaBB:0,afterBB:reward.beforeBB,deltaPoints:0,afterPoints:reward.beforePoints,outcome:i === 0 ? "ELIMINATED" : "SURVIVED"}));
   }
+  const benefitQa = new URLSearchParams(location.search).has("benefitQa");
+  if (screen === "showdown-flush") {
+    const cards = [14, 10, 8, 6, 2].map(rank => qaDeck.find(c => c.suit === "s" && c.rank === rank)!);
+    match.revealedCards.p1 = cards;
+    const flush = { playerId: "p1", place: 2, category: "FLUSH" as const, kickers: [14,10,8,6,2], displayName: "플러시", usedCardIds: cards.map(c => c.id) };
+    match.results = match.results.map(r => r.playerId === "p1" ? flush : r);
+    match.boardResults = match.boardResults.map(results => results.map(r => r.playerId === "p1" ? flush : r));
+  }
+  if (benefitQa) {
+    view.me.abilityId = screen === "draft" || screen === "loadout" ? "first-class" : "architect";
+    view.me.abilityBenefit = { activations: 2, bb: 60, points: 0, savedBB: 0, draftPositions: [{ round: 2, originalPosition: 6 }, ...(round >= 4 ? [{ round: 4 as const, originalPosition: 3 }] : [])] };
+    view.players.forEach((p, i) => { p.abilityId = i === 0 ? "architect" : "zero-risk"; });
+    match.abilityCues = match.participantIds.map((id, i) => ({ id: String(i+1), playerId:id, abilityId:i === 0 ? "architect" : "zero-risk", ...(i === 0 ? {bb:30} : {}), ...(round === 2 ? {run:1} : {}) }));
+    match.winnerIds = ["p2"]; match.boardWinnerIds = match.boards.map(() => ["p2"]);
+    match.results = match.results.map(r => ({...r, place:r.playerId === "p2" ? 1 : 2}));
+    match.boardResults = match.boards.map(() => match.results);
+  }
   const profiles = view.players;
   const rows = qaRows(round);
   if (screen === "loadout-two-games") { view.me.loadoutSlots = view.me.ownedCards.map(c=>c.id); return <OnlineLoadout me={view.me} disabled={false} onChange={()=>{}} />; }
-  if (screen === "shop" || screen === "prep") return <ShopPanel state={qaGame(round,count)} act={() => {}} />;
+  if (screen === "shop" || screen === "prep") {
+    const state = qaGame(round,count);
+    if (benefitQa) { state.players[0]!.abilityId = "architect"; state.abilityEvents = [{sequence:1,round,playerId:"p1",abilityId:"architect",reason:"made-hand",bb:60,points:0,savedBB:0}]; }
+    return <ShopPanel state={state} act={() => {}} />;
+  }
   if (screen.startsWith("showdown")) {
     const frames = cinematicTimeline(match);
-    const elapsed = screen === "showdown-run1-result" ? frames.find(f=>f.phase === "RUN_RESULT")!.at : screen === "showdown-run2-river" ? frames.find(f=>f.phase === "RIVER_SETTLE" && f.boardIndex === 1)!.at : Number.MAX_SAFE_INTEGER;
+    const switchPhase = screen === "showdown-switch-out" ? "CARD_SWITCH_OUT" : screen === "showdown-switch-in" ? "CARD_SWITCH_IN" : undefined;
+    const elapsed = switchPhase ? frames.find(f=>f.phase === switchPhase)!.at + 100 : benefitQa ? frames.find(f=>f.phase === (round === 5 ? "FINAL_WINNER" : round === 2 ? "RUN_RESULT" : "RESULT"))!.at + 250 : screen === "showdown-run1-result" ? frames.find(f=>f.phase === "RUN_RESULT")!.at : screen === "showdown-run2-river" ? frames.find(f=>f.phase === "RIVER_SETTLE" && f.boardIndex === 1)!.at : Number.MAX_SAFE_INTEGER;
     return <ShowdownCinematic match={match} profiles={profiles} viewerId="p1" onComplete={() => {}} elapsedMs={elapsed} nextMatchSeconds={screen === "showdown" || screen === "showdown-tiebreak" ? 3 : undefined} catchUp />;
   }
   if (screen.startsWith("match")) {
@@ -91,10 +129,10 @@ export function ResponsivePreview() {
   return <main className={`game-arena responsive-preview ${selected === "all" ? "qa-matrix" : "qa-single"}`}>
     {toolbar}
     {shown.map(scene=><section data-qa-case={scene.id} key={scene.id}>
-      {!scene.screen.startsWith("showdown") && <nav><div className="brand"><b>PORENA</b></div><RoundProgress round={scene.round} prep={null}/><div className="nav-status"><button className="secondary">나가기</button></div></nav>}
+      {!scene.screen.startsWith("showdown") && <nav><div className="brand"><ArenaBrand /></div><RoundProgress round={scene.round} prep={null}/><div className="nav-status"><button className="secondary">나가기</button></div></nav>}
       <div data-round={scene.round} className={`page-shell ${scene.screen === "shop" ? "shop-page" : scene.screen === "final" ? "final-results-page" : ""}`}>
-        {scene.screen === "prep" && <PrepRoundHeader prep={getPrepPresentation(scene.round, "SHOP")!} />}
-        {!scene.screen.startsWith("match") && !scene.screen.startsWith("ability") && !scene.screen.startsWith("showdown") && scene.screen !== "prep" && <header className={`round-header ${["draft","loadout"].includes(scene.screen) ? "is-centered-phase-header" : ""}`}><div>{scene.screen !== "final" && <span className="round-number">{scene.screen === "draft" ? `ROUND ${scene.round} · DRAFT PHASE` : `ROUND 0${scene.round}`}</span>}<div className="round-title-row"><h1>{scene.screen === "final" ? "FINAL STANDINGS" : ["","TWO HAND","RUN IT TWICE","OMAHA SWISS","BEST FIVE","THE LAST HAND"][scene.round]}</h1>{scene.screen !== "final" && <button className="secondary title-guide-trigger">?</button>}</div></div>{scene.screen !== "shop" && scene.screen !== "loadout" && scene.screen !== "final" && <div className="phase-badge"><b>{scene.screen === "shop" ? "상점" : scene.screen === "draft" ? "공개 드래프트" : "라운드 결과"}</b></div>}</header>}
+        {(scene.screen === "prep" || scene.screen === "shop" && scene.round > 1) && <PrepRoundHeader prep={getPrepPresentation(scene.round, "SHOP")!} />}
+        {!scene.screen.startsWith("match") && !scene.screen.startsWith("ability") && !scene.screen.startsWith("showdown") && scene.screen !== "prep" && !(scene.screen === "shop" && scene.round > 1) && <header className={`round-header ${["draft","loadout"].includes(scene.screen) ? "is-centered-phase-header" : ""}`}><div>{scene.screen !== "final" && <span className="round-number">{scene.screen === "draft" ? `ROUND ${scene.round} · DRAFT PHASE` : `ROUND 0${scene.round}`}</span>}<div className="round-title-row"><h1>{scene.screen === "final" ? "FINAL STANDINGS" : ["","TWO HAND","RUN IT TWICE","OMAHA SWISS","BEST FIVE","THE LAST HAND"][scene.round]}</h1>{scene.screen !== "final" && <button className="secondary title-guide-trigger">?</button>}</div></div>{scene.screen !== "shop" && scene.screen !== "loadout" && scene.screen !== "final" && <div className="phase-badge"><b>{scene.screen === "shop" ? "상점" : scene.screen === "draft" ? "공개 드래프트" : "라운드 결과"}</b></div>}</header>}
         <Scene scene={scene} interactive={false} />
         {["shop","prep","results","brackets"].includes(scene.screen) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{["shop","prep"].includes(scene.screen) ? "준비 완료" : "결과 확인"}</b><p>다음 단계로 진행합니다.</p></div><button className="primary">{["shop","prep"].includes(scene.screen) ? "준비 완료" : "다음 라운드"} →</button></div>}
       </div>

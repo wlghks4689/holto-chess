@@ -9,7 +9,7 @@ import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
 import { ABILITY_IDS, abilityPrice, abilityShopSize, abilitySellRate, abilityRerollCost, abilityRerollLimit, abilityLockCost } from "./abilities";
 import { rawShowdownEquity } from "./showdownEquity";
-import { rewardAbilities, rewardAbilityInterest, rewardQuadCorePlacement, rewardRoundLeader } from "./abilityRewards";
+import { recordAbilityBenefit, recordAbilitySaving, rewardAbilities, rewardAbilityInterest, rewardQuadCorePlacement, rewardRoundLeader } from "./abilityRewards";
 import type { GameLog, PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
 
 function nextRandom(state: PorenaGameState): number {
@@ -159,6 +159,7 @@ export function buyCard(source: PorenaGameState, playerId: string, cardId: strin
   const price = abilityPrice(player, entry.card.rank);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
   player.stackBB -= price; player.purchasesThisRound += 1;
+  recordAbilitySaving(state, player, "purchase-discount", cardPrice(entry.card.rank) - price, cardId);
   transferReservedCardToOwned(state, player, cardId);
   log(state, `${player.name} · ${entry.card.id} 구매 −${price}BB`, "economy", { event: "CARD_PURCHASED", playerId, params: { player: player.name, card: entry.card.id, amount: price } });
   assertPoolIntegrity(state); return state;
@@ -174,6 +175,7 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
   const rate = abilitySellRate(player);
   const refund = Math.floor(cardPrice(entry.card.rank) * rate);
+  recordAbilitySaving(state, player, "sale-premium", refund - Math.floor(cardPrice(entry.card.rank) * BALANCE.sellRate), cardId);
   player.stackBB += refund; player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId); player.selectedCardIds = player.selectedCardIds.filter((id) => id !== cardId);
   entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
   log(state, `${player.name} · ${entry.card.id} 판매 +${refund}BB`, "economy", { event: "CARD_SOLD", playerId, params: { player: player.name, card: entry.card.id, amount: refund } });
@@ -190,6 +192,7 @@ export function rerollShop(source: PorenaGameState, playerId: string): PorenaGam
   if (targetSize > 0 && lockedCount >= targetSize) throw new Error("모든 상점 카드가 잠겨 있어 리롤할 수 없습니다.");
   assertPoolIntegrity(state);
   releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
+  recordAbilitySaving(state, player, "free-reroll", BALANCE.rerollCostBB - cost);
   player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
   log(state, `${player.name} · 상점 리롤 −${cost}BB`, "economy", { event: "SHOP_REROLLED", playerId, params: { player: player.name, amount: cost } });
   assertPoolIntegrity(state); return state;
@@ -206,6 +209,7 @@ export function toggleShopLock(source: PorenaGameState, playerId: string, cardId
     if (player.stackBB < cost) throw new Error(`카드 잠금에 ${cost}BB가 필요합니다.`);
     player.stackBB -= cost;
     player.lockedShopCardIds = [...locked, cardId];
+    recordAbilitySaving(state, player, "shop-lock", BALANCE.cardLockCostBB - cost, cardId);
   }
   log(state, `${player.name} · 카드 잠금 ${locked.includes(cardId) ? "해제" : `−${abilityLockCost(player)}BB`}`, "economy", { event: locked.includes(cardId) ? "CARD_UNLOCKED" : "CARD_LOCKED", playerId, params: { player: player.name, amount: abilityLockCost(player) } });
   assertPoolIntegrity(state); return state;
@@ -241,16 +245,19 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
     const buy = (cardId: string) => {
       const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!; const price = abilityPrice(player, entry.card.rank);
       player.stackBB -= price; player.purchasesThisRound += 1;
+      recordAbilitySaving(state, player, "purchase-discount", cardPrice(entry.card.rank) - price, cardId);
       transferReservedCardToOwned(state, player, cardId);
     };
     const reroll = () => {
       const cost = abilityRerollCost(player);
-      player.stackBB -= cost; releaseShop(state, player); reserveShopCards(state, player); player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
+      player.stackBB -= cost; releaseShop(state, player); reserveShopCards(state, player);
+      recordAbilitySaving(state, player, "free-reroll", BALANCE.rerollCostBB - cost); player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
     };
     if (policy) {
       const sell = (cardId: string) => {
         const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
         const rate = abilitySellRate(player);
+        recordAbilitySaving(state, player, "sale-premium", Math.floor(cardPrice(entry.card.rank) * rate) - Math.floor(cardPrice(entry.card.rank) * BALANCE.sellRate), cardId);
         player.stackBB += Math.floor(cardPrice(entry.card.rank) * rate);
         player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId);
         entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
@@ -324,6 +331,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       if (bestSwap) {
         const oldEntry = state.ownershipCardPool.find((entry) => entry.card.id === bestSwap!.ownedId)!;
         const refundRate = abilitySellRate(player);
+        recordAbilitySaving(state, player, "sale-premium", Math.floor(cardPrice(oldEntry.card.rank) * refundRate) - Math.floor(cardPrice(oldEntry.card.rank) * BALANCE.sellRate), bestSwap.ownedId);
         player.stackBB += Math.floor(cardPrice(oldEntry.card.rank) * refundRate); player.ownedCardIds = player.ownedCardIds.filter((id) => id !== bestSwap!.ownedId);
         oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId; buy(bestSwap.shopId); continue;
       }
@@ -745,6 +753,8 @@ function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGame
   }
   const matches = pairs.map((ids, i) => {
     const a = runs[0]![i]!; const b = runs[1]![i]!;
+    // Persist RUN 2 events against the combined match, retaining their run number.
+    for (const event of state.abilityEvents ?? []) if (event.matchId === b.id) event.matchId = a.id;
     return { ...a, gameNumber: undefined, winnerIds: b.winnerIds, boards: [...a.boards, ...b.boards],
       boardResults: [...a.boardResults, ...b.boardResults], boardWinnerIds: [...a.boardWinnerIds, ...b.boardWinnerIds],
       streetSnapshots: [...a.streetSnapshots!, ...b.streetSnapshots!], results: b.results, runoutCount: 2,
@@ -756,6 +766,7 @@ function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGame
     } satisfies MatchResult;
   });
   state.matches.push(...matches); state.roundResults = matches; state.phase = "ROUND_RESULT";
+  rewardAbilityInterest(state);
   rewardRoundLeader(state);
   log(state, "R2 RUN1·RUN2 종료 · 전원 생존", "win", { event: "R2_RUNS_COMPLETE" }); return state;
 }
@@ -811,8 +822,8 @@ export function resolveSurvival(source: PorenaGameState): PorenaGameState {
   const latestResult = new Map<string, PlayerShowdown>();
   for (const boardResult of combined.boardResults) for (const result of boardResult) latestResult.set(result.playerId, result);
   combined.results = allIds.map((playerId) => ({ ...latestResult.get(playerId)!, place: survived.includes(playerId) ? 1 : 2 }));
-  eliminate(state, eliminated); rewardAbilityInterest(state); captureRewards(previous, state, [combined]);
-  state.matches.push(combined); state.roundResults = [combined]; delete state.survival;
+  eliminate(state, eliminated); delete state.survival; rewardAbilityInterest(state); captureRewards(previous, state, [combined]);
+  state.matches.push(combined); state.roundResults = [combined];
   state.phase = "ROUND_RESULT"; rewardRoundLeader(state); assertPoolIntegrity(state); return state;
 }
 
@@ -884,6 +895,10 @@ export function startNextRound(source: PorenaGameState): PorenaGameState {
     const count = state.round === 2 ? 8 : 16;
     const available = state.ownershipCardPool.filter((entry) => entry.state === "AVAILABLE");
     if (available.length < count) throw new Error("공개 드래프트 카드 풀이 부족합니다.");
+    // Preserve the shuffled tie order when freezing the order without First Class.
+    const naturalOrder = [...alive].sort((a, b) => a.points - b.points || b.stackBB - a.stackBB);
+    const firstClass = naturalOrder.find(player => player.abilityId === "first-class");
+    if (firstClass) recordAbilityBenefit(state, firstClass, { reason: "draft-priority", bb: 0, points: 0, savedBB: 0, originalPosition: naturalOrder.indexOf(firstClass) + 1 });
     state.draft = {
       cardIds: shuffle(available, () => nextRandom(state)).slice(0, count).map((entry) => entry.card.id),
       order: alive.sort((a, b) => Number(b.abilityId === "first-class") - Number(a.abilityId === "first-class") || a.points - b.points || b.stackBB - a.stackBB).map((p) => ({ playerId: p.id, points: p.points, stackBB: p.stackBB })), picks: [],
@@ -911,6 +926,7 @@ export function pickDraftCard(source: PorenaGameState, playerId: string, cardId:
   // Previous-round forfeits may enter with fewer cards. Draft still grants only one paid card.
   if (player.ownedCardIds.length >= BALANCE.handLimits[state.round]) throw new Error("드래프트 보유 장수가 올바르지 않습니다.");
   player.stackBB -= price; player.ownedCardIds.push(cardId);
+  recordAbilitySaving(state, player, "draft-discount", cardPrice(entry.card.rank) - price, cardId);
   entry.state = "OWNED"; entry.ownerPlayerId = playerId;
   draft.picks.push({ playerId, cardId, price });
   finishDraftIfComplete(state);

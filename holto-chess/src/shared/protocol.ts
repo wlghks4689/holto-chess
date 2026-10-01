@@ -2,6 +2,7 @@ import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 import type { HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
 import { ABILITY_IDS, type AbilityDraftView, type AbilityId } from "../game/abilities";
+import type { AbilityBenefitView, AbilityCue } from "../game/abilities";
 
 export type GameAction =
   | { type: "ABILITY_PICK"; slot: number }
@@ -29,6 +30,7 @@ export type PublicPlayer = { abilityId?: AbilityId; playerId: string; name: stri
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
+  abilityCues?: AbilityCue[];
   /** Server-authorized frames. No future card values/outcomes are in this projection. */
   disclosure?: { frames: import("./presentationTimeline").CinematicFrame[]; elapsedMs: number };
   runCards?: Record<string, Card[][]>;
@@ -63,6 +65,7 @@ export type RoundSummaryRow = {
 };
 export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
 export type PrivatePlayerView = {
+  abilityBenefit?: AbilityBenefitView;
   abilityId?: AbilityId;
   playerId: string; stackBB: number; points: number; alive: boolean; lockCost: number;
   ownedCards: Card[]; shopCards: { card: Card; price: number }[];
@@ -82,6 +85,7 @@ export type SpectatorPlayerView = {
 export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; abilityId?: AbilityId; runCards?: [Card[], Card[]] };
 export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView; opponents?: ShowdownPrepSeatView[] };
 export type PlayerView = {
+  roundAbilityCues?: AbilityCue[];
   abilityDraft?: AbilityDraftView;
   survival?: { playerIds: string[]; eliminateCount: number };
   draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]> };

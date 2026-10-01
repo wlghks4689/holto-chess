@@ -1,6 +1,15 @@
 import type { koKR } from "./ko-KR";
 
 export const enUS: Record<keyof typeof koKR, string> = {
+  "ability.ux.view": "View {name} ability",
+  "ability.ux.close": "Close",
+  "ability.ux.active": "Activated",
+  "ability.ux.earned": "Total earned",
+  "ability.ux.saved": "Total saved",
+  "ability.ux.sale": "Extra sale proceeds",
+  "ability.ux.order": "R{round} pick order #{position} → #1",
+  "ability.ux.orderPending": "Priority pick in R2 / R4",
+  "ability.ux.included": "Ability reward included in settlement",
   "ability.collection": "Ability cards",
   "ability.previewHint": "{count} abilities · Enlarge a card to explore its effect.",
   "ability.details": "Details",

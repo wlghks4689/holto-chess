@@ -435,6 +435,7 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
   .game-arena .final-standing.standing{grid-template-rows:auto}
   .game-arena .final-standing .final-rank-panel{height:38px;min-height:0}
   .game-arena .final-standing .final-rank-panel strong{font-size:17px}
+  .game-arena .final-standing .final-rank-panel strong small{font-size:10px;margin-left:1px}
   .game-arena .final-standing .final-rank-ornament{display:none}
   .game-arena .final-standing .final-total>button{min-height:38px}
   .game-arena .final-standing .final-player-name{font-size:10px;overflow:hidden}
@@ -490,9 +491,9 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
 .game-arena .shop-page{--shop-card-width:79px}
 .game-arena .shop-page>.round-header{justify-content:center;text-align:center}
 .game-arena .shop-page>.round-header>div:first-child{width:100%;max-width:100%;min-width:0}
-.game-arena .shop-page>.round-header :is(.round-title-row,.prep-title-row){position:relative;display:flex;justify-content:center;width:100%;max-width:100%;padding-inline:33px;margin-inline:auto}
-.game-arena .shop-page>.round-header h1{width:100%;min-width:0;margin:0;font:700 clamp(22px,6vw,58px)/1.05 Georgia,'Times New Roman',serif;letter-spacing:-.035em;overflow-wrap:anywhere}
-.game-arena .shop-page>.round-header :is(.title-guide-trigger,.prep-rule-trigger){position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.game-arena .shop-page>.round-header :is(.round-title-row,.prep-title-row){position:relative;display:flex;align-items:center;justify-content:center;gap:9px;width:max-content;max-width:100%;padding:0;margin-inline:auto}
+.game-arena .shop-page>.round-header h1{width:auto;min-width:0;margin:0;font:700 clamp(22px,6vw,58px)/1.05 Georgia,'Times New Roman',serif;letter-spacing:-.035em;overflow-wrap:anywhere}
+.game-arena .shop-page>.round-header :is(.title-guide-trigger,.prep-rule-trigger){position:static;flex:none;transform:none}
 .game-arena .shop-page .round-number{margin-bottom:4px;letter-spacing:.16em}
 .game-arena .shop-page .shop-layout{grid-template-columns:minmax(0,1fr);align-items:stretch}
 .game-arena .shop-page .shop-layout>.panel{display:flex;flex-direction:column;align-items:stretch;min-height:0;gap:8px;padding:16px}
@@ -532,4 +533,25 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
   .cinema.cinema-final .cinema-hole-cards{margin-block:8px}
   .cinema.cinema-final .cinema-final-read{min-height:40px;margin-top:8px;padding-top:8px}
   .cinema.cinema-final .cinema-reward{margin-top:8px;padding-top:8px}
+}
+
+/* Approved compact navigation and final-seat layout. */
+nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:150px;max-width:calc(100% - 44px);height:38px;object-fit:contain}
+.game-arena nav .brand>span{flex:none;width:38px;height:38px}
+.ability-draft-position{display:block;white-space:nowrap}
+.cinema.cinema-final .cinema-seat{min-height:0;padding-block:10px}
+.cinema.cinema-final .cinema-seat>.cinema-profile{position:relative;display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:4px 6px;padding:0 38px 0 0;min-height:38px;margin:0 0 18px;font-size:12px}
+.cinema.cinema-final .cinema-profile>b{flex:1 0 auto;width:max-content;max-width:100%;font-size:12px;line-height:1.3;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cinema.cinema-final .cinema-profile>.ability-badge{position:static;opacity:1!important;filter:none!important}
+.cinema.cinema-final .cinema-profile .ability-badge-button{width:37.4px;height:37.4px}
+.cinema.cinema-final .cinema-profile .ability-activation{top:auto;bottom:-16px;left:0;max-width:100%;white-space:nowrap;transform:none}
+.cinema.cinema-final .cinema-profile>.cinema-victory{position:absolute;right:0;top:1px;margin:0;padding:2px 4px;border-width:2px;font-size:11px;line-height:1.2;letter-spacing:0}
+.cinema.cinema-final .cinema-seat>.cinema-reward{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:32px;margin:6px 0 0;padding:6px 0}
+.cinema.cinema-final .cinema-seat>.cinema-reward strong{display:block;font-size:12px;line-height:1.3;text-align:center}
+.cinema.cinema-final .cinema-seat>.cinema-final-read{min-height:36px;padding-top:5px;margin-top:5px}
+@media(max-width:768px){
+ .game-arena nav .brand{gap:6px}.game-arena nav .brand>span{width:34px;height:34px}
+ nav .brand .arena-wordmark{width:126px;height:32px;max-width:calc(100% - 40px)}
+ .cinema.cinema-final .cinema-profile .ability-badge-button{width:30.8px;height:30.8px}
+ .cinema.cinema-final .cinema-seat>.cinema-profile{min-height:31px;padding-right:38px}
 }

@@ -6,8 +6,12 @@ export const ABILITY_IDS = ["royal-blood", "target-sniper", "underdog", "first-c
 export type AbilityId = typeof ABILITY_IDS[number];
 export type AbilityDraft = { order: string[]; deck: AbilityId[]; picks: { playerId: string; slot: number }[] };
 export type AbilityDraftView = { order: string[]; slotCount: number; availableSlots: number[]; currentPlayerId?: string; pickedCount: number; myPick?: { slot: number; abilityId: AbilityId }; abilities?: { playerId: string; abilityId: AbilityId; slot: number }[] };
-export type AbilityEvent = { round: Round; playerId: string; abilityId: AbilityId; reason: string; subjectId?: string; bb: number; points: number; savedBB: number; matchId?: string; run?: number };
+export type AbilityEvent = { sequence?: number; round: Round; playerId: string; abilityId: AbilityId; reason: string; subjectId?: string; bb: number; points: number; savedBB: number; matchId?: string; run?: number; originalPosition?: number };
 export type AbilityTotals = { activations: number; bb: number; points: number; savedBB: number };
+export type AbilityBenefitView = AbilityTotals & { draftPositions: { round: Round; originalPosition: number }[] };
+/** Public cues intentionally contain no opponent payout or private action details. */
+export type AbilityCue = { id: string; playerId: string; abilityId: AbilityId; run?: number; bb?: number; points?: number };
+export const isRoundAbilityEvent = (event: Pick<AbilityEvent, "reason">) => event.reason === "round-interest" || event.reason === "round-leader";
 
 export function abilityPrice(player: Pick<PlayerState, "abilityId">, rank: number): number {
   const price = cardPrice(rank);

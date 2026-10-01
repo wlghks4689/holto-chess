@@ -1,4 +1,13 @@
 export const koKR = {
+  "ability.ux.view": "{name} 어빌리티 효과 보기",
+  "ability.ux.close": "닫기",
+  "ability.ux.active": "발동",
+  "ability.ux.earned": "누적 획득",
+  "ability.ux.saved": "누적 절약",
+  "ability.ux.sale": "판매 추가 확보",
+  "ability.ux.order": "R{round} 선택 순위 {position}위 → 1위",
+  "ability.ux.orderPending": "R2·R4 선택 순위 우대",
+  "ability.ux.included": "정산에 포함된 어빌리티 보상",
   "ability.collection": "어빌리티 카드",
   "ability.previewHint": "{count}개의 어빌리티 · 카드를 확대해 능력을 확인하세요.",
   "ability.details": "상세 효과",
