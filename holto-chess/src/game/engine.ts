@@ -756,6 +756,7 @@ function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGame
     } satisfies MatchResult;
   });
   state.matches.push(...matches); state.roundResults = matches; state.phase = "ROUND_RESULT";
+  rewardAbilityInterest(state);
   rewardRoundLeader(state);
   log(state, "R2 RUN1·RUN2 종료 · 전원 생존", "win", { event: "R2_RUNS_COMPLETE" }); return state;
 }
@@ -811,8 +812,9 @@ export function resolveSurvival(source: PorenaGameState): PorenaGameState {
   const latestResult = new Map<string, PlayerShowdown>();
   for (const boardResult of combined.boardResults) for (const result of boardResult) latestResult.set(result.playerId, result);
   combined.results = allIds.map((playerId) => ({ ...latestResult.get(playerId)!, place: survived.includes(playerId) ? 1 : 2 }));
-  eliminate(state, eliminated); rewardAbilityInterest(state); captureRewards(previous, state, [combined]);
-  state.matches.push(combined); state.roundResults = [combined]; delete state.survival;
+  eliminate(state, eliminated); delete state.survival;
+  rewardAbilityInterest(state); captureRewards(previous, state, [combined]);
+  state.matches.push(combined); state.roundResults = [combined];
   state.phase = "ROUND_RESULT"; rewardRoundLeader(state); assertPoolIntegrity(state); return state;
 }
 

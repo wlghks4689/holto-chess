@@ -46,3 +46,8 @@
 - 현재 v2 R2 resolveSplitRuns에는 rewardAbilityInterest 호출이 없다.
 - R3 resolveSurvival에서는 survival을 삭제하기 전에 rewardAbilityInterest를 호출하므로 그 함수의 survival guard로 지급이 생략된다.
 - 독주자 때문에 생긴 변경이 아니며, 이번 명세의 기존 ability/정산 유지 지시에 따라 수정하지 않았다. 해당 경로의 자본주의 누락 여부를 별도 회귀 테스트와 함께 수정 검토할 필요가 있다.
+
+## 후속 해결 — 2026-09-30
+
+- 위 발견은 당시 사실로 보존한다. 사용자 승인 범위에서 R2 이자 호출 누락과 R3 생존 상태 해제 순서를 회귀 테스트로 재현한 뒤 수정했다. 방어 조건과 20% 규칙은 유지했다. [수정·검증 기록](2026-09-30-capitalism-interest.md).
+- 독주자 자체는 이후 2026-09-29 배포에 포함되었음이 `holto-chess/OPERATIONS.md`의 4897398 / b45ebf2d-7ce4-4202-b395-c2f906a5226b 기록으로 확인된다. 이번 이자 수정의 배포와는 별개다. 전체 운영 효과 플레이는 미검증이다.

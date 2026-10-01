@@ -12,7 +12,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "ability.card.front-runner.details": "Timing: once per round, after every match and elimination is decided.\nR1–R4: only the single survivor at the top of the standings qualifies. Ties go by points → BB → seat order.\nPlayers eliminated that round are excluded; standings just before the bonus are used.\nR5: first place in the final match, not total score. Tied first places also receive +7P.",
   "ability.card.quad-core.name": "QUAD CORE",
   "ability.card.quad-core.description": "Make Quads in the Final Round using your starting card to double your R5 placement points.",
-  "ability.card.quad-core.details": "Check: your initially dealt card is one of the four cards of the Quads in your R5 final BEST 5. Being only the kicker (5th card) does not count.\nOnly placement points are doubled.\nDoes not trigger once sold; re-triggers when the exact card (same rank and suit) is bought back and the condition is met.",
+  "ability.card.quad-core.details": "Check: your initially dealt card is one of the four cards of the Quads in your R5 final BEST 5. The kicker (5th card) does not count.\nOnly your placement share after tied ICM allocation is doubled, not cumulative points, BB, or other ability rewards.\nSelling the card removes eligibility; reacquiring the exact card (same rank and suit) restores it. Paid only once in the final match.",
   "ability.enlarge": "Enlarge {name} ability card",
   "ability.viewCard": "View card",
   "ability.close": "Close",

@@ -40,8 +40,9 @@
 #### ABILITY-012 — Front Runner
 
 - [x] 담당 Codex | 상태 DONE | 의존 사용자 독주자 명세 및 GPT 원본 승인 | 완료 조건: R1~R4 최종 생존 선두/R5 place1, +3~7P 한 번,12종 드래프트,아이콘 공통규격. 검증: qa/2026-09-29-front-runner.md.
-- [ ] ABILITY-012-RELEASE | 담당 Codex | 상태 TODO | 의존 이번 기능 커밋·push·배포 승인 | 완료 조건: 운영 버전/자산/플레이 확인.
-- [ ] ABILITY-INTEREST-AUDIT | 담당 Codex | 상태 TODO | 의존 별도 수정 범위 확인 | 완료 조건: 기존 v2 R2 및 R3 survival 경로 자본주의 정산 누락 검증/수정. 독주자 작업에서는 미변경.
+- [x] ABILITY-012-RELEASE | 담당 Codex | 상태 DONE | 의존 당시 배포 승인 | 완료 조건: 운영 버전/자산 확인. 근거: holto-chess/OPERATIONS.md의 2026-09-29 배포 4897398 / b45ebf2d-7ce4-4202-b395-c2f906a5226b에 독주자 포함 명시. 전체 운영 플레이는 아래 별도 미완료 항목으로 분리.
+- [ ] ABILITY-012-LIVE-QA | 담당 Codex | 상태 TODO | 의존 운영 플레이 검증 | 완료 조건: 실제 기기에서 독주자·쿼드 코어 효과 포함 R1~R5 운영 플레이 검증. 배포/자산 확인 및 로컬 자동 테스트와 구분.
+- [x] ABILITY-INTEREST-AUDIT | 담당 Codex | 상태 DONE | 의존 사용자 2026-09-30 수정 요청 | 완료 조건: v2 R2 및 R3 survival 이자 누락 재현 후 정산 순서 수정, 12종 기준 문서 동기화. 근거: qa/2026-09-30-capitalism-interest.md. 기존 전체 lint 오류 1건 별도 기록. 이번 수정 커밋·push·배포 미실행.
 
 ## QUAD CORE 신규 어빌리티
 
@@ -51,7 +52,7 @@
 
 - [x] 담당 Codex | 상태 DONE | 의존 사용자 신규 어빌리티 문서 및 v3 아이콘 승인 | 완료 조건: exact firstCardId/BEST5/QUADS 판정, ICM 이후 본인 순위상금만 두 배, 통계 추가분 기록, 11종 드래프트 및 UI. 검증: qa/2026-09-29-quad-core.md.
 - [ ] ABILITY-011-AI | 담당 Codex | 상태 TODO | 의존 어빌리티 문맥을 포함하는 AI 평가 설계 | 완료 조건: 최초 카드 랭크의 보유/구매 자원가치를 공정한 공개정보만으로 평가하고 기존 전략 회귀 검증. 이번 구현에 구매 가중치 없음.
-- [ ] ABILITY-011-RELEASE | 담당 Codex | 상태 TODO | 의존 이번 기능의 커밋·push·운영 배포 승인 | 완료 조건: 운영 버전 및 자산 검증 기록.
+- [x] ABILITY-011-RELEASE | 담당 Codex | 상태 DONE | 의존 당시 배포 승인 | 완료 조건: 운영 버전 및 자산 검증 기록. 근거: holto-chess/OPERATIONS.md의 2026-09-29 배포 4897398 / b45ebf2d-7ce4-4202-b395-c2f906a5226b에 쿼드 코어 포함 명시. 전체 운영 효과 플레이는 ABILITY-012-LIVE-QA에서 추적. 위 11종은 추가 당시 이력이며 현행은 독주자 포함 12종.
 
 ## 어빌리티 공개 문구와 PC 재검수
 
