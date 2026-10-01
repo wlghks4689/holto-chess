@@ -13,6 +13,7 @@ PORENA는 좋은 카드를 기다리는 포커가 아닙니다. 8명이 **하나
 > **상태:** 온라인 플레이 가능한 개발 프로토타입
 > **인원:** 실제 사용자 2~8명 · 빈 좌석은 AI가 채워 항상 8인으로 진행
 > **서버:** Cloudflare Workers + Durable Objects + WebSocket
+> **언어:** 한국어 · English (브라우저 언어로 자동 선택, 환경 설정에서 변경)
 
 게임 안의 **게임 설명**은 두 갈래로 나뉩니다. 포커가 처음이라면 *초보자 가이드*, 규칙과 수치를 바로 찾고 싶다면 *규칙서*를 여세요. 아래 README도 같은 순서입니다.
 
@@ -33,10 +34,10 @@ R1 8명 ─ R2 8명 ─ R3 6명 ─ R4 4명 ─ R5 최종 순위
 
 | 라운드 | 한 줄 설명 |
 | --- | --- |
-| **R1 TWO HAND** | 내 카드 2장 + 보드 5장. 익숙한 홀덤으로 3경기 |
+| **R1 CLASSIC HOLD'EM** | 내 카드 2장 + 보드 5장. 익숙한 홀덤으로 3경기 |
 | **R2 RUN IT TWICE** | 드래프트로 3장을 만들고, 중심 카드 1장을 두 판에 모두 사용 |
-| **R3 OMAHA** | 4장을 갖지만 반드시 내 카드 2장 + 보드 3장. 탈락 시작 |
-| **R4 BEST FIVE** | 내 카드 5장 + 보드 5장. 승자조 / 생존조로 나뉨 |
+| **R3 OMAHA SWISS** | 4장을 갖지만 반드시 내 카드 2장 + 보드 3장. 탈락 시작 |
+| **R4 BEST FIVE OF TEN** | 내 카드 5장 + 보드 5장. 승자조 / 생존조로 나뉨 |
 | **R5 THE LAST HAND** | 보드 없이 내 카드 7장 중 BEST 5. 남은 4명의 결승 |
 
 ```text
@@ -170,29 +171,49 @@ Final Score = 누적 Point + R5 Hand Score + floor(남은 BB / 10)
 
 | 단계 | 제한 시간 | 동작 |
 | --- | ---: | --- |
+| 어빌리티 선택 순서 공개 | 3초 | 주사위로 선택 순서를 정해 모든 좌석에 공개 |
+| 어빌리티 선택 | 플레이어당 12초 | 시간 초과 시 남은 카드 중 하나를 자동 선택 |
+| 어빌리티 공개 확인 | 30초 | 모두 준비하면 바로 상점으로 이동 |
 | 상점 | 60초 | 미완료 좌석은 시간이 끝나면 자동 준비 |
 | Draft Order · Deal-In | 3초 | 모든 좌석이 같은 카드 배치 연출을 본 뒤 선택 시작 |
 | 공개 드래프트 선택 | 플레이어당 20초 | AI 선택은 1.8초 간격 · 시간 초과 시 자동 선택 |
+| 드래프트 결과 공개 | 3.5초 | 마지막 선택 뒤 모든 픽을 보여주고 다음 단계로 |
 | R2 RUN 카드 배치 | 30초 | 미완성 배치는 자동 완성 후 확정 |
-| 쇼다운 매치업 동기화 | 3초 | 플레이어 구도를 표시하며 상대와 화면을 동기화한 뒤 자동 시작 |
+| 쇼다운 매치업 동기화 | 3.5초 | 플레이어 구도와 예상 승률을 표시하며 상대와 화면을 동기화한 뒤 자동 시작 |
 | R4 브래킷 확인 | 10초 | 승자조와 생존조 구성을 확인 |
 | 라운드 결과 | 30초 | 결과 확인 후 다음 단계로 이동 |
 | 다음 라운드 · 생존 타이브레이크 준비 | 30초 | 미응답 좌석은 서버가 자동 처리 |
-| 쇼다운 시네마틱 | 가변 | 카드 공개·BEST 5·결과·보상 연출, 매치 사이 1.5초 유지 |
+| 쇼다운 시네마틱 | 가변 | 카드 공개·BEST 5·결과·보상 연출. 매치 사이에는 결과를 3초 보여준 뒤 다음 매치업(3.5초)으로 이동 |
 
-R4의 실제 순서는 `Draft Order 3초 → 순차 드래프트(각 20초, AI 1.8초) → 상점 60초 → 1차전 준비 3초 → 1차전 시네마틱 → 브래킷 확인 10초 → 2차전 준비 3초 → 승자조·생존조 시네마틱 → 결과 30초 → 다음 라운드`입니다.
+R4의 실제 순서는 `Draft Order 3초 → 순차 드래프트(각 20초, AI 1.8초) → 드래프트 결과 3.5초 → 상점 60초 → 1차전 준비 3.5초 → 1차전 시네마틱 → 브래킷 확인 10초 → 2차전 준비 3.5초 → 승자조·생존조 시네마틱 → 결과 30초 → 다음 라운드`입니다.
 
 ---
 
 ## Screenshots
 
-**Showdown** — 라운드마다 다른 아레나 배경 위에서 카드가 뒤집히고 BEST 5가 빛납니다.
+**Ability Draft** — 게임 시작 전 뒷면 카드 12장 중 1장을 골라 나만의 어빌리티를 받습니다. 카드를 누르면 뒤집혀 상세 규칙이 보입니다.
+
+![Ability Draft](holto-chess/docs/screenshots/ability-card.webp)
+
+**Open Draft** — 공개된 카드를 승점 낮은 순서대로 한 장씩 가져갑니다. 이미 누가 가져간 카드인지 모두에게 보입니다.
+
+![Open Draft](holto-chess/docs/screenshots/open-draft.webp)
+
+**Run It Twice** — 쇼다운 직전, 두 RUN의 카드 구성과 RUN별 예상 승률을 보여줍니다.
+
+![Run It Twice](holto-chess/docs/screenshots/run-it-twice-prep.webp)
+
+**Showdown** — 보드가 한 장씩 열리고 BEST 5가 빛나며, RUN마다 승점과 BB가 정산됩니다.
 
 ![Showdown](holto-chess/docs/screenshots/showdown-r2.webp)
 
-**Final Table** — 4인 최종전. 7장을 3 → 2 → 2로 공개하고 순위 도장이 찍힙니다.
+**Final Showdown** — 커뮤니티 보드 없이 남은 4명이 7장 중 BEST 5로 마지막 순위를 가립니다.
 
-![Final Table](holto-chess/docs/screenshots/final-table.webp)
+![Final Showdown](holto-chess/docs/screenshots/final-table.webp)
+
+**Final Standings** — 누적 승점 + 족보 점수 + 스택 점수로 1~8위를 확정합니다.
+
+![Final Standings](holto-chess/docs/screenshots/final-standings.webp)
 
 ---
 
@@ -238,7 +259,10 @@ holto-chess/
 │  ├─ core/     # 카드와 포커 평가기 (족보 · BEST 5)
 │  ├─ game/     # 게임 규칙, 방 상태, 밸런스 수치, 봇
 │  ├─ shared/   # 클라이언트·서버 공용 프로토콜과 연출 타임라인
-│  └─ ui/       # React 화면과 쇼다운 시네마틱
+│  ├─ i18n/     # 한국어 · 영어 문구
+│  ├─ tutorial/ # 체험 · 길라잡이 5장
+│  ├─ admin/    # 제보 · 문의 관리자 수신함
+│  └─ ui/       # React 화면, 쇼다운 시네마틱, 게임 설명
 ├─ worker/      # Cloudflare Worker + Durable Object
 ├─ tools/       # 밸런스 시뮬레이터, 운영 스크립트
 └─ public/      # 배경 아트 등 정적 에셋
@@ -262,7 +286,20 @@ npm run test:workers
 npm run deploy
 ```
 
-저장소 루트의 명령은 모두 `holto-chess/`로 위임됩니다.
+저장소 루트의 명령은 모두 `holto-chess/`로 위임됩니다. 앱 구조와 개발 원칙은 [holto-chess/README.md](holto-chess/README.md)에 있습니다.
+
+### 밸런스 시뮬레이터
+
+규칙을 다시 구현하지 않고 실제 게임 엔진으로 8인 게임을 끝까지 반복 실행해, 정책·좌석·드래프트 순번·카드·경제·점수 구성·어빌리티별 결과를 신뢰구간과 함께 집계합니다.
+
+```bash
+cd holto-chess
+node tools/balance-simulator/run.mjs --games 200 --jobs 4                      # 현행 규칙
+node tools/balance-simulator/run.mjs --games 200 --set rankPrices.14=15 --compare # 수치 변경 전후 비교
+node tools/balance-simulator/run.mjs --games 2000 --abilities --policies ABILITY_AWARE --rows --jobs 8
+```
+
+자세한 옵션은 [tools/balance-simulator/README.md](holto-chess/tools/balance-simulator/README.md)를 보세요.
 
 ---
 
@@ -279,11 +316,18 @@ npm run deploy
 - [x] 탈락자 관전 · 재대결
 - [x] 어빌리티 12종 · 게임 시작 전 어빌리티 드래프트
 - [x] 게임 설명: 초보자 가이드 / 규칙서 분리
+- [x] 체험 · 길라잡이 (5장, 라운드별 연습)
+- [x] 한국어 · 영어 지원
+- [x] 메이드 족보 효과음 · 음량 설정
+- [x] 쇼다운 전 예상 승률 표시
+- [x] 제보 · 문의 양식과 관리자 수신함
+- [x] 멀티플레이 대전 기록을 기기에 저장 (최근 20경기)
+- [x] 실제 엔진 기반 밸런스 시뮬레이터 · 어빌리티별 승률 측정
 
 ### In Progress
 - [ ] 밸런스 조정
 - [ ] AI 전략 개선
-- [ ] 사운드 / BGM
+- [ ] BGM
 - [ ] 랭킹 · 계정 시스템 (미구현)
 - [ ] Steam 빌드
 
@@ -304,7 +348,7 @@ PORENA는 텍사스 홀덤을 그대로 복제하지 않습니다.
 
 - 밸런스 시뮬레이션 기반 수치 조정
 - AI 전략 고도화
-- 사운드 디자인
+- BGM · 사운드 디자인 확장
 - 계정 · 랭킹 시스템
 - Steam 빌드
 
