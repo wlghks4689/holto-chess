@@ -23,7 +23,7 @@
 | 포식자 | `predator.webp` | `predator.png` |
 | 건축가 | `architect.webp` | `architect.png` |
 | 자본주의 | `capitalism.webp` | `capitalism.png` |
-| 제로리스크 | `zero-risk.webp` | `zero-risk.png` |
+| 프로텍터 (구 제로리스크) | `zero-risk.webp` | `zero-risk.png` |
 | 쿼드 코어 | `quad-core.webp` | `quad-core.png` |
 | 독주자 | `front-runner.webp` | `front-runner.png` |
 
