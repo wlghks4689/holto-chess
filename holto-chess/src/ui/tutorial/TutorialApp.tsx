@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { localizeSeatNames } from "../botNames";
 import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
 import {
   beginSecondary, buyCard, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts, pickDraftCard,
@@ -109,7 +110,8 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
   const { locale, t } = useTranslation();
   const chapter = chapterById(session.chapterId);
   const step = currentStep(session);
-  const game = session.game;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
+  const game = useMemo(() => localizeSeatNames(session.game, t), [session.game, locale]);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [guideHidden, setGuideHidden] = useState(false);

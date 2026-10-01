@@ -2,7 +2,7 @@ import { ArenaBrand } from "./ArenaBrand";
 import { ShopAbilityPanel, RoundAbilityBenefits } from "./AbilityVisibility";
 import { abilityBenefit, personalAbilityCues } from "../game/abilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BALANCE, cardPrice, purchaseLimitFor } from "../game/config";
 import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "../game/abilities";
 import {
@@ -36,6 +36,7 @@ import { LocalResultWindow } from "./LocalResultWindow";
 import { classifyGameError } from "../shared/gameErrorCode";
 import { renderGameError, type ReceivedGameError } from "../i18n/gameError";
 import { localizedIcmDetail } from "./rewardDetail";
+import { localizeSeatNames } from "./botNames";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { useLocalCountdown } from "./useLocalCountdown";
@@ -164,8 +165,10 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
 }
 
 export function App({ onHome }: { onHome: () => void }) {
-  const { t } = useTranslation();
-  const [state, setState] = useState(() => createAbilityGame()); const [error, setError] = useState<ReceivedGameError | null>(null);
+  const { locale, t } = useTranslation();
+  const [rawState, setState] = useState(() => createAbilityGame());
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
+  const state = useMemo(() => localizeSeatNames(rawState, t), [rawState, locale]); const [error, setError] = useState<ReceivedGameError | null>(null);
   const [exiting, setExiting] = useState(false);
   const [gameVersion, setGameVersion] = useState(0);
   const [manualGuideRound, setManualGuideRound] = useState<Round | null>(null);
