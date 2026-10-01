@@ -1,5 +1,7 @@
 # PORENA
 
+**한국어** · [English](README.en.md)
+
 > **Tactical Poker Autobattler**
 
 ![PORENA](holto-chess/docs/screenshots/start-screen.webp)
