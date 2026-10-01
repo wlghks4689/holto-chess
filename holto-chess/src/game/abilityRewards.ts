@@ -1,4 +1,4 @@
-import { madeAbilityReward, quadCorePlacementBonus, type AbilityEvent } from "./abilities";
+import { CAPITALISM_INTEREST_PERCENT, madeAbilityReward, predatorStreakReward, protectorLossReward, quadCorePlacementBonus, targetSniperWinReward, type AbilityEvent } from "./abilities";
 import type { MatchResult, PlayerState, PorenaGameState } from "./types";
 import { FRONT_RUNNER_POINTS } from "./config";
 import { compareRoundStanding } from "./roundRanking";
@@ -45,15 +45,16 @@ export function rewardAbilities(state: PorenaGameState, match: MatchResult): voi
     const won = winners.length === 1 && winners[0] === player.id && result.hand.categoryRank > 0;
     if (player.abilityId === "predator") {
       player.abilityWinStreak = won ? (player.abilityWinStreak ?? 0) + 1 : 0;
-      if (won && player.abilityWinStreak >= 2) record(state, player, "win-streak", 10, 0, 0, match);
+      if (won) record(state, player, "win-streak", predatorStreakReward(player.abilityWinStreak), 0, 0, match);
     }
+    if (won) record(state, player, "won-with-first-card", targetSniperWinReward(player, result.hand), 0, 0, match);
     if (result.hand.categoryRank > 0) {
       const reward = madeAbilityReward(player, result.hand, state.round);
       if (reward.bb || reward.points) record(state, player, "made-hand", reward.bb, reward.points, 0, match);
     }
     const equity = match.equities?.[player.id];
     if (player.abilityId === "zero-risk" && state.round < 5 && winners.length === 1 && !won && equity?.insuranceEligible)
-      record(state, player, "favored-loss", 20, 0, 0, match);
+      record(state, player, "favored-loss", protectorLossReward(equity.rawPercent), 0, 0, match);
   }
 }
 
@@ -77,5 +78,5 @@ export function rewardAbilityInterest(state: PorenaGameState): void {
   if (state.survival || state.abilityInterestRounds?.includes(state.round)) return;
   (state.abilityInterestRounds ??= []).push(state.round);
   for (const player of state.players.filter(item => !item.eliminated && item.abilityId === "capitalism"))
-    record(state, player, "round-interest", Math.floor(player.stackBB * 0.2));
+    record(state, player, "round-interest", Math.floor(player.stackBB * CAPITALISM_INTEREST_PERCENT / 100));
 }

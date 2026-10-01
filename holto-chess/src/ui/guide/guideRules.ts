@@ -1,5 +1,5 @@
 import type { HandCategory } from "../../core/poker/evaluate";
-import { ABILITY_IDS, type AbilityId } from "../../game/abilities";
+import { ABILITY_IDS, CAPITALISM_INTEREST_PERCENT, PREDATOR_BB_PER_STREAK, PROTECTOR_TIERS, TARGET_SNIPER_WIN_BB, type AbilityId } from "../../game/abilities";
 import type { TranslationKey } from "../../i18n";
 import { BALANCE, FINAL_ROUND_PLACEMENT_POINTS, FRONT_RUNNER_POINTS, ROUND_POINTS } from "../../game/config";
 
@@ -51,15 +51,16 @@ export const handScore = (category: HandCategory) => BALANCE.handScores[category
 /** Ability values the copy quotes. Kept beside the ids so a new ability needs one entry here and one copy entry per locale. */
 export const ABILITY_NUMBERS: Record<AbilityId, Record<string, number>> = {
   "royal-blood": { discountPercent: 50 },
-  "target-sniper": { bb: 15 },
+  "target-sniper": { bb: TARGET_SNIPER_WIN_BB },
   underdog: { points: 20 },
   "first-class": {},
   "golden-hand": { extraShop: 1, refundPercent: 100 },
   trader: { extraRerolls: 1 },
-  predator: { bb: 10, fromStreak: 2 },
+  predator: { bbPerStreak: PREDATOR_BB_PER_STREAK, fromStreak: 2 },
   architect: { bb: 30 },
-  capitalism: { percent: 20 },
-  "zero-risk": { bb: 20, equity: 60 },
+  capitalism: { percent: CAPITALISM_INTEREST_PERCENT },
+  // Protector tiers, lowest first: equity60/bb60, equity70/bb70, equity80/bb80.
+  "zero-risk": Object.fromEntries([...PROTECTOR_TIERS].reverse().flatMap((tier) => [[`equity${tier.minPercent}`, tier.minPercent], [`bb${tier.minPercent}`, tier.bb]])),
   "quad-core": { multiplier: 2 },
   "front-runner": Object.fromEntries(([1, 2, 3, 4, 5] as const).map((round) => [`r${round}`, FRONT_RUNNER_POINTS[round]])),
 };

@@ -1,6 +1,6 @@
 import { makeDeck, type Card } from "../../src/core/poker/cards";
 import { findBestFive, findBestOmaha } from "../../src/core/poker/evaluate";
-import type { AbilityId } from "../../src/game/abilities";
+import { CAPITALISM_INTEREST_PERCENT, type AbilityId } from "../../src/game/abilities";
 import { scoreBotPlan } from "../../src/game/botStrategy";
 import { BALANCE, cardPrice } from "../../src/game/config";
 import type { Round } from "../../src/game/types";
@@ -74,6 +74,8 @@ function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined
       bonus(round, cards, _stack, _price, key) {
         const first = cards.find((c) => c.id === firstCardId);
         if (!first) return -40; // selling the first card would switch the ability off
+        // Since 2026-10-01 it pays on an outright win with the first card in the BEST 5 (any hand), so hands
+        // the first card makes strong are still the ones most likely to collect it.
         const { strongWithFirst } = completedCategories(round, cards, `${key}:sn`, firstCardId);
         return MATCHES[round] * strongWithFirst * 15 * UNITS_PER_BB;
       },
@@ -109,9 +111,9 @@ function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined
       },
     };
     case "capitalism": return {
-      // Every BB left after a round earns 20% interest. v1 priced cash at 1.6 units/BB and hoarded (R5 reach 41% vs 55% for the
+      // Every BB left after a round earns CAPITALISM_INTEREST_PERCENT (15% since 2026-10-01) interest. v1 priced cash at 1.6 units/BB and hoarded (R5 reach 41% vs 55% for the
       // plain brain); the planner itself values a BB at 0.035, so this only leans that value up in proportion to interest rounds left.
-      bonus: (round, _cards, stackAfter) => stackAfter * 0.035 * 0.2 * Math.max(0, 5 - round) * 4,
+      bonus: (round, _cards, stackAfter) => stackAfter * 0.035 * (CAPITALISM_INTEREST_PERCENT / 100) * Math.max(0, 5 - round) * 4,
     };
     default: return { bonus: () => 0 };
   }

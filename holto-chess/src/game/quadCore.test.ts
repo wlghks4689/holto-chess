@@ -41,13 +41,12 @@ describe("QUAD CORE identity and hand conditions", () => {
   it.each([1, 2, 3, 4] as Round[])("never activates in R%s", round => {
     expect(quadCorePlacementBonus(owner, quads, round, 20)).toBe(0);
   });
-  it("requires the exact first card among the quads, not a kicker, missing or sold card", () => {
+  it("pays for any final Quads, whatever the starting card (2026-10-01 rule)", () => {
     expect(quadCorePlacementBonus(owner, quads, 5, 20)).toBe(20);
-    for (const firstCardId of ["As", "2c", "Ah", undefined])
-      expect(quadCorePlacementBonus({ ...owner, firstCardId }, quads, 5, 20)).toBe(0);
-    expect(quadCorePlacementBonus({ ...owner, ownedCardIds: [] }, quads, 5, 20)).toBe(0);
-    // Selling does not change identity; reacquiring that exact card restores eligibility.
-    expect(quadCorePlacementBonus({ ...owner, ownedCardIds: [...quadsIds] }, quads, 5, 20)).toBe(20);
+    // The starting card and ownership no longer matter.
+    const variants = [...["As", "2c", "Ah", undefined].map(firstCardId => ({ ...owner, firstCardId })), { ...owner, ownedCardIds: [] }];
+    for (const variant of variants) expect(quadCorePlacementBonus(variant, quads, 5, 20)).toBe(20);
+    expect(quadCorePlacementBonus({ ...owner, abilityId: "predator" }, quads, 5, 20)).toBe(0);
     expect(quadCorePlacementBonus(owner, quads, 5, 0)).toBe(0);
   });
   it.each([
@@ -56,7 +55,7 @@ describe("QUAD CORE identity and hand conditions", () => {
     ["As", "Ks", "Qs", "Js", "Ts", "2c", "3c"],
   ])("does not activate on other final categories: %j", (...ids) => {
     const hand = findBestFive(deck.filter(card => ids.includes(card.id)));
-    expect(quadCorePlacementBonus({ ...owner, ownedCardIds: ids }, hand, 5, 20)).toBe(0);
+    expect(quadCorePlacementBonus(owner, hand, 5, 20)).toBe(0);
   });
   it.each(ABILITY_IDS.filter(id => id !== "quad-core"))("does not alter %s", abilityId => {
     expect(quadCorePlacementBonus({ ...owner, abilityId }, quads, 5, 20)).toBe(0);
