@@ -11,10 +11,13 @@
   ],
   "assets": {
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
+    // The Worker serves the app shell for page navigations only (worker/index.ts). A missing file under /assets/
+    // must stay a 404: an SPA fallback there returned index.html under the year-long immutable JS cache rule.
+    "not_found_handling": "none",
     // Every page request reaches the Worker so admin.porena.kr never falls back to the game's index.html.
-    // Static media and hashed bundles are still served directly.
-    "run_worker_first": ["/*", "!/assets/*", "!/favicon-32.png", "!/favicon-192.webp", "!/apple-touch-icon.png"]
+    // Hashed bundles (/assets/*.js|css at the folder root) also pass through it: _headers marks that path immutable
+    // even on a 404, so the Worker turns a missing chunk into an uncacheable 404. Media folders are served directly.
+    "run_worker_first": ["/*", "!/assets/abilities/*", "!/assets/audio/*", "!/assets/brand/*", "!/assets/draft/*", "!/assets/final/*", "!/assets/start/*", "!/assets/table/*", "!/favicon-32.png", "!/favicon-192.webp", "!/apple-touch-icon.png"]
   },
   "d1_databases": [
     { "binding": "FEEDBACK_DB", "database_name": "porena-feedback", "database_id": "26ec86c4-3904-4eab-8a76-09e3261757dc", "migrations_dir": "migrations" }
