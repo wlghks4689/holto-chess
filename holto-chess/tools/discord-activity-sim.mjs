@@ -27,7 +27,7 @@ execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyo
   "-addext", `subjectAltName=DNS:${ALLOWED_ID}.discordsays.com,DNS:${FOREIGN_ID}.discordsays.com,DNS:discord-sim.test`], { stdio: "ignore" });
 
 const log = [];
-const parentPage = (id) => `<!doctype html><title>discord-sim</title><body style="margin:0"><iframe id="act" style="width:100vw;height:100vh;border:0" src="https://${id}.discordsays.com/?instance_id=i-sim&frame_id=f-sim&platform=desktop"></iframe></body>`;
+const parentPage = (id) => `<!doctype html><meta name="viewport" content="width=device-width, initial-scale=1"><title>discord-sim</title><body style="margin:0"><iframe id="act" style="width:100vw;height:100vh;border:0" src="https://${id}.discordsays.com/?instance_id=i-sim&frame_id=f-sim&platform=desktop"></iframe></body>`;
 const proxy = https.createServer({ key: fs.readFileSync(`${OUT}/key.pem`), cert: fs.readFileSync(`${OUT}/cert.pem`) }, (req, res) => {
   if (req.headers.host?.startsWith("discord-sim.test")) {
     res.writeHead(200, { "content-type": "text/html" });

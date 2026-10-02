@@ -1,7 +1,7 @@
 # PORENA Discord Activity — Compatibility Spike 보고서
 
 - 작성: 2026-10-02 · 작업 브랜치 `claude/zen-edison-cxisk1`
-- **기준 커밋(BASE)**: `39ba4dbd33a6770340b7b981987fa17c00c12c44` (`origin/main`, fetch로 확인. 작업 브랜치 HEAD와 동일한 지점에서 시작)
+- **기준 커밋(BASE)**: 최초 `39ba4dbd33a6770340b7b981987fa17c00c12c44` → **2026-10-02 재정리 후 `629901931601c8abca0c5d539426069480c376b1`**(`origin/main`, idle lobby/room expiry 포함) 위로 rebase. 재정리 내용은 §10
 - 범위: Discord Activity iframe에서 기존 웹 버전이 부팅되고, 기존 Multiplayer(방 생성 → 방 코드 → 참가 → 진행)가 동작하는지를 코드와 실행 증거로 확인한다.
 - 이번 작업에서 하지 않은 것: 게임 규칙·밸런스·엔진·state machine 변경, CrazyGames 코드, 배포, Developer Portal 설정, Discord Verification 신청.
 
@@ -121,7 +121,7 @@
 | 명령 | 결과 |
 |---|---|
 | `npm test` (= `npm run test`) | **87 files / 610 tests passed** (신규 3 files / 8 tests 포함) |
-| `npm run test:workers` | **3 files / 27 tests passed** (신규 `discordOrigin.test.ts` 5 tests 포함) |
+| `npm run test:workers` | **3 files / 27 tests passed** (신규 `discordOrigin.test.ts` 5 tests 포함). 재정리 후에는 main의 `lobbyExpiry.test.ts`가 더해져 4 files / 28 tests(§10) |
 | `npm run lint` | 경고·에러 0 |
 | `npm run build` | 성공. `dist/client/assets/discord-*.js`가 별도 청크로 생성됨. `index.html`에는 이 청크의 preload가 없음 |
 
@@ -234,3 +234,68 @@
 - Discord Developer change log — `/.proxy/` 접두사 요구 제거: https://discord.com/developers/docs/change-log
 - Discord embedded-app-sdk 2.5.0 (`node_modules/@discord/embedded-app-sdk/output/Discord.mjs`): 생성자가 `frame_id`, `instance_id`, `platform` 쿼리를 필수로 요구함을 확인
 - 이 환경에서는 discord.com 문서에 직접 접근할 수 없었다(egress 차단). Portal 항목은 공식 가이드로 다시 확인해야 한다.
+
+---
+
+## 10. PR #1 재정리 — 최신 main 위로 rebase (2026-10-02)
+
+### 기준
+
+| 항목 | 값 |
+|---|---|
+| 이전 PR head | `58630d6a8358b60dfebf2afd2d3c449e77231965` (base `39ba4db`, main보다 2 commits behind) |
+| 새 base(current main) | `629901931601c8abca0c5d539426069480c376b1` |
+| 방법 | 작업 브랜치(Claude가 만든 `claude/zen-edison-cxisk1`)를 `origin/main` 위로 rebase. 충돌 없음. `--force-with-lease`로 push |
+| 보존 확인 | main의 `fb12145`(idle lobby 30분 만료, 클럭 프로브 제한, `Room expired` 처리, `online.roomExpired` 문구)와 `6299019`(운영 기록)가 그대로 유지된다. 겹친 3개 파일(`en-US.ts`, `ko-KR.ts`, `OnlineApp.tsx`)은 서로 다른 위치를 수정하므로 자동으로 병합됨. Discord 쪽 변경은 키 1개 추가와 `endpoints`/`roomSocketUrl` 치환뿐 |
+
+### 의존성
+
+- 기존 `node_modules`, `dist`, 생성 타입을 지운 뒤 `npm ci`(PR의 `package-lock.json` 기준)로 다시 설치했다. 242 packages, `@discord/embedded-app-sdk` **2.5.0** 설치 확인. lockfile 충돌이 없어 재생성할 필요가 없었다.
+
+### 검증 (clean install, 최종 head)
+
+| 명령 | 결과 |
+|---|---|
+| `npm test` (= `npm run test`), 기본 병렬 | **87 files / 610 tests passed**, 60.4s. timeout 없음. 그래서 제한된 worker 설정으로 재실행할 필요가 없었다 |
+| Discord 단위 테스트 개별 확인 (`vitest run src/platform src/network --reporter=verbose`) | 3 files / 8 tests passed. `discord.test.ts`는 실제 SDK 모듈을 import해 실행한다(handshake 타임아웃 51ms 등) |
+| `npm run test:workers` | **4 files / 28 tests passed**. `discordOrigin.test.ts` 5개와 main의 `lobbyExpiry.test.ts` 1개 포함 |
+| `npm run lint` | 에러·경고 0 |
+| `npm run build` | 성공. `discord-*.js` 147.95 kB가 별도 청크로 생성되고, `dist/client/index.html`에는 discord 참조가 0건 |
+| Discord 시뮬레이션 (`tools/discord-activity-sim.mjs`) | Activity origin `POST /api/rooms` 201, `WS` 101. 웹(모바일) 사용자가 초대 링크로 참가하고 양쪽 READY 후 R1 진입. 다른 앱 ID는 403. **웹은 SDK 청크 요청 0건** |
+
+### Platform notice 위치 QA (360×740 모바일, 1440×900 desktop, Discord 시뮬레이션 iframe)
+
+- 배너 위치: 모바일 `x16 y8 w328 h77`, desktop `x440 y8 w560 h58`.
+- 시작 화면·대기실에서는 겹치는 조작 요소가 없다.
+- **문제 발견**: 게임이 시작된 뒤에도 배너가 남아 있으면 상단 nav를 덮는다.
+  - 모바일: "홈으로", "나가기", R1 가이드 "×"
+  - desktop: "홈으로", 라운드 진행 표시
+- **최소 수정**: 레이아웃은 바꾸지 않고, 배너를 **10초 뒤 자동으로 숨긴다**(`PLATFORM_NOTICE_VISIBLE_MS`). 닫기 버튼은 유지한다.
+  - 재측정 결과 두 해상도 모두 실패 후 10.5초 시점에 HIDDEN, 겹침 0.
+  - SDK 실패는 페이지 로드 약 10초 뒤에 판정된다. 그래서 대부분 시작 화면이나 대기실에서 보였다가 게임 시작 전에 사라진다.
+- 시뮬레이션 하네스의 부모 페이지에 viewport meta를 추가했다. 없으면 모바일 iframe 폭이 980px로 잡혀 측정이 틀어진다.
+
+### Cloudflare PR deployment failure (`58630d6`)
+
+- GitHub check run `Workers Builds: porena`(id 110692911558): conclusion `failure`.
+  - `started_at`와 `completed_at`가 모두 `2026-10-02T03:30:51Z`(0초)이고, output text가 비어 있다.
+  - details URL은 Cloudflare 대시보드의 build `cd5aaa8b-6809-4172-9bea-c43385366f0a`를 가리킨다.
+- 이 세션에는 Cloudflare 대시보드 접근 권한이 없다. 원인: **UNVERIFIED — Cloudflare dashboard log required.**
+- 같은 빌드 명령(`npm run build`)은 로컬 clean install 환경에서 성공했다. production deploy는 하지 않았다.
+
+### 미해결 위험 (OPEN RISK)
+
+1. **Rate limit**: `CF-Connecting-IP` 기반이라 Discord 사용자끼리 버킷을 공유할 가능성이 있다. 정책은 바꾸지 않았다. 실제 Discord에서 `Origin`, `Host`, `CF-Connecting-IP`, `CF-Ray`, `X-Forwarded-For`, `Forwarded`, `X-Real-IP`, `X-Forwarded-Proto`를 관찰한 뒤 별도 작업으로 다룬다(TODO `DIST-DISCORD-001-HEADERS`, `-RATELIMIT`).
+2. **대기실 WebSocket 무활동 (main 변경과의 상호작용, 신규)**: main의 `fb12145` 이후 대기실에서는 클럭 프로브를 보내지 않아 WebSocket이 조용하다.
+   - Discord 프록시에 WebSocket 유휴 타임아웃이 있다면, 대기실 연결이 끊기고 클라이언트가 재접속한다.
+   - 재접속 시 `JOIN_ROOM`이 닉네임과 함께 전송되고, 대기실에서는 이것이 commit되어 30분 idle 타이머를 다시 시작한다(`worker/GameRoom.ts`의 JOIN_ROOM 처리).
+   - 결과적으로 Discord에서는 무활동 대기실이 닫히지 않을 수 있다. 코드는 바꾸지 않았다(main 동작 보존). 실제 Discord 테스트에서 대기실 연결이 무활동 상태로 유지되는지 확인해야 한다(TODO `DIST-DISCORD-001-PLAYTEST`).
+3. 실제 Discord 클라이언트 동작(Origin 전달, CSP, SDK ready, 모바일 웹뷰)은 여전히 미검증이다(§6).
+4. Cloudflare Workers Builds 실패 원인 미확인(위).
+
+### PR 범위 확인
+
+- PR 변경은 Discord 플랫폼 작업과 승인된 협업 문서 기록뿐이다.
+  - `product_doc/TODO.md`: `DIST-DISCORD-001` 추가
+  - `product_doc/DECISIONS.md`: 사용자가 승인한 5개 결정만 기록
+- 게임 엔진(`src/game`, `src/core`), 밸런스, 에셋(`public/`, `asset-source/`), `GameRoom.ts` 변경은 없다.

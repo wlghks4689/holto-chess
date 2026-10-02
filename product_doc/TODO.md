@@ -8,6 +8,20 @@
 
 - [x] 담당 Codex | 상태 DONE | 의존 사용자 2026-10-02 브라우저 주석 | 완료 조건: R4 드래프트 풀은 항상 8열 두 줄, 타겟 스나이퍼 소유자에게 최초 지급 카드 표기, 최종 순위표에서 랭크 점수 항목과 값 숨김 | 검증: 관련 UI/게임 테스트 27개, lint, build 통과. Worker suite 22/23; 남은 재롤 경합 테스트는 단독 재실행 통과.
 
+## Discord Activity 출시 준비
+
+### 독립 배포 트랙 (porena.kr 운영 배포·CrazyGames 작업과 분리)
+
+#### DIST-DISCORD-001 — Discord Activity 호환성 확인 및 배포 준비
+
+- [ ] DIST-DISCORD-001-SPIKE | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 지시 | 완료 조건: PR #1(`claude/zen-edison-cxisk1`)이 최신 main 위에서 Discord 플랫폼 작업만 포함, 플랫폼 판별·SDK 동적 import·exact Origin allowlist·테스트·시뮬레이션 유지 | 검증: unit/Worker/lint/build 및 로컬 Discord 시뮬레이션. 상세 `holto-chess/DISCORD_ACTIVITY_REPORT.md`. 게임 규칙·밸런스·엔진 변경 없음. merge는 사용자 승인.
+- [ ] DIST-DISCORD-001-PORTAL | 담당 사용자 | 상태 TODO | 의존 SPIKE merge | 완료 조건: Developer Portal 앱 생성, Activities 활성화, URL Mapping `/` → `porena.kr`, 테스트 유저 등록. Claude·Codex는 Portal 설정을 수행하지 않는다.
+- [ ] DIST-DISCORD-001-CONFIG | 담당 Codex | 상태 BLOCKED | 의존 PORTAL | 완료 조건: Application ID를 `holto-chess/wrangler.jsonc`의 `DISCORD_ACTIVITY_CLIENT_IDS`에 기록. 운영 배포는 사용자 별도 승인.
+- [ ] DIST-DISCORD-001-HEADERS | 담당 Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord 요청에서 Origin, Host, CF-Connecting-IP, CF-Ray, X-Forwarded-For, Forwarded, X-Real-IP, X-Forwarded-Proto의 존재·형태 관찰 기록. IP 원문은 저장·로그하지 않는다.
+- [ ] DIST-DISCORD-001-RATELIMIT | 담당 Codex | 상태 BLOCKED | 의존 HEADERS, 사용자 정책 승인 | 완료 조건: `CF-Connecting-IP` 기반 limiter가 Discord 사용자 간에 공유되는지(OPEN RISK) 판단 후 별도 작업으로 정책 결정. 그 전까지 rate-limit 변경 없음.
+- [ ] DIST-DISCORD-001-PLAYTEST | 담당 사용자·Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord에서 2인 R1~R5 완주(Activity↔Activity, Activity↔웹), desktop·mobile, SDK ready, 대기실 WebSocket 무활동 유지 확인.
+- [ ] DIST-DISCORD-001-CF-BUILD | 담당 사용자 | 상태 TODO | 의존 없음 | 완료 조건: PR #1 commit `58630d6`의 `Workers Builds: porena` 실패 원인을 Cloudflare 대시보드 로그로 확인. UNVERIFIED — Cloudflare dashboard log required.
+
 ## 첫 사용자 체험 동선
 
 ### 기본 체험과 선택 연습 분리
