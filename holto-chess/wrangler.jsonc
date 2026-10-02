@@ -25,7 +25,7 @@
   "vars": {
     // Discord Activity: comma-separated Discord application ids whose https://<id>.discordsays.com origin may
     // call /api/* and /ws/* (exact match, worker/origin.ts). Empty = porena.kr only. Public ids, not secrets.
-    "DISCORD_ACTIVITY_CLIENT_IDS": ""
+    "DISCORD_ACTIVITY_CLIENT_IDS": "1555427351829942353"
   },
   // Set with tools/admin/setup-admin.mjs. Never commit their values.
   "secrets": { "required": ["ADMIN_USERNAME", "ADMIN_PASSWORD_HASH", "ADMIN_SESSION_SECRET"] },
