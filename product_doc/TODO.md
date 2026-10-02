@@ -14,11 +14,11 @@
 
 #### LEGAL-001 — Privacy / Terms / Data Retention
 
-- [ ] LEGAL-001-PRIVACY | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 승인 | 완료 조건: `/privacy` 한국어·영어 개인정보처리방침, 직접 접근·새로고침 200, 시작 화면 하단 링크 | 검증: 단위·Worker·lint·build, 5개 해상도 브라우저 QA. qa/2026-10-02-legal.md. 커밋·push·운영 배포는 사용자 승인 대기.
-- [ ] LEGAL-001-TERMS | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 승인 | 완료 조건: `/terms` 한국어·영어 이용약관(실제 돈 도박 아님, 만 14세 이상, 대한민국 법) | 검증: PRIVACY와 동일.
-- [ ] LEGAL-001-RETENTION | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 승인 | 완료 조건: 매일 03:00 KST Cron으로 접수 90일 초과 피드백 영구 삭제, 보관(처리 완료) 시 답장 이메일 즉시 삭제 | 검증: `tests/worker/retention.test.ts`, `feedback.test.ts`. 운영 적용은 배포 후.
+- [x] LEGAL-001-PRIVACY | 담당 Claude | 상태 DONE | 의존 사용자 2026-10-02 승인 | 완료 조건: `/privacy` 한국어·영어 개인정보처리방침, 직접 접근·새로고침 200, 시작 화면 하단 링크 | 검증: 단위·Worker·lint·build, 5개 해상도 브라우저 QA. qa/2026-10-02-legal.md. 사용자 승인으로 `e11697b` 운영 배포, 운영 200 확인.
+- [x] LEGAL-001-TERMS | 담당 Claude | 상태 DONE | 의존 사용자 2026-10-02 승인 | 완료 조건: `/terms` 한국어·영어 이용약관(실제 돈 도박 아님, 만 14세 이상, 대한민국 법) | 검증: PRIVACY와 동일.
+- [ ] LEGAL-001-RETENTION | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 승인 | 완료 조건: 매일 03:00 KST Cron으로 접수 90일 초과 피드백 영구 삭제, 보관(처리 완료) 시 답장 이메일 즉시 삭제 | 검증: `tests/worker/retention.test.ts`, `feedback.test.ts`. `e11697b` 배포로 Cron 등록 완료. 첫 실행 로그 확인 후 DONE.
 - [ ] LEGAL-001-GA4 | 담당 사용자 | 상태 BLOCKED | 의존 Google Analytics 관리자 로그인 | 완료 조건: 관리 → 데이터 수집 및 수정 → 데이터 보관에서 이벤트 데이터 보관 14개월, 새 활동 시 사용자 데이터 재설정 OFF 저장 확인. Google Signals·광고 개인 최적화·사용자 제공 데이터 수집 상태 확인(변경 전 보고). 2026-10-02 내장 브라우저는 Google 로그인 상태가 아니어서 미적용.
-- [ ] LEGAL-001-DISCORD | 담당 사용자 | 상태 BLOCKED | 의존 PRIVACY·TERMS 운영 배포 | 완료 조건: Developer Portal 일반 정보에 Privacy Policy URL `https://porena.kr/privacy`, Terms of Service URL `https://porena.kr/terms` 입력 및 저장 확인.
+- [ ] LEGAL-001-DISCORD | 담당 사용자 | 상태 TODO | 의존 PRIVACY·TERMS 운영 배포(완료) | 완료 조건: Developer Portal 일반 정보에 Privacy Policy URL `https://porena.kr/privacy`, Terms of Service URL `https://porena.kr/terms` 입력 및 저장 확인.
 
 ## Discord Activity 출시 준비
 
