@@ -57,6 +57,10 @@
 .game-arena .round-results .summary-hand{display:flex;justify-content:center;flex-wrap:wrap;gap:4px}
 .game-arena .round-results .summary-hand>span{width:24px;min-width:24px;height:auto;aspect-ratio:var(--card-ratio);font-size:12px;line-height:1.1;padding:2px;display:flex;flex-direction:column}
 .game-arena .round-results .summary-hand .summary-card-suit{font-size:15px}
+@media (min-width:861px){
+  .game-arena .round-results.is-brackets .summary-hand{flex-wrap:nowrap;gap:2px}
+  .game-arena .round-results.is-brackets .summary-hand>span{flex:0 0 25px}
+}
 .game-arena .round-overview .leaderboard-table :is(th,td){overflow-wrap:anywhere}
 .game-arena .leaderboard-name{white-space:normal;overflow-wrap:anywhere}
 .game-arena .leaderboard-stack span{flex-wrap:wrap;justify-content:center}
@@ -78,6 +82,7 @@
 .game-arena .r2-order-name{min-width:0;overflow-wrap:anywhere}
 .game-arena .r2-current strong{overflow-wrap:anywhere}
 .game-arena .r2-draft .r2-arena{grid-template-columns:repeat(auto-fit,minmax(min(100%,60px),1fr));gap:12px 6px}
+.game-arena .r4-draft .r2-arena{grid-template-columns:repeat(8,minmax(0,1fr))}
 .game-arena .r2-draft .r2-card-slot{transform:none}
 .game-arena .r2-draft .r2-offer .playing-card{width:100%;max-width:90px;height:auto;aspect-ratio:var(--card-ratio)}
 .game-arena .r2-draft .r2-price{max-width:90px;min-height:40px;font-size:11px;white-space:normal}
