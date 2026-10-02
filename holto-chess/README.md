@@ -1,55 +1,45 @@
-# PORENA Prototype
+# PORENA — app
 
-52장 싱글 덱 소유 풀에서 카드를 사고팔며 R1부터 R5까지 생존·점수를 겨루는 독립 웹 프로토타입입니다. 기존 Hold'em 프로젝트를 런타임 의존성으로 사용하지 않습니다.
+게임 소개·규칙서는 [저장소 README](../README.md)에 있습니다. 이 문서는 `holto-chess/` 앱을 실행하고 고치는 개발자를 위한 안내입니다.
 
 ## 실행
-
-현재 Cloudflare Workers + Static Assets + SQLite-backed GameRoom Durable Object 기반의 온라인 개발 모드를 포함합니다. 구현 내역, 검증, 사용자 설정 및 배포 절차는 [Cloudflare 구현 보고서](./CLOUDFLARE_IMPLEMENTATION.md)를 참조하세요.
 
 ```bash
 npm ci
 npm run dev
 ```
 
+Cloudflare 개발 런타임(Workers + Durable Objects)이 함께 뜹니다. 같은 주소를 탭 두 개에서 열면 멀티플레이를 시험할 수 있고, 개발 서버에서는 화면 오른쪽 아래 버튼으로 싱글/멀티를 바로 전환할 수 있습니다.
+
 검증:
 
 ```bash
-npm test
-npm run test:workers
-npm run build
+npm test               # 게임·UI 단위 테스트
+npm run test:workers   # Worker / Durable Object 테스트
 npm run lint
+npm run build
 ```
 
-## 조작
+배포: `npx wrangler login` → `npm run deploy`. 운영 절차와 배포 기록은 [OPERATIONS.md](./OPERATIONS.md)를 따릅니다.
 
-카드 부족 시 타임아웃 몰수패 및 R4 공동 2위 각 3P 정책은 [현재 규칙](../README.md#shared-52-card-pool) 앞의 라운드 승점/몰수패 설명을 따릅니다. 카드가 없어도 게임은 진행하고, 몰수패에는 승점·BB 보상이 없습니다. 진출자 전원이 몰수패인 경우 하이카드 추첨은 진출자만 정합니다.
+## 코드 구조
 
-- 카드 마켓의 가격이 표시된 구매 버튼으로 카드를 구매합니다.
-- 내 카드의 `판매` 영역을 눌러 판매합니다.
-- 카드 보유 한도를 채운 뒤 하단 진행 버튼으로 쇼다운합니다.
-- R2에서는 보유 3장을 대표 카드 1장과 RUN별 보조 카드 2장으로 배치합니다.
-- R2/R4 종료 뒤 다음 라운드로 진행합니다.
-- 상대 플레이어는 같은 공용 카드풀과 경제 규칙 안에서 자동으로 운영됩니다.
+| 경로 | 역할 |
+| --- | --- |
+| `src/core/poker` | 카드·족보 평가·BEST 5·Omaha (게임 규칙과 무관한 순수 로직) |
+| `src/game` | PORENA 규칙: 카드 풀, 상점, 드래프트, 경제, 매칭, 탈락, 어빌리티, 방 상태(`room.ts`), 봇 |
+| `src/game/config.ts` | 가격·승점·BB·족보 점수 등 밸런스 수치의 단일 출처 |
+| `src/shared` | 클라이언트·서버 공용 프로토콜, 제한 시간, 연출 타임라인 |
+| `src/ui` | React 화면, 쇼다운 시네마틱, 게임 설명(초보자 가이드·규칙서) |
+| `src/tutorial` | 체험 · 길라잡이 5장 |
+| `src/i18n` | 한국어(`ko-KR`)·영어(`en-US`) 문구. 두 파일의 키는 항상 같아야 합니다 |
+| `src/admin` | 제보·문의 관리자 수신함 |
+| `worker/` | Cloudflare Worker와 방 하나당 하나의 `GameRoom` Durable Object |
+| `tools/balance-simulator` | 엔진을 그대로 돌리는 밸런스 시뮬레이터 ([사용법](./tools/balance-simulator/README.md)) |
 
-## 매치별 Community Board
+## 원칙
 
-각 쇼다운은 독립된 카드 유니버스를 사용합니다. 일반 52장 덱에서 해당 encounter 참가자들이 현재 소유한 모든 카드를 제외한 뒤 보드를 생성합니다. 이 임시 덱은 구매·예약·소유 상태를 변경하지 않습니다.
-
-Run It Twice의 BOARD 1과 BOARD 2는 하나의 encounter 덱에서 연속 10장을 뽑으므로 서로 겹치지 않습니다. 다른 매치끼리는 독립된 덱을 사용하므로 같은 카드가 서로의 보드에 나타날 수 있습니다.
-
-## 경계
-
-- `src/core/poker`: 특정 게임 모드와 무관한 카드·족보·BEST 5·Omaha 순수 로직
-- `src/game`: PORENA 전용 카드풀, 상점, 경제, 매칭, 탈락, 라운드 상태
-- `src/ui`: 모바일 우선 카드·상점·다인 쇼다운 표현
-
-ONLINE에서는 인간 2~8명이 입장하며 빈 좌석은 AI로 채워 기존 8인 규칙을 유지합니다. GameRoom이 상태를 소유하고 각 사용자에게 PlayerView만 보냅니다. 상점 구성·단계 진행은 서버 타이머와 준비 장벽으로 동기화하고, 이탈 좌석은 AI가 이어서 진행합니다. LOCAL / DEV simulation은 기존 한 기기 테스트 모드입니다. 계정·영구 랭크·최종 밸런스 인증은 포함하지 않습니다.
-
-## 온라인 사용
-
-1. `npm run dev`로 Cloudflare 개발 런타임을 실행합니다.
-2. 새 탭 두 개에서 같은 주소를 엽니다. 첫 탭에서 Create Room, 다음 탭에서 방 코드를 입력하고 Join Room을 누릅니다.
-3. 양쪽 READY 후 개인 상점에서 구성하고 구성 확정을 누릅니다. R2는 출전 2장을 먼저 저장합니다.
-4. 이후 생존 플레이어들이 확인을 누르면 다음 단계로 진행합니다.
-
-배포: `npx wrangler login` → `npm run deploy`. 기존 동일 이름 Worker와 대상 계정을 먼저 확인하세요. 현재 저장소에는 credential이 필요하지 않습니다.
+- 서버가 게임 상태의 유일한 기준입니다. 클라이언트는 행동을 요청하고 받은 `PlayerView`만 그립니다.
+- 상대의 홀카드·상점은 쇼다운으로 공개되기 전까지 payload에 넣지 않습니다.
+- 각 쇼다운의 보드는 그 매치 참가자의 보유 카드를 뺀 별도 덱에서 뽑습니다. Run It Twice의 두 보드는 같은 덱에서 연속으로 뽑아 겹치지 않습니다.
+- 화면 문구는 `src/i18n/locales`에만 둡니다. 엔진이 저장하는 좌석 이름(AI 이름)은 화면에서 현재 언어로 바꿔 표시합니다(`src/ui/botNames.ts`).

@@ -95,14 +95,14 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
             const percent = equities[run][index] ?? null;
             return <section className="r2-run-preview" key={run} aria-label={`RUN ${run + 1}`}>
               <h2>RUN {run + 1}</h2>
-              <div className="r2-run-preview-body"><div className="r2-run-cards">{cards.slice(0, 2).map((card) => <CardView key={card.id} card={card} compact />)}{Array.from({ length: Math.max(0, 2 - cards.length) }, (_, i) => <span className="r2-run-card-placeholder" key={`empty-${i}`} />)}</div><div className="r2-run-equity"><small>예상 승률</small><strong>{percent === null ? "--" : `${percent}%`}</strong></div></div>
+              <div className="r2-run-preview-body"><div className="r2-run-cards">{cards.slice(0, 2).map((card) => <CardView key={card.id} card={card} compact />)}{Array.from({ length: Math.max(0, 2 - cards.length) }, (_, i) => <span className="r2-run-card-placeholder" key={`empty-${i}`} />)}</div><div className="r2-run-equity"><small>{t("showdown.equityLabel")}</small><strong>{percent === null ? "--" : `${percent}%`}</strong></div></div>
             </section>;
           })}</div>
         </article>
         {index === 0 && <strong className="r2-match-vs" aria-label={t("showdown.versus")}>VS</strong>}
       </Fragment>)}
     </div>
-    <footer className="showdown-prep-footer r2-match-footer"><strong>SHOWDOWN</strong><small>각 RUN 승률은 개별 보드 기준 예상치입니다.</small></footer>
+    <footer className="showdown-prep-footer r2-match-footer"><strong>SHOWDOWN</strong><small>{t("showdown.runEquityNote")}</small></footer>
   </section>;
 }
 

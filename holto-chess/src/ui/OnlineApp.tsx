@@ -1,7 +1,7 @@
 import { ArenaBrand } from "./ArenaBrand";
 import { ShopAbilityPanel, RoundAbilityBenefits } from "./AbilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameAction, MatchView, PlayerView, ServerMessage, SessionCredential } from "../shared/protocol";
 import { CinematicGate } from "./ShowdownCinematic";
 import { invitedRoom } from "./roomInvite";
@@ -42,6 +42,7 @@ import { getLocale, useTranslation, type TranslationKey } from "../i18n";
 import { renderGameError, type ReceivedGameError } from "../i18n/gameError";
 import { compactHandName } from "./handLabel";
 import { localizedIcmDetail } from "./rewardDetail";
+import { localizeSeatNames } from "./botNames";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
@@ -89,10 +90,12 @@ function Selection({ view, send, disabled }: { view: PlayerView; send: (a: GameA
   return <section className="panel select-panel"><h2>{t("online.r2SelectHeading", { count: selected.length })}</h2><div className="card-row centered">{view.me.ownedCards.map((card) => { const chosen = selected.includes(card.id); return <CardView key={card.id} card={card} selected={chosen} footer={t(chosen ? "select.chosen" : "select.choose")} onClick={disabled ? undefined : () => send({ type: "SELECT_CARDS", cardIds: chosen ? selected.filter((id) => id !== card.id) : [...selected.slice(-(required - 1)), card.id] })} />; })}</div><p className="hint">{t(selected.length === required ? "online.r2SelectSaved" : "online.r2SelectHelp")}</p></section>;
 }
 export function OnlineApp({ onHome }: { onHome: () => void }) {
-  const { t } = useTranslation();
+  const { locale, t } = useTranslation();
   const [credential, setCredential] = useState<SessionCredential | null>(null);
   const [resumable, setResumable] = useState<SessionCredential[]>(storedSessions);
-  const [view, setView] = useState<PlayerView | null>(null);
+  const [rawView, setView] = useState<PlayerView | null>(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
+  const view = useMemo(() => rawView && localizeSeatNames(rawView, t), [rawView, locale]);
   const [pendingSale, setPendingSale] = useState<Card | null>(null);
   // Fetch this round's showdown artwork (R5: the Final Arena) during its shop so the showdown opens on it.
   useEffect(() => { if (view?.round === 5) preloadFinalArena(); else preloadShowdownStage(view?.round); }, [view?.round]);
