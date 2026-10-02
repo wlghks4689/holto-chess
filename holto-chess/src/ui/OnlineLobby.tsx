@@ -4,6 +4,7 @@ import { MatchHistoryPage } from "./MatchHistory";
 import { OnlineEntryFrame } from "./OnlineEntryFrame";
 import { invitedRoom, roomInviteUrl } from "./roomInvite";
 import { useTranslation } from "../i18n";
+import { currentPlatform, PUBLIC_WEB_ORIGIN, shareOrigin } from "../platform/runtime";
 export { OnlineEntryFrame } from "./OnlineEntryFrame";
 
 export function MultiplayerLobby({ nickname, onNickname, roomCode, onRoomCode, busy, error, sessions, onJoin, onResume, onHome }: {
@@ -45,7 +46,7 @@ export function RoomWaitingRoom({ view, status, connected, pending, error, onRea
     try { await navigator.clipboard.writeText(view.roomId); setCopyFeedback(t("online.codeCopied")); }
     catch { setCopyFeedback(t("online.codeCopyFallback")); }
   };
-  const inviteUrl = roomInviteUrl(typeof location === "undefined" ? "https://porena.kr" : location.origin, view.roomId);
+  const inviteUrl = roomInviteUrl(typeof location === "undefined" ? PUBLIC_WEB_ORIGIN : shareOrigin(currentPlatform(), location), view.roomId);
   const copyInvite = async () => {
     try { await navigator.clipboard.writeText(inviteUrl); setCopyFeedback(t("online.inviteCopied")); }
     catch { setCopyFeedback(t("online.inviteCopyFallback")); }

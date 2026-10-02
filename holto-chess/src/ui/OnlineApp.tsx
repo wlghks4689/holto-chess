@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameAction, MatchView, PlayerView, ServerMessage, SessionCredential } from "../shared/protocol";
 import { CinematicGate } from "./ShowdownCinematic";
 import { invitedRoom } from "./roomInvite";
+import { endpoints, roomSocketUrl } from "../network/endpoints";
 import { ShopCard } from "./ShopCard";
 import { CardView } from "./CardView";
 import { ShowdownHand } from "./ShowdownHand";
@@ -137,7 +138,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     if (!sessions.length) return;
     void Promise.all(sessions.map(async (session) => {
       try {
-        const response = await fetch(`/api/rooms/${session.roomId}/session`, { method: "POST", headers: { "X-Porena-Session": session.token } });
+        const response = await fetch(endpoints.roomSession(session.roomId), { method: "POST", headers: { "X-Porena-Session": session.token } });
         if ([401, 404, 410].includes(response.status)) { forgetSession(session.roomId); return null; }
       } catch { /* Keep the seat when offline; a transient failure is not proof the room ended. */ }
       return session;
@@ -175,7 +176,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     const connect = () => {
       if (disposed) return;
       setStatus("Connecting"); clearPending();
-      const ws = new WebSocket(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/rooms/${credential.roomId}`);
+      const ws = new WebSocket(roomSocketUrl(credential.roomId));
       socket.current = ws;
       ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: storedNickname() }));
       ws.onmessage = (event) => {
@@ -237,13 +238,13 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
       if (!create) {
         const previous = storedSessions().find((session) => session.roomId === roomCode.trim().toUpperCase());
         if (previous) {
-          const check = await fetch(`/api/rooms/${previous.roomId}/session`, { method: "POST", headers: { "X-Porena-Session": previous.token } });
+          const check = await fetch(endpoints.roomSession(previous.roomId), { method: "POST", headers: { "X-Porena-Session": previous.token } });
           if (check.ok) { resume(previous); return; }
           if ([401, 404, 410].includes(check.status)) forgetSession(previous.roomId);
           else throw new Error("client.seatCheckFailed");
         }
       }
-      const response = await fetch(create ? "/api/rooms" : `/api/rooms/${roomCode.trim().toUpperCase()}/join`, { method: "POST" });
+      const response = await fetch(create ? endpoints.createRoom() : endpoints.joinRoom(roomCode.trim().toUpperCase()), { method: "POST" });
       if (!response.ok) throw new Error(response.status === 429 ? "client.rateLimited" : response.status === 404 ? "client.roomNotFound" : "client.roomUnavailable");
       const session = await response.json() as SessionCredential;
       rememberSession(session);

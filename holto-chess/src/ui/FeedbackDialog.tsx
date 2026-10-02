@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { FEEDBACK_CATEGORIES, FEEDBACK_EMAIL_MAX_LENGTH, FEEDBACK_MAX_LENGTH, type FeedbackCategory, type FeedbackSubmission } from "../shared/feedback";
 import { useTranslation, type TranslationKey } from "../i18n";
+import { endpoints } from "../network/endpoints";
 import "./feedback.css";
 
 type SendError = "rateLimited" | "email" | "consent" | "generic";
@@ -25,7 +26,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
     setState("sending"); setError(null);
     const body: FeedbackSubmission = { category, message, locale, website, ...(wantsReply ? { contactEmail: email.trim(), consent } : {}) };
     try {
-      const response = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const response = await fetch(endpoints.feedback(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (response.ok) { setState("sent"); return; }
       const reason = response.status === 429 ? "rateLimited" : ((await response.json().catch(() => ({}))) as { error?: string }).error;
       setError(reason === "rateLimited" || reason === "email" || reason === "consent" ? reason : "generic");

@@ -22,6 +22,11 @@
   "d1_databases": [
     { "binding": "FEEDBACK_DB", "database_name": "porena-feedback", "database_id": "26ec86c4-3904-4eab-8a76-09e3261757dc", "migrations_dir": "migrations" }
   ],
+  "vars": {
+    // Discord Activity: comma-separated Discord application ids whose https://<id>.discordsays.com origin may
+    // call /api/* and /ws/* (exact match, worker/origin.ts). Empty = porena.kr only. Public ids, not secrets.
+    "DISCORD_ACTIVITY_CLIENT_IDS": ""
+  },
   // Set with tools/admin/setup-admin.mjs. Never commit their values.
   "secrets": { "required": ["ADMIN_USERNAME", "ADMIN_PASSWORD_HASH", "ADMIN_SESSION_SECRET"] },
   "durable_objects": {
