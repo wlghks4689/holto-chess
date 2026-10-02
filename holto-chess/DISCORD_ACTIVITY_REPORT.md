@@ -332,7 +332,7 @@ Minimum age:
 - 일반 정보: 이용약관 `https://porena.kr/terms`, 개인정보 보호 정책 `https://porena.kr/privacy` 저장(Claude, 사용자 요청).
 - 앱 인증: 사용자가 2단계 인증, 팀 이전, 신원 확인, 제출 완료. Discovery 상태에서 "인증을 마쳐야 해요" 충족 확인.
 - Activity: URL 매핑 루트 `/` → `porena.kr`, 활동 활성화(엔트리 포인트 명령어 자동 생성), 최대 참가자 8, 지원 플랫폼 웹·iOS·Android(Claude, 사용자 요청). 연령 제한·프록시 인증은 끔.
-- Discovery 남은 요건: 커뮤니티 지원 서버(사용자). 찾기 설정 화면은 지원 서버가 없으면 저장되지 않아 요약·언어·상세 설명·링크는 서버 지정 후 입력한다.
+- Discovery: 사용자가 커뮤니티 서버 PORENA를 만들고 커뮤니티를 활성화했다. Claude가 지원 서버 PORENA, 요약·언어(Korean, English US)·링크·상세 설명(아래)을 저장하고 새로고침으로 확인. 찾기 상태 16개 요건 모두 충족, "찾기 활성화"는 사용자 결정 대기(누르면 App Directory·App Launcher 공개, 최대 24시간).
 
 ### 찾기 설정 입력값
 
