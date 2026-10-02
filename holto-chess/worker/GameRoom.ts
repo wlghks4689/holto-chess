@@ -10,6 +10,8 @@ const SNAPSHOT_KEY = "snapshot:v1";
 const EXPIRY_KEY = "expiresAt";
 const ROOM_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const FINISHED_ROOM_LIFETIME_MS = 15 * 60 * 1000;
+/** A lobby with no join/ready/leave/nickname change for this long is deleted; every lobby change restarts it. */
+const LOBBY_IDLE_LIFETIME_MS = 30 * 60 * 1000;
 const AUTH_TIMEOUT_MS = 15000;
 function randomSeed(): number { return crypto.getRandomValues(new Uint32Array(1))[0]! || 1; }
 function token(): string { return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""); }
@@ -31,6 +33,11 @@ export class GameRoom extends DurableObject<Env> {
         this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
         await ctx.storage.put(EXPIRY_KEY, this.expiresAt);
       }
+      // Lobbies created before the 30-minute rule keep at most 30 minutes from this restart.
+      if (this.room?.status === "LOBBY" && this.expiresAt && this.expiresAt > Date.now() + LOBBY_IDLE_LIFETIME_MS) {
+        this.expiresAt = Date.now() + LOBBY_IDLE_LIFETIME_MS;
+        await ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+      }
       if (this.room?.finalResultsReleasedAt) {
         const finishedExpiry = this.room.finalResultsReleasedAt + FINISHED_ROOM_LIFETIME_MS;
         if (!this.expiresAt || this.expiresAt > finishedExpiry) {
@@ -50,7 +57,14 @@ export class GameRoom extends DurableObject<Env> {
       console.error(JSON.stringify({ event: "room_storage_failed", roomId: next.roomId, revision: next.revision }));
       throw new Error("상태를 저장하지 못했습니다. 재접속 후 다시 시도하세요.");
     }
-    if (next.finalResultsReleasedAt && !this.room?.finalResultsReleasedAt) {
+    if (next.status === "LOBBY") {
+      this.expiresAt = Date.now() + LOBBY_IDLE_LIFETIME_MS;
+      await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+    } else if (this.room?.status === "LOBBY") {
+      // The game started: it gets the normal in-game lifetime from now.
+      this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
+      await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+    } else if (next.finalResultsReleasedAt && !this.room?.finalResultsReleasedAt) {
       // Result computation is not game completion. Start cleanup only after
       // an eligible player opens the final standings following common reveal.
       this.expiresAt = next.finalResultsReleasedAt + FINISHED_ROOM_LIFETIME_MS;
@@ -104,9 +118,7 @@ export class GameRoom extends DurableObject<Env> {
         if (this.room) return new Response("Room exists", { status: 409 });
         const secret = token();
         const { room, playerId } = addSession(createRoom(roomId, randomSeed(), "secure", 2, true), await hash(secret));
-        await this.commit(room);
-        this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
-        await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+        await this.commit(room); // A new room is a lobby: commit() arms the 30-minute idle expiry.
         await this.rescheduleAlarm();
         return Response.json({ roomId, playerId, token: secret }, { status: 201, headers: { "Cache-Control": "no-store" } });
       });
@@ -208,7 +220,7 @@ export class GameRoom extends DurableObject<Env> {
     await this.ctx.blockConcurrencyWhile(async () => {
       const now = Date.now();
       if (this.expiresAt && now >= this.expiresAt) {
-        for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired after 24 hours");
+        for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");
         await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY]);
         this.room = undefined;
         this.expiresAt = undefined;

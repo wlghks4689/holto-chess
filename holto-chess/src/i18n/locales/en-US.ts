@@ -151,6 +151,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "connection.reconnecting": "Reconnecting",
   "error.network": "Check your connection and try again.",
   "error.roomNotFound": "Room not found.",
+  "online.roomExpired": "This room has closed. Lobbies close automatically after 30 minutes without activity. Create a new room or join another one.",
   "error.tryAgain": "Too many requests. Please try again shortly.",
   "error.invalidNickname": "Use 1–8 letters or numbers for your nickname.",
   "error.insufficientBB": "Not enough BB.",

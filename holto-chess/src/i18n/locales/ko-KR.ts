@@ -149,6 +149,7 @@ export const koKR = {
   "connection.reconnecting": "재접속 중",
   "error.network": "연결을 확인하고 다시 시도하세요.",
   "error.roomNotFound": "방을 찾을 수 없습니다.",
+  "online.roomExpired": "방이 종료되었습니다. 대기실은 30분 동안 활동이 없으면 자동으로 닫힙니다. 새 방을 만들거나 다른 방에 참가하세요.",
   "error.tryAgain": "요청이 많습니다. 잠시 후 다시 시도하세요.",
   "error.invalidNickname": "닉네임은 문자·숫자 1~8자로 입력하세요.",
   "error.insufficientBB": "BB가 부족합니다.",

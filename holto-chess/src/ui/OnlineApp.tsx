@@ -52,7 +52,7 @@ const clientErrorKeys: Record<string, TranslationKey> = {
   "client.otherTab": "connection.otherTab", "client.reconnectFailed": "connection.reconnectFailed", "client.checkConnection": "connection.checkConnection",
   "client.invalidNickname": "error.invalidNickname", "client.seatCheckFailed": "connection.seatCheckFailed", "client.rateLimited": "error.tryAgain",
   "client.roomNotFound": "error.roomNotFound", "client.roomUnavailable": "online.roomUnavailable", "client.joinFailed": "online.joinFailed",
-  "client.noResponse": "connection.noResponse", "client.sendFailed": "connection.sendFailed",
+  "client.roomExpired": "online.roomExpired", "client.noResponse": "connection.noResponse", "client.sendFailed": "connection.sendFailed",
 };
 const storedNickname = () => [...(localStorage.getItem("porena-nickname") ?? (getLocale() === "ko-KR" ? "플레이어" : "Player"))].slice(0, 8).join("");
 
@@ -114,6 +114,16 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const archivedGameId = useRef<string | null>(null);
   // One clock per tab: every received view refines the server-time estimate used by the cinematic.
   const [serverClock] = useState(createServerClock);
+  // Clock sync only matters while a server deadline or shared presentation is on screen. Every message wakes the
+  // room's Durable Object, so an idle lobby, a released result screen or a hidden tab must not keep it awake.
+  const clockNeeded = !!view && view.status !== "LOBBY" && !view.finalResultsReleased && (view.barrierEndsAt !== undefined || !!view.presentation);
+  const clockNeededRef = useRef(clockNeeded);
+  const probeRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const wasNeeded = clockNeededRef.current;
+    clockNeededRef.current = clockNeeded;
+    if (clockNeeded && !wasNeeded) probeRef.current?.();
+  }, [clockNeeded]);
   const pendingRequest = useRef<{ id: string; type: string; revision?: number; timer: ReturnType<typeof setTimeout> } | null>(null);
   const clearPending = () => {
     if (pendingRequest.current) clearTimeout(pendingRequest.current.timer);
@@ -150,7 +160,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     const probes = new Map<string, number>();
     let burst: ReturnType<typeof setTimeout> | undefined;
     const probe = () => {
-      if (socket.current?.readyState !== WebSocket.OPEN) return;
+      if (socket.current?.readyState !== WebSocket.OPEN || document.hidden || !clockNeededRef.current) return;
       const nonce = crypto.randomUUID();
       const at = Date.now();
       for (const [id, sent] of probes) if (at - sent > 10_000) probes.delete(id);
@@ -158,6 +168,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
       socket.current.send(JSON.stringify({ type: "SYNC_CLOCK", nonce }));
     };
     const resync = () => { if (!document.hidden) { serverClock.reset?.(); probe(); clearTimeout(burst); burst = setTimeout(probe, 1000); } };
+    probeRef.current = probe;
     const probeTimer = setInterval(probe, 10_000);
     document.addEventListener("visibilitychange", resync);
     window.addEventListener("online", resync);
@@ -203,6 +214,11 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         if (disposed) return;
         setStatus("Disconnected"); clearPending();
         if (event.code === 4001) { setError("client.otherTab"); return; }
+        // The server deleted the room (idle lobby, finished game or 24h limit): drop the seat and return to the entry screen.
+        if (event.code === 1008 && event.reason === "Room expired") {
+          forgetSession(credential.roomId); setCredential(null); setView(null); setPendingSale(null);
+          setResumable(storedSessions()); setError("client.roomExpired"); return;
+        }
         if (event.code === 1008 || attempts >= 5) { setError("client.reconnectFailed"); return; }
         setStatus("Reconnecting");
         timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 10000));
