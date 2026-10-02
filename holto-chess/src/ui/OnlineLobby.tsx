@@ -4,6 +4,7 @@ import { MatchHistoryPage } from "./MatchHistory";
 import { OnlineEntryFrame } from "./OnlineEntryFrame";
 import { invitedRoom, roomInviteUrl } from "./roomInvite";
 import { useTranslation } from "../i18n";
+import { isCrazyGames } from "../platform";
 import { currentPlatform, PUBLIC_WEB_ORIGIN, shareOrigin } from "../platform/runtime";
 export { OnlineEntryFrame } from "./OnlineEntryFrame";
 
@@ -40,6 +41,7 @@ export function RoomWaitingRoom({ view, status, connected, pending, error, onRea
 }) {
   const { t } = useTranslation();
   const [copyFeedback, setCopyFeedback] = useState("");
+  const crazyGames = isCrazyGames();
   const humans = view.players.filter((player) => player.human && !player.departed);
   const ready = humans.find((player) => player.playerId === view.me.playerId)?.ready;
   const copy = async () => {
@@ -53,7 +55,7 @@ export function RoomWaitingRoom({ view, status, connected, pending, error, onRea
   };
   return <OnlineEntryFrame title={t("online.waitingRoom")} eyebrow="PRIVATE ARENA">
     <div className="waiting-connection" role="status">{status}</div>
-    <section className="waiting-code" aria-label={t("online.inviteCode")}><span>ROOM CODE</span><strong data-testid="room-id">{view.roomId}</strong><button className="secondary" onClick={() => void copy()}>{t("online.copyCode")}</button><button className="secondary" onClick={() => void copyInvite()}>{t("online.copyInvite")}</button><input className="invite-link" aria-label={t("online.inviteLink")} readOnly value={inviteUrl} onFocus={(event) => event.target.select()} /><p role="status">{copyFeedback || t("online.inviteHelp")}</p></section>
+    <section className="waiting-code" aria-label={t("online.inviteCode")}><span>ROOM CODE</span><strong data-testid="room-id">{view.roomId}</strong><button className="secondary" onClick={() => void copy()}>{t("online.copyCode")}</button>{!crazyGames && <><button className="secondary" onClick={() => void copyInvite()}>{t("online.copyInvite")}</button><input className="invite-link" aria-label={t("online.inviteLink")} readOnly value={inviteUrl} onFocus={(event) => event.target.select()} /></>}<p role="status">{copyFeedback || t(crazyGames ? "online.roomCodeOnlyHelp" : "online.inviteHelp")}</p></section>
     <section className="waiting-players" aria-label={t("online.players")}><h2>{t("online.players")} <span>{humans.length} / {view.capacity}</span></h2><ul>{humans.map((player) => <li key={player.playerId}><span className={player.connected ? "waiting-dot connected" : "waiting-dot"} aria-label={player.connected ? t("connection.connected") : t("connection.disconnected")} /><b>{player.name}{player.playerId === view.me.playerId && <small>{t("round.you")}</small>}</b><span className={player.ready ? "ready" : ""}>{player.ready ? "READY" : "WAITING"}</span></li>)}</ul></section>
     {error && <p className="room-error" role="alert">{error}</p>}
     <div className="waiting-actions"><button className="primary" disabled={!connected || pending || ready} onClick={onReady}>{ready ? t("online.readyDone") : t("online.readyAction")}</button><p>{ready ? t("online.waitingForOthers") : t("online.readyStartHelp")}</p><small>{t("online.aiFillHelp")}</small></div>

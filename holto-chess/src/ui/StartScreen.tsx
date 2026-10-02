@@ -3,6 +3,7 @@ import { useCinematicMotion } from "./useCinematicMotion";
 import { resetSeenRoundGuides, setAutoRoundGuides, useRoundGuidePreferences } from "./roundGuidePreferences";
 import { useMadeSoundPreferences, writeMadeSoundPreferences } from "./madeSound";
 import { useTranslation } from "../i18n";
+import { isCrazyGames } from "../platform";
 import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
 import "./start-screen.css";
 
@@ -15,6 +16,7 @@ type MenuOverlay = "mode" | "guide" | "settings" | "feedback" | null;
 
 export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void }) {
   const { locale, setLocale, t } = useTranslation();
+  const crazyGames = isCrazyGames();
   const motion = useCinematicMotion();
   const roundGuides = useRoundGuidePreferences();
   const sounds = useMadeSoundPreferences();
@@ -46,12 +48,13 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
     };
   }, [overlay]);
 
-  return <main className="start-screen">
+  return <main className={`start-screen${crazyGames ? " start-screen-crazygames" : ""}`}>
     <div className="start-content" inert={overlay !== null}>
       <div className="start-main">
         <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p></header>
         <div className="start-menu" aria-label={t("home.menu")}>
-          <button type="button" className="start-menu-primary" onClick={() => setOverlay("mode")}><span>{t("home.start")}</span></button>
+          <button type="button" className="start-menu-primary" onClick={() => crazyGames ? onStart("single") : setOverlay("mode")}><span>{t(crazyGames ? "home.quickPlay" : "home.start")}</span></button>
+          {crazyGames && <button type="button" onClick={() => onStart("multi")}><span>{t("home.multi")}</span></button>}
           <button type="button" onClick={() => onStart("tutorial")}><span>{t("home.tutorial")}</span></button>
           <button type="button" onClick={() => setOverlay("guide")}><span>{t("home.guide")}</span></button>
           <button type="button" onClick={() => setOverlay("settings")}><span>{t("home.settings")}</span></button>

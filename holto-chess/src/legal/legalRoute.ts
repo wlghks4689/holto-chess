@@ -1,5 +1,6 @@
 import { useSyncExternalStore, type MouseEvent } from "react";
 import { currentPlatform } from "../platform/runtime";
+import { isCrazyGames } from "../platform";
 import type { LegalKind } from "./legalTypes";
 
 /**
@@ -28,9 +29,9 @@ export function usePathname(): string {
   return useSyncExternalStore(subscribe, pathname, () => "/");
 }
 
-/** Discord passes frame_id/instance_id in the query string; the web build has nothing worth carrying over. */
+/** Keep embedded launch context when opening legal pages and returning to the game. */
 function keptSearch(): string {
-  return currentPlatform().kind === "discord" ? location.search : "";
+  return currentPlatform().kind === "discord" || isCrazyGames() ? location.search : "";
 }
 
 export function navigate(path: string): void {

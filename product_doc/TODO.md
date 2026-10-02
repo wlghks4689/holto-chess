@@ -1,5 +1,14 @@
 # 전체 작업 목록
 
+## CrazyGames Basic Launch 최신 main 통합
+
+### 플랫폼 분기와 출시 준비
+
+#### CG-LAUNCH-001 — 별도 CG 브랜치 검증
+
+- [x] 담당 Codex | 상태 REVIEW | 의존 사용자 CG 분기 및 최신 main 기반 이관 승인 | 완료 조건: 최신 Discord·privacy/terms·UI 유지, CG 전용 GA/이메일/초대 제외 및 Quick Play | 검증: 앱 644개/Worker 33개, lint·앱/Worker 타입·build, Chrome 교차 origin iframe 11 viewport. [QA](qa/2026-10-02-crazygames-latest-main.md).
+- [ ] 담당 Codex/사용자 | 상태 BLOCKED | 의존 로컬 마케팅 ZIP·오디오 출처/권리·로그인된 제출 포털 접근 | 완료 조건: 실제 CG 포털/app 검증과 최종 업로드/제출. 로컬 테스트와 운영/포털 20초 판정을 구분한다.
+
 ## 쇼다운·RUN 배치 동작 점검
 
 ### 누적 승점 순위와 수동 카드 순서

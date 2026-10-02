@@ -1,5 +1,12 @@
 # 승인 결정과 변경 이력
 
+## CG-LAUNCH-001 — 최신 main을 보존한 CrazyGames 최소 분기
+
+- 사용자 승인 범위: CrazyGames에서만 GA 차단, 피드백 이메일·동의 UI/payload 제외, 직접 초대 링크 숨김, Quick Play → 기존 AI 진입. 메시지·방 코드·어빌리티 선택·멀티·튜토리얼 유지.
+- 최신 main `cd8aee4cfb59ded774608807911b8698587617e8` 기반 별도 clone에서 선택적으로 적용했다. 기존 Desktop main 및 CG 14파일 staged 작업을 보존했다.
+- Discord·privacy/terms·UI·서버 Origin/retention·의존성 변경을 보존하며, CG legal 이동의 query 유지와 짧은 화면 footer/menu 겹침만 회귀수정했다. 규칙·엔진·보안 변경 없음.
+- 검증/한계: [QA](qa/2026-10-02-crazygames-latest-main.md). 효과음 교체는 공식 다운로드 Windows 오류로 미적용. 플랫폼 최종 승인/권리 확인과 로컬 검증을 구분한다.
+
 ## DIST-DISCORD-001 — Discord Activity 출시 준비
 
 - 근거: 사용자 2026-10-02 지시(Discord Activity Compatibility Spike 및 PR #1 재정리). 게임 규칙·밸런스 결정은 포함하지 않는다.

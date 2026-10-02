@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { FEEDBACK_CATEGORIES, FEEDBACK_EMAIL_MAX_LENGTH, FEEDBACK_MAX_LENGTH, type FeedbackCategory, type FeedbackSubmission } from "../shared/feedback";
 import { useTranslation, type TranslationKey } from "../i18n";
+import { isCrazyGames } from "../platform";
 import { endpoints } from "../network/endpoints";
 import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
 import { currentPlatform } from "../platform/runtime";
@@ -11,6 +12,7 @@ type SendError = "rateLimited" | "email" | "consent" | "generic";
 /** Start-screen form that replaces the old mailto link: messages go to the admin inbox, never to a public address. */
 export function FeedbackDialog({ onClose }: { onClose: () => void }) {
   const { locale, t } = useTranslation();
+  const crazyGames = isCrazyGames();
   const id = useId();
   const [category, setCategory] = useState<FeedbackCategory>("feedback");
   const [message, setMessage] = useState("");
@@ -19,7 +21,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
   const [website, setWebsite] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<SendError | null>(null);
-  const wantsReply = email.trim() !== "";
+  const wantsReply = !crazyGames && email.trim() !== "";
   const ready = message.trim() !== "" && (!wantsReply || consent) && state === "idle";
 
   const submit = async (event: FormEvent) => {
@@ -58,12 +60,14 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
       <textarea id={`${id}-message`} value={message} maxLength={FEEDBACK_MAX_LENGTH} rows={7} required aria-describedby={`${id}-count ${id}-sensitive`}
         placeholder={t(`feedback.placeholder.${category}` as TranslationKey)} onChange={(event) => setMessage(event.target.value)} />
       <div className="feedback-meta"><span id={`${id}-sensitive`}>{t("feedback.sensitive")}</span><span id={`${id}-count`} aria-live="polite" data-full={message.length >= FEEDBACK_MAX_LENGTH || undefined}>{t("feedback.count", { count: message.length, max: FEEDBACK_MAX_LENGTH })}</span></div>
+      {!crazyGames && <>
       <label className="feedback-field" htmlFor={`${id}-email`}>{t("feedback.email")}</label>
       <input id={`${id}-email`} type="email" autoComplete="email" inputMode="email" maxLength={FEEDBACK_EMAIL_MAX_LENGTH} value={email} aria-describedby={`${id}-email-help`} onChange={(event) => setEmail(event.target.value)} />
       <p id={`${id}-email-help`} className="feedback-help">{t("feedback.emailHelp")}</p>
       {wantsReply && <label className="feedback-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span>{t("feedback.consent")}</span></label>}
-      {/* A new tab keeps the draft. Inside Discord, popups are not reliable, so the page opens in place. */}
-      <p className="feedback-help feedback-privacy">{currentPlatform().kind === "discord"
+      </>}
+      {/* Embedded hosts open privacy in place because popups may be blocked. */}
+      <p className="feedback-help feedback-privacy">{currentPlatform().kind === "discord" || crazyGames
         ? <a href={LEGAL_PATHS.privacy} onClick={followInApp(LEGAL_PATHS.privacy)}>{t("feedback.privacyLink")}</a>
         : <a href={LEGAL_PATHS.privacy} target="_blank" rel="noopener">{t("feedback.privacyLink")}</a>}</p>
       {/* Honeypot: off-screen and skipped by keyboard and screen readers. People leave it empty. */}
