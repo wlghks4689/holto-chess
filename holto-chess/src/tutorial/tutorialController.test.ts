@@ -1,49 +1,48 @@
 import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "../game/cardPool";
 import { BALANCE } from "../game/config";
+import { TUTORIAL_CHAPTERS } from "./chapters";
 import { buyCard, rerollShop, sellCard } from "../game/engine";
 import { advance, applyGame, currentStep, restartStep, startChapter, sync } from "./tutorialController";
 
 describe("tutorial progression", () => {
-  it("starts chapter 1 on the starting card and waits", () => {
+  it("starts immediately with one purchase, without pre-reading", () => {
     const session = startChapter(1);
-    expect(currentStep(session)!.id).toBe("r1-start-card");
+    expect(currentStep(session)!.id).toBe("r1-buy");
     expect(session.game.round).toBe(1);
     expect(session.game.players[0]!.ownedCardIds.length).toBe(1);
+    expect(TUTORIAL_CHAPTERS[0]!.steps).toHaveLength(6);
+    expect(currentStep(session)!.kind).toBe("ACT");
   });
 
   it("does not move on its own while the reader waits", () => {
     const session = startChapter(1);
-    // Re-syncing is what every render and every clock tick does; none of it may advance a step.
-    const settled = sync(sync(sync(session)));
+    // Reading and clicking Continue must not skip an unfinished action.
+    const settled = advance(sync(sync(session)));
     expect(settled.stepIndex).toBe(session.stepIndex);
     expect(settled.game.phase).toBe("SHOP");
   });
 
   it("clears the buying step from a real purchase, whenever it happened", () => {
     let session = startChapter(1);
-    // The player buys before ever reaching the buy step.
     const me = session.game.players[0]!;
     session = applyGame(session, buyCard(session.game, "p1", me.shopCardIds[0]!));
-    session = advance(advance(advance(session)));
-    expect(currentStep(session)!.id).not.toBe("r1-buy");
+    expect(currentStep(session)!.id).toBe("r1-commit");
     expect(session.game.players[0]!.ownedCardIds.length).toBe(BALANCE.handLimits[1]);
   });
 
   it("re-opens the buying step when a sale undoes it", () => {
     let session = startChapter(1);
-    session = advance(advance(advance(session)));
     expect(currentStep(session)!.id).toBe("r1-buy");
     const bought = buyCard(session.game, "p1", session.game.players[0]!.shopCardIds[0]!);
     session = applyGame(session, bought);
-    expect(currentStep(session)!.id).toBe("r1-hand");
+    expect(currentStep(session)!.id).toBe("r1-commit");
     session = applyGame(session, sellCard(session.game, "p1", session.game.players[0]!.ownedCardIds[1]!));
     expect(currentStep(session)!.id).toBe("r1-buy");
   });
 
   it("allows a reroll inside the buying step and keeps the real cost", () => {
     let session = startChapter(1);
-    session = advance(advance(advance(session)));
     const before = session.game.players[0]!.stackBB;
     session = applyGame(session, rerollShop(session.game, "p1"));
     expect(currentStep(session)!.id).toBe("r1-buy");
@@ -54,7 +53,6 @@ describe("tutorial progression", () => {
 
   it("restores the whole game, not just my cards, when a step is practised again", () => {
     let session = startChapter(1);
-    session = advance(advance(advance(session)));
     const before = structuredClone(session.game);
     session = applyGame(session, rerollShop(session.game, "p1"));
     session = restartStep(session);

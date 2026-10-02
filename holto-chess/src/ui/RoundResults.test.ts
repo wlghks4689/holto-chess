@@ -14,6 +14,11 @@ const rows: RoundSummaryRow[] = [
 ];
 
 describe("round result brackets", () => {
+  it("omits an empty history in practice but keeps supplied match history", () => {
+    const props = { round: 1, rows, viewerId: "p1" };
+    expect(renderToStaticMarkup(createElement(RoundResults, props))).not.toContain("personal-history");
+    expect(renderToStaticMarkup(createElement(RoundResults, props, createElement("p", null, "match details")))).toContain("match details");
+  });
   it("separates the R4 primary result into winner and survival bordered groups", () => {
     const html = renderToStaticMarkup(createElement(RoundResults, { round: 4, rows, viewerId: "p1", showBrackets: true, children: null }));
     expect(html).toContain("승자조 브래킷");

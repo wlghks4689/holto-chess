@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BALANCE, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
 import {
-  beginSecondary, buyCard, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts, pickDraftCard,
-  rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound,
+  beginSecondary, buyCard, getCard, getCardPrice, lockRunLoadouts, pickDraftCard,
+  rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout,
   prepareShowdown, finalStandings,
 } from "../../game/engine";
 import { createMatchView } from "../../game/matchView";
@@ -11,7 +11,7 @@ import { createRoundSummary } from "../../game/roundSummary";
 import type { PorenaGameState } from "../../game/types";
 import type { GameAction, MatchView } from "../../shared/protocol";
 import { cinematicTimeline, frameAt } from "../../shared/presentationTimeline";
-import { explainFinalReveal, explainResult, explainStreet, type HandExplanation } from "../../tutorial/showdownExplainer";
+import { explainResult, type HandExplanation } from "../../tutorial/showdownExplainer";
 import { loadTutorial, markChapterDone, markChapterStarted, type TutorialSave } from "../../tutorial/storage";
 import { tutorialBotPolicy } from "../../tutorial/tutorialBots";
 import {
@@ -32,16 +32,11 @@ import { ShopCard } from "../ShopCard";
 import { ShowdownCinematic } from "../ShowdownCinematic";
 import { TutorialChapterMenu } from "./TutorialChapterMenu";
 import { TutorialCoachmark } from "./TutorialCoachmark";
-import { TutorialSpotlight } from "./TutorialSpotlight";
-import { useCoachInset, useScrollIntoView, useSpotlight } from "./useSpotlight";
 import "./tutorial.css";
 
 type Screen = { kind: "menu" } | { kind: "chapter"; session: TutorialSession } | { kind: "chapter-done"; session: TutorialSession };
 
 const RESULT_HOLDS = ["BEST5_GLOW", "COMPLETE", "RESULT", "RUN_RESULT"];
-const STREET_HOLDS: Record<string, "FLOP" | "TURN" | "RIVER"> = { FLOP_HAND: "FLOP", TURN_HAND: "TURN", RIVER_SETTLE: "RIVER" };
-/** R5 reveals the seven owned cards in batches instead of dealing a board. */
-const FINAL_HOLDS: Record<string, number> = { FINAL_FIRST_HAND: 3, FINAL_SECOND_HAND: 5, FINAL_SEVEN_SETTLE: 7 };
 
 /** Only phases the player is not asked to drive are stepped for them, and only to reach a beat. */
 function resolvePending(game: PorenaGameState): PorenaGameState {
@@ -81,10 +76,10 @@ export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSi
       <section className="panel tutorial-done-panel">
         <span className="eyebrow">CHAPTER {chapter.id} · CLEAR</span>
         <h2>{chapter.id === 1 ? t("tutorial.basicsComplete") : t("tutorial.chapterComplete", { chapter: locale === "en-US" ? EN_CHAPTERS[chapter.id].title : chapter.title })}</h2>
-        <p>{t(chapter.id === 5 ? "tutorial.readyToPlay" : "tutorial.learnNext")}</p>
+        <p>{t("tutorial.readyToPlay")}</p>
         <div className="tutorial-done-actions">
-          {chapter.id < 5 && <button type="button" className="primary" onClick={() => open(nextId, screen.session.game)}>{t("tutorial.continueWithChapter", { chapter: locale === "en-US" ? EN_CHAPTERS[nextId].title : chapterById(nextId).title })}</button>}
-          <button type="button" className="secondary" onClick={onSinglePlay}>{t("tutorial.trySingle")}</button>
+          <button type="button" className="primary" onClick={onSinglePlay}>{t("tutorial.trySingle")}</button>
+          {chapter.id < 5 && <button type="button" className="secondary" onClick={() => open(nextId, screen.session.game)}>{t("tutorial.continueWithChapter", { chapter: locale === "en-US" ? EN_CHAPTERS[nextId].title : chapterById(nextId).title })}</button>}
           <button type="button" className="secondary" onClick={() => setScreen({ kind: "menu" })}>{t("tutorial.otherChapters")}</button>
           <button type="button" className="secondary" onClick={onHome}>{t("action.home")}</button>
         </div>
@@ -112,7 +107,7 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
   const game = session.game;
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [guideHidden, setGuideHidden] = useState(false);
+  const [replay, setReplay] = useState(0);
   const playedMatch = useRef<string>("");
   const elapsedRef = useRef(0);
 
@@ -153,76 +148,61 @@ function TutorialChapter({ session, onSession, onFinish, onChapters, onHome }: {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [holdMatch, target]);
+  }, [holdMatch, target, replay]);
 
-  const rect = useSpotlight(step?.focus);
-  // Narrow screens put the guidance in a bottom sheet; everything else is laid out against it.
-  const coachInset = useCoachInset(`${step?.id ?? ""}:${guideHidden}`);
-  useScrollIntoView(step?.focus, step?.id ?? "");
-  // Left unset until the sheet has actually been measured, so the stylesheet keeps its safe
-  // worst-case fallback instead of being told the sheet takes up no room at all.
-  const insetStyle = (coachInset > 0 ? { "--tutorial-sheet": `${coachInset}px` } : undefined) as CSSProperties | undefined;
-
+  const watching = Boolean(holdMatch && elapsed < target);
   const explanation = useMemo<HandExplanation | null>(() => {
     // The explainer reads the active locale; force a fresh explanation when it changes.
     void locale;
-    if (!holdMatch || !step?.hold) return null;
+    if (!holdMatch || !step?.hold || watching) return null;
     const boardIndex = frameAt(cinematicTimeline(holdMatch), target).boardIndex;
-    const revealed = FINAL_HOLDS[step.hold.at];
-    if (revealed) return explainFinalReveal(holdMatch, "p1", revealed);
-    const street = STREET_HOLDS[step.hold.at];
-    if (street) return explainStreet(holdMatch, "p1", boardIndex, street);
     if (!RESULT_HOLDS.includes(step.hold.at)) return null;
     const result = explainResult(holdMatch, "p1", boardIndex);
     // The BEST 5 beat explains the hand only; who won belongs to the result beat that follows.
     return result && step.hold.at === "BEST5_GLOW" ? { ...result, outcome: undefined } : result;
-  }, [holdMatch, step, target, locale]);
+  }, [holdMatch, step, target, locale, watching]);
 
   const copy = step && locale === "en-US" ? englishStepCopy(step) : step;
   const chapterTitle = locale === "en-US" ? EN_CHAPTERS[chapter.id].title : chapter.title;
   const coach = step && copy ? <TutorialCoachmark
-    chapter={`${chapter.id}/5 · ${chapterTitle}`}
+    progress={t("tutorial.stepProgress", { current: session.stepIndex + 1, total: chapter.steps.length })}
     step={step.id}
-    title={copy.title}
-    body={stepText(copy.body, game)}
+    title={watching ? t("tutorial.watching") : copy.title}
+    body={watching ? [t("tutorial.watchHint")] : stepText(copy.body, game)}
     more={stepText(copy.more, game)}
     goal={copy.goal}
-    next={copy.next}
-    rect={rect}
-    hidden={guideHidden}
-    onHide={() => setGuideHidden(true)}
-    onShow={() => setGuideHidden(false)}
-    onNext={step.kind === "ACT" ? undefined : () => onSession(advance(session))}
-    onRestart={() => onSession(restartStep(session))}
-    onChapters={onChapters}
-    onExit={onHome}
+    next={watching ? t("tutorial.skipAnimation") : copy.next}
+    explanation={explanation}
+    onNext={step.kind === "ACT" ? undefined : () => {
+      if (watching) { elapsedRef.current = target; setElapsed(target); }
+      else onSession(advance(session));
+    }}
+    onRestart={() => {
+      elapsedRef.current = 0; setElapsed(0); playedMatch.current = "";
+      setReplay((value) => value + 1);
+      onSession(restartStep(session));
+    }}
   /> : null;
 
-  if (holdMatch) {
-    return <div className="tutorial-screen tutorial-cinema" style={insetStyle}>
-      <ShowdownCinematic match={holdMatch} profiles={game.players.map((player) => ({ playerId: player.id, name: player.name, points: player.points, alive: !player.eliminated }))}
-        viewerId="p1" onComplete={() => {}} elapsedMs={elapsed} />
-      {explanation ? <section className="tutorial-explain panel" aria-live="polite">
-        <h3>{explanation.headline}</h3>
-        {explanation.comparison ? <p>{explanation.comparison}</p> : null}
-        {explanation.outcome ? <p className="tutorial-outcome">{explanation.outcome}</p> : null}
-        {explanation.unused ? <p className="tutorial-muted">{explanation.unused}</p> : null}
-        <details><summary>{t("tutorial.learnMore")}</summary>{explanation.detail.map((line, index) => <p key={index}>{line}</p>)}</details>
-      </section> : null}
-      {coach}
-    </div>;
-  }
-
-  return <div className="tutorial-screen" style={insetStyle}>
-    <TutorialSpotlight rect={rect} />
-    <TutorialArena game={game} act={act} error={error} onDismissError={() => setError(null)} origin={session.origin} chapterTitle={chapterTitle} chapterId={chapter.id} />
+  return <div className={`tutorial-screen tutorial-workspace${holdMatch ? " tutorial-cinema" : ""}`} data-focus={step?.focus}>
+    <header className="tutorial-topbar">
+      <h1>{chapterTitle}</h1>
+      <nav aria-label={t("tutorial.eyebrow")}>
+        <button type="button" onClick={onChapters}>{t("tutorial.chooseChapter")}</button>
+        <button type="button" onClick={onHome}>{t("tutorial.exit")}</button>
+      </nav>
+    </header>
     {coach}
+    {holdMatch
+      ? <ShowdownCinematic match={holdMatch} profiles={game.players.map((player) => ({ playerId: player.id, name: player.name, points: player.points, alive: !player.eliminated }))}
+          viewerId="p1" onComplete={() => {}} elapsedMs={elapsed} />
+      : <TutorialArena game={game} act={act} error={error} onDismissError={() => setError(null)} />}
   </div>;
 }
 
-function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle, chapterId }: {
+function TutorialArena({ game, act, error, onDismissError }: {
   game: PorenaGameState; act: (fn: (game: PorenaGameState) => PorenaGameState) => void;
-  error: string | null; onDismissError: () => void; origin: "continued" | "practice"; chapterTitle: string; chapterId: ChapterId;
+  error: string | null; onDismissError: () => void;
 }) {
   const { locale, t } = useTranslation();
   const me = game.players[0]!;
@@ -237,36 +217,27 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
     if (action.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
   return <main className="tutorial-arena">
-    <header className="tutorial-header">
-      <div><span className="eyebrow">{t("tutorial.eyebrow")}</span><h1>{chapterId}/5 · {chapterTitle}</h1></div>
-      <div className="tutorial-stats" data-tutorial-id="stack">
-        <span><small>BB</small><b>{me.stackBB}</b></span>
-        <span><small>POINT</small><b>{me.points}</b></span>
-      </div>
-    </header>
-    {origin === "practice" && chapterId !== 1 ? <p className="tutorial-note">{t("tutorial.practiceStartsReady")}</p> : null}
     {error ? <div className="error-toast" role="alert"><span>!</span>{locale === "ko-KR" ? error : renderGameError({ ...classifyGameError(error), message: error }, t)}<button type="button" onClick={onDismissError}>×</button></div> : null}
 
-    <section className="panel tutorial-inventory" data-tutorial-id="owned-cards">
-      <header><h2>{t("shop.myCards")}</h2><strong>{me.ownedCardIds.length} / {handLimit}</strong></header>
-      <div className="card-row owned-row">
+    {game.phase === "SHOP" && <section className="panel tutorial-inventory" data-tutorial-id="owned-cards">
+      <header><h2>{t("shop.myCards")}</h2><span>{me.ownedCardIds.length} / {handLimit} · <b>{me.stackBB} BB</b></span></header>
+      <div className="card-row owned-row" data-count={handLimit}>
         {me.ownedCardIds.map((id) => <div className="tutorial-owned" key={id}>
           <CardView card={getCard(game, id)} />
-          {/* Not offered on the single starting card: chapter 1 opens by explaining that card, and
-              selling it there leaves the reader staring at an empty row nothing has taught yet. */}
+
           {game.phase === "SHOP" && me.ownedCardIds.length > 1 && <button type="button" className="secondary tutorial-sell" onClick={() => act((state) => sellCard(state, "p1", id))}>{t("shop.sell")}</button>}
         </div>)}
         {Array.from({ length: Math.max(0, handLimit - me.ownedCardIds.length) }, (_, index) => <div className="empty-card" key={index}><span>+</span><small>EMPTY</small></div>)}
       </div>
-      <p className="tutorial-muted">{t("tutorial.sellByButton")}</p>
-    </section>
+    </section>}
 
-    {game.phase === "SHOP" ? <section className="panel tutorial-shop" data-tutorial-id="shop">
+    {game.phase === "SHOP" && me.ownedCardIds.length < handLimit ? <section className="panel tutorial-shop" data-tutorial-id="shop">
       <header><h2>{t("shop.market")}</h2><span>{t("shop.purchases", { used: me.purchasesThisRound, limit: purchaseLimitFor(game.round, game.rulesVersion ?? 1) })}</span></header>
       <div className="card-row market-row">
         {/* No onLock: the guide does not teach locking yet, and a button that silently does nothing
             is worse than no button on the one screen meant to explain the controls. */}
         {me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(game, id)} price={getCardPrice(game, "p1", id)}
+          disabled={me.ownedCardIds.length >= handLimit || me.stackBB < getCardPrice(game, "p1", id) || me.purchasesThisRound >= purchaseLimitFor(game.round, game.rulesVersion ?? 1)}
           onBuy={() => act((state) => buyCard(state, "p1", id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">{t("shop.soldOut")}</p> : null}
       </div>
@@ -281,9 +252,7 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
 
 
     {["GROUP_ASSIGNMENT", "ROUND_RESULT"].includes(game.phase) ? <div data-tutorial-id="round-results">
-      <RoundResults round={game.round} rows={createRoundSummary(game)} viewerId="p1" showBrackets={game.round === 4 && game.phase === "GROUP_ASSIGNMENT"} secondsLeft={null}>
-        <p className="tutorial-muted">{t("tutorial.noTimer")}</p>
-      </RoundResults>
+      <RoundResults round={game.round} rows={createRoundSummary(game)} viewerId="p1" showBrackets={game.round === 4 && game.phase === "GROUP_ASSIGNMENT"} secondsLeft={null} />
     </div> : null}
 
     {game.phase === "GAME_RESULT" ? <section className="panel" data-tutorial-id="final-score">
@@ -291,11 +260,9 @@ function TutorialArena({ game, act, error, onDismissError, origin, chapterTitle,
       <div className="standings"><FinalStandingsHeader />{finalStandings(game).map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={game.players.find((player) => player.id === row.playerId)?.name ?? row.playerId} />)}</div>
     </section> : null}
 
-    <div className="action-bar action-only" data-tutorial-id="action-bar">
-      {game.phase === "SHOP" && <button type="button" className="primary" onClick={() => act((state) => prepareShowdown(state, ["p1"], tutorialBotPolicy))}>{t("action.confirmShop", { round: game.round })} <span>→</span></button>}
+    {(game.phase === "GROUP_ASSIGNMENT" || (game.phase === "SHOP" && me.ownedCardIds.length >= handLimit)) && <div className="action-bar action-only" data-tutorial-id="action-bar">
+      {game.phase === "SHOP" && <button type="button" className="primary" disabled={me.ownedCardIds.length < handLimit} onClick={() => act((state) => prepareShowdown(state, ["p1"], tutorialBotPolicy))}>{t("action.confirmShop", { round: game.round })} <span>→</span></button>}
       {game.phase === "GROUP_ASSIGNMENT" && <button type="button" className="primary" onClick={() => act(beginSecondary)}>{t("action.confirmBracket")} <span>→</span></button>}
-      {game.phase === "ROUND_RESULT" && <button type="button" className="primary" onClick={() => act(leaveRoundResult)}>{t("action.closeRound")} <span>→</span></button>}
-      {game.phase === "NEXT_ROUND" && <button type="button" className="primary" onClick={() => act(startNextRound)}>{t("tutorial.nextRound")} <span>→</span></button>}
-    </div>
+    </div>}
   </main>;
 }

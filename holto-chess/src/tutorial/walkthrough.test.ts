@@ -62,6 +62,8 @@ function walk(chapterId: 1 | 2 | 3 | 4 | 5, visited: string[] = []): TutorialSes
     const step = currentStep(session);
     if (!step) break;
     if (!visited.includes(step.id)) visited.push(step.id);
+    if (step.focus === "round-results") expect(session.game.phase).toBe("ROUND_RESULT");
+    if (step.focus === "final-score") expect(session.game.phase).toBe("GAME_RESULT");
     expect(assertPoolIntegrity(session.game)).toBe(true);
     if (step.kind === "ACT") {
       const before = session.stepIndex;
@@ -83,9 +85,11 @@ describe("every chapter can be finished", () => {
       const session = walk(chapter.id, visited);
       expect(chapterFinished(session)).toBe(true);
       expect(assertPoolIntegrity(session.game)).toBe(true);
-      // Every beat this chapter promises must actually have been shown, not skipped. The later
-      // matches are included on purpose: a wrong match index silently drops a whole beat, which is
-      // exactly the regression that had to be found by hand in the browser once already.
+      if (chapter.id === 3) {
+        expect(session.game.survival).toBeUndefined();
+        expect(session.game.players.filter((player) => player.eliminated)).toHaveLength(2);
+      }
+      // Every promised beat is reached; result steps must retain their visible result phase.
       for (const step of chapter.steps) expect(visited).toContain(step.id);
     });
   }

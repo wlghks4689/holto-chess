@@ -39,7 +39,7 @@ function Leaderboard({ rows, viewerId }: { rows: RoundSummaryRow[]; viewerId: st
   </table></div>;
 }
 
-export function RoundResults({ rows, viewerId, showBrackets = false, secondsLeft = null, children }: { round: number; rows: RoundSummaryRow[]; viewerId: string; showBrackets?: boolean; secondsLeft?: number | null; children: ReactNode }) {
+export function RoundResults({ rows, viewerId, showBrackets = false, secondsLeft = null, children }: { round: number; rows: RoundSummaryRow[]; viewerId: string; showBrackets?: boolean; secondsLeft?: number | null; children?: ReactNode }) {
   const { t } = useTranslation();
   if (!rows.length) return null;
   const bracketSections = [
@@ -56,6 +56,6 @@ export function RoundResults({ rows, viewerId, showBrackets = false, secondsLeft
         <SummaryTable rows={rows.filter((row) => row.bracket === section.bracket)} viewerId={viewerId} />
       </section>)}</div> : <Leaderboard rows={rows} viewerId={viewerId} />}
     </div>
-    <details className="personal-history panel"><summary>{t("results.myMatches")} <span>{t("results.expand")}</span></summary><div className="matches">{children}</div></details>
+    {children && <details className="personal-history panel"><summary>{t("results.myMatches")} <span>{t("results.expand")}</span></summary><div className="matches">{children}</div></details>}
   </section>;
 }

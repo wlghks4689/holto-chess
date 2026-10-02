@@ -112,11 +112,13 @@ describe("the guide's checkpoints land on frames that actually show the cards", 
     }
   });
 
-  it("reveals the final seven in three batches across chapter 5", () => {
+  it("plays the final seven in three batches without requiring a click for each batch", () => {
     const wanted: Record<string, number> = { FINAL_FIRST_HAND: 3, FINAL_SECOND_HAND: 5, FINAL_SEVEN_SETTLE: 7 };
-    const beats = beatsOf(5).filter((beat) => wanted[beat.at] !== undefined);
-    expect(beats.map((beat) => beat.at)).toEqual(["FINAL_FIRST_HAND", "FINAL_SECOND_HAND", "FINAL_SEVEN_SETTLE"]);
-    for (const beat of beats) {
+    const bestFive = beatsOf(5).find((beat) => beat.at === "BEST5_GLOW")!;
+    expect(bestFive).toBeDefined();
+    for (const at of ["FINAL_FIRST_HAND", "FINAL_SECOND_HAND", "FINAL_SEVEN_SETTLE"] as const) {
+      const beat = { ...bestFive, at, elapsed: checkpointMs(bestFive.match, at)! };
+      expect(beat.elapsed).toBeLessThan(bestFive.elapsed);
       const html = render(beat);
       const mine = beat.match.revealedCards["p1"] ?? [];
       const open = mine.filter((card) => new RegExp(`data-card-id="${card.id}" data-open="true"`).test(html)).length;
