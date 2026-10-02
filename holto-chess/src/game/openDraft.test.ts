@@ -87,6 +87,14 @@ describe("open draft rules v2", () => {
     g = lockRunLoadouts(g); expect(g.players.every((p) => p.selectedCardIds.length === 3)).toBe(true);
     expect(() => setRunLoadout(g, "p1", [a!,b!,c!])).toThrow();
   });
+  it("resolves each RUN with the manually placed representative and matching secondary", () => {
+    const g = drafted();
+    const [a, b, c] = g.players[0]!.ownedCardIds;
+    const placed = setRunLoadout(g, "p1", [c!, a!, b!]);
+    const resolved = resolvePrimary(lockRunLoadouts(placed));
+    const match = resolved.roundResults.find((entry) => entry.playerIds.includes("p1"))!;
+    expect(match.runCards!.p1).toEqual([[c, a], [c, b]]);
+  });
   it("accepts AAA identities rather than banning matching ranks", () => {
     let g = drafted(); const aces = g.ownershipCardPool.filter((e) => e.card.rank === 14).slice(0,3);
     for (const p of g.players) { p.ownedCardIds = []; p.selectedCardIds = []; }

@@ -1,5 +1,21 @@
 # 전체 작업 목록
 
+## 쇼다운·RUN 배치 동작 점검
+
+### 누적 승점 순위와 수동 카드 순서
+
+#### GAME-UI-020 — 쇼다운 순위 및 RUN 배치 검증
+
+- [x] 담당 Codex | 상태 DONE | 의존 사용자 2026-10-02 요청 | 완료 조건: 쇼다운의 현재 순위가 각 RUN 후 누적 승점으로 갱신되고 수동 배치한 대표/보조 카드가 각 RUN에 전달됨을 검증 | 검증: openDraft.test.ts 23개, cinematicRendering.test.ts 43개 통과, lint 통과. RUN1 이후 순위 교체와 [대표, RUN1 보조, RUN2 보조] 카드 전달을 회귀 테스트로 고정
+
+## 쇼다운 보드 카드 간격
+
+### RUN IT TWICE 태블릿 겹침 방지
+
+#### UI-CINEMA-019 — R2 RUN IT TWICE 보드 카드 겹침 보정
+
+- [x] 담당 Codex | 상태 DONE | 의존 사용자 2026-10-02 브라우저 주석 | 완료 조건: 640–768px 폭에서 RUN IT TWICE 커뮤니티 보드 카드가 겹치지 않고 5열 안에 맞게 표시 | 검증: 로컬 R2 RUN2 미리보기에서 5장 한 줄 확인, cinematicRendering.test.ts 42개 통과, lint/build 성공
+
 ## R4 공개 정보와 최종 결과 명확화
 
 ### 드래프트·어빌리티·랭킹 표시

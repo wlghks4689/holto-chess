@@ -138,6 +138,19 @@ describe("cinematic initial rendering", () => {
     const finalHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...ranked, round: 5 }, profiles, viewerId: "p1", onComplete: () => {} }));
     expect(finalHtml).not.toContain("cinema-rank-badge");
   });
+  it("updates the current cumulative-points rank after each R2 RUN result", () => {
+    const splitRuns: MatchView = { ...match, round: 2, stage: "primary", participantIds: ["p1", "p2"],
+      standingsBefore: { p1: 10, p2: 8 }, standingsAfterRuns: [{ p1: 10, p2: 12 }, { p1: 14, p2: 12 }],
+      boards: [deck.slice(10, 15), deck.slice(15, 20)], runoutCount: 2, runCards: { p1: [deck.slice(0, 1), deck.slice(1, 2)], p2: [deck.slice(2, 3), deck.slice(3, 4)] } };
+    const runResult = (boardIndex: number) => cinematicTimeline(splitRuns).find((frame) => frame.phase === (boardIndex === 0 ? "RUN_RESULT" : "RESULT") && frame.boardIndex === boardIndex)!.at;
+    const renderViewerRank = (boardIndex: number) => {
+      const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: splitRuns, profiles: profiles.slice(0, 2), viewerId: "p1", onComplete: () => {}, elapsedMs: runResult(boardIndex) }));
+      const seat = html.slice(html.indexOf('data-player-id="p1"'), html.indexOf('data-player-id="p2"'));
+      return seat.match(/class="cinema-rank-badge"[^>]*aria-label="([^"]+)"/)?.[1];
+    };
+    expect(renderViewerRank(0)).toBe("현재 2위");
+    expect(renderViewerRank(1)).toBe("현재 1위");
+  });
   it("keeps eliminated survival-tiebreak players in the visible risk ranking", () => {
     const riskProfiles = Array.from({ length: 8 }, (_, index) => ({
       playerId: `p${index + 1}`, name: `p${index + 1}`, points: 8 - index, alive: index < 6,

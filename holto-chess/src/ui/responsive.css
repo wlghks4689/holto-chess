@@ -560,3 +560,6 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
  .cinema.cinema-final .cinema-profile .ability-badge-button{width:30.8px;height:30.8px}
  .cinema.cinema-final .cinema-seat>.cinema-profile{min-height:31px;padding-right:38px}
 }
+@media(min-width:640px) and (max-width:768px){
+ .cinema .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .cinema-board-cards .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
+}
