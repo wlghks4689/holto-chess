@@ -20,7 +20,7 @@
 - [ ] DIST-DISCORD-001-HEADERS | 담당 Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord 요청에서 Origin, Host, CF-Connecting-IP, CF-Ray, X-Forwarded-For, Forwarded, X-Real-IP, X-Forwarded-Proto의 존재·형태 관찰 기록. IP 원문은 저장·로그하지 않는다.
 - [ ] DIST-DISCORD-001-RATELIMIT | 담당 Codex | 상태 BLOCKED | 의존 HEADERS, 사용자 정책 승인 | 완료 조건: `CF-Connecting-IP` 기반 limiter가 Discord 사용자 간에 공유되는지(OPEN RISK) 판단 후 별도 작업으로 정책 결정. 그 전까지 rate-limit 변경 없음.
 - [ ] DIST-DISCORD-001-PLAYTEST | 담당 사용자·Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord에서 2인 R1~R5 완주(Activity↔Activity, Activity↔웹), desktop·mobile, SDK ready, 대기실 WebSocket 무활동 유지 확인.
-- [ ] DIST-DISCORD-001-CF-BUILD | 담당 사용자 | 상태 TODO | 의존 없음 | 완료 조건: PR #1 commit `58630d6`의 `Workers Builds: porena` 실패 원인을 Cloudflare 대시보드 로그로 확인. UNVERIFIED — Cloudflare dashboard log required.
+- [ ] DIST-DISCORD-001-CF-BUILD | 담당 사용자 | 상태 TODO | 의존 사용자 2026-10-02 결정: Git 자동 빌드 사용 | 원인 확인(사용자 제공 build `56be2d2c` 로그): build는 성공, deploy command `npx wrangler versions upload`가 저장소 루트에서 실행되어 `wrangler.jsonc` 미발견(`Missing entry-point`). PR 코드 문제 아님. 완료 조건: 사용자가 Cloudflare Build 설정에서 Root directory를 `holto-chess`로 지정. 이후 PR 빌드는 versions upload, main merge는 자동 운영 배포.
 
 ## 첫 사용자 체험 동선
 

@@ -281,6 +281,7 @@
   - `started_at`와 `completed_at`가 모두 `2026-10-02T03:30:51Z`(0초)이고, output text가 비어 있다.
   - details URL은 Cloudflare 대시보드의 build `cd5aaa8b-6809-4172-9bea-c43385366f0a`를 가리킨다.
 - 이 세션에는 Cloudflare 대시보드 접근 권한이 없다. 원인: **UNVERIFIED — Cloudflare dashboard log required.**
+- **추가 확인(사용자 제공 build `56be2d2c` 로그, head `60b171a`)**: `npm run build`는 성공했다. 실패는 deploy 단계에서 났다. `npx wrangler versions upload`가 저장소 루트에서 실행되어 `holto-chess/wrangler.jsonc`를 찾지 못했다(`✘ [ERROR] Missing entry-point to Worker script or to assets directory`). 그래서 고정 버전 4.132.0 대신 `wrangler@4.146.0`이 임시로 설치됐다. PR 코드가 아니라 Workers Builds의 작업 디렉터리 설정 문제다. 해결은 대시보드에서 Root directory를 `holto-chess`로 바꾸거나 Git 빌드를 끄는 것이다. 운영 자동 배포 여부와 함께 사용자가 결정한다.
 - 같은 빌드 명령(`npm run build`)은 로컬 clean install 환경에서 성공했다. production deploy는 하지 않았다.
 
 ### 미해결 위험 (OPEN RISK)
