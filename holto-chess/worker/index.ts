@@ -1,5 +1,6 @@
 import { adminRoute, handleAdmin } from "./admin";
 import { submitFeedback } from "./feedback";
+import { isAllowedOrigin } from "./origin";
 export { GameRoom } from "./GameRoom";
 
 function code(): string {
@@ -35,7 +36,8 @@ export default {
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
     if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return serveApp(request, env, url);
     // Same-origin browser credentials. No token in a query string, cookie or routing header.
-    if (request.headers.get("Origin") !== url.origin) return new Response("Origin rejected", { status: 403 });
+    // The only other caller is our own Discord Activity origin, matched exactly (worker/origin.ts).
+    if (!isAllowedOrigin(request.headers.get("Origin"), url.origin, env.DISCORD_ACTIVITY_CLIENT_IDS)) return new Response("Origin rejected", { status: 403 });
     // No accounts exist yet: use the Cloudflare-provided IP as a coarse abuse
     // guard, with a generous shared-network connection budget. Never log it.
     const limiter = url.pathname === "/api/feedback" ? env.FEEDBACK_LIMITER : url.pathname === "/api/rooms" ? env.ROOM_CREATE_LIMITER : env.ROOM_CONNECT_LIMITER;

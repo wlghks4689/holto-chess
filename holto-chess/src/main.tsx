@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ModeApp } from "./ui/ModeApp";
 import { initializeLocaleDocument } from "./i18n";
+import { startPlatform } from "./platform/runtime";
+import { PlatformNotice } from "./ui/PlatformNotice";
 import "./ui/styles.css";
 import "./ui/online.css";
 import "./ui/responsive.css";
@@ -20,4 +22,6 @@ window.addEventListener("vite:preloadError", (event) => {
 });
 
 initializeLocaleDocument();
-createRoot(document.getElementById("root")!).render(<StrictMode><ModeApp /></StrictMode>);
+// Web: no-op. Discord Activity: SDK handshake in the background; the game never waits for it.
+void startPlatform();
+createRoot(document.getElementById("root")!).render(<StrictMode><ModeApp /><PlatformNotice /></StrictMode>);

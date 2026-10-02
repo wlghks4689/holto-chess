@@ -1,5 +1,17 @@
 # 승인 결정과 변경 이력
 
+## DIST-DISCORD-001 — Discord Activity 출시 준비
+
+- 근거: 사용자 2026-10-02 지시(Discord Activity Compatibility Spike 및 PR #1 재정리). 게임 규칙·밸런스 결정은 포함하지 않는다.
+- PORENA를 Discord Activity로 출시하기 위한 준비를 진행한다. porena.kr 운영 배포와 분리된 독립 배포 트랙(DIST-DISCORD-001)으로 관리한다.
+- Discord URL Mapping은 루트 하나(`/` → `porena.kr`)로 구성한다. 앱 셸, 정적 리소스, `/api/*`, `/ws/*`가 모두 이 매핑을 사용한다.
+- Discord Activity는 기존 웹 멀티플레이와 같은 backend(Cloudflare Worker·Durable Object, 방 코드)를 공유한다.
+- Worker는 기존 same-origin 정책에 더해, 설정된 Discord Application ID의 `https://<id>.discordsays.com`만 정확히 일치할 때 허용한다(exact allowlist). 와일드카드나 CORS `*`는 쓰지 않는다. 기본값은 비어 있다.
+- rate-limit 정책은 실제 Discord 요청 헤더를 검증하기 전까지 미확정이다. 현재 `CF-Connecting-IP` 기반 정책을 유지하며, 공유 가능성은 OPEN RISK로 둔다.
+- 사용자 2026-10-02 승인: PR #1 merge와 production 반영을 승인한다. Application ID `1555427351829942353`을 `DISCORD_ACTIVITY_CLIENT_IDS`에 설정한다.
+- 사용자 2026-10-02 결정: Cloudflare Workers Builds Git 자동 빌드를 사용한다. 대시보드에서 Root directory를 `holto-chess`로 변경해야 하며, 이 변경은 사용자가 직접 한다. 변경 후에는 main merge가 자동 운영 배포로 이어진다. 기존 수동 배포(`wrangler deploy --keep-vars`)와 달리 대시보드에서만 설정한 일반 변수는 유지되지 않을 수 있다(secret은 유지).
+- 구현: PR #1 (`claude/zen-edison-cxisk1`). merge SHA는 merge 후 기록한다(미정).
+
 ## UI-TUTORIAL-016 — 처음 온 플레이어의 행동 중심 체험
 
 - 근거: 사용자 2026-10-02 요청. 체험 길라잡이를 직접 확인하고 첫 사용자가 빠르게 체험·적응할 수 있도록 구조를 변경한다.

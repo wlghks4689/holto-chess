@@ -755,4 +755,5 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "prep.r5Best5": "Make your BEST 5 from seven cards",
   "match.icmDetail": "Tied #{place} · {total}P ICM split · {stack}BB → {share}P",
   "log.expandCountOne": "{count} event · expand",
+  "platform.discord.sdkFailed": "Couldn't connect to Discord. You can keep playing; if problems continue, relaunch the Activity.",
 };

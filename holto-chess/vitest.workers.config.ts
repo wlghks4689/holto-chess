@@ -16,6 +16,8 @@ export default defineConfig(async () => ({
         ADMIN_USERNAME: TEST_ADMIN_USERNAME,
         ADMIN_PASSWORD_HASH: await hashAdminPassword(TEST_ADMIN_PASSWORD, 1000),
         ADMIN_SESSION_SECRET: "test-session-secret",
+        // A made-up Discord application id: lets the suite exercise the Activity origin allowlist.
+        DISCORD_ACTIVITY_CLIENT_IDS: "123456789012345678",
       },
     },
   })],

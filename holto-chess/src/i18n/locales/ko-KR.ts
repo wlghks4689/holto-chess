@@ -753,4 +753,5 @@ export const koKR = {
   "prep.r5Best5": "7장 중 BEST5 구성",
   "match.icmDetail": "공동 {place}위 · {total}P ICM 분배 · {stack}BB → {share}P",
   "log.expandCountOne": "{count}개 · 펼쳐보기",
+  "platform.discord.sdkFailed": "Discord 연동을 시작하지 못했습니다. 게임은 계속할 수 있으며, 문제가 계속되면 Activity를 다시 실행하세요.",
 } as const;

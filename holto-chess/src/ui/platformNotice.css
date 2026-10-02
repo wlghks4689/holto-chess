@@ -1,0 +1,4 @@
+/* Discord Activity only: a non-blocking banner above the game, clear of the bottom action controls. */
+.platform-notice { position: fixed; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; align-items: center; gap: 10px; width: min(560px, calc(100vw - 32px)); box-sizing: border-box; padding: 10px 12px; border: 1px solid #b9853a; border-radius: 10px; background: rgba(36, 24, 8, .95); color: #ffe2b0; font-size: 13px; line-height: 1.4; box-shadow: 0 6px 24px rgba(0, 0, 0, .45); }
+.platform-notice p { flex: 1; margin: 0; }
+.platform-notice button { flex: none; min-height: 36px; padding: 6px 12px; }
