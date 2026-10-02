@@ -103,7 +103,10 @@ async function adminApi(request: Request, env: Env, url: URL): Promise<Response>
     let body: { status?: unknown };
     try { body = await request.json(); } catch { return json({ error: "json" }, 400); }
     if (!isFeedbackStatus(body.status)) return json({ error: "status" }, 400);
-    const { meta } = await env.FEEDBACK_DB.prepare("UPDATE feedback SET status = ?, updated_at = ? WHERE id = ?").bind(body.status, Date.now(), Number(item[1])).run();
+    // Archiving means the request is handled, so the reply email (kept only for the answer) is deleted with it.
+    const { meta } = await env.FEEDBACK_DB.prepare(
+      "UPDATE feedback SET status = ?1, updated_at = ?2, contact_email = CASE WHEN ?1 = 'archived' THEN NULL ELSE contact_email END WHERE id = ?3",
+    ).bind(body.status, Date.now(), Number(item[1])).run();
     return meta.changes ? json({ ok: true }) : json({ error: "not-found" }, 404);
   }
   if (item && request.method === "DELETE") {

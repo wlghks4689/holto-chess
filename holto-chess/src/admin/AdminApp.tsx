@@ -112,10 +112,13 @@ function Inbox({ username, onSignedOut }: { username: string; onSignedOut: () =>
       return next;
     });
     const leavesBox = (status === "archived") !== (box === "archived");
-    setItems((list) => leavesBox ? list.filter((i) => i.id !== item.id) : list.map((i) => i.id === item.id ? { ...i, status } : i));
+    const changed = { ...item, status, ...(status === "archived" ? { contactEmail: null } : {}) };
+    setItems((list) => leavesBox ? list.filter((i) => i.id !== item.id) : list.map((i) => i.id === item.id ? changed : i));
     if (leavesBox) setSelectedId(null);
   };
   const changeStatus = async (item: FeedbackItem, status: FeedbackStatus) => {
+    // The server deletes the reply email on archive (privacy policy), so make sure the answer went out first.
+    if (status === "archived" && item.contactEmail && !window.confirm("처리 완료로 보관하면 답장 이메일이 즉시 삭제되고 되돌릴 수 없습니다. 답장을 마쳤나요?")) return;
     try { await adminApi.setStatus(item.id, status); applyStatus(item, status); } catch (reason) { guard(reason); }
   };
   const open = (item: FeedbackItem) => {
@@ -153,6 +156,7 @@ function Inbox({ username, onSignedOut }: { username: string; onSignedOut: () =>
     </nav>
     <section className="admin-list" aria-label={`${BOX_LABEL[box]} · ${category === "all" ? "전체" : CATEGORY_LABEL[category]}`}>
       <header><h1>{BOX_LABEL[box]}</h1><button type="button" onClick={() => reload()} disabled={loading}>새로고침</button></header>
+      <p className="admin-retention">{box === "archived" ? "보관한 메시지는 답장 이메일이 삭제된 상태입니다. " : ""}모든 메시지는 접수 후 90일이 지나면 자동 삭제됩니다.</p>
       {error && <p className="admin-error" role="alert">{error}</p>}
       <ul>
         {items.map((item) => <li key={item.id}>
@@ -184,7 +188,7 @@ function Inbox({ username, onSignedOut }: { username: string; onSignedOut: () =>
         </dl>
         <div className="admin-actions">
           {selected.status !== "archived"
-            ? <><button type="button" onClick={() => void changeStatus(selected, "archived")}>보관</button><button type="button" onClick={() => void changeStatus(selected, "unread")}>읽지 않음으로 표시</button></>
+            ? <><button type="button" onClick={() => void changeStatus(selected, "archived")}>처리 완료 · 보관</button><button type="button" onClick={() => void changeStatus(selected, "unread")}>읽지 않음으로 표시</button></>
             : <button type="button" onClick={() => void changeStatus(selected, "read")}>받은편지함으로 이동</button>}
           <button type="button" className="danger" onClick={() => void remove(selected)}>삭제</button>
         </div>

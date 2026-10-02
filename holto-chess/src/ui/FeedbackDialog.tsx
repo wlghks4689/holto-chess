@@ -2,6 +2,8 @@ import { useId, useState, type FormEvent } from "react";
 import { FEEDBACK_CATEGORIES, FEEDBACK_EMAIL_MAX_LENGTH, FEEDBACK_MAX_LENGTH, type FeedbackCategory, type FeedbackSubmission } from "../shared/feedback";
 import { useTranslation, type TranslationKey } from "../i18n";
 import { endpoints } from "../network/endpoints";
+import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
+import { currentPlatform } from "../platform/runtime";
 import "./feedback.css";
 
 type SendError = "rateLimited" | "email" | "consent" | "generic";
@@ -60,6 +62,10 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
       <input id={`${id}-email`} type="email" autoComplete="email" inputMode="email" maxLength={FEEDBACK_EMAIL_MAX_LENGTH} value={email} aria-describedby={`${id}-email-help`} onChange={(event) => setEmail(event.target.value)} />
       <p id={`${id}-email-help`} className="feedback-help">{t("feedback.emailHelp")}</p>
       {wantsReply && <label className="feedback-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span>{t("feedback.consent")}</span></label>}
+      {/* A new tab keeps the draft. Inside Discord, popups are not reliable, so the page opens in place. */}
+      <p className="feedback-help feedback-privacy">{currentPlatform().kind === "discord"
+        ? <a href={LEGAL_PATHS.privacy} onClick={followInApp(LEGAL_PATHS.privacy)}>{t("feedback.privacyLink")}</a>
+        : <a href={LEGAL_PATHS.privacy} target="_blank" rel="noopener">{t("feedback.privacyLink")}</a>}</p>
       {/* Honeypot: off-screen and skipped by keyboard and screen readers. People leave it empty. */}
       <input className="feedback-trap" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(event) => setWebsite(event.target.value)} />
       {error && <p className="feedback-error" role="alert">{t(`feedback.error.${error}` as TranslationKey)}</p>}

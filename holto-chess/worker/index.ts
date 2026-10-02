@@ -1,6 +1,7 @@
 import { adminRoute, handleAdmin } from "./admin";
 import { submitFeedback } from "./feedback";
 import { isAllowedOrigin } from "./origin";
+import { runRetention } from "./retention";
 export { GameRoom } from "./GameRoom";
 
 function code(): string {
@@ -65,5 +66,9 @@ export default {
     const socket = /^\/ws\/rooms\/([A-Z2-9]{6})$/.exec(url.pathname);
     if (socket && request.method === "GET" && request.headers.get("Upgrade")?.toLowerCase() === "websocket") return forward(socket[1], "/internal/ws");
     return new Response("Not found", { status: 404 });
+  },
+  // Daily Cron Trigger (wrangler.jsonc): feedback retention from the privacy policy.
+  async scheduled(_controller, env): Promise<void> {
+    await runRetention(env);
   },
 } satisfies ExportedHandler<Env>;

@@ -25,6 +25,7 @@
 .feedback-meta span:last-child { flex:none; font-variant-numeric:tabular-nums; }
 .feedback-meta [data-full] { color:#ffcf8a; }
 .feedback-help { margin:6px 0 0; color:#7f98a6; font-size:11px; }
+.feedback-privacy a { display:inline-block; padding:4px 0; color:#8fe4ea; text-underline-offset:3px; }
 .feedback-consent { display:flex; gap:8px; align-items:flex-start; margin-top:12px; color:#a4b9c6; font-size:12px; line-height:1.6; cursor:pointer; }
 .feedback-consent input { flex:none; margin-top:3px; }
 .feedback-trap { position:absolute; left:-10000px; width:1px; height:1px; opacity:0; }

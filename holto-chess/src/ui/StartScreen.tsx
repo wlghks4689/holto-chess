@@ -3,6 +3,7 @@ import { useCinematicMotion } from "./useCinematicMotion";
 import { resetSeenRoundGuides, setAutoRoundGuides, useRoundGuidePreferences } from "./roundGuidePreferences";
 import { useMadeSoundPreferences, writeMadeSoundPreferences } from "./madeSound";
 import { useTranslation } from "../i18n";
+import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
 import "./start-screen.css";
 
 // The guide carries its own copy, examples and styles, so it loads only when opened.
@@ -57,7 +58,14 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
           <button type="button" onClick={() => setOverlay("feedback")}><span>{t("home.feedback")}</span></button>
         </div>
       </div>
-      {import.meta.env.DEV ? <footer className="start-footer">DEVELOPMENT PREVIEW</footer> : null}
+      <footer className="start-footer">
+        <nav aria-label={t("legal.nav")}>
+          <a href={LEGAL_PATHS.privacy} onClick={followInApp(LEGAL_PATHS.privacy)}>{t("legal.privacy")}</a>
+          <span aria-hidden="true">·</span>
+          <a href={LEGAL_PATHS.terms} onClick={followInApp(LEGAL_PATHS.terms)}>{t("legal.terms")}</a>
+        </nav>
+        {import.meta.env.DEV ? <small>DEVELOPMENT PREVIEW</small> : null}
+      </footer>
     </div>
     {overlay && <div ref={modal} className="start-overlay">
       {overlay === "mode" ? <div className="start-mode-backdrop"><section className="start-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="start-mode-title">

@@ -103,6 +103,23 @@ describe("admin inbox", () => {
     expect(logout.headers.get("Set-Cookie")).toContain("Max-Age=0");
   });
 
+  it("deletes the reply email when a message is archived as handled, and only then", async () => {
+    await send({ category: "inquiry", message: "답장 부탁드려요", contactEmail: "reply@example.com", consent: true });
+    const cookie = await signIn();
+    const { id } = (await env.FEEDBACK_DB.prepare("SELECT id FROM feedback WHERE message = ?").bind("답장 부탁드려요").first<{ id: number }>())!;
+    const email = () => env.FEEDBACK_DB.prepare("SELECT contact_email FROM feedback WHERE id = ?").bind(id).first<string | null>("contact_email");
+
+    for (const status of ["read", "unread"]) {
+      expect((await adminFetch(`/api/admin/feedback/${id}`, { method: "PATCH", cookie, body: JSON.stringify({ status }) })).status).toBe(200);
+      expect(await email()).toBe("reply@example.com");
+    }
+    expect((await adminFetch(`/api/admin/feedback/${id}`, { method: "PATCH", cookie, body: JSON.stringify({ status: "archived" }) })).status).toBe(200);
+    expect(await email()).toBeNull();
+    // Moving it back to the inbox does not bring the address back; the message itself stays.
+    expect((await adminFetch(`/api/admin/feedback/${id}`, { method: "PATCH", cookie, body: JSON.stringify({ status: "read" }) })).status).toBe(200);
+    expect(await env.FEEDBACK_DB.prepare("SELECT message, contact_email FROM feedback WHERE id = ?").bind(id).first()).toEqual({ message: "답장 부탁드려요", contact_email: null });
+  });
+
   it("pages through the inbox newest first", async () => {
     for (let i = 0; i < 52; i++) await env.FEEDBACK_DB.prepare("INSERT INTO feedback (category, message, status, created_at, updated_at) VALUES ('inquiry', ?, 'read', ?, ?)").bind(`page ${i}`, i, i).run();
     const cookie = await signIn();

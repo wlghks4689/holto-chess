@@ -300,3 +300,27 @@
   - `product_doc/TODO.md`: `DIST-DISCORD-001` 추가
   - `product_doc/DECISIONS.md`: 사용자가 승인한 5개 결정만 기록
 - 게임 엔진(`src/game`, `src/core`), 밸런스, 에셋(`public/`, `asset-source/`), `GameRoom.ts` 변경은 없다.
+
+## 11. 법적 URL — Developer Portal 등록값 (LEGAL-001, 2026-10-02)
+
+Discord App Discovery는 공개된 개인정보처리방침과 이용약관을 요구한다. 아래 값은 운영 배포 후 두 URL이 200인지 확인한 뒤 Portal의 General Information에 입력한다. Portal 입력은 사용자 작업이다.
+
+```
+Privacy Policy URL:
+https://porena.kr/privacy
+
+Terms of Service URL:
+https://porena.kr/terms
+
+Support/Contact:
+wlghks4689@gmail.com
+
+Operator:
+김지환
+
+Minimum age:
+14+
+```
+
+- 두 페이지는 로그인·게임 시작 없이 열리고, Activity 안에서는 History API로 이동해 launch query(frame_id 등)를 유지한다.
+- 현재 정책은 Discord 사용자 정보를 수집하지 않는다고 명시한다. OAuth·프로필·친구 초대 등 Discord identity를 도입하면 **도입 전에** 개인정보처리방침 5장을 개정해야 한다.

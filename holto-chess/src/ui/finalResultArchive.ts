@@ -1,7 +1,7 @@
 import type { PlayerView } from "../shared/protocol";
 
 const STORAGE_KEY = "porena-final-results-v1";
-const MAX_RESULTS = 20;
+export const MAX_RESULTS = 20;
 
 export type SavedFinalResult = {
   id: string;

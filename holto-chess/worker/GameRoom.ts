@@ -4,14 +4,11 @@ import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 import { classifyGameError } from "../src/shared/gameErrorCode";
 import { nextDisclosureAt } from "../src/game/disclosure";
+import { FINISHED_ROOM_LIFETIME_MS, LOBBY_IDLE_LIFETIME_MS, ROOM_LIFETIME_MS } from "../src/shared/retention";
 
 type Attachment = { roomId: string; playerId: string | null; joinedAt: number; windowAt?: number; messages?: number };
 const SNAPSHOT_KEY = "snapshot:v1";
 const EXPIRY_KEY = "expiresAt";
-const ROOM_LIFETIME_MS = 24 * 60 * 60 * 1000;
-const FINISHED_ROOM_LIFETIME_MS = 15 * 60 * 1000;
-/** A lobby with no join/ready/leave/nickname change for this long is deleted; every lobby change restarts it. */
-const LOBBY_IDLE_LIFETIME_MS = 30 * 60 * 1000;
 const AUTH_TIMEOUT_MS = 15000;
 function randomSeed(): number { return crypto.getRandomValues(new Uint32Array(1))[0]! || 1; }
 function token(): string { return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""); }

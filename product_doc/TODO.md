@@ -8,6 +8,18 @@
 
 - [x] 담당 Codex | 상태 DONE | 의존 사용자 2026-10-02 브라우저 주석 | 완료 조건: R4 드래프트 풀은 항상 8열 두 줄, 타겟 스나이퍼 소유자에게 최초 지급 카드 표기, 최종 순위표에서 랭크 점수 항목과 값 숨김 | 검증: 관련 UI/게임 테스트 27개, lint, build 통과. Worker suite 22/23; 남은 재롤 경합 테스트는 단독 재실행 통과.
 
+## 법적 고지와 개인정보 보존
+
+### 독립 운영 트랙 (게임 규칙·밸런스·프로토콜 변경 없음)
+
+#### LEGAL-001 — Privacy / Terms / Data Retention
+
+- [ ] LEGAL-001-PRIVACY | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 승인 | 완료 조건: `/privacy` 한국어·영어 개인정보처리방침, 직접 접근·새로고침 200, 시작 화면 하단 링크 | 검증: 단위·Worker·lint·build, 5개 해상도 브라우저 QA. qa/2026-10-02-legal.md. 커밋·push·운영 배포는 사용자 승인 대기.
+- [ ] LEGAL-001-TERMS | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 승인 | 완료 조건: `/terms` 한국어·영어 이용약관(실제 돈 도박 아님, 만 14세 이상, 대한민국 법) | 검증: PRIVACY와 동일.
+- [ ] LEGAL-001-RETENTION | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 승인 | 완료 조건: 매일 03:00 KST Cron으로 접수 90일 초과 피드백 영구 삭제, 보관(처리 완료) 시 답장 이메일 즉시 삭제 | 검증: `tests/worker/retention.test.ts`, `feedback.test.ts`. 운영 적용은 배포 후.
+- [ ] LEGAL-001-GA4 | 담당 사용자 | 상태 BLOCKED | 의존 Google Analytics 관리자 로그인 | 완료 조건: 관리 → 데이터 수집 및 수정 → 데이터 보관에서 이벤트 데이터 보관 14개월, 새 활동 시 사용자 데이터 재설정 OFF 저장 확인. Google Signals·광고 개인 최적화·사용자 제공 데이터 수집 상태 확인(변경 전 보고). 2026-10-02 내장 브라우저는 Google 로그인 상태가 아니어서 미적용.
+- [ ] LEGAL-001-DISCORD | 담당 사용자 | 상태 BLOCKED | 의존 PRIVACY·TERMS 운영 배포 | 완료 조건: Developer Portal 일반 정보에 Privacy Policy URL `https://porena.kr/privacy`, Terms of Service URL `https://porena.kr/terms` 입력 및 저장 확인.
+
 ## Discord Activity 출시 준비
 
 ### 독립 배포 트랙 (porena.kr 운영 배포·CrazyGames 작업과 분리)

@@ -3,6 +3,7 @@ import "./gameStyles";
 import { invitedRoom } from "./roomInvite";
 import { StartScreen, type StartMode } from "./StartScreen";
 import { useTranslation } from "../i18n";
+import { legalPageFor, usePathname } from "../legal/legalRoute";
 const loadLocalApp = () => import("./App");
 const FxPreview = lazy(() => import("./FxPreview").then((module) => ({ default: module.FxPreview })));
 const LocalApp = lazy(() => loadLocalApp().then((module) => ({ default: module.App })));
@@ -14,14 +15,18 @@ const ShowdownCardPreview = lazy(() => import("./ShowdownCardPreview").then((m) 
 const AbilityPreview = lazy(() => import("./AbilityPreview").then((m) => ({ default: m.AbilityPreview })));
 const ResponsivePreview = import.meta.env.DEV ? lazy(() => import("./ResponsivePreview").then(m => ({ default: m.ResponsivePreview }))) : null;
 // Chapters, practice scenarios and the simple bots load only when the guide is opened.
+// Privacy policy and terms (/privacy, /terms): public pages, fetched only when visited.
+const LegalPage = lazy(() => import("../legal/LegalPage").then((module) => ({ default: module.LegalPage })));
 const TutorialApp = lazy(() => import("./tutorial/TutorialApp").then((module) => ({ default: module.TutorialApp })));
 export function ModeApp() {
   const { t } = useTranslation();
+  const legalPage = legalPageFor(usePathname());
   const [mode, setMode] = useState<StartMode | null>(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ? "multi" : null);
   useEffect(() => {
     if (mode === "single") void loadLocalApp();
     if (mode === "multi") void loadOnlineApp();
   }, [mode]);
+  if (legalPage) return <Suspense fallback={<main className="local-loading-screen"><div><span>PORENA</span><b>{t("common.loading")}</b></div></main>}><LegalPage kind={legalPage} /></Suspense>;
   // Unlisted effect gallery. The SPA fallback serves it at /fx on any deploy, so
   // the same build can be checked without a local dev server.
   if (typeof location !== "undefined" && location.pathname.replace(/\/$/, "") === "/fx") {
