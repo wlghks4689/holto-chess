@@ -86,7 +86,7 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
     purchaseLimit, handLimit: cap });
   return <section className="shop-layout">
-    <ShopAbilityPanel ability={me.abilityId} benefit={abilityBenefit(state.abilityEvents ?? [], me.id)} />
+    <ShopAbilityPanel ability={me.abilityId} benefit={abilityBenefit(state.abilityEvents ?? [], me.id)} startingCard={me.firstCardId ? getCard(state, me.firstCardId) : undefined} />
     <div className="inventory panel">
       <header><div className="shop-heading"><h2>{t("shop.myCards")}</h2><strong className="shop-count">{me.ownedCardIds.length} / {cap}</strong></div><div className="stat-block"><small>{t("shop.stack")}</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
       <div className="card-row owned-row">{me.ownedCardIds.map((id) => {

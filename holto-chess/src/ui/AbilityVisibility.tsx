@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { AbilityBenefitView, AbilityCue, AbilityId } from "../game/abilities";
+import { cardLabel, type Card } from "../core/poker/cards";
 import { useTranslation } from "../i18n";
 import { abilityIconUrl } from "./abilityArtworkLoader";
 import { abilityUx, cueAmount } from "./abilityPresentation";
@@ -69,12 +70,13 @@ export function AbilityBadge({ ability, cue, age = 0, catchUp = false, compact =
   </span>;
 }
 
-export function ShopAbilityPanel({ ability, benefit, compact = false }: { ability?: AbilityId; benefit?: AbilityBenefitView; compact?: boolean }) {
+export function ShopAbilityPanel({ ability, benefit, startingCard, compact = false }: { ability?: AbilityId; benefit?: AbilityBenefitView; startingCard?: Card; compact?: boolean }) {
   const { t } = useTranslation();
   if (!ability) return null;
   return <aside className={`shop-ability-panel ${compact ? "is-compact" : ""}`}>
     <AbilityBadge ability={ability} compact={compact} />
     <div className="shop-ability-copy"><strong>{t(`ability.card.${ability}.name`)}</strong>
+      {ability === "target-sniper" && startingCard && <span className="shop-ability-effect">{t("ability.ux.startingCard", { card: cardLabel(startingCard) })}</span>}
       {!compact && <span className="shop-ability-effect">{t(`ability.card.${ability}.description`)}</span>}
       {benefit && <AbilityBenefitSummary ability={ability} benefit={benefit} />}
     </div>

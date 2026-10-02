@@ -27,6 +27,18 @@ function fixture(round: Round, ability: AbilityId) {
 }
 
 describe("actual economic benefits", () => {
+  it("shows Target Sniper's initially dealt card only in its owner's private view", () => {
+    const s = fixture(4, "target-sniper");
+    const room: RoomSnapshot = { schema: 1, roomId: "QA", revision: 0, status: "PLAYING", game: s,
+      sessions: [{ playerId: "p1", tokenHash: "qa", requests: [] }], readyIds: [], endedShopIds: [] };
+    const view = createPlayerView(room, "p1");
+    const expected = s.players[0]!.firstCardId!;
+    expect(view.me.abilityStartingCard?.id).toBe(expected);
+    expect(JSON.stringify(view.players)).not.toContain(expected);
+    const nonSniper = structuredClone(s); nonSniper.players[0]!.abilityId = "architect";
+    room.game = nonSniper;
+    expect(createPlayerView(room, "p1").me.abilityStartingCard).toBeUndefined();
+  });
   it("records exact purchase savings and sale premiums without paying them twice", () => {
     let s = createGame(32); const p = s.players[0]!; p.abilityId = "royal-blood";
     const card = s.ownershipCardPool.find(e => e.state === "AVAILABLE" && e.card.rank === 12)!;

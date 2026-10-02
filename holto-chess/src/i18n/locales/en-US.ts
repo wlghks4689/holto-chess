@@ -5,6 +5,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "ability.ux.close": "Close",
   "ability.ux.active": "Activated",
   "ability.ux.earned": "Total earned",
+  "ability.ux.startingCard": "Initially dealt card: {card}",
   "ability.ux.saved": "Total saved",
   "ability.ux.sale": "Extra sale proceeds",
   "ability.ux.order": "R{round} pick order #{position} → #1",

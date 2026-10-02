@@ -66,6 +66,7 @@ export type RoundSummaryRow = {
 export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
 export type PrivatePlayerView = {
   abilityBenefit?: AbilityBenefitView;
+  abilityStartingCard?: Card;
   abilityId?: AbilityId;
   playerId: string; stackBB: number; points: number; alive: boolean; lockCost: number;
   ownedCards: Card[]; shopCards: { card: Card; price: number }[];

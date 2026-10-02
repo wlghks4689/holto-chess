@@ -15,6 +15,7 @@ function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerV
   const player = g.players.find((candidate) => candidate.id === playerId)!;
   return {
     abilityId: player.abilityId,
+    ...(player.abilityId === "target-sniper" && player.firstCardId ? { abilityStartingCard: getCard(g, player.firstCardId) } : {}),
     playerId: player.id, stackBB: player.stackBB, points: player.points, alive: !player.eliminated,
     ownedCards: player.ownedCardIds.map((id) => getCard(g, id)),
     shopCards: player.shopCardIds.map((id) => ({ card: getCard(g, id), price: getCardPrice(g, player.id, id) })),

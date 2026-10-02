@@ -15,7 +15,7 @@ const ordinal = (value: number, locale: string) => {
 
 export function FinalStandingsHeader() {
   const { t } = useTranslation();
-  return <div className="final-standings-head" aria-hidden="true"><span>{t("final.rank")}</span><span>{t("final.nickname")}</span><span>BEST 5</span><span>{t("final.cumulativePoints")}</span><span>{t("final.handScore")}</span><span>{t("final.stack")}</span><span>{t("final.total")}</span><span>{t("final.rankPoints")}</span></div>;
+  return <div className="final-standings-head" aria-hidden="true"><span>{t("final.rank")}</span><span>{t("final.nickname")}</span><span>BEST 5</span><span>{t("final.cumulativePoints")}</span><span>{t("final.handScore")}</span><span>{t("final.stack")}</span><span>{t("final.total")}</span></div>;
 }
 
 export function FinalStandingRow({ row, name }: { row: FinalStandingView; name: string }) {
@@ -53,6 +53,5 @@ export function FinalStandingRow({ row, name }: { row: FinalStandingView; name: 
         <b>{t("final.scoreCalculation")}</b><span>{t("final.cumulativePoints")} <strong>{display(row.points)}P</strong></span><span>{t("final.handScore")} <strong>{row.handScore}P</strong></span><small>{compactHandName(row.displayName, t) || t("final.noHand")}</small><span>{t("final.bbScore")} <strong>{row.stackScore}P</strong></span><small>{display(row.stackBB)}BB ÷ 10 · {t("final.roundDown")}</small><hr /><span>{t("final.total")} <strong>{display(row.total)}P</strong></span>
       </div>
     </div>
-    <i className={`rank-point ${row.rankPoints > 0 ? "positive" : row.rankPoints < 0 ? "negative" : ""}`}>{row.rankPoints > 0 ? "+" : ""}{row.rankPoints}</i>
   </div>;
 }

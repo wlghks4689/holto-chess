@@ -3,6 +3,7 @@ export const koKR = {
   "ability.ux.close": "닫기",
   "ability.ux.active": "발동",
   "ability.ux.earned": "누적 획득",
+  "ability.ux.startingCard": "최초 지급 카드: {card}",
   "ability.ux.saved": "누적 절약",
   "ability.ux.sale": "판매 추가 확보",
   "ability.ux.order": "R{round} 선택 순위 {position}위 → 1위",
