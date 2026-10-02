@@ -324,3 +324,47 @@ Minimum age:
 
 - 두 페이지는 로그인·게임 시작 없이 열리고, Activity 안에서는 History API로 이동해 launch query(frame_id 등)를 유지한다.
 - 현재 정책은 Discord 사용자 정보를 수집하지 않는다고 명시한다. OAuth·프로필·친구 초대 등 Discord identity를 도입하면 **도입 전에** 개인정보처리방침 5장을 개정해야 한다.
+
+## 12. Developer Portal 진행 상황과 Discovery 문안 (2026-10-02)
+
+### 완료된 Portal 설정
+
+- 일반 정보: 이용약관 `https://porena.kr/terms`, 개인정보 보호 정책 `https://porena.kr/privacy` 저장(Claude, 사용자 요청).
+- 앱 인증: 사용자가 2단계 인증, 팀 이전, 신원 확인, 제출 완료. Discovery 상태에서 "인증을 마쳐야 해요" 충족 확인.
+- Activity: URL 매핑 루트 `/` → `porena.kr`, 활동 활성화(엔트리 포인트 명령어 자동 생성), 최대 참가자 8, 지원 플랫폼 웹·iOS·Android(Claude, 사용자 요청). 연령 제한·프록시 인증은 끔.
+- Discovery 남은 요건: 커뮤니티 지원 서버(사용자). 찾기 설정 화면은 지원 서버가 없으면 저장되지 않아 요약·언어·상세 설명·링크는 서버 지정 후 입력한다.
+
+### 찾기 설정 입력값
+
+- 요약(200자 이내): `Free 8-player poker autobattler. Buy cards from a shared 52-card pool, build the best hand and survive arenas whose rules change every round. No real money.`
+- 언어: Korean, English (US)
+- 링크: Website `https://porena.kr`
+- 상세 설명(Default, Markdown):
+
+```
+**PORENA** is a free 8-player poker autobattler you can play right inside Discord.
+
+- **Shared 52-card pool** – everyone buys from the same deck, so every card you take is one your rivals can't have.
+- **Build the best hand** – combine your cards into the strongest poker hand and let it fight automatically.
+- **Arenas that change every round** – drafts, survival rounds and a final showdown, each with its own rules.
+- **12 abilities** – pick one and shape your own strategy.
+- **Play solo or with friends** – face 7 AI opponents, or start it in a voice channel and play together.
+
+**No real money.** BB, points and rewards are in-game values only. There are no bets, entry fees or cash prizes.
+
+Website: https://porena.kr
+Privacy Policy: https://porena.kr/privacy · Terms of Service: https://porena.kr/terms
+
+---
+
+**포레나(PORENA)**는 Discord에서 바로 즐기는 무료 8인 포커 오토배틀러입니다.
+
+- **52장 공용 카드풀** – 모두가 같은 덱에서 카드를 사기 때문에, 내가 가져간 카드는 상대가 쓸 수 없습니다.
+- **가장 강한 패 만들기** – 카드를 조합해 가장 강한 포커 패를 만들면 전투는 자동으로 진행됩니다.
+- **라운드마다 바뀌는 아레나** – 드래프트, 서바이벌, 파이널 쇼다운까지 라운드마다 규칙이 달라집니다.
+- **12가지 어빌리티** – 하나를 골라 나만의 전략을 완성하세요.
+- **혼자 또는 친구와** – AI 7명과 대결하거나, 음성 채널에서 실행해 친구와 함께 플레이하세요.
+
+**실제 돈을 사용하지 않습니다.** BB, 점수, 보상은 게임 안에서만 쓰이는 수치이며 베팅, 참가비, 현금 상금이 없습니다.
+```
+

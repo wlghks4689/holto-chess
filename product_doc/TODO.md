@@ -27,7 +27,7 @@
 #### DIST-DISCORD-001 — Discord Activity 호환성 확인 및 배포 준비
 
 - [ ] DIST-DISCORD-001-SPIKE | 담당 Claude | 상태 REVIEW | 의존 사용자 2026-10-02 지시 | 완료 조건: PR #1(`claude/zen-edison-cxisk1`)이 최신 main 위에서 Discord 플랫폼 작업만 포함, 플랫폼 판별·SDK 동적 import·exact Origin allowlist·테스트·시뮬레이션 유지 | 검증: unit/Worker/lint/build 및 로컬 Discord 시뮬레이션. 상세 `holto-chess/DISCORD_ACTIVITY_REPORT.md`. 게임 규칙·밸런스·엔진 변경 없음. merge는 사용자 승인.
-- [ ] DIST-DISCORD-001-PORTAL | 담당 사용자 | 상태 IN_PROGRESS | 의존 SPIKE merge | 완료 조건: Developer Portal 앱 생성, Activities 활성화, URL Mapping `/` → `porena.kr`, 테스트 유저 등록. Claude·Codex는 Portal 설정을 수행하지 않는다.
+- [ ] DIST-DISCORD-001-PORTAL | 담당 사용자 | 상태 IN_PROGRESS | 2026-10-02 Claude가 사용자 요청으로 URL Mapping `/` → `porena.kr`, Activity 활성화(엔트리 포인트 명령어), 최대 8명, 웹·iOS·Android 설정. 앱 인증 완료. 남은 것: 커뮤니티 지원 서버(사용자), 찾기 설정 입력(Claude, 문안은 DISCORD_ACTIVITY_REPORT §12) | 의존 SPIKE merge | 완료 조건: Developer Portal 앱 생성, Activities 활성화, URL Mapping `/` → `porena.kr`, 테스트 유저 등록. Claude·Codex는 Portal 설정을 수행하지 않는다.
 - [ ] DIST-DISCORD-001-CONFIG | 담당 Claude | 상태 REVIEW | 의존 PORTAL | 완료 조건: Application ID를 `holto-chess/wrangler.jsonc`의 `DISCORD_ACTIVITY_CLIENT_IDS`에 기록. 사용자 2026-10-02 제공 ID `1555427351829942353`을 PR #1에 반영(merge·운영 배포 전까지 운영 미적용). 운영 배포는 사용자 별도 승인.
 - [ ] DIST-DISCORD-001-HEADERS | 담당 Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord 요청에서 Origin, Host, CF-Connecting-IP, CF-Ray, X-Forwarded-For, Forwarded, X-Real-IP, X-Forwarded-Proto의 존재·형태 관찰 기록. IP 원문은 저장·로그하지 않는다.
 - [ ] DIST-DISCORD-001-RATELIMIT | 담당 Codex | 상태 BLOCKED | 의존 HEADERS, 사용자 정책 승인 | 완료 조건: `CF-Connecting-IP` 기반 limiter가 Discord 사용자 간에 공유되는지(OPEN RISK) 판단 후 별도 작업으로 정책 결정. 그 전까지 rate-limit 변경 없음.
