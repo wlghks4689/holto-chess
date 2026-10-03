@@ -1,1 +1,1 @@
-export { rawShowdownEquity, scoreSeven, showdownEquity } from "../game/showdownEquity";
+export { rawShowdownEquity, scoreSeven, showdownEquity, r4ThreeWayEquity } from "../game/showdownEquity";

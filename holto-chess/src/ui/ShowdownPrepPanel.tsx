@@ -1,7 +1,7 @@
 import { Fragment, useMemo, type CSSProperties } from "react";
 import type { ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { CardBack, CardView } from "./CardView";
-import { showdownEquity } from "./showdownEquity";
+import { showdownEquity, r4ThreeWayEquity } from "./showdownEquity";
 import { abilityIconUrl } from "./abilityArtworkLoader";
 import "./showdown-prep.css";
 import { useTranslation } from "../i18n";
@@ -46,6 +46,9 @@ function StandardShowdownPrepPanel({ round, playerName, seconds, secondary = fal
   const matchNumber = matchup?.matchNumber ?? (secondary ? 2 : 1);
   const duration = Math.max(1, seconds ?? 3);
   const equity = useMemo(() => {
+    if (round === 4 && matchup?.opponents?.length === 2) {
+      return r4ThreeWayEquity([matchup.viewer.cards, ...matchup.opponents.map(seat => seat.cards)]);
+    }
     const opponent = matchup?.opponents?.length === 1 ? matchup.opponents[0] : matchup?.opponent;
     return round !== 5 && matchup && opponent && (!matchup.opponents || matchup.opponents.length === 1)
       ? showdownEquity(round as 1 | 2 | 3 | 4 | 5, matchup.viewer.cards, opponent.cards) : null;
@@ -54,8 +57,8 @@ function StandardShowdownPrepPanel({ round, playerName, seconds, secondary = fal
     <header className="showdown-prep-heading"><small>ROUND {String(round).padStart(2, "0")} · MATCH {matchNumber}</small><h1>{ROUND_TITLES[round] ?? `ROUND ${round}`}</h1></header>
     <div className={`showdown-prep-stage ${multiway ? `is-multiway is-${opponents.length + 1}-way` : ""}`}>
       {multiway ? <>
-        <PrepSeat seat={viewer} viewer hidden={round === 5} />
-        {opponents.map((opponent) => <PrepSeat key={opponent.playerId} seat={opponent} viewer={false} hidden={round === 5} />)}
+        <PrepSeat seat={viewer} viewer hidden={round === 5} winPercent={equity?.[0]} />
+        {opponents.map((opponent, index) => <PrepSeat key={opponent.playerId} seat={opponent} viewer={false} hidden={round === 5} winPercent={equity?.[index + 1]} />)}
         <strong className="showdown-prep-vs" aria-label={t("showdown.versus")}>VS</strong>
       </> : <>
         <PrepSeat seat={viewer} viewer winPercent={equity?.[0]} />

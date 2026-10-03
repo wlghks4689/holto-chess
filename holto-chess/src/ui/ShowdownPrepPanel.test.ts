@@ -98,6 +98,15 @@ describe("showdown preparation presentation", () => {
     expect(html.indexOf('aria-label="나 출전 카드"')).toBeLessThan(html.indexOf('aria-label="나 예상 승률'));
   });
 
+  it("shows three-way R4 match 2 equity below all three complete hands", () => {
+    const deck = makeDeck();
+    const seats = [0, 1, 2].map(index => ({ playerId: `p${index}`, name: `선수 ${index}`, points: 0, cards: deck.slice(index * 5, index * 5 + 5) }));
+    const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round: 4, playerName: seats[0]!.name, seconds: 3,
+      matchup: { matchNumber: 2, viewer: seats[0]!, opponents: seats.slice(1) } }));
+    expect(html).toContain("MATCH 2");
+    expect(html.match(/예상 승률 <strong>\d+%<\/strong>/g)).toHaveLength(3);
+  });
+
   it("centers the R4 three-player matchup around one VS without character art", () => {
     const count = 3;
     const deck = makeDeck();

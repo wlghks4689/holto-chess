@@ -8,6 +8,40 @@ const SAMPLES: Record<Round, number> = { 1: 10_000, 2: 10_000, 3: 600, 4: 240, 5
 /** Prep screens re-render every countdown tick; the result depends only on the cards, so reuse it. */
 const cache = new Map<string, number>();
 const CACHE_LIMIT = 64;
+const threeWayCache = new Map<string, number[]>();
+
+/** R4 display-only three-way pot equity. Sample one common board, split ties among its winners. */
+export function r4ThreeWayEquity(hands: readonly (readonly Card[])[]): number[] | null {
+  if (hands.length !== 3 || hands.some(hand => hand.length !== REQUIRED_CARDS[4])) return null;
+  const shown = hands.flat();
+  const ids = new Set(shown.map(card => card.id));
+  if (ids.size !== shown.length || shown.some(card => card.hidden)) return null;
+  const keys = hands.map(hand => hand.map(card => card.id).sort().join(","));
+  const canonical = [...keys].sort();
+  const seedKey = `r4-three-way:${canonical.join("|")}`;
+  const cached = threeWayCache.get(seedKey);
+  if (cached) return keys.map(key => cached[canonical.indexOf(key)]!);
+  const ordered = canonical.map(key => hands[keys.indexOf(key)]!);
+  const available = makeDeck().filter(card => !ids.has(card.id));
+  const random = seededRandom(seedKey);
+  const shares = [0, 0, 0];
+  for (let sample = 0; sample < SAMPLES[4]; sample++) {
+    const deck = [...available];
+    for (let index = 0; index < 5; index++) {
+      const picked = index + Math.floor(random() * (deck.length - index));
+      [deck[index], deck[picked]] = [deck[picked]!, deck[index]!];
+    }
+    const board = deck.slice(0, 5);
+    const values = ordered.map(hand => findBestFive([...hand, ...board]));
+    const best = values.reduce((a, b) => compareHands(a, b) >= 0 ? a : b);
+    const winners = values.map((value, index) => compareHands(value, best) === 0 ? index : -1).filter(index => index >= 0);
+    for (const index of winners) shares[index]! += 1 / winners.length;
+  }
+  const percentages = shares.map(share => Math.floor(share * 100 / SAMPLES[4]));
+  if (threeWayCache.size >= CACHE_LIMIT) threeWayCache.clear();
+  threeWayCache.set(seedKey, percentages);
+  return keys.map(key => percentages[canonical.indexOf(key)]!);
+}
 
 function seededRandom(seed: string): () => number {
   let state = 2166136261;
