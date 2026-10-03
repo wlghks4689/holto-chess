@@ -9,4 +9,6 @@
 - 모바일 히스토리: 외부 90dvh 스크롤 패널 안의 45dvh 제한/스크롤을 제거하여 한 스크롤 영역에서 내용을 연속 표시.
 - 브라우저 추가 확인: `/fx`에서 트립스 주황색과 0.9s 펄스 스타일 확인. 402×874 R1 결과 미리보기에서 히스토리 펼침 후 패널 top 43.69/bottom 830.28, 내부 max-height none/overflow visible 확인. 미리보기에는 짧은 히스토리만 있어 실제 긴 경기 기록의 터치 스크롤은 실기기 재검증 필요.
 - 검증: unit 90파일 633개, Worker 5파일 33개 통과. lint 통과. build 명령 내 앱/Worker 타입 검사와 번들 생성 성공. Wrangler 로그 경로 EPERM 및 정적 분석 경고가 있었으나 Worker 테스트와 빌드는 종료 코드 0으로 완료.
-- 미검증: 실제 iPhone Safari, 멀티플레이 전체 경기. 커밋/push와 운영 배포는 후속 기록에 SHA·버전·상태를 기입한다.
+- 커밋/push: `d5f07f8d2162ebcfec1727657da12eaae272eae6` (`main`, `origin/main`).
+- 운영 Worker `porena` 버전 `3c33acf7-2781-4ba8-be07-9011a08f543e`, 100% 트래픽. `wrangler deploy --dry-run --keep-vars` 및 `wrangler deploy --keep-vars` 성공. 운영 `/`·`/api/health` HTTP 200, health `ok=true`.
+- 미검증: 실제 iPhone Safari, 멀티플레이 전체 경기.
