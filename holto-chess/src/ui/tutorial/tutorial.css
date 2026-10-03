@@ -32,7 +32,7 @@
 .tutorial-arena :is(.tutorial-inventory,.tutorial-shop) .card-rank{font-size:20px}
 .tutorial-arena :is(.tutorial-inventory,.tutorial-shop) .card-suit{font-size:27px}
 .tutorial-sell{padding:4px 10px;font-size:11px;min-height:32px;width:56px}
-.tutorial-arena .market-actions{justify-content:center;margin-top:10px}
+.tutorial-arena .market-actions{justify-content:center;margin-top:4px}
 .tutorial-arena .market-actions button{min-height:36px;font-size:12px;padding:6px 12px}
 .tutorial-arena .action-bar{position:static;margin:0;padding:8px;min-height:0;bottom:auto}
 .tutorial-arena .action-bar .primary{min-height:46px;padding:10px;font-size:14px}

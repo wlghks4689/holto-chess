@@ -12,7 +12,7 @@ export function ShopCard({ card, price, locked = false, disabled = false, dealIn
   return <div className={`shop-card-slot ${locked ? "is-locked" : ""}`} style={{ "--deal-index": dealIndex } as CSSProperties}>
     <div className="shop-card-reveal" aria-label={t("shop.cardAria", { card: cardLabel(card) })}>
       <CardView card={card} />
-      <button type="button" className="card-purchase" disabled={disabled} onClick={onBuy}>{t("shop.buyPrice", { price })}</button>
+      <button type="button" className="card-purchase" aria-label={t("shop.buyPrice", { price })} disabled={disabled} onClick={onBuy}>{price} BB</button>
     </div>
     {onLock ? <button type="button" className="card-lock" aria-label={t(locked ? "shop.unlockCardAria" : "shop.lockCardAria", { card: cardLabel(card), cost: lockCost })} aria-pressed={locked} disabled={disabled} onClick={onLock}>{t(locked ? "shop.unlockShort" : "shop.lockPrice", { cost: lockCost })}</button> : null}
   </div>;

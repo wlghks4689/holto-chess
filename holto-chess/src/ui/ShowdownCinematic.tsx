@@ -150,7 +150,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     ? Array.from({ length: frame.boardIndex + 1 + queuedBoard }, (_, index) => index)
     : [frame.boardIndex];
 
-  const cardSwitch = frame.phase === "CARD_SWITCH_OUT" || frame.phase === "CARD_SWITCH_IN";
+  const cardSwitch = frame.phase === "CARD_SWITCH_OUT";
   const runIndex = frame.phase === "CARD_SWITCH_OUT" ? 0 : frame.boardIndex;
   const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
   const labelFor = (id: string, result: RevealedHand, communityCards: readonly Card[] = []) => result.displayName === "몰수패" ? { title: t("hand.forfeit"), kicker: t("hand.forfeitDetails") }

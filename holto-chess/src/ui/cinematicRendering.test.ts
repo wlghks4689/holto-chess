@@ -20,6 +20,21 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("opens the replacement profile card during RUN 2 switch-in, before the board pause", () => {
+    const runTwice: MatchView = { ...match, round: 2, participantIds: ["p1", "p2"],
+      boards: [deck.slice(10, 15), deck.slice(15, 20)], boardResults: [[], []], boardWinnerIds: [[], []],
+      revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) },
+      runCards: { p1: [deck.slice(0, 2), [deck[0]!, deck[4]!]], p2: [deck.slice(2, 4), [deck[2]!, deck[5]!]] } };
+    const timeline = cinematicTimeline(runTwice);
+    for (const phase of ["CARD_SWITCH_IN", "CARD_SWITCH_SETTLE"] as const) {
+      const elapsedMs = timeline.find((frame) => frame.phase === phase)!.at;
+      const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: runTwice, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs }));
+      const profileHands = html.split('class="cinema-board-stack')[0]!;
+      expect(profileHands).toContain(`data-card-id="${deck[4]!.id}" data-open="true"`);
+      expect(profileHands).toContain(`data-card-id="${deck[5]!.id}" data-open="true"`);
+      expect(frameAt(timeline, elapsedMs).revealed).toBe(0);
+    }
+  });
   it("labels the action from the remaining match queue", () => {
     const completed: MatchView = { ...match, round: 1, disclosure: { elapsedMs: 0, frames: [{ at: 0, phase: "COMPLETE", boardIndex: 0, revealed: 5, finalCards: 2 }] } };
     const render = (matches: MatchView[]) => renderToStaticMarkup(createElement(CinematicGate, { matches, profiles, viewerId: "p1", children: null }));

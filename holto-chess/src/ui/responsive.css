@@ -23,7 +23,7 @@
 .game-arena .shop-page .shop-card-reveal{display:grid;gap:6px;width:100%;height:auto}
 .game-arena .shop-page .shop-card-reveal .playing-card{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
 .game-arena .shop-page .card-purchase{position:static;width:100%;min-height:40px;font-size:11px;white-space:normal;overflow-wrap:anywhere}
-.game-arena .shop-page :is(.card-lock,.card-sell-button){min-height:40px;font-size:11px;padding:6px 3px;white-space:normal;overflow-wrap:anywhere}
+.game-arena .shop-page :is(.card-lock,.card-sell-button){min-height:40px;font-size:11px;padding:6px 3px;white-space:nowrap;overflow-wrap:normal}
 .game-arena .shop-page .shop-layout>.panel>header{white-space:normal;gap:8px}
 .game-arena .shop-page .stat-block{white-space:normal;flex-wrap:wrap}
 .game-arena .shop-page .stat-block strong{font-size:clamp(18px,4vw,28px);overflow-wrap:anywhere}
@@ -147,6 +147,11 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
 
 /* A permanent, balanced header reserve keeps title/help centered with or without a timer. */
 .game-arena .r2-draft .r2-draft-heading{position:relative;min-height:48px;padding-inline:64px}
+@media(min-width:701px){
+  .game-arena .r2-draft .r2-draft-heading{width:100%;justify-content:center}
+  .game-arena .r2-draft .r2-draft-heading .draft-title-row{width:100%;justify-content:center}
+  .game-arena .r2-draft .r2-draft-heading .draft-title-row::before{content:"";flex:0 0 23px}
+}
 .game-arena .r2-draft .draft-heading-timer{position:absolute;right:4px;top:50%;translate:0 -50%}
 .game-arena .r2-draft .draft-heading-timer .phase-timer{width:54px;min-width:0;padding:4px 5px}
 .game-arena .r2-draft .draft-heading-timer .phase-timer>span{font-size:8px;margin-bottom:3px}
@@ -513,8 +518,18 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
 .game-arena .shop-page :is(.owned-card .playing-card,.shop-card-reveal .playing-card,.empty-card){width:var(--shop-card-width);max-width:none;height:auto;aspect-ratio:53/75;flex:none}
 .game-arena .shop-page .card-purchase{position:static;width:100%;min-height:36px;left:auto;right:auto;bottom:auto}
 .game-arena .shop-page :is(.card-lock,.card-sell-button){min-height:36px}
-.game-arena .shop-page .market-actions{margin-top:auto;padding-top:4px}
+.game-arena .shop-page .shop-card-slot{min-width:48px}
+.game-arena .shop-page .shop-card-reveal{justify-items:center}
+.game-arena .shop-page .market-row{padding-bottom:0}
+.game-arena .shop-page .market-actions{margin:0;padding-top:0}
 .game-arena .shop-page .market-actions>.secondary{min-height:40px;white-space:normal;overflow-wrap:anywhere}
+/* Reserve the R5 score-disclosure row on minimum-height phones without changing 402x874 sizing. */
+@media(max-width:768px) and (max-height:700px){
+  .game-arena .shop-page[data-round="5"]{--shop-card-width:min(32px,calc((100cqw - 58px) / 7))}
+  .game-arena .shop-page[data-round="5"] .shop-layout{gap:4px}
+  .game-arena .shop-page[data-round="5"] .shop-layout>.panel{padding-block:4px}
+  .game-arena .shop-page[data-round="5"] .hand-score-disclosure{margin-bottom:2px}
+}
 @media(min-width:1024px){
   .game-arena .shop-page{--shop-card-width:88px;padding-block:16px 8px}
   .game-arena .shop-page>.round-header{margin-bottom:16px}

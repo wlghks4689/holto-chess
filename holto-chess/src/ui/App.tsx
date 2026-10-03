@@ -42,6 +42,7 @@ import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 import { useLocalCountdown } from "./useLocalCountdown";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
+import { HandScoreDisclosure } from "./HandScoreDisclosure";
 import { SurvivalReadyPanel } from "./SurvivalReadyPanel";
 import { AbilitySelectionPanel } from "./AbilitySelectionPanel";
 import { isSurvivalParticipant } from "./survivalReadyPresentation";
@@ -86,7 +87,7 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
   const allShopCardsLocked = shopSize > 0 && lockedShopCardCount >= shopSize;
   const canSell = canSellWithoutBlocking({ ownedCount: me.ownedCardIds.length, purchases: me.purchasesThisRound,
     purchaseLimit, handLimit: cap });
-  return <section className="shop-layout">
+  return <>{state.round === 5 && <HandScoreDisclosure />}<section className="shop-layout">
     <ShopAbilityPanel ability={me.abilityId} benefit={abilityBenefit(state.abilityEvents ?? [], me.id)} startingCard={me.firstCardId ? getCard(state, me.firstCardId) : undefined} />
     <div className="inventory panel">
       <header><div className="shop-heading"><h2>{t("shop.myCards")}</h2><strong className="shop-count">{me.ownedCardIds.length} / {cap}</strong></div><div className="stat-block"><small>{t("shop.stack")}</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
@@ -107,7 +108,7 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
         {!me.shopCardIds.length ? <p className="market-empty">{t("shop.soldOut")}</p> : null}</div>
       <div className="market-actions"><button className="secondary" disabled={allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < abilityRerollCost(me)} onClick={() => act((s) => rerollShop(s, me.id))}>{t("shop.rerollStatus", { cost: abilityRerollCost(me), used: me.rerollsUsed ?? 0, limit: rerollLimit })}</button></div>
     </div>
-  </section>;
+  </section></>;
 }
 
 function SelectPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {

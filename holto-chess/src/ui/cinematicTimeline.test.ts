@@ -61,6 +61,18 @@ describe("showdown reveal timing", () => {
     const switchOut = timeline.find((frame) => frame.phase === "CARD_SWITCH_OUT")!;
     expect(switchOut.at - runOneResult.at).toBe(1300);
   });
+  it("finishes the RUN 2 hand flip before holding a one-second board-free pause", () => {
+    const timeline = cinematicTimeline({ boards: [deck.slice(0, 5), deck.slice(5, 10), deck.slice(10, 15)], revealedCards: {},
+      runCards: { p1: [deck.slice(15, 17), deck.slice(17, 19)] } });
+    const switchIn = timeline.find((frame) => frame.phase === "CARD_SWITCH_IN")!;
+    const pause = timeline.find((frame) => frame.phase === "CARD_SWITCH_SETTLE")!;
+    const flop = timeline.find((frame) => frame.boardIndex === 1 && frame.phase === "FLOP_1")!;
+    expect(pause).toBeDefined();
+    expect(pause.at - switchIn.at).toBe(450);
+    expect(flop.at - pause.at).toBe(1000);
+    expect(frameAt(timeline, flop.at - 1)).toMatchObject({ phase: "CARD_SWITCH_SETTLE", boardIndex: 1, revealed: 0 });
+    expect(timeline.filter((frame) => frame.phase === "CARD_SWITCH_SETTLE")).toHaveLength(1);
+  });
   it("reveals R5 as 3, then 5, then 7 cards before BEST5 and resolves lower places before the winner", () => {
     const timeline = cinematicTimeline({ round: 5, boards: [], revealedCards: Object.fromEntries([0, 1, 2, 3].map((i) => [`p${i}`, deck.slice(i * 7, i * 7 + 7)])),
       results: [{ place: 1 }, { place: 2 }, { place: 3 }, { place: 4 }] });

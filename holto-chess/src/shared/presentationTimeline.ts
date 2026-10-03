@@ -3,7 +3,7 @@ import type { MatchView } from "./protocol";
 export type CinematicPhase = "ARENA_ENTER" | "VS_INTRO" | "TABLE_ENTER" | "PREFLOP_HAND" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
   | "TURN" | "TURN_SETTLE" | "TURN_HAND" | "RIVER_SUSPENSE" | "RIVER" | "RIVER_SETTLE" | "RIVER_HAND" | "BEST5_WAIT" | "FINAL_CARDS"
   | "FINAL_FIRST_REVEAL" | "FINAL_FIRST_HAND" | "FINAL_SECOND_REVEAL" | "FINAL_SECOND_HAND" | "FINAL_LAST_REVEAL" | "FINAL_SEVEN_SETTLE"
-  | "CARD_SWITCH_OUT" | "CARD_SWITCH_IN" | "HIGH_CARD_NOTICE" | "HIGH_CARD_DRAW" | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
+  | "CARD_SWITCH_OUT" | "CARD_SWITCH_IN" | "CARD_SWITCH_SETTLE" | "HIGH_CARD_NOTICE" | "HIGH_CARD_DRAW" | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
 export type CinematicFrame = { at: number; phase: CinematicPhase; boardIndex: number; revealed: number; finalCards: number; finalPlace?: number };
 
 /** R5 arena pre-roll: hold the full arena, push in toward the table, settle (see cinematic.css). */
@@ -45,7 +45,11 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   } else {
     for (boardIndex = 0; boardIndex < match.boards.length; boardIndex++) {
       revealed = 0;
-      if (boardIndex === 1 && match.runCards) { add("CARD_SWITCH_OUT", 450); add("CARD_SWITCH_IN", 450); }
+      if (boardIndex === 1 && match.runCards) {
+        add("CARD_SWITCH_OUT", 450); add("CARD_SWITCH_IN", 450);
+        // The incoming hand's 420ms flip completes before the one-second read beat.
+        add("CARD_SWITCH_SETTLE", 1000);
+      }
       revealed = 1; add("FLOP_1", 500);
       revealed = 2; add("FLOP_2", 500);
       revealed = 3; add("FLOP_3", 500); add("FLOP_SETTLE", 200); add("FLOP_HAND", 900);
@@ -103,7 +107,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 12;
+export const PRESENTATION_VERSION = 13;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */

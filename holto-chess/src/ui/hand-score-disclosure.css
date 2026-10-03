@@ -1,0 +1,19 @@
+.hand-score-disclosure{width:100%;min-width:0;margin:0 0 6px;text-align:left}
+.hand-score-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:40px;padding:6px 12px;border:1px solid #31596b;border-radius:8px;background:#081c29;color:#cfe6ec;font:700 13px/1.3 Manrope,'Noto Sans KR',sans-serif;cursor:pointer}
+.hand-score-trigger:hover,.hand-score-trigger[aria-expanded=true]{border-color:#70e1df;color:#8df2e8}
+.hand-score-trigger:focus-visible,.hand-score-close:focus-visible{outline:2px solid #70e1df;outline-offset:2px}
+.hand-score-popover{position:fixed;z-index:10000;box-sizing:border-box;overflow:auto;overscroll-behavior:contain;padding:10px 12px;border:1px solid #70e1df;border-radius:9px;background:#071923;color:#e5f2f5;box-shadow:0 10px 28px #000a;text-align:left}
+.hand-score-note{margin:0 0 6px;font:400 12px/1.45 Manrope,'Noto Sans KR',sans-serif;color:#a8c4ce;word-break:keep-all;overflow-wrap:anywhere}
+.hand-score-table{width:100%;border-collapse:collapse;font:600 13px/1.35 Manrope,'Noto Sans KR',sans-serif}
+.hand-score-table th,.hand-score-table td{height:27px;padding:3px 0;border-bottom:1px solid #24404e}
+.hand-score-table th{text-align:left;font-weight:600;color:#cfe6ec}
+.hand-score-table td{width:48px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:#8df2e8}
+.hand-score-table th[data-category=TRIPS]{color:#fb923c}
+.hand-score-table th[data-category=STRAIGHT]{color:#fbbf24}
+.hand-score-table th[data-category=FLUSH]{color:#38bdf8}
+.hand-score-table th[data-category=FULL_HOUSE]{color:#a78bfa}
+.hand-score-table th[data-category=QUADS]{color:#fb7185}
+.hand-score-table th[data-category=STRAIGHT_FLUSH]{color:#c084fc}
+.hand-score-table th[data-category=ROYAL_FLUSH]{color:#e2efff}
+.hand-score-table+.hand-score-note{margin:7px 0}
+.hand-score-close{display:block;margin:6px 0 0 auto;min-height:36px;padding:5px 12px;border:1px solid #31596b;border-radius:6px;background:#102e3b;color:#cfe6ec;font-size:12px;cursor:pointer}
