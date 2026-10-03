@@ -238,7 +238,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             className={intro ? "cinema-vs-reveal" : ""} style={intro ? { "--flip-delay": `${cardIndex * 200}ms` } as CSSProperties : undefined} key={cardIndex} />;
         })}</div>
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
-          <div className="cinema-final-read-copy">{read.tag && <small>{read.tag}</small>}<strong>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
+          <div className="cinema-final-read-copy">{read.tag && <small>{read.tag}</small>}<strong className={readStage.kind === "current" && interimHand ? `made-${madeTone(interimHand.displayName)}` : undefined}>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
         {!intro && !final && (flags.made ? label : streetLabel) && <div className={flags.made ? "cinema-made" : "cinema-street-made"}><strong className={!flags.made && streetResult ? `made-${madeTone(streetResult.displayName)}` : undefined}>{(flags.made ? label : streetLabel)!.title}</strong>{(flags.made ? label : streetLabel)!.kicker && <small>({(flags.made ? label : streetLabel)!.kicker})</small>}</div>}
         {!final && (showMatchOutcome || showRewardAmount) && <div className="cinema-result-footer">
           <div className="cinema-profile-outcome">{showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}</div>

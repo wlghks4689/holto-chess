@@ -387,3 +387,12 @@
 - Mint a 30-second, one-use, per-seat connection ticket with existing seat credentials in an Origin-checked POST. Upgrade proof travels in Sec-WebSocket-Protocol, never a URL; store only the ticket digest. Preserve existing Origin/IP/message limits and bounded legacy JOIN_ROOM.
 - SEC-005 unique-person identity is unresolved. Do not impose one-seat-per-IP. Implementation remains in the isolated security-review clone at base 09dfdef03f6136f2558c3f457849e2b6ed944db3; no integration/commit/push/deployment approval is implied.
 - Evidence and limitations: qa/2026-10-03-security-followup.md.
+## UI-FINAL-NAME-001 — 파이널 공개 중 족보 이름 색상 (2026-10-03)
+
+- 사용자 승인: 파이널 쇼다운도 오픈되는 카드에 따라 변화하는 족보 이름에 색상 적용.
+- 기존 3장·5장 공개 완료 판정에 해당 메이드 색상을 이름에만 적용한다. 카드·프로필 전체 이펙트와 최종 판정 시점은 유지한다. 미공개 카드를 색상 판정에 사용하지 않는다. [검증 기록](qa/2026-10-03-final-hand-name-color.md).
+
+## Security main publication authorization — 2026-10-03
+
+- User message Sentinel_0fb0224774f48191a5d0d84a022a8406 explicitly authorizes committing and pushing the completed work to main. Integrate SEC-001/002/003/004/006, preserve SEC-005 unresolved, and preserve concurrent UI commits 066045f and 2d4b988.
+- Prefix protocol version 14 preserves RUN 2's approved 1000ms settle timing and existing mismatch reload. Manual deployment is not part of this publication action.

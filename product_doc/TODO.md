@@ -109,20 +109,11 @@
 
 #### 공개 데이터·입장 권한·연결 자원
 
-- [ ] SEC-001 | 담당 Codex·사용자 | 상태 REVIEW | 의존 상대 BB 공개 정책 결정 | 완료 조건: 상점 구매 시 상대 BB 차이로 구매 랭크를 추론하는 노출을 방지하고 자기 경제 값·서버 정산 정확성을 유지한다. 현재 단독 Q 구매 50→35BB로 재현됨. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
+- [ ] SEC-001 | 담당 Codex·사용자 | 상태 REVIEW | 의존 사용자 공개 정책 승인 완료 | 완료 조건: 상점 구매 시 상대 BB 차이로 구매 랭크를 추론하는 노출을 방지하고 자기 경제 값·서버 정산 정확성을 유지한다. 최초 감사의 단독 Q 구매 50→35BB 노출은 신규 상점 기준 스냅샷으로 차단한다. 기존 진행 중 상점의 이행 한계는 QA에 기록한다. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
 - [ ] SEC-002 | 담당 Codex | 상태 REVIEW | 의존 보안 수정 작업 진행 | 완료 조건: 미공개 동시 테이블의 승점이 standingsBefore 등 보조 필드로 전송되지 않게 하고 R1/R3 모든 좌석의 공개 경계 회귀를 추가한다. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
 - [ ] SEC-003 | 담당 Codex | 상태 REVIEW | 의존 보안 수정 작업 진행 | 완료 조건: 공식 탈락 공개 전 ownedCards 소멸 등으로 탈락 여부가 드러나지 않게 하며 실제 카드 풀 반환과 몰수패 처리를 유지한다. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
 - [ ] SEC-004 | 담당 Codex | 상태 REVIEW | 의존 보안 수정 작업 진행 및 일정 설계 | 완료 조건: 결과에 의존하는 순위 프레임·추가 보드·타이브레이크/종료 일정의 선전송 노출을 제거하고 재접속·동기화·실제 긴 결정전을 유지한다. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
 - [ ] SEC-005 | 담당 Codex·사용자 | 상태 REVIEW | 의존 익명/경쟁 참가자 식별·입장 정책 결정 | 완료 조건: 한 사람이 여러 좌석 token을 발급받아 상점/패를 확보하거나 방을 독점하는 경로를 제한하고 정상 공유 IP 참가자를 보존한다.
-- [ ] SEC-006 | 담당 Codex | 상태 REVIEW | 의존 보안 수정 작업 진행 | 완료 조건: 인증 전 소켓이 전체 방 연결 cap을 점유해 정상 재접속을 거부하는 문제를 수정하고 로컬 Workers 회귀를 추가한다. 현재 무인증 24연결 뒤 정상 handshake 429로 재현됨. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
+- [ ] SEC-006 | 담당 Codex | 상태 REVIEW | 의존 보안 수정 작업 진행 | 완료 조건: 인증 전 소켓이 전체 방 연결 cap을 점유해 정상 재접속을 거부하는 문제를 수정하고 로컬 Workers 회귀를 추가한다. 최초 감사의 무인증 24연결 뒤 정상 handshake 429 재현을 인증된 좌석의 일회용 티켓과 제한된 레거시 대기 슬롯으로 보강한다. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
 
 감사 근거와 보강 제안: [2026-10-03 보안 감사](qa/2026-10-03-devtools-security-audit.md). 게임 코드 수정·운영 공격 검증·커밋·push·배포는 이번 감사에서 진행하지 않았다.
-
-## Security follow-up in isolated clone — 2026-10-03
-
-- [ ] SEC-001 | Codex | REVIEW | Approved shop-entry BB projection implemented; self immediate, other seats/spectators frozen until all commit. Existing mid-shop saves freeze at migration time. See qa/2026-10-03-security-followup.md.
-- [ ] SEC-002 | Codex | REVIEW | Current-table ledger normalization preserved; eight-viewer counterfactual/serialization regressions. Integrated onto main 066045f; final checks recorded in QA.
-- [ ] SEC-003 | Codex | REVIEW | Pre-resolution private snapshot and old-save hand reconstruction preserved; shared-release boundary and real card-pool release regressions.
-- [ ] SEC-004 | Codex | REVIEW | Approved prefix protocol/version 14, opaque action epochs and delayed-packet hold implemented. Full server-frame rendering regressions; manual live browser/Discord playback remains unverified.
-- [ ] SEC-006 | Codex | REVIEW | Approved 30-second one-use per-seat tickets, protected reconnect and old 24-pending migration implemented. Concurrent replay/hibernation regression fixed by draining rejected HTTP response bodies; six ticket tests and 40 Workers tests passed in the source review; integrated checks recorded in QA.
-- [ ] SEC-005 | User/Codex | REVIEW | Unique participant identity remains unresolved. No one-seat-per-IP restriction; same-network eight-seat regression retained.
