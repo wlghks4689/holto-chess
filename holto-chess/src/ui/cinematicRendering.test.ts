@@ -279,23 +279,43 @@ describe("cinematic initial rendering", () => {
     const beforeResultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: runTwice, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: beforeResultAt }));
     const runOneResultAt = cinematicTimeline(runTwice).find((entry) => entry.phase === "RUN_RESULT" && entry.boardIndex === 0)!.at;
     const runOneResultHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: runTwice, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: runOneResultAt }));
-    expect(beforeResultHtml).not.toContain("cinema-board-matchup");
-    expect(runOneResultHtml.match(/cinema-board-matchup/g)).toHaveLength(1);
+    expect(beforeResultHtml.match(/cinema-board-matchup/g)).toHaveLength(2);
+    expect(beforeResultHtml).not.toMatch(/cinema-run-player[^"]*is-winner/);
+    expect(runOneResultHtml.match(/cinema-board-matchup/g)).toHaveLength(2);
     expect(runOneResultHtml).toMatch(/cinema-run-player[^"]*is-loser[\s\S]*?playing-card[^"]*dimmed/);
     expect(runOneResultHtml).toMatch(/cinema-run-player[^"]*is-winner[\s\S]*?playing-card[^"]*glow/);
-    expect(html.match(/cinema-board-matchup/g)).toHaveLength(1);
-    expect(html).toContain("cinema-board complete is-collapsed");
+    expect(html.match(/cinema-board-matchup/g)).toHaveLength(2);
+    expect(html).toContain("cinema-board complete cinema-run-board");
     expect(html).not.toContain("완료");
     expect(html).not.toContain("p1 승리");
     expect(html).toMatch(/cinema-run-player[^"]*is-winner[\s\S]*?playing-card[^"]*glow/);
-    expect(html).toMatch(/cinema-board complete is-collapsed[\s\S]*?cinema-run-matchup is-summary[\s\S]*?cinema-run-player[^"]*is-loser/);
-    expect(html.match(/cinema-board-cards/g)).toHaveLength(1);
+    expect(html).toMatch(/cinema-board complete cinema-run-board[\s\S]*?cinema-board-cards[\s\S]*?cinema-run-player[^"]*is-loser/);
+    expect(html.match(/cinema-board-cards/g)).toHaveLength(2);
     expect(html).toContain("RUN 2");
     expect(html).toContain("cinema-seats");
     expect(html).toContain('aria-label="Run It Twice 스코어"');
     expect(html).toContain('<div class="cinema-run-score"><span>p1</span><strong>1 : 1</strong><span>p2</span></div>');
     expect(html).not.toContain("cinema-run-row");
     expect(html).not.toContain("BEST 5 확인");
+  });
+  it("uses each RUN winner's made tone only after its result is revealed", () => {
+    const result = { ...findBestFive(deck.slice(0, 7)), playerId: "p1", place: 1, usedCardIds: deck.slice(0, 2).map(card => card.id) };
+    const view: MatchView = { ...match, round: 2, participantIds: ["p1", "p2"], winnerIds: ["p1"],
+      boards: [deck.slice(10, 15), deck.slice(15, 20)], runoutCount: 2,
+      boardResults: [[{ ...result, displayName: "트립스" }], [{ ...result, displayName: "플러시" }]],
+      boardWinnerIds: [["p1"], ["p1"]], results: [result],
+      revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) } };
+    const render = (phase: "RUN_RESULT" | "COMPLETE", boardIndex: number) => {
+      const elapsedMs = cinematicTimeline(view).find(frame => frame.phase === phase && frame.boardIndex === boardIndex)!.at;
+      return renderToStaticMarkup(createElement(ShowdownCinematic, { match: view, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs }));
+    };
+    const first = render("RUN_RESULT", 0);
+    expect(first).toContain('cinema-run-player made-trips is-winner');
+    expect(first).not.toContain('cinema-run-player made-flush');
+    const completed = render("COMPLETE", 1);
+    expect(completed).toContain('cinema-run-player made-trips is-winner');
+    expect(completed).toContain('cinema-run-player made-flush is-winner');
+    expect(completed).toContain('cinema-run-player is-right made-default is-loser');
   });
   it("marks survival outcomes with stamps and keeps rewards to one concise line", () => {
     const survival: MatchView = { ...match, id: "survival", round: 4, group: "loser", participantIds: ["p1", "p2"],

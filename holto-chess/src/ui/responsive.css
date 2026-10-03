@@ -584,9 +584,6 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
   .cinema .cinema-board-stack{margin:10px auto 4px}
   .cinema .cinema-board{padding:10px 8px}
   .cinema .cinema-footer{margin-top:10px}
-  /* Both RUNs remain visible; use the available horizontal space, not a taller stack. */
-  .cinema[data-round="2"] .cinema-board-stack.run-it-twice{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .cinema .cinema-board-stack.run-it-twice .cinema-board+.cinema-board{border-top:0;border-left:1px solid #294839}
   .cinema .cinema-board-stack.run-it-twice .cinema-board .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
 
   .game-arena .page-shell:has(>.round-results),.game-arena .final-results-page,.game-arena .page-shell:has(>.r2-draft){padding-block:12px}
@@ -694,4 +691,40 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
   .cinema[data-round="2"] .cinema-board-cards{max-width:215px}
   .cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
   .cinema[data-round="2"] .cinema-board-matchup{margin-block:0 5px}
+}
+
+/* R2: two stacked runs. Desktop cards share a baseline; mobile hands sit above the board. */
+.cinema[data-round="2"] .cinema-board-stack.run-it-twice{grid-template-columns:minmax(0,1fr);gap:0;border:1px solid #294839;border-radius:12px;overflow:hidden;background:rgba(4,18,25,.82)}
+.cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:clamp(30px,4vw,53px);--run-board-gap:5px;--run-hand-gap:3px;--run-matchup-gap:8px;--run-vs-width:18px;display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-areas:"label hands" "label board";align-items:center;gap:8px 18px;padding:10px 16px}
+.cinema[data-round="2"] .cinema-run-board .cinema-board-label{grid-area:label}
+.cinema[data-round="2"] .run-it-twice .cinema-run-board+.cinema-run-board{border-top:1px solid #294839;border-left:0}
+.cinema[data-round="2"] .cinema-run-board .cinema-board-label h3{margin:0;font-size:12px;white-space:nowrap}
+.cinema[data-round="2"] .cinema-run-board .cinema-board-street{font-size:9px;height:14px;line-height:14px}
+.cinema[data-round="2"] .cinema-run-board .cinema-board-cards{grid-area:board;width:calc(5 * var(--run-card-width) + 4 * var(--run-board-gap));max-width:100%;gap:var(--run-board-gap)}
+.cinema[data-round="2"] .cinema-run-board .cinema-flip-inner{grid-template-columns:minmax(0,1fr)}
+.cinema[data-round="2"] .cinema-run-board .cinema-flip-face{min-width:0}
+.cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-board.cinema-run-board .playing-card.compact{width:var(--run-card-width);max-width:none;height:auto;aspect-ratio:var(--card-ratio);padding:2px}
+/* One typography rule for both flip-front board cards and bare player cards. */
+.cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-run-board .playing-card.compact .card-rank{font-size:clamp(12px,calc(var(--run-card-width) * .36),20px);line-height:1}
+.cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-run-board .playing-card.compact .card-suit{font-size:clamp(16px,calc(var(--run-card-width) * .48),26px);line-height:1}
+.cinema[data-round="2"] .cinema-run-board .cinema-board-matchup{grid-area:hands;width:calc(4 * var(--run-card-width) + 2 * var(--run-hand-gap) + 2 * var(--run-matchup-gap) + var(--run-vs-width));max-width:100%;margin:0 auto;padding:0;gap:var(--run-matchup-gap);grid-template-columns:minmax(0,1fr) var(--run-vs-width) minmax(0,1fr)}
+.cinema[data-round="2"] .cinema-run-board .cinema-run-player{display:grid;justify-items:center;justify-content:stretch;gap:4px}
+.cinema[data-round="2"] .cinema-run-board .cinema-run-player small{width:100%;font-size:11px;text-align:center;line-height:1.2}
+.cinema[data-round="2"] .cinema-run-board .cinema-run-player.is-winner small{color:var(--made-color)}
+.cinema[data-round="2"] .cinema-run-board .cinema-run-hand{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:var(--run-hand-gap)}
+.cinema[data-round="2"] .cinema-run-board .cinema-run-hand .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio);padding:2px}
+@media(min-width:769px){
+  .cinema[data-round="2"] .run-it-twice .cinema-run-board{grid-template-columns:64px minmax(0,1.2fr) minmax(0,1fr);grid-template-areas:"label board hands";padding-block:28px 12px}
+  .cinema[data-round="2"] .cinema-run-board .cinema-run-player{position:relative;display:block}
+  .cinema[data-round="2"] .cinema-run-board .cinema-run-player small{position:absolute;bottom:calc(100% + 5px);left:0;line-height:14px}
+}
+@media(max-width:768px){
+  .cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:clamp(27px,9vw,35.6px);--run-board-gap:3px;--run-matchup-gap:3px;--run-vs-width:12px;grid-template-columns:34px minmax(0,1fr);gap:5px 6px;padding:7px 6px}
+  .cinema[data-round="2"] .cinema-run-board .cinema-board-label h3{font-size:9px;letter-spacing:0}
+  .cinema[data-round="2"] .cinema-run-board .cinema-board-street{font-size:7px}
+  .cinema[data-round="2"] .cinema-run-board .cinema-board-matchup>strong{font-size:7px}
+  .cinema[data-round="2"] .cinema-run-board .cinema-run-player small{font-size:8px}
+}
+@media(max-width:768px) and (max-height:700px){
+  .cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:27.6px;row-gap:3px;padding-block:5px}
 }
