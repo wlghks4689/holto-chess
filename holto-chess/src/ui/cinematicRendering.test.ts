@@ -20,6 +20,30 @@ const match: MatchView = {
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
 describe("cinematic initial rendering", () => {
+  it("colors the R5 visible hand name from trips to full house without revealing the future quads or starting FX", () => {
+    const cards = new Map(deck.map(card => [card.id, card]));
+    const hole = ["8h", "8d", "8c", "6s", "6h", "8s", "2c"].map(id => cards.get(id)!);
+    const hand = findBestFive(hole);
+    const view: MatchView = { ...match, participantIds: ["p1"], revealedCards: { p1: hole },
+      results: [{ ...hand, playerId: "p1", place: 1, usedCardIds: hand.bestFive.map(card => card.id) }] };
+    const timeline = cinematicTimeline(view);
+    const render = (phase: (typeof timeline)[number]["phase"]) => renderToStaticMarkup(createElement(ShowdownCinematic, {
+      match: view, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: timeline.find(frame => frame.phase === phase)!.at,
+    }));
+    expect(render("FINAL_FIRST_REVEAL")).not.toContain('<strong class="made-trips">');
+    for (const phase of ["FINAL_FIRST_HAND", "FINAL_SECOND_REVEAL"] as const) {
+      expect(render(phase)).toContain('<strong class="made-trips">');
+      expect(render(phase)).not.toContain("made-full-house");
+    }
+    for (const phase of ["FINAL_SECOND_HAND", "FINAL_LAST_REVEAL", "FINAL_SEVEN_SETTLE"] as const) {
+      const html = render(phase);
+      expect(html).toContain('<strong class="made-full-house">');
+      expect(html).not.toContain("made-quads");
+      expect(html).not.toContain("cinema-made-fx");
+      expect(html).not.toMatch(/playing-card[^"]*glow/);
+    }
+    expect(render("BEST5_GLOW")).toContain("made-quads cinema-made-fx");
+  });
   it("opens the replacement profile card during RUN 2 switch-in, before the board pause", () => {
     const runTwice: MatchView = { ...match, round: 2, participantIds: ["p1", "p2"],
       boards: [deck.slice(10, 15), deck.slice(15, 20)], boardResults: [[], []], boardWinnerIds: [[], []],

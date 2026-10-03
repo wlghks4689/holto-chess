@@ -68,6 +68,7 @@
 .cinema-final-read-copy{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;animation:cinema-soft-in calc(320ms * var(--final-beat,1)) ease-out both}
 .cinema-final-read small{color:#70b9ad;font:500 9px DM Mono;letter-spacing:.13em}
 .cinema-final-read strong{font-size:clamp(15px,2.2vw,22px);line-height:1.25;text-align:center}
+.cinema-final-read.is-current strong{color:var(--made-color);text-shadow:none}
 .cinema-final-read em{color:#8aa79e;font:500 10px DM Mono;font-style:normal;text-align:center}
 .cinema-final-read.is-pending strong{color:#3f6259}
 .cinema-final-read.is-final{border-top-color:color-mix(in srgb,var(--made-color) 45%,transparent)}
