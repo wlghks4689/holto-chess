@@ -14,6 +14,7 @@ const DraftPreview = lazy(() => import("./DraftPreview").then((m) => ({ default:
 const ShowdownCardPreview = lazy(() => import("./ShowdownCardPreview").then((m) => ({ default: m.ShowdownCardPreview })));
 const AbilityPreview = lazy(() => import("./AbilityPreview").then((m) => ({ default: m.AbilityPreview })));
 const ResponsivePreview = import.meta.env.DEV ? lazy(() => import("./ResponsivePreview").then(m => ({ default: m.ResponsivePreview }))) : null;
+const MadePreview = import.meta.env.DEV ? lazy(() => import("./MadePreview").then(m => ({ default: m.MadePreview }))) : null;
 // Chapters, practice scenarios and the simple bots load only when the guide is opened.
 // Privacy policy and terms (/privacy, /terms): public pages, fetched only when visited.
 const LegalPage = lazy(() => import("../legal/LegalPage").then((module) => ({ default: module.LegalPage })));
@@ -34,6 +35,7 @@ export function ModeApp() {
   }
   if (import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("cinemaCards")) return <Suspense fallback={<p>{t("common.loading")}</p>}><ShowdownCardPreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/abilities-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><AbilityPreview /></Suspense>;
+  if (MadePreview && location.pathname === "/made-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><MadePreview /></Suspense>;
   if (ResponsivePreview && location.pathname === "/responsive-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><ResponsivePreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
   if (!mode) return <StartScreen onStart={setMode} />;

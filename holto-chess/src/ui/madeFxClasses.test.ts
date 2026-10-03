@@ -33,12 +33,13 @@ describe("effect preview coverage", () => {
   // that nobody can preview is how the straight-flush mismatch went unnoticed.
   it("samples every tone the game can produce", () => {
     const produced = new Set(MADE_TONE_SAMPLES.map(madeTone));
-    expect(produced).toEqual(new Set(["default", "straight", "flush", "full-house", "quads", "straight-flush", "royal"]));
+    expect(produced).toEqual(new Set(["default", "trips", "straight", "flush", "full-house", "quads", "straight-flush", "royal"]));
   });
 
   it("names the samples exactly as the evaluator does", () => {
     const deck = new Map(makeDeck().map((card) => [card.id, card]));
     const hands: Record<string, string[]> = {
+      "트립스": ["8h", "8d", "8c", "6s", "2h"],
       "스트레이트": ["9h", "8d", "7c", "6s", "5h"],
       "플러시": ["Ah", "Jh", "9h", "7h", "3h"],
       "풀하우스": ["Qh", "Qd", "Qc", "9s", "9h"],

@@ -7,11 +7,13 @@ import { preloadAbilityArtwork } from "./abilityArtworkLoader";
 import type { AbilityId } from "./abilityCatalog";
 import { AbilityCard } from "./AbilityCard";
 import { PhaseTimer } from "./PhaseTimer";
+import { useCinematicMotion } from "./useCinematicMotion";
 import { useTranslation } from "../i18n";
 import "./abilitySelection.css";
 
 export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = false }: { view: PlayerView; send: (action: GameAction) => void; seconds?: number; disabled?: boolean }) {
   const { t } = useTranslation();
+  const { enabled: motionEnabled } = useCinematicMotion();
   const draft = view.abilityDraft;
   const dialog = useRef<HTMLDialogElement>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
       disabled={!pick && (disabled || phase !== "ABILITY_PICK" || !draft.availableSlots.includes(slot) || draft.currentPlayerId !== view.me.playerId)}
       onClick={() => pick ? inspect(pick.playerId) : send({ type: "ABILITY_PICK", slot })} />;
   })}{phase !== "ABILITY_REVEAL" && Array.from({ length: (4 - draft.slotCount % 4) % 4 }, (_, index) => <div key={draft.slotCount + index} className="ability-card-back ability-card-placeholder" aria-hidden="true"><span>?</span></div>)}</div>;
-  return <section className={`ability-selection is-${phase.toLowerCase()}`}>
+  return <section className={`ability-selection is-${phase.toLowerCase()}${motionEnabled ? " ability-motion-enabled" : ""}`}>
     {phase === "ABILITY_ORDER" ? <>
       <p className="ability-selection-kicker">PORENA · ABILITY DRAFT</p>
       <h2>{t("ability.selection.order")}</h2>

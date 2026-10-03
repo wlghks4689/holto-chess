@@ -165,7 +165,7 @@ h1 { margin:0; font-family:Georgia,'Times New Roman',serif; font-size:clamp(38px
 
 @media(max-width:768px){main.game-arena:has(.final-results-page)::before{background-image:linear-gradient(180deg,rgba(2,9,17,.44),rgba(2,10,18,.66) 50%,rgba(2,8,15,.88)),url('/assets/table/final-arena-mobile.webp');background-position:center top}}
 @media(max-width:620px){.final-results-page{padding-top:24px}}
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}*:not(.cinema-motion-enabled *):not(.fx-motion-preview *){animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}*:not(.cinema-motion-enabled *):not(.fx-motion-preview *):not(.ability-motion-enabled .ability-slot-rotator){animation:none!important;transition:none!important}}
 .combatant-title b{font-size:15px}
 .combatant{min-width:0}
 .showdown-hand{display:grid;grid-template-columns:max-content minmax(90px,1fr);align-items:center;gap:18px;padding:3px 0}
@@ -179,7 +179,7 @@ h1 { margin:0; font-family:Georgia,'Times New Roman',serif; font-size:clamp(38px
 .showdown-hand.uses-five-cards .showdown-hand-name small{margin-left:8px}
 .run-winner{color:var(--mint);font-weight:800;margin:12px 0 0}
 .board,.showdown-hand{--made-color:#84f5b6}
-.made-straight{--made-color:#fbbf24}.made-flush{--made-color:#38bdf8}.made-full-house{--made-color:#a78bfa}.made-quads{--made-color:#fb7185}.made-straight-flush{--made-color:#c084fc}.made-royal{--made-color:#fde68a}
+.made-trips{--made-color:#fb923c}.made-straight{--made-color:#fbbf24}.made-flush{--made-color:#38bdf8}.made-full-house{--made-color:#a78bfa}.made-quads{--made-color:#fb7185}.made-straight-flush{--made-color:#c084fc}.made-royal{--made-color:#fde68a}
 .winner .showdown-hand-name{color:var(--made-color);text-shadow:0 0 14px color-mix(in srgb,var(--made-color) 55%,transparent)}
 .board .playing-card.glow,.showdown-hand .playing-card.glow{position:relative;z-index:1;transform:scale(1.04);filter:brightness(1.16) contrast(1.1) saturate(1.12);box-shadow:0 0 5px var(--made-color),0 0 18px color-mix(in srgb,var(--made-color) 55%,transparent);animation:none}
 .board .playing-card.dimmed{opacity:.35;filter:brightness(.63) contrast(.8) saturate(.4) grayscale(.43)}

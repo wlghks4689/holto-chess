@@ -5,8 +5,21 @@ import { createAbilityGame, openAbilitySelection, pickAbility } from "../game/en
 import { createPlayerView } from "../game/playerView";
 import { addSession, createRoom } from "../game/room";
 import { AbilitySelectionPanel } from "./AbilitySelectionPanel";
+import { setCinematicMotion } from "./useCinematicMotion";
 
 describe("ability draft presentation", () => {
+  it("uses the shared game motion preference for public ability reveals", () => {
+    const game = openAbilitySelection(createAbilityGame(303));
+    const room = { ...addSession(createRoom("UI", 303), "test-session").room, game, status: "PLAYING" as const };
+    const view = createPlayerView(room, "p1");
+    const render = () => renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {} }));
+    try {
+      setCinematicMotion(true);
+      expect(render()).toContain("ability-motion-enabled");
+      setCinematicMotion(false);
+      expect(render()).not.toContain("ability-motion-enabled");
+    } finally { setCinematicMotion(true); }
+  });
   it("shows the confirmed heading and concise inspection hint without the reveal kicker", () => {
     let game = openAbilitySelection(createAbilityGame(303));
     game.abilityDraft!.order = game.players.map(player => player.id);

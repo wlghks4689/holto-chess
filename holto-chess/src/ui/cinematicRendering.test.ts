@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { makeDeck, type Card } from "../core/poker/cards";
+import { findBestFive } from "../core/poker/evaluate";
 import type { MatchView, PresentationView } from "../shared/protocol";
 import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
 import { CinematicGate, ShowdownCinematic } from "./ShowdownCinematic";
@@ -215,6 +216,33 @@ describe("cinematic initial rendering", () => {
     expect(riverHand).not.toContain("cinema-street-made");
     expect(riverHand).toContain("cinema-made");
     expect(riverHand).toContain("A 하이");
+  });
+  it("colors only the current street name when an R4 full house becomes quads, reserving FX for showdown", () => {
+    const cards = new Map(deck.map(card => [card.id, card]));
+    const hole = ["8h", "8d", "8c", "6s", "6h"].map(id => cards.get(id)!);
+    const board = ["8s", "2d", "3c", "4s", "5h"].map(id => cards.get(id)!);
+    const hands = [0, 3, 4, 5].map(count => {
+      const hand = findBestFive([...hole, ...board.slice(0, count)]);
+      return { ...hand, usedCardIds: hand.bestFive.map(card => card.id), playerId: "p1", place: 1 };
+    });
+    const view: MatchView = { ...match, round: 4, participantIds: ["p1", "p2"],
+      boards: [board], boardWinnerIds: [["p1"]], boardResults: [[hands[3]!]], results: [hands[3]!], runoutCount: 1,
+      revealedCards: { p1: hole, p2: deck.slice(10, 15) },
+      streetSnapshots: [["PRE_FLOP", "FLOP", "TURN", "RIVER"].map((street, index) => ({ street: street as "PRE_FLOP" | "FLOP" | "TURN" | "RIVER", results: [hands[index]!] }))] };
+    const timeline = cinematicTimeline(view);
+    const renderPhase = (phase: (typeof timeline)[number]["phase"]) => renderToStaticMarkup(createElement(ShowdownCinematic, {
+      match: view, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: timeline.find(entry => entry.phase === phase)!.at,
+    }));
+    const preflop = renderPhase("TABLE_ENTER");
+    expect(preflop).toContain('<strong class="made-full-house">');
+    expect(preflop).not.toContain("made-quads");
+    for (const phase of ["TABLE_ENTER", "FLOP_HAND", "TURN_HAND", "RIVER_SETTLE"] as const) {
+      const html = renderPhase(phase);
+      if (phase !== "TABLE_ENTER") expect(html).toContain('<strong class="made-quads">');
+      expect(html).not.toContain("cinema-made-fx");
+      expect(html).not.toMatch(/playing-card[^"]*glow/);
+    }
+    expect(renderPhase("BEST5_GLOW")).toContain("made-quads cinema-made-fx");
   });
   it("shows the five used hole and board cards for a royal flush and applies its made-hand effect", () => {
     const cards = new Map(deck.map((card) => [card.id, card]));

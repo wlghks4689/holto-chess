@@ -52,7 +52,7 @@ body:has(.ability-draft-dialog[open]){overflow:hidden}
 .ability-draft-slot::before{display:none}
 .ability-card-back.ability-draft-slot:hover:not(:disabled),.ability-card-back.ability-draft-slot:focus-visible{transform:none;box-shadow:none}
 .ability-draft-slot .ability-slot-rotator{position:absolute;inset:0;display:block;transform-style:preserve-3d;border-radius:inherit;transform:rotateY(0deg);font:inherit;text-shadow:none}
-.ability-draft-slot.can-flip .ability-slot-rotator{transition:transform 600ms cubic-bezier(.25,.75,.25,1)}
+.ability-motion-enabled .ability-draft-slot.can-flip .ability-slot-rotator{transition:transform 600ms cubic-bezier(.25,.75,.25,1)}
 .ability-draft-slot.is-revealed .ability-slot-rotator{transform:rotateY(180deg)}
 .ability-draft-slot .ability-slot-back,.ability-draft-slot .ability-slot-front{position:absolute;inset:0;border:1px solid #bbc0c7;border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .ability-draft-slot .ability-slot-back{display:grid;place-items:center;background:#080b10;box-shadow:inset 0 0 0 4px #151a20;transform:rotateY(0deg)}
@@ -66,7 +66,7 @@ body:has(.ability-draft-dialog[open]){overflow:hidden}
   .game-arena .ability-selection.is-ability_reveal h2{font-size:24px}
 }
 @media(max-width:600px){.ability-draft-heading{min-height:80px}}
-@media(prefers-reduced-motion:reduce){.ability-draft-slot.can-flip .ability-slot-rotator{transition:none}}
+/* Use the same in-game motion preference as showdown, including on reduced-motion PCs. */
 @media(prefers-reduced-motion:reduce){.ability-order-die{animation:none}.ability-card-back{transition:none}}
 @media(max-width:600px){
   .page-shell:has(>.ability-selection){padding-top:10px;padding-bottom:12px}
