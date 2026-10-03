@@ -4,18 +4,27 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { GameAction, PlayerView, ServerMessage, SessionCredential } from "../../src/shared/protocol";
 import type { RoomSnapshot } from "../../src/game/room";
 import { assertPoolIntegrity, releasePlayerCards } from "../../src/game/cardPool";
+import { createMatchView } from "../../src/game/matchView";
+import { cinematicTimeline } from "../../src/shared/presentationTimeline";
 
 const origin = "https://porena.test";
 const sockets: WebSocket[] = [];
 let sessionSequence = 0;
 afterEach(() => { for (const ws of sockets.splice(0)) ws.close(1000); });
-async function session(roomId?: string): Promise<SessionCredential> {
+async function session(roomId?: string, ip?: string): Promise<SessionCredential> {
   // Independent visitors keep the expanded suite from exhausting the shared unknown-IP quota.
-  const res = await exports.default.fetch(`${origin}/api/rooms${roomId ? `/${roomId}/join` : ""}`, { method: "POST", headers: { Origin: origin, "CF-Connecting-IP": `192.0.2.${++sessionSequence}` } });
+  const res = await exports.default.fetch(`${origin}/api/rooms${roomId ? `/${roomId}/join` : ""}`, { method: "POST", headers: { Origin: origin, "CF-Connecting-IP": ip ?? `192.0.2.${++sessionSequence}` } });
   expect(res.status).toBe(201); return res.json();
 }
-async function connect(s: SessionCredential) {
-  const res = await exports.default.fetch(`${origin}/ws/rooms/${s.roomId}`, { headers: { Upgrade: "websocket", Origin: origin } });
+async function connect(s: SessionCredential, ip?: string) {
+  let protocols: Record<string, string> = {};
+  if (ip) {
+    const proof = await exports.default.fetch(`${origin}/api/rooms/${s.roomId}/connection-ticket`, { method: "POST", headers: { Origin: origin, "CF-Connecting-IP": ip, "X-Porena-Session": s.token } });
+    expect(proof.status).toBe(201);
+    const { ticket } = await proof.json() as { ticket: string };
+    protocols = { "Sec-WebSocket-Protocol": `porena-v1, porena-ticket-${ticket}`, "CF-Connecting-IP": ip };
+  }
+  const res = await exports.default.fetch(`${origin}/ws/rooms/${s.roomId}`, { headers: { Upgrade: "websocket", Origin: origin, ...protocols } });
   expect(res.status).toBe(101); const ws = res.webSocket!; ws.accept(); sockets.push(ws);
   const messages: ServerMessage[] = [];
   const waiters: (() => void)[] = [];
@@ -76,6 +85,70 @@ async function startGame(roomId: string, clients: Awaited<ReturnType<typeof conn
   await Promise.all(clients.map(client => client.send({ type: "READY" })));
   await advanceAbilities(roomId, clients);
 }
+
+/** Real alarms/WebSocket broadcasts at accelerated clock boundaries, never fabricated outcomes. */
+async function inspectPresentation(roomId: string, clients: Awaited<ReturnType<typeof connect>>[], release: boolean, interrupt?: () => Promise<void>) {
+  const stub = env.GAME_ROOM.getByName(`room:${roomId}`);
+  const saved = (await runInDurableObject(stub, (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1")))!;
+  const schedule = saved.presentation!;
+  const duration = schedule.endsAt - schedule.startsAt;
+  const entries = [...new Map(Object.values(schedule.perPlayer).flat().map(entry => [entry.matchId, entry])).values()];
+  const times = new Set([0, duration - 100, ...(release ? [duration] : [])]);
+  for (const entry of entries) {
+    const match = saved.game.roundResults.find(match => match.id === entry.matchId)!;
+    if (entry.offsetMs) times.add(entry.offsetMs - 1);
+    for (const frame of cinematicTimeline(createMatchView(saved.game, match))) {
+      const elapsed = entry.offsetMs + (entry.prepMs ?? 0) + frame.at;
+      if (elapsed < duration) times.add(elapsed);
+    }
+  }
+  let deliveries = 0;
+  let interrupted = false;
+  let waitingForTablesObserved = false;
+  const enteredMatches = new Set<string>();
+  for (const elapsed of [...times].filter(time => time >= 0).sort((a, b) => a - b)) {
+    const after = clients.map(client => client.messages.length);
+    const epoch = await runInDurableObject(stub, async (instance, state) => {
+      const current = (instance as unknown as { room: RoomSnapshot }).room;
+      current.presentation!.startsAt = Date.now() - elapsed;
+      current.presentation!.endsAt = current.presentation!.startsAt + duration;
+      current.barrierSince = Date.now();
+      await state.storage.put("snapshot:v1", current);
+      await instance.alarm();
+      return current.presentation!.startsAt;
+    });
+    await Promise.all(clients.map((client, index) => client.wait(message => client.messages.indexOf(message) >= after[index]! && message.type === "PLAYER_VIEW")));
+    for (const client of clients) {
+      const view = client.view();
+      const actualElapsed = view.serverNow - epoch;
+      const presentation = view.presentation!;
+      waitingForTablesObserved ||= !!presentation.waitingForTables;
+      for (const match of view.matches) enteredMatches.add(match.id);
+      expect(presentation.complete).toBe(actualElapsed >= duration);
+      if (!presentation.complete) {
+        expect(presentation.endsAt).toBe(0);
+        expect(view.standings).toEqual([]);
+        expect(view.roundHistory ?? []).toEqual([]);
+        for (const match of view.matches) {
+          const entry = schedule.perPlayer[view.me.playerId]!.find(entry => entry.matchId === match.id)!;
+          expect(entry.offsetMs).toBeLessThanOrEqual(actualElapsed);
+          expect(match.disclosure!.frames.every(frame => frame.at <= Math.max(0, match.disclosure!.elapsedMs))).toBe(true);
+        }
+      }
+      for (const perspective of view.spectatorViews ?? []) {
+        expect(perspective.me.shopCards).toEqual([]);
+        expect(perspective.me.ownedCards.every(card => card.hidden)).toBe(true);
+        expect(perspective.presentation?.complete).toBe(presentation.complete);
+      }
+      deliveries++;
+    }
+    if (interrupt && !interrupted && elapsed > 1000 && elapsed < duration / 2) {
+      await interrupt();
+      interrupted = true;
+    }
+  }
+  return { boundaries: times.size, deliveries, enteredMatches: enteredMatches.size, waitingForTablesObserved };
+}
 describe("GameRoom in the Cloudflare runtime", () => {
   it("returns authenticated server receive/send stamps without changing game revision", async () => {
     const s = await session(); const client = await connect(s);
@@ -91,7 +164,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
   });
   it("persists and broadcasts an empty-hand timeout forfeit, including after reconnect", async () => {
     const a = await session(); const b = await session(a.roomId);
-    const clients = await Promise.all([a, b].map(connect));
+    const clients = await Promise.all([a, b].map(credential => connect(credential)));
     await startGame(a.roomId, clients);
     const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
     // The legal spending sequence is covered by the engine/room regression.
@@ -126,7 +199,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
   });
   it("persists and broadcasts AI purchases from a fully locked shop after timeout", async () => {
     const a = await session(); const b = await session(a.roomId);
-    const clients = await Promise.all([a, b].map(connect));
+    const clients = await Promise.all([a, b].map(credential => connect(credential)));
     await startGame(a.roomId, clients);
     await clients[0].wait((message) => message.type === "PLAYER_VIEW" && message.payload.phase === "SHOP");
     expect(await clients[0].send({ type: "REROLL" })).toMatchObject({ type: "ACK" });
@@ -191,11 +264,17 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(redirect.status).toBe(301);
     expect(redirect.headers.get("Location")).toBe("https://porena.kr/play?room=ABC234");
   });
-  it.each([2, 4, 8])("finishes R1–R5 over %i sockets, reconnects in each reached phase and agrees on standings", async (count) => {
-    const a = await session();
+  it.each([{ count: 2, ip: undefined }, { count: 4, ip: undefined }, { count: 8, ip: undefined }, { count: 8, ip: "198.51.100.208" }])("finishes R1-R5 over $count sockets (ticket/shared IP: $ip), reconnects and agrees on standings", async ({ count, ip }) => {
+    const a = await session(undefined, ip);
     const credentials = [a];
-    for (let i = 1; i < count; i++) credentials.push(await session(a.roomId));
-    const clients = await Promise.all(credentials.map(connect));
+    for (let i = 1; i < count; i++) credentials.push(await session(a.roomId, ip));
+    const clients = await Promise.all(credentials.map(credential => connect(credential, ip)));
+    let prefixBoundaries = 0;
+    let prefixDeliveries = 0;
+    let spectatorObserved = false;
+    let cinematicReconnected = false;
+    let enteredMatches = 0;
+    let waitingForTablesObserved = false;
     const readyReplies = await Promise.all(clients.map((client) => client.send({ type: "READY" })));
     expect(readyReplies.every((reply) => reply.type === "ACK")).toBe(true);
     const reconnected = new Set<string>();
@@ -214,7 +293,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
       if (!reconnected.has(phaseKey)) {
         const before = clients[0].view();
         const previous = clients[0];
-        clients[0] = await connect(a); // Also exercises replacement of the same session in another tab.
+        clients[0] = await connect(a, ip); // Also exercises replacement of the same session in another tab.
         previous.ws.close(1000);
         expect(clients[0].view().me).toEqual(before.me);
         expect(clients[0].view().barrierEndsAt).toBe(before.barrierEndsAt);
@@ -222,6 +301,23 @@ describe("GameRoom in the Cloudflare runtime", () => {
         reconnected.add(phaseKey);
       }
       if (clients[0].view().presentation) {
+        if (ip) {
+          const inspected = await inspectPresentation(a.roomId, clients, true, cinematicReconnected ? undefined : async () => {
+            const before = clients[0].view();
+            clients[0].ws.close(1000, "Integration outage during authorized prefix");
+            clients[0] = await connect(a, ip);
+            expect(clients[0].view().me).toEqual(before.me);
+            expect(clients[0].view().turnKey).toBe(before.turnKey);
+            expect(clients[0].view().presentation?.complete).toBe(false);
+            expect(clients[0].view().matches.map(match => match.id)).toEqual(before.matches.map(match => match.id));
+            cinematicReconnected = true;
+          });
+          prefixBoundaries += inspected.boundaries;
+          prefixDeliveries += inspected.deliveries;
+          enteredMatches += inspected.enteredMatches;
+          waitingForTablesObserved ||= inspected.waitingForTablesObserved;
+          spectatorObserved ||= clients.some(client => !client.view().me.alive && !!client.view().spectatorViews?.length);
+        }
         // Advance the stored clock past playback AND the result-confirmation
         // window, then exercise the real alarm/broadcast path (also for spectators).
         const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
@@ -288,12 +384,26 @@ describe("GameRoom in the Cloudflare runtime", () => {
     const revision = Math.max(...clients.map((c) => c.view().revision));
     await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
     expect(clients[0].view().phase).toBe("GAME_RESULT");
-    expect(clients[0].view().standings).toEqual([]);
+    if (ip) {
+      // Check denial while the real final is still near its start. A request
+      // after sampling end-100ms may legitimately arrive after the deadline.
+      expect(clients[0].view().standings).toEqual([]);
+      expect(await clients[0].send({ type: "FINAL_RESULTS_VIEWED" })).toMatchObject({ type: "ERROR" });
+      const inspected = await inspectPresentation(a.roomId, clients, false);
+      prefixBoundaries += inspected.boundaries;
+      prefixDeliveries += inspected.deliveries;
+      expect(prefixBoundaries).toBeGreaterThan(100);
+      expect(spectatorObserved).toBe(true);
+      expect(cinematicReconnected).toBe(true);
+      expect(enteredMatches).toBeGreaterThan(10);
+      console.log(JSON.stringify({ securityFlow: "ticket/shared-IP R1-R5", prefixBoundaries, prefixDeliveries, enteredMatches, waitingForTablesObserved, cinematicReconnected, spectatorObserved, reconnectedPhases: reconnected.size }));
+    }
+    if (!ip) expect(clients[0].view().standings).toEqual([]);
     const sessionBefore = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/session`, { method: "POST", headers: { Origin: origin, "X-Porena-Session": a.token } });
     expect(sessionBefore.status).toBe(204);
     const unreleasedExpiry = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
     expect(unreleasedExpiry).toBeGreaterThan(Date.now() + 23 * 60 * 60 * 1000);
-    expect(await clients[0].send({ type: "FINAL_RESULTS_VIEWED" })).toMatchObject({ type: "ERROR" });
+    if (!ip) expect(await clients[0].send({ type: "FINAL_RESULTS_VIEWED" })).toMatchObject({ type: "ERROR" });
     const finalStub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
     await runInDurableObject(finalStub, async (_instance, state) => {
       const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
@@ -364,6 +474,8 @@ describe("GameRoom in the Cloudflare runtime", () => {
     const one = await connect(a); const two = await connect(b); const separate = await connect(other);
     expect(one.view().roomId).not.toBe(separate.view().roomId);
     expect(one.view().me.playerId).toBe("p1"); expect(two.view().me.playerId).toBe("p2");
+    expect(one.view().turnKey).toMatch(/^[a-f0-9]{64}$/);
+    expect(two.view().turnKey).toBe(one.view().turnKey);
     const privateIds = [...two.view().me.ownedCards, ...two.view().me.shopCards.map((s) => s.card)].map((c) => c.id);
     for (const id of privateIds) expect(JSON.stringify(one.view())).not.toContain(`"${id}"`);
     expect(JSON.stringify(one.view())).not.toMatch(/ownershipCardPool|tokenHash|"seed"/);

@@ -24,6 +24,12 @@ export type RoomSnapshot = {
   barrierKey?: string;
   /** Shared cinematic schedule for the visible showdown set (server clock). */
   presentation?: PresentationSchedule;
+  /** Private pre-resolution state, retained only for the matching round's disclosure. */
+  presentationPlayers?: { round: number; players: PorenaGameState["players"] };
+  /** Opponents see the entry balance until the shop barrier closes. */
+  shopPublicBB?: { round: number; values: Record<string, number> };
+  /** Worker-issued opaque action epoch; internal encounter counts never cross the network. */
+  publicTurnKey?: { turn: string; key: string };
   finalResultsReleasedAt?: number;
 };
 
@@ -38,6 +44,11 @@ export function createRoom(roomId: string, seed: number, randomMode: "seeded" | 
 export function migrateRoomSnapshot(source: RoomSnapshot): RoomSnapshot {
   if (source.schema !== 1) throw new Error("Unsupported room snapshot version");
   const outdatedPresentation = source.presentation && source.presentation.version !== PRESENTATION_VERSION;
+  if (source.status === "PLAYING" && source.game.phase === "SHOP" && source.shopPublicBB?.round !== source.game.round) {
+    const room = structuredClone(source);
+    captureShopBalances(room);
+    return migrateRoomSnapshot(room);
+  }
   if (source.rulesRevision === 2 && !outdatedPresentation) return source;
   const room = structuredClone(source);
   if (room.rulesRevision === 2) {
@@ -70,6 +81,12 @@ export function migrateRoomSnapshot(source: RoomSnapshot): RoomSnapshot {
   }
   room.rulesRevision = 2;
   return migrateRoomSnapshot(room);
+}
+
+function captureShopBalances(room: RoomSnapshot): void {
+  if (room.status === "PLAYING" && room.game.phase === "SHOP" && room.shopPublicBB?.round !== room.game.round) {
+    room.shopPublicBB = { round: room.game.round, values: Object.fromEntries(room.game.players.map(player => [player.id, player.stackBB])) };
+  } else if (room.game.phase !== "SHOP") delete room.shopPublicBB;
 }
 export function turnKey(room: RoomSnapshot): string {
   return `${room.game.round}:${room.status === "LOBBY" ? "LOBBY" : room.game.phase}:${room.gameGeneration ?? 0}:${room.game.encounterSequence}`;
@@ -152,6 +169,9 @@ export function addSession(source: RoomSnapshot, tokenHash: string): { room: Roo
 
 /** Runs the transition a fully-satisfied READY barrier triggers. */
 function advanceReadyBarrier(room: RoomSnapshot): void {
+  if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "SURVIVAL_READY"].includes(room.game.phase)) {
+    room.presentationPlayers = { round: room.game.round, players: structuredClone(room.game.players) };
+  }
   switch (room.game.phase) {
     case "ABILITY_ORDER": room.game = openAbilitySelection(room.game); break;
     case "ABILITY_REVEAL": room.game = finishAbilitySelection(room.game); break;
@@ -314,6 +334,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     }
   }
   settleBarrier(room);
+  captureShopBalances(room);
   syncPresentation(room, now);
   refreshBarrier(room, now);
   assertPoolIntegrity(room.game);
@@ -348,6 +369,7 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
     advanceReadyBarrier(room);
   }
   settleBarrier(room);
+  captureShopBalances(room);
   syncPresentation(room, now);
   refreshBarrier(room, now);
   assertPoolIntegrity(room.game);

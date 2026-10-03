@@ -87,7 +87,7 @@ describe("server-scheduled showdown presentation", () => {
     const view = createPlayerView(room, "p1", [], 123_456);
     expect(view.serverNow).toBe(123_456);
     expect(view.presentation).toEqual({ version: room.presentation!.version, startsAt: room.presentation!.startsAt,
-      endsAt: room.presentation!.endsAt, matches: room.presentation!.perPlayer.p1 });
+      endsAt: 0, complete: false, disclosureMode: "prefix", matches: [{ ...room.presentation!.perPlayer.p1[0], durationMs: 0 }] });
     expect(view.matches).toEqual([]); // Schedule metadata is not permission to read future matches.
     const finished = createPlayerView(room, "p1", [], room.presentation!.endsAt);
     expect(finished.presentation!.matches.every(entry => finished.matches.some(match => match.id === entry.matchId))).toBe(true);

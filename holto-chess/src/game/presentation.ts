@@ -74,9 +74,15 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
   room.presentation = { key, version: PRESENTATION_VERSION, startsAt, endsAt: startsAt + longest, perPlayer };
 }
 
-export function presentationViewFor(room: RoomSnapshot, playerId: string): PresentationView | undefined {
+export function presentationViewFor(room: RoomSnapshot, playerId: string, now = Date.now()): PresentationView | undefined {
   const schedule = room.presentation;
   if (!schedule || !matchesVisible(room)) return undefined;
-  return { version: schedule.version, startsAt: schedule.startsAt, endsAt: schedule.endsAt,
-    matches: (schedule.perPlayer[playerId] ?? []).map((entry) => ({ ...entry })) };
+  const complete = now >= schedule.endsAt;
+  const elapsed = now - schedule.startsAt;
+  const last = schedule.perPlayer[playerId]?.at(-1);
+  return { version: schedule.version, startsAt: schedule.startsAt, endsAt: complete ? schedule.endsAt : 0,
+    disclosureMode: "prefix", complete,
+    ...(last && !complete && elapsed >= last.offsetMs + last.durationMs ? { waitingForTables: true } : {}),
+    matches: (schedule.perPlayer[playerId] ?? []).filter(entry => complete || entry.offsetMs === 0 || elapsed >= entry.offsetMs - INTER_MATCH_HOLD_MS)
+      .map(entry => ({ ...entry, durationMs: complete ? entry.durationMs : Math.max(0, Math.min(entry.durationMs, elapsed - entry.offsetMs)) })) };
 }

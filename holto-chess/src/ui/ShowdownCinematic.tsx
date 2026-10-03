@@ -68,7 +68,7 @@ function RunMatchup({ match, index, viewerId, complete, name }: {
 
 function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame: CinematicFrame; viewerId: string; name: (id: string) => string }) {
   const { t } = useTranslation();
-  if (match.runoutCount !== 2) return null;
+  if (match.round !== 2 || match.runoutCount !== 2) return null;
   const currentComplete = ["RUN_RESULT", "HIGH_CARD_NOTICE", "HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
   const runComplete = (index: number) => frame.boardIndex > index || frame.boardIndex === index && currentComplete;
   const scoreVisible = runComplete(1);
@@ -144,7 +144,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   // Mount the next run/decider during the current result beat, while every card is still closed.
   // This keeps RUN 1 on stage and lets RUN 2 reveal by flipping already-present slots.
   const queuedBoard = frame.phase === "RUN_RESULT" && frame.boardIndex + 1 < match.boards.length ? 1 : 0;
-  const visibleBoardIndexes = match.runoutCount === 2
+  const visibleBoardIndexes = match.round === 2 && match.runoutCount === 2
     ? Array.from({ length: Math.max(2, frame.boardIndex + 1 + queuedBoard) }, (_, index) => index)
     : match.boards.length > 1
     ? Array.from({ length: frame.boardIndex + 1 + queuedBoard }, (_, index) => index)
@@ -160,7 +160,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const finalHeadingTitle = t("cinema.finalShowdown");
   const placeText = (place: number | undefined) => place === undefined ? "—" : locale === "ko-KR" ? t("cinema.finalPlace", { place }) : ordinalPlace(place);
   const nextBatch = final ? finalNextBatch(frame.phase) : undefined;
-  const phaseMs = (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
+  const phaseMs = frame === frames.at(-1) && match.disclosure?.frameDurationMs !== undefined
+    ? match.disclosure.frameDurationMs : (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
   const readStage = finalReadStage(frame.phase);
   return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 && ids.length === 3 ? "cinema-r3-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-round={match.round} data-phase={frame.phase} data-match-id={match.id}
@@ -345,7 +346,8 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
   const { t } = useTranslation();
   const [tick, setTick] = useState(() => ({ now: clock.now(), jumped: false }));
   const { now } = tick;
-  const done = now >= presentation.endsAt && (receivedAt === undefined || receivedAt >= presentation.endsAt);
+  const progressive = presentation.disclosureMode === "prefix";
+  const done = progressive ? presentation.complete === true : now >= presentation.endsAt && (receivedAt === undefined || receivedAt >= presentation.endsAt);
   useEffect(() => {
     if (done) return;
     const timer = setInterval(() => setTick((previous) => {
@@ -356,8 +358,10 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
   }, [done, clock, presentation.startsAt, presentation.endsAt]);
   if (presentation.version !== PRESENTATION_VERSION && receivedAt !== undefined) return <section className="panel" role="alert"><p>{t("cinema.versionMismatch")}</p><button onClick={() => location.reload()}>{t("cinema.reload")}</button></section>;
   if (done) return <>{children}</>;
+  if (progressive && presentation.waitingForTables) return <WaitingForTables />;
   const elapsed = now - presentation.startsAt;
-  const entry = presentation.matches.find((item) => elapsed >= item.offsetMs && elapsed < item.offsetMs + item.durationMs);
+  const entry = progressive ? presentation.matches.filter(item => elapsed >= item.offsetMs && matches.some(match => match.id === item.matchId)).at(-1)
+    : presentation.matches.find((item) => elapsed >= item.offsetMs && elapsed < item.offsetMs + item.durationMs);
   const match = entry && matches.find((item) => item.id === entry.matchId);
   if (!entry || !match) {
     const nextIndex = presentation.matches.findIndex((item) => elapsed < item.offsetMs);
@@ -374,7 +378,9 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
   const matchElapsed = elapsed - entry.offsetMs;
   if (match.round < 5 && entry.prepMs && matchElapsed < entry.prepMs) return <MatchPrepScreen key={`${match.id}:prep`} match={match}
     profiles={profiles} viewerId={viewerId} seconds={Math.ceil((entry.prepMs - matchElapsed) / 1000)} />;
-  return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} identityId={identityId} soundSessionId={soundSessionId} onComplete={() => {}} elapsedMs={matchElapsed - (entry.prepMs ?? 0)} catchUp={tick.jumped} />;
+  const next = progressive ? presentation.matches.find(item => item.offsetMs > entry.offsetMs) : undefined;
+  return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} identityId={identityId} soundSessionId={soundSessionId} onComplete={() => {}} elapsedMs={matchElapsed - (entry.prepMs ?? 0)} catchUp={tick.jumped}
+    nextMatchSeconds={next ? Math.max(0, Math.ceil((next.offsetMs - elapsed) / 1000)) : undefined} />;
 }
 
 /** Hides scoreboards, logs, final standings and next-stage controls until presentation completes. */

@@ -10,6 +10,7 @@ export const endpoints = {
   createRoom: () => "/api/rooms",
   joinRoom: (roomId: string) => `/api/rooms/${roomId}/join`,
   roomSession: (roomId: string) => `/api/rooms/${roomId}/session`,
+  connectionTicket: (roomId: string) => `/api/rooms/${roomId}/connection-ticket`,
   feedback: () => "/api/feedback",
 };
 

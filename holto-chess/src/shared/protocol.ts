@@ -31,8 +31,8 @@ export type RevealedHand = { playerId: string; place: number; category: HandCate
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
   abilityCues?: AbilityCue[];
-  /** Server-authorized frames. No future card values/outcomes are in this projection. */
-  disclosure?: { frames: import("./presentationTimeline").CinematicFrame[]; elapsedMs: number };
+  /** Only frames already authorized by server time; hold the latest while awaiting the next packet. */
+  disclosure?: { frames: import("./presentationTimeline").CinematicFrame[]; elapsedMs: number; frameDurationMs?: number };
   runCards?: Record<string, Card[][]>;
   runRewards?: MatchReward[][];
   standingsBefore?: Record<string, number>;
@@ -54,7 +54,9 @@ export type MatchView = {
 /** One match in a seat's playback order, relative to the shared presentation start. */
 export type PresentationEntry = { matchId: string; offsetMs: number; durationMs: number; prepMs?: number };
 /** Server-clock schedule for the current showdown set: same startsAt/endsAt for every seat. */
-export type PresentationView = { version: number; startsAt: number; endsAt: number; matches: PresentationEntry[] };
+export type PresentationView = { version: number; startsAt: number; endsAt: number; matches: PresentationEntry[];
+  /** Prefix mode: endsAt is 0 until complete; entry duration is only the disclosed elapsed prefix. */
+  disclosureMode?: "prefix"; complete?: boolean; waitingForTables?: boolean };
 export type RoundSummaryRow = {
   playerId: string; name: string; cards: Card[]; wins: number; draws: number; losses: number;
   /** Points earned in this round only. */
@@ -138,7 +140,7 @@ export function parseClientMessage(raw: string): ClientMessage {
     if (v.nickname !== undefined && (typeof v.nickname !== "string" || !/^[\p{L}\p{N} _-]{1,8}$/u.test(v.nickname.trim()))) throw new Error("닉네임은 문자·숫자 1~8자로 입력하세요.");
     return { type: "JOIN_ROOM", token: v.token as string, ...(typeof v.nickname === "string" ? { nickname: v.nickname.trim() } : {}) };
   }
-  if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^[0-9]+:[A-Z_]+(?::[0-9]+:[0-9]+)?$/)) throw new Error("명령 식별자가 필요합니다.");
+  if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^(?:[a-f0-9]{64}|[0-9]+:[A-Z_]+(?::[0-9]+:[0-9]+)?)$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
     ABILITY_PICK: ["slot"],
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],

@@ -1,15 +1,19 @@
 import { DurableObject } from "cloudflare:workers";
-import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, type RoomSnapshot } from "../src/game/room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, turnKey, type RoomSnapshot } from "../src/game/room";
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 import { classifyGameError } from "../src/shared/gameErrorCode";
 import { nextDisclosureAt } from "../src/game/disclosure";
 import { FINISHED_ROOM_LIFETIME_MS, LOBBY_IDLE_LIFETIME_MS, ROOM_LIFETIME_MS } from "../src/shared/retention";
 
-type Attachment = { roomId: string; playerId: string | null; joinedAt: number; windowAt?: number; messages?: number };
+type Attachment = { roomId: string; playerId: string | null; verifiedPlayerId?: string; joinedAt: number; windowAt?: number; messages?: number };
 const SNAPSHOT_KEY = "snapshot:v1";
 const EXPIRY_KEY = "expiresAt";
 const AUTH_TIMEOUT_MS = 15000;
+const TICKET_KEY = "connection-tickets:v1";
+const TICKET_LIFETIME_MS = 30_000;
+const LEGACY_PENDING_LIMIT = 8;
+type Tickets = Record<string, { digest: string; expiresAt: number }>;
 function randomSeed(): number { return crypto.getRandomValues(new Uint32Array(1))[0]! || 1; }
 function token(): string { return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""); }
 async function hash(value: string): Promise<string> {
@@ -18,12 +22,18 @@ async function hash(value: string): Promise<string> {
 export class GameRoom extends DurableObject<Env> {
   private room: RoomSnapshot | undefined;
   private expiresAt: number | undefined;
+  private tickets: Tickets = {};
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
       const storedRoom = await ctx.storage.get<RoomSnapshot>(SNAPSHOT_KEY);
       this.room = storedRoom ? migrateRoomSnapshot(storedRoom) : undefined;
+      if (this.room && this.room.publicTurnKey?.turn !== turnKey(this.room)) {
+        this.room = structuredClone(this.room);
+        this.room.publicTurnKey = { turn: turnKey(this.room), key: token() };
+      }
+      this.tickets = await ctx.storage.get<Tickets>(TICKET_KEY) ?? {};
       if (storedRoom && this.room !== storedRoom) await ctx.storage.put(SNAPSHOT_KEY, this.room);
       this.expiresAt = await ctx.storage.get<number>(EXPIRY_KEY);
       if (this.room && !this.expiresAt) {
@@ -48,6 +58,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   private async commit(next: RoomSnapshot): Promise<void> {
+    if (next.publicTurnKey?.turn !== turnKey(next)) next.publicTurnKey = { turn: turnKey(next), key: token() };
     // Publish only after durable storage succeeds. Failed commands never replace the snapshot.
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
     catch {
@@ -79,6 +90,7 @@ export class GameRoom extends DurableObject<Env> {
   private async rescheduleAlarm(): Promise<void> {
     const deadlines: number[] = [];
     if (this.expiresAt) deadlines.push(this.expiresAt);
+    deadlines.push(...Object.values(this.tickets).map(ticket => ticket.expiresAt));
     for (const ws of this.ctx.getWebSockets()) {
       const a = ws.deserializeAttachment() as Attachment | null;
       if (a && !a.playerId) deadlines.push(a.joinedAt + AUTH_TIMEOUT_MS);
@@ -121,6 +133,23 @@ export class GameRoom extends DurableObject<Env> {
       });
     }
     if (!this.room || this.room.roomId !== roomId) return new Response("Room not found", { status: 404 });
+    if (url.pathname === "/internal/connection-ticket" && request.method === "POST") {
+      return this.ctx.blockConcurrencyWhile(async () => {
+        const secret = request.headers.get("X-Porena-Session");
+        if (!secret || !/^[a-f0-9]{64}$/.test(secret)) return new Response("Invalid session", { status: 401 });
+        const digest = await hash(secret);
+        const session = this.room!.sessions.find(session => session.tokenHash === digest);
+        if (!session) return new Response("Invalid session", { status: 401 });
+        const ticket = token();
+        const expiresAt = Date.now() + TICKET_LIFETIME_MS;
+        const next = Object.fromEntries(Object.entries(this.tickets).filter(([, entry]) => entry.expiresAt > Date.now()));
+        next[session.playerId] = { digest: await hash(ticket), expiresAt };
+        await this.ctx.storage.put(TICKET_KEY, next);
+        this.tickets = next;
+        await this.rescheduleAlarm();
+        return Response.json({ ticket, expiresAt }, { status: 201, headers: { "Cache-Control": "no-store" } });
+      });
+    }
     if (url.pathname === "/internal/session" && request.method === "POST") {
       const secret = request.headers.get("X-Porena-Session");
       if (!secret || !/^[a-f0-9]{64}$/.test(secret)) return new Response("Invalid session", { status: 401 });
@@ -140,13 +169,42 @@ export class GameRoom extends DurableObject<Env> {
       });
     }
     if (url.pathname !== "/internal/ws" || request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("Not found", { status: 404 });
-    if (this.ctx.getWebSockets().length >= 24) return new Response("Too many connections", { status: 429 });
-    const [client, server] = Object.values(new WebSocketPair());
-    this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ roomId, playerId: null, joinedAt: Date.now() } satisfies Attachment);
-    // Alarms, not JS timers, drive both deadlines without preventing hibernation.
-    await this.rescheduleAlarm();
-    return new Response(null, { status: 101, webSocket: client });
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const protocols = (request.headers.get("Sec-WebSocket-Protocol") ?? "").split(",").map(value => value.trim());
+      const proofs = protocols.filter(value => value.startsWith("porena-ticket-"));
+      let verifiedPlayerId: string | undefined;
+      if (proofs.length) {
+        if (proofs.length !== 1 || !protocols.includes("porena-v1") || !/^porena-ticket-[a-f0-9]{64}$/.test(proofs[0]!)) return new Response("Invalid ticket", { status: 401 });
+        const digest = await hash(proofs[0]!.slice("porena-ticket-".length));
+        verifiedPlayerId = Object.keys(this.tickets).find(id => this.tickets[id]!.digest === digest && this.tickets[id]!.expiresAt > Date.now());
+        if (!verifiedPlayerId) return new Response("Invalid ticket", { status: 401 });
+        const next = { ...this.tickets }; delete next[verifiedPlayerId];
+        await this.ctx.storage.put(TICKET_KEY, next);
+        this.tickets = next; // Consume atomically before accepting; hibernation cannot revive it.
+        for (const socket of this.ctx.getWebSockets()) {
+          const attachment = socket.deserializeAttachment() as Attachment | null;
+          if (!attachment?.playerId && attachment?.verifiedPlayerId === verifiedPlayerId) socket.close(4001, "Pending connection replaced");
+        }
+        // Rooms hibernated by the previous version may retain 24 unauthenticated
+        // sockets. Apply the new pending bound before reserving a proven seat.
+        const legacy = this.ctx.getWebSockets().filter(socket => {
+          const attachment = socket.deserializeAttachment() as Attachment | null;
+          return socket.readyState === WebSocket.OPEN && !attachment?.playerId && !attachment?.verifiedPlayerId;
+        }).sort((a, b) => (a.deserializeAttachment() as Attachment).joinedAt - (b.deserializeAttachment() as Attachment).joinedAt);
+        for (const socket of legacy.slice(LEGACY_PENDING_LIMIT)) socket.close(4001, "Pending capacity reduced");
+      }
+      const open = this.ctx.getWebSockets().filter(socket => socket.readyState === WebSocket.OPEN);
+      const legacyPending = open.filter(socket => {
+        const attachment = socket.deserializeAttachment() as Attachment | null;
+        return !attachment?.playerId && !attachment?.verifiedPlayerId;
+      });
+      if (open.length >= 24 || !verifiedPlayerId && legacyPending.length >= LEGACY_PENDING_LIMIT) return new Response("Too many connections", { status: 429 });
+      const [client, server] = Object.values(new WebSocketPair());
+      this.ctx.acceptWebSocket(server);
+      server.serializeAttachment({ roomId, playerId: null, ...(verifiedPlayerId ? { verifiedPlayerId } : {}), joinedAt: Date.now() } satisfies Attachment);
+      await this.rescheduleAlarm();
+      return new Response(null, { status: 101, webSocket: client, ...(verifiedPlayerId ? { headers: { "Sec-WebSocket-Protocol": "porena-v1" } } : {}) });
+    });
   }
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
@@ -167,7 +225,7 @@ export class GameRoom extends DurableObject<Env> {
           if (attachment.playerId) throw new Error("이미 인증된 연결입니다.");
           const digest = await hash(message.token);
           const session = this.room.sessions.find((s) => s.tokenHash === digest);
-          if (!session) { this.send(ws, { type: "ERROR", code: "SESSION_INVALID", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
+          if (!session || attachment.verifiedPlayerId && attachment.verifiedPlayerId !== session.playerId) { this.send(ws, { type: "ERROR", code: "SESSION_INVALID", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
           if (message.nickname && this.room.status === "LOBBY") {
             const next = structuredClone(this.room);
             next.game.players.find((p) => p.id === session.playerId)!.name = message.nickname;
@@ -199,7 +257,8 @@ export class GameRoom extends DurableObject<Env> {
         const candidate = structuredClone(this.room);
         // Production draws use Workers crypto; seeded mode is reserved for local simulations/tests.
         candidate.game.randomMode = "secure";
-        const next = applyRoomAction(candidate, session.playerId, message, message.turnKey, Date.now());
+        if (this.room.publicTurnKey && message.turnKey !== this.room.publicTurnKey.key) throw new Error("단계가 변경되었습니다. 최신 화면에서 다시 시도하세요.");
+        const next = applyRoomAction(candidate, session.playerId, message, this.room.publicTurnKey ? turnKey(candidate) : message.turnKey, Date.now());
         next.sessions.find((s) => s.playerId === session.playerId)!.requests = [...session.requests, requestId].slice(-64);
         await this.commit(next);
         await this.rescheduleAlarm();
@@ -218,7 +277,8 @@ export class GameRoom extends DurableObject<Env> {
       const now = Date.now();
       if (this.expiresAt && now >= this.expiresAt) {
         for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");
-        await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY]);
+        await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY, TICKET_KEY]);
+        this.tickets = {};
         this.room = undefined;
         this.expiresAt = undefined;
         await this.ctx.storage.deleteAlarm();
@@ -227,6 +287,11 @@ export class GameRoom extends DurableObject<Env> {
       for (const ws of this.ctx.getWebSockets()) {
         const a = ws.deserializeAttachment() as Attachment | null;
         if (!a?.playerId && (!a || now - a.joinedAt >= AUTH_TIMEOUT_MS)) ws.close(1008, "Authentication timeout");
+      }
+      const activeTickets = Object.fromEntries(Object.entries(this.tickets).filter(([, ticket]) => ticket.expiresAt > now));
+      if (Object.keys(activeTickets).length !== Object.keys(this.tickets).length) {
+        await this.ctx.storage.put(TICKET_KEY, activeTickets);
+        this.tickets = activeTickets;
       }
       if (this.room) {
         // Bots stand in for whoever the barrier is still waiting on, so one

@@ -3,6 +3,7 @@ import { GameViewportReset } from "./GameViewportReset";
 import { ShopAbilityPanel, RoundAbilityBenefits } from "./AbilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { connectionProtocols } from "../network/connectionTicket";
 import type { GameAction, MatchView, PlayerView, ServerMessage, SessionCredential } from "../shared/protocol";
 import { CinematicGate } from "./ShowdownCinematic";
 import { invitedRoom } from "./roomInvite";
@@ -175,10 +176,20 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     const probeTimer = setInterval(probe, 10_000);
     document.addEventListener("visibilitychange", resync);
     window.addEventListener("online", resync);
-    const connect = () => {
+    const reconnect = () => {
+      if (disposed) return;
+      if (attempts >= 5) { setError("client.reconnectFailed"); return; }
+      setStatus("Reconnecting");
+      timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 10000));
+    };
+    const connect = async () => {
       if (disposed) return;
       setStatus("Connecting"); clearPending();
-      const ws = new WebSocket(roomSocketUrl(credential.roomId));
+      let protocols: string[];
+      try { protocols = await connectionProtocols(credential); }
+      catch { if (!disposed) { setError("client.checkConnection"); reconnect(); } return; }
+      if (disposed) return;
+      const ws = new WebSocket(roomSocketUrl(credential.roomId), protocols);
       socket.current = ws;
       ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: storedNickname() }));
       ws.onmessage = (event) => {

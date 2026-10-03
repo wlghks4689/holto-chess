@@ -4,10 +4,11 @@ import { describe, expect, it } from "vitest";
 import { makeDeck, type Card } from "../core/poker/cards";
 import { findBestFive } from "../core/poker/evaluate";
 import type { MatchView, PresentationView } from "../shared/protocol";
-import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
+import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
 import { CinematicGate, ShowdownCinematic } from "./ShowdownCinematic";
 import { visibleFinalHand } from "./finalShowdownPresentation";
 import { showdownSeatOrder } from "./showdownSeatOrder";
+import { discloseMatch } from "../game/disclosure";
 
 const deck = makeDeck();
 const match: MatchView = {
@@ -459,6 +460,39 @@ describe("cinematic initial rendering", () => {
 });
 
 describe("server-synced cinematic gate", () => {
+  it("renders every authorized server frame of split runs, deciders and final placements without skipping during packet delays", () => {
+    const final: MatchView = { ...match, results: profiles.map((profile, index) => ({ playerId: profile.playerId, place: index + 1,
+      category: "HIGH_CARD", kickers: [], displayName: "", usedCardIds: [] })) };
+    const double: MatchView = { ...match, round: 2, boards: [deck.slice(28, 33), deck.slice(33, 38)], boardResults: [[], []], boardWinnerIds: [[], []], runoutCount: 2 };
+    const decider: MatchView = { ...double, round: 4, suddenDeathCount: 1, tiebreakStartIndex: 1, tiebreakKind: "WINNER_TIEBREAK",
+      highCardDraw: { draws: [{ playerId: "p1", rank: 14 }, { playerId: "p2", rank: 8 }], winnerId: "p1" } };
+    for (const view of [double, decider, final]) {
+      for (const frame of cinematicTimeline(view)) {
+        const disclosed = discloseMatch(view, { matchId: view.id, offsetMs: 0, durationMs: presentationDurationMs(view) }, 0, frame.at)!;
+        const restored = JSON.parse(JSON.stringify(disclosed)) as MatchView;
+        const html = renderToStaticMarkup(createElement(ShowdownCinematic, {
+          match: restored, profiles, viewerId: "p1", identityId: "p8", onComplete: () => {}, elapsedMs: frame.at + 100_000,
+        }));
+        expect(html).toContain(`data-phase="${frame.phase}"`);
+      }
+    }
+  });
+  it("holds the last authorized frame through delayed packets and gates completion on server permission", () => {
+    const frames = cinematicTimeline(match).slice(0, 2);
+    const disclosed = { ...match, disclosure: { elapsedMs: frames.at(-1)!.at, frames } };
+    const prefix: PresentationView = { version: PRESENTATION_VERSION, startsAt: 1000, endsAt: 0,
+      disclosureMode: "prefix", complete: false, matches: [{ matchId: match.id, offsetMs: 0, durationMs: 400 }] };
+    const render = (presentation: PresentationView, matches = [disclosed]) => renderToStaticMarkup(createElement(CinematicGate, {
+      matches, profiles, viewerId: "p1", presentation, receivedAt: 1400,
+      clock: { observe: () => {}, offset: () => 0, now: () => 999999 },
+      children: createElement("div", null, "PRIVATE_RESULT_SENTINEL"),
+    }));
+    const held = render(prefix);
+    expect(held).toContain(`data-phase="${frames.at(-1)!.phase}"`);
+    expect(held).not.toContain("PRIVATE_RESULT_SENTINEL");
+    expect(render({ ...prefix, matches: [...prefix.matches, { matchId: "not-yet-received", offsetMs: 2000, durationMs: 0 }] })).toContain(`data-phase="${frames.at(-1)!.phase}"`);
+    expect(render({ ...prefix, complete: true, endsAt: 5000 })).toContain("PRIVATE_RESULT_SENTINEL");
+  });
   const second: MatchView = { ...match, id: "second-match", round: 1, matchday: 2, participantIds: ["p1", "p2"],
     boards: [deck.slice(10, 15)], boardResults: [[]], boardWinnerIds: [["p1"]], runoutCount: 1,
     revealedCards: { p1: deck.slice(0, 2), p2: deck.slice(2, 4) } };

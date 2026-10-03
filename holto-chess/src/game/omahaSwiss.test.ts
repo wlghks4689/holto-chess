@@ -84,10 +84,14 @@ describe("R3 Omaha Swiss", () => {
     expect(createPlayerView(room, "p1", [], room.presentation!.endsAt).matches.map((m) => m.matchday)).toEqual([1, 2, 3]);
     expect(view.matches.every((m) => m.participantIds.includes("p1"))).toBe(true);
     expect(view.matches.every((m) => m.revealedCards.p1.length === 4)).toBe(true);
-    expect(view.presentation?.matches).toHaveLength(3);
-    for (const [index, match] of view.presentation!.matches.entries()) {
+    expect(view.presentation?.matches).toHaveLength(1);
+    expect(view.presentation?.endsAt).toBe(0);
+    const completed = createPlayerView(room, "p1", [], room.presentation!.endsAt);
+    expect(completed.presentation?.matches).toHaveLength(3);
+    expect(completed.presentation?.complete).toBe(true);
+    for (const [index, match] of completed.presentation!.matches.entries()) {
       if (index === 0) continue;
-      const previous = view.presentation!.matches[index - 1]!;
+      const previous = completed.presentation!.matches[index - 1]!;
       expect(match.offsetMs - previous.offsetMs - previous.durationMs).toBeGreaterThanOrEqual(INTER_MATCH_HOLD_MS);
     }
     const otherView = createPlayerView(room, "p2", [], 2000);

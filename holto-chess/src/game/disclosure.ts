@@ -1,6 +1,6 @@
 import type { Card } from "../core/poker/cards";
 import type { MatchView, PresentationEntry } from "../shared/protocol";
-import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags } from "../shared/presentationTimeline";
+import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, INTER_MATCH_HOLD_MS } from "../shared/presentationTimeline";
 import { createMatchView } from "./matchView";
 import type { RoomSnapshot } from "./room";
 
@@ -23,19 +23,29 @@ export function discloseMatch(view: MatchView, entry: PresentationEntry, startsA
   const safe = structuredClone(view);
   safe.abilityCues = (view.abilityCues ?? []).filter(cue => elapsed >= 0 && (final ? finalWinner :
     cue.run ? boardResultVisible(cue.run - 1) : boardResultVisible(0)));
-  safe.disclosure = { frames, elapsedMs: elapsed };
-  safe.boards = view.boards.map((board, bi) => board.map((card, ci) => elapsed >= 0 && (bi < frame.boardIndex || bi === frame.boardIndex && ci < frame.revealed) ? card : concealedCard(`board:${bi}:${ci}`)));
+  safe.disclosure = { frames: frames.filter((item, index) => index === 0 || item.at <= elapsed), elapsedMs: elapsed,
+    frameDurationMs: (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at };
+  const regulationBoards = view.round === 5 ? 0 : view.round === 2 ? 2 : 1;
+  // RUN_RESULT publicly announces the next closed board; never announce the total future count.
+  const queued = frame.phase === "RUN_RESULT" && frame.boardIndex + 1 < view.boards.length ? 1 : 0;
+  const visibleBoards = Math.max(regulationBoards, elapsed >= 0 ? frame.boardIndex + 1 + queued : 0);
+  safe.boards = view.boards.slice(0, visibleBoards).map((board, bi) => board.map((card, ci) => elapsed >= 0 && (bi < frame.boardIndex || bi === frame.boardIndex && ci < frame.revealed) ? card : concealedCard(`board:${bi}:${ci}`)));
+  safe.runoutCount = safe.boards.length;
+  safe.suddenDeathCount = Math.max(0, safe.boards.length - regulationBoards);
+  const deciderVisible = elapsed >= 0 && (view.tiebreakStartIndex !== undefined && frame.boardIndex >= view.tiebreakStartIndex
+    || ["HIGH_CARD_NOTICE", "HIGH_CARD_DRAW"].includes(frame.phase));
+  if (!deciderVisible) { delete safe.tiebreakKind; delete safe.tiebreakStartIndex; }
   safe.revealedCards = Object.fromEntries(Object.entries(view.revealedCards).map(([id, cards]) => [id, cards.map((card, i) => !final || elapsed >= 0 && i < frame.finalCards ? card : concealedCard(`hand:${id}:${i}`))]));
   safe.winnerIds = final ? finalWinner ? view.winnerIds : [] : flags.result && elapsed >= 0 ? view.winnerIds : [];
-  safe.boardWinnerIds = view.boardWinnerIds.map((ids, i) => boardKnown(i) ? ids : []);
-  safe.boardResults = view.boardResults.map((rows, i) => boardKnown(i) ? rows.map(row => ({ ...row, place: boardResultVisible(i) ? row.place : 0 })) : []);
+  safe.boardWinnerIds = view.boardWinnerIds.slice(0, visibleBoards).map((ids, i) => boardKnown(i) ? ids : []);
+  safe.boardResults = view.boardResults.slice(0, visibleBoards).map((rows, i) => boardKnown(i) ? rows.map(row => ({ ...row, place: boardResultVisible(i) ? row.place : 0 })) : []);
   safe.results = final ? frame.finalCards >= 7 ? view.results.map(row => ({ ...row,
     place: finalWinner || frame.phase === "FINAL_PLACE" && row.place >= (frame.finalPlace ?? Infinity) ? row.place : 0 })) : []
     : flags.result && elapsed >= 0 ? view.results : [];
-  safe.streetSnapshots = view.streetSnapshots?.map((snapshots, bi) => bi > frame.boardIndex || elapsed < 0 ? []
+  safe.streetSnapshots = view.streetSnapshots?.slice(0, visibleBoards).map((snapshots, bi) => bi > frame.boardIndex || elapsed < 0 ? []
     : snapshots.slice(0, bi < frame.boardIndex ? 4 : displayedStreetIndex(frame.phase) + 1));
   safe.rewards = (final ? finalWinner : flags.result) && elapsed >= 0 ? view.rewards : [];
-  safe.runRewards = view.runRewards?.map((rows, i) => boardResultVisible(i) ? rows : []);
+  safe.runRewards = view.runRewards?.slice(0, visibleBoards).map((rows, i) => boardResultVisible(i) ? rows : []);
   safe.standingsAfterRuns = final ? finalWinner ? view.standingsAfterRuns : []
     : view.standingsAfterRuns?.slice(0, Math.max(0, frame.boardIndex + (resultVisible ? 1 : 0)));
   if ((final ? !finalWinner : !flags.result) || elapsed < 0) { delete safe.swissAfter; delete safe.pointAwards; delete safe.pointAwardDetails; delete safe.regulationWinnerIds; }
@@ -58,6 +68,8 @@ export function nextDisclosureAt(room: RoomSnapshot, now: number): number | unde
     if (!match) continue;
     const start = schedule.startsAt + entry.offsetMs;
     times.push(start);
+    times.push(start + entry.durationMs);
+    if (entry.offsetMs > 0) times.push(start - INTER_MATCH_HOLD_MS);
     for (const frame of cinematicTimeline(createMatchView(room.game, match))) times.push(start + (entry.prepMs ?? 0) + frame.at);
   }
   return Math.min(...times.filter(time => time > now));

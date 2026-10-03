@@ -378,3 +378,12 @@
 - 사용자 지시: 내 프로필 카드가 변경되고 1초 후 RUN 2 보드를 공개한다.
 - OUT 450ms → IN 450ms(새 카드 앞면 flip 420ms 완료) → SETTLE 1000ms → RUN 2 FLOP 순서. 싱글·멀티 공용 시간표와 presentation version 13을 사용한다. 게임 판정·보상·밸런스 변경은 없다.
 - 화면 바깥 포커스 테두리 제거, PC 드래프트 안내 중앙정렬, 상점 잠금 한 줄 표시도 함께 보정했다. 검증 및 미검증 범위: [QA](qa/2026-10-03-screen-focus-run2.md).
+
+# SEC-001/004/006 implementation approval — 2026-10-03
+
+- Approval: the user accepted the proposed shop BB visibility, public-time-only metadata, delayed-packet hold, and short-lived one-use existing-seat connection proof. The parent explicitly reconfirmed this authorization on resumption.
+- Self BB remains immediate. Other seats, including spectator perspectives, see shop-entry BB until every seat commits. Existing mid-shop saves without a baseline freeze at migration-time values; historical entry values cannot be recovered.
+- Keep authoritative outcomes, actual deciders, animation timings and gameplay rules. Send only the authorized cinematic prefix and hold its last frame until another packet arrives. Use an opaque action epoch instead of outcome-dependent encounter counts in public turnKey.
+- Mint a 30-second, one-use, per-seat connection ticket with existing seat credentials in an Origin-checked POST. Upgrade proof travels in Sec-WebSocket-Protocol, never a URL; store only the ticket digest. Preserve existing Origin/IP/message limits and bounded legacy JOIN_ROOM.
+- SEC-005 unique-person identity is unresolved. Do not impose one-seat-per-IP. Implementation remains in the isolated security-review clone at base 09dfdef03f6136f2558c3f457849e2b6ed944db3; no integration/commit/push/deployment approval is implied.
+- Evidence and limitations: qa/2026-10-03-security-followup.md.

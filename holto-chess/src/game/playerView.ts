@@ -2,7 +2,7 @@ import { BALANCE, purchaseLimitFor } from "./config";
 import { finalStandings, getCard, getCardPrice } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
-import { createMatchView } from "./matchView";
+import { createMatchView, normalizeMatchStandings } from "./matchView";
 import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
 import { concealedCard, discloseMatch, presentationComplete } from "./disclosure";
@@ -10,9 +10,18 @@ import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate
 import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
 
-function privatePlayerView(room: RoomSnapshot, playerId: string): PrivatePlayerView {
+function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow: number): PrivatePlayerView {
   const g = room.game;
-  const player = g.players.find((candidate) => candidate.id === playerId)!;
+  const frozen = room.presentation && !presentationComplete(room, privateViewNow) && room.presentationPlayers?.round === g.round
+    ? room.presentationPlayers.players : undefined;
+  let player = (frozen ?? g.players).find((candidate) => candidate.id === playerId)!;
+  // Old persisted rooms have no pre-resolution snapshot. Recover the known hand
+  // from the match; omit cleared shop/selection fields consistently for every seat.
+  if (!frozen && room.presentation && !presentationComplete(room, privateViewNow)) {
+    const shown = g.roundResults.flatMap(match => match.runCards?.[playerId]?.flat() ?? match.revealedCardIds[playerId] ?? []);
+    player = { ...player, ownedCardIds: player.ownedCardIds.length ? player.ownedCardIds : [...new Set(shown)],
+      shopCardIds: [], selectedCardIds: [], lockedShopCardIds: [] };
+  }
   return {
     abilityId: player.abilityId,
     ...(player.abilityId === "target-sniper" && player.firstCardId ? { abilityStartingCard: getCard(g, player.firstCardId) } : {}),
@@ -72,6 +81,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   };
   const publicMatches = (id: string) => visibleMatchesFor(room, id).flatMap(match => {
     const full = createMatchView(g, match);
+    if (!complete) normalizeMatchStandings(g, full);
     full.abilityCues = personalAbilityCues(full.abilityCues ?? [], viewerPlayerId);
     if (complete) return [full];
     const entry = room.presentation?.perPlayer[id]?.find(entry => entry.matchId === match.id);
@@ -85,11 +95,14 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   const publicTotals = (id: string) => {
     const player = g.players.find(player => player.id === id)!;
     const before = g.roundResults.flatMap(match => match.rewards ?? []).find(reward => reward.playerId === id);
-    return { points: !complete ? g.roundResults[0]?.standingsBefore?.[id] ?? before?.beforePoints ?? player.points : player.points,
+    if (g.phase === "SHOP" && id !== viewerPlayerId && room.shopPublicBB?.round === g.round) {
+      return { points: player.points, stackBB: room.shopPublicBB.values[id] ?? player.stackBB };
+    }
+    return { points: !complete ? before?.beforePoints ?? g.roundResults[0]?.standingsBefore?.[id] ?? player.points : player.points,
       stackBB: !complete ? before?.beforeBB ?? player.stackBB : player.stackBB };
   };
   const privateView = (id: string, spectator = false): PrivatePlayerView => {
-    const value = privatePlayerView(room, id);
+    const value = privatePlayerView(room, id, now);
     // A spectator may follow public play, never inspect everyone's private next hand/shop.
     if (spectator) {
       value.ownedCards = value.ownedCards.map((_, i) => concealedCard(`spectator:${id}:${i}`));
@@ -113,8 +126,8 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       abilities: g.abilityDraft.picks.map(pick => ({ playerId: pick.playerId, slot: pick.slot, abilityId: g.players.find(player => player.id === pick.playerId)!.abilityId! })),
     } } : {}),
     gameId: room.gameGeneration ? `${room.roomId}:${room.gameGeneration}` : room.roomId,
-    roomId: room.roomId, revision: room.revision, turnKey: turnKey(room),
-    serverNow: now, presentation: presentationViewFor(room, viewerPlayerId),
+    roomId: room.roomId, revision: room.revision, turnKey: room.publicTurnKey?.key ?? turnKey(room),
+    serverNow: now, presentation: presentationViewFor(room, viewerPlayerId, now),
     finalResultsReleased: g.phase === "GAME_RESULT" && complete && !!room.finalResultsReleasedAt,
     status: room.status, round: g.round, phase: room.status === "LOBBY" ? "LOBBY" : g.phase,
     ...(g.survival && complete ? { survival: structuredClone(g.survival) } : {}),
@@ -124,7 +137,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       ...(g.round === 2 ? { publicHands: Object.fromEntries(g.players.map((p) => [p.id, p.ownedCardIds.map((id) => getCard(g, id))])) } : {}),
     } } : {}),
     humanCount: room.sessions.length, capacity: 8,
-    barrierEndsAt: barrierDeadline(room), waitingOn: complete ? pendingBarrierIds(room) : [],
+    barrierEndsAt: complete ? barrierDeadline(room) : undefined, waitingOn: complete ? pendingBarrierIds(room) : [],
     me: privateView(me.id),
     ...(showdownPrepView(room, me.id) ? { showdownPrep: showdownPrepView(room, me.id) } : {}),
     ...(isEliminated(me.id) ? { spectatorViews: g.players.filter((player) => !isEliminated(player.id)).map((player) => ({
@@ -132,7 +145,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       me: privateView(player.id, true),
       matches: visible ? publicMatches(player.id) : [],
       roundHistory: visible && complete ? roundMatches(g).filter((match) => match.playerIds.includes(player.id)).map((match, index) => ({ ...matchForViewer(match), matchNumber: index + 1 })) : [],
-      ...(presentationViewFor(room, player.id) ? { presentation: presentationViewFor(room, player.id) } : {}),
+      ...(presentationViewFor(room, player.id, now) ? { presentation: presentationViewFor(room, player.id, now) } : {}),
     })) } : {}),
     players: g.players.map((p) => ({ abilityId: p.abilityId, playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
     matches: visible ? publicMatches(me.id) : [],

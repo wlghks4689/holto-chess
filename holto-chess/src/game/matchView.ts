@@ -39,3 +39,15 @@ export function createMatchView(game: PorenaGameState, match: MatchResult): Matc
       beforePoints: r.beforePoints, afterPoints: r.afterPoints, deltaPoints: r.deltaPoints, outcome: r.outcome, detail: r.detail })),
   };
 }
+
+/** A table may disclose its own rewards, never another simultaneous table's ledger. */
+export function normalizeMatchStandings(game: PorenaGameState, view: MatchView): void {
+  const peers = game.roundResults.filter(match => match.stage === view.stage && match.matchday === view.matchday);
+  const baseline = Object.fromEntries(game.players.map(player => {
+    const reward = peers.flatMap(match => match.rewards ?? []).find(reward => reward.playerId === player.id);
+    return [player.id, reward?.beforePoints ?? peers[0]?.standingsBefore?.[player.id] ?? player.points];
+  }));
+  if (view.standingsBefore) view.standingsBefore = { ...baseline };
+  if (view.standingsAfterRuns) view.standingsAfterRuns = view.standingsAfterRuns.map(snapshot =>
+    Object.fromEntries(Object.entries(baseline).map(([id, points]) => [id, view.participantIds.includes(id) ? snapshot[id] ?? points : points])));
+}
