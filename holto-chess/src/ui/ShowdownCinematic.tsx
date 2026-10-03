@@ -1,4 +1,5 @@
 import { AbilityBadge } from "./AbilityVisibility";
+import { GameViewportReset } from "./GameViewportReset";
 import { activeAbilityCues } from "./abilityPresentation";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -161,6 +162,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 && ids.length === 3 ? "cinema-r3-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-round={match.round} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": "420ms", "--river-duration": "600ms", "--suspense-duration": "250ms", "--final-beat": 1, "--phase-duration": `${phaseMs}ms` } as CSSProperties}>
+    <GameViewportReset screenKey={`cinema:${match.id}`} />
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/3` : displayedMatchNumber(match)}</span>}<h2>{final ? finalHeadingTitle : title}</h2></div>
       {controls && !synced && <div className="cinema-controls"><button className="secondary" onClick={onComplete}>{t("cinema.skip")}</button></div>}</header>
     {!intro && <RunTimeline match={match} frame={frame} viewerId={viewerId} name={name} />}
@@ -278,6 +280,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
 export function WaitingForTables({ preparing = false }: { preparing?: boolean } = {}) {
   const { t } = useTranslation();
   return <section className="cinema cinema-waiting" aria-live="polite" data-phase="WAITING">
+    <GameViewportReset screenKey="waiting-tables" />
     <span className="cinema-waiting-pulse" aria-hidden="true"><i /><i /><i /></span>
     <p>{t(preparing ? "cinema.preparing" : "cinema.waitingOthers")}</p>
   </section>;
@@ -311,7 +314,7 @@ function MatchPrepScreen({ match, profiles, viewerId, seconds }: {
     <div className="brand"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></div>
     <RoundProgress round={match.round} prep={null} />
     <div className="nav-status" />
-  </nav><div className="page-shell" id="top"><ShowdownPrepPanel round={match.round}
+  </nav><div className="page-shell" id="top"><GameViewportReset screenKey={`prep:${match.id}`} /><ShowdownPrepPanel round={match.round}
     playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
     seconds={seconds} matchup={matchPrepView(match, profiles, viewerId)} /></div></main>;
 }

@@ -37,7 +37,8 @@ export function auditResponsiveLayout() {
   const fiveCardRows = Array.from(document.querySelectorAll('.cinema-hole-cards[data-count="5"],.showdown-prep-hand[data-count="5"]')).map(group => {
     const rows = new Map<number,number>();
     for (const child of Array.from(group.children)) {
-      const top = Math.round(child.getBoundingClientRect().top);
+      // Layout offsets ignore the winning-card scale/glow transform.
+      const top = (child as HTMLElement).offsetTop;
       rows.set(top,(rows.get(top) ?? 0)+1);
     }
     const result = [...rows.values()];
@@ -47,6 +48,19 @@ export function auditResponsiveLayout() {
     if (expected && result.join(',') !== expected) add(group, expected === '5' ? 'five-cards-not-one-row' : 'five-cards-not-3+2');
     return result;
   });
+  const sevenCardRows = Array.from(document.querySelectorAll('.showdown-prep-hand[data-count="7"],.cinema-hole-cards[data-count="7"],.shop-page[data-round="5"] .owned-row')).map(group => {
+    const rows = new Set(Array.from(group.children).filter(visible).map(child => (child as HTMLElement).offsetTop));
+    if (innerWidth > 768 && rows.size > 1) add(group, 'seven-cards-not-one-row');
+    return rows.size;
+  });
+  for (const bar of document.querySelectorAll('.page-shell>.action-bar')) {
+    if (!visible(bar)) continue;
+    const a = bar.getBoundingClientRect();
+    for (const row of document.querySelectorAll('.leaderboard-table tbody tr')) {
+      const b = row.getBoundingClientRect();
+      if (visible(row) && Math.min(a.right,b.right) > Math.max(a.left,b.left) && Math.min(a.bottom,b.bottom) > Math.max(a.top,b.top)) add(row, 'action-bar-covers-standing');
+    }
+  }
   if (root.scrollWidth > root.clientWidth + 1) add(root, 'page-horizontal-overflow');
   if (!matrix && pageVerticalOverflow) add(root, 'page-vertical-overflow');
   if (!matrix) for (const element of document.querySelectorAll('.page-shell button,.cinema button,.owned-row,.market-row,.ability-back-grid,.r2-arena,.cinema-seats,.leaderboard-table')) {
@@ -55,5 +69,5 @@ export function auditResponsiveLayout() {
     if (bounds.width && bounds.height && (bounds.top < -1 || bounds.bottom > innerHeight + 1)) add(element,'essential-viewport-escape');
   }
   const profileBoxes = Array.from(document.querySelectorAll('.showdown-prep-player,.r2-match-player')).map(el=>{const rect=el.getBoundingClientRect();return {width:rect.width,height:rect.height,icons:el.querySelectorAll('img[src*="/abilities/"]').length};});
-  return { viewport: { width: innerWidth, height: innerHeight }, documentWidth: root.scrollWidth, scrollHeight:root.scrollHeight, clientHeight:root.clientHeight, viewportHeight:innerHeight, pageVerticalOverflow, matrix, profileBoxes, cases: document.querySelectorAll('[data-qa-case]').length, groups: groups.length, fiveCardRows, issues };
+  return { viewport: { width: innerWidth, height: innerHeight }, documentWidth: root.scrollWidth, scrollHeight:root.scrollHeight, clientHeight:root.clientHeight, viewportHeight:innerHeight, pageVerticalOverflow, matrix, profileBoxes, cases: document.querySelectorAll('[data-qa-case]').length, groups: groups.length, fiveCardRows, sevenCardRows, issues };
 }

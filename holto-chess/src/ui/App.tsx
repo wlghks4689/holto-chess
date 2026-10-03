@@ -1,4 +1,5 @@
 import { ArenaBrand } from "./ArenaBrand";
+import { GameViewportReset } from "./GameViewportReset";
 import { ShopAbilityPanel, RoundAbilityBenefits } from "./AbilityVisibility";
 import { abilityBenefit, personalAbilityCues } from "../game/abilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
@@ -227,6 +228,7 @@ export function App({ onHome }: { onHome: () => void }) {
     <nav><a className="brand" href="#top"><ArenaBrand /></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="nav-actions"><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
     <div id="top" data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
+      <GameViewportReset screenKey={`local:${gameVersion}:${state.round}:${state.phase}`} />
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN) / 1000} />}
       {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className={`round-header ${["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(state.phase) ? "is-centered-phase-header" : ""}`}><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : ROUND_TITLES[state.round]}</h1>{state.phase !== "GAME_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "SHOP" && state.phase !== "GAME_RESULT" && state.phase !== "RUN_LOADOUT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} />}

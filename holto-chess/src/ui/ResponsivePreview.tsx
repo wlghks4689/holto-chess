@@ -1,4 +1,5 @@
 import { ArenaBrand } from "./ArenaBrand";
+import { GameViewportReset } from "./GameViewportReset";
 import { useState } from "react";
 import { createGame } from "../game/engine";
 import { BALANCE, cardPrice } from "../game/config";
@@ -131,6 +132,7 @@ export function ResponsivePreview() {
     {shown.map(scene=><section data-qa-case={scene.id} key={scene.id}>
       {!scene.screen.startsWith("showdown") && <nav><div className="brand"><ArenaBrand /></div><RoundProgress round={scene.round} prep={null}/><div className="nav-status"><button className="secondary">나가기</button></div></nav>}
       <div data-round={scene.round} className={`page-shell ${scene.screen === "shop" ? "shop-page" : scene.screen === "final" ? "final-results-page" : ""}`}>
+        {selected !== "all" && <GameViewportReset screenKey={scene.id} />}
         {(scene.screen === "prep" || scene.screen === "shop" && scene.round > 1) && <PrepRoundHeader prep={getPrepPresentation(scene.round, "SHOP")!} />}
         {!scene.screen.startsWith("match") && !scene.screen.startsWith("ability") && !scene.screen.startsWith("showdown") && scene.screen !== "prep" && !(scene.screen === "shop" && scene.round > 1) && <header className={`round-header ${["draft","loadout"].includes(scene.screen) ? "is-centered-phase-header" : ""}`}><div>{scene.screen !== "final" && <span className="round-number">{scene.screen === "draft" ? `ROUND ${scene.round} · DRAFT PHASE` : `ROUND 0${scene.round}`}</span>}<div className="round-title-row"><h1>{scene.screen === "final" ? "FINAL STANDINGS" : ["","TWO HAND","RUN IT TWICE","OMAHA SWISS","BEST FIVE","THE LAST HAND"][scene.round]}</h1>{scene.screen !== "final" && <button className="secondary title-guide-trigger">?</button>}</div></div>{scene.screen !== "shop" && scene.screen !== "loadout" && scene.screen !== "final" && <div className="phase-badge"><b>{scene.screen === "shop" ? "상점" : scene.screen === "draft" ? "공개 드래프트" : "라운드 결과"}</b></div>}</header>}
         <Scene scene={scene} interactive={false} />

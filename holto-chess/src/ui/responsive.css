@@ -474,8 +474,6 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
 @media(min-width:769px) and (max-height:800px){
   .game-arena .showdown-prep-stage.is-4-way .showdown-prep-player{padding:8px}
   .game-arena .showdown-prep-stage.is-4-way .showdown-prep-identity{margin-bottom:6px}
-  .game-arena .showdown-prep-stage.is-4-way .showdown-prep-hand[data-count="7"]{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));max-width:308px;gap:4px}
-  .game-arena .showdown-prep-stage.is-4-way .showdown-prep-hand .playing-card.compact{width:100%;height:auto;aspect-ratio:53/75;padding:2px}
 }
 
 /* Only narrow showdown hands use 3+2. Loading hands always keep five cards in one row. */
@@ -491,8 +489,8 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
   .cinema[data-round="4"] .cinema-footer{margin-top:12px}
 }
 
-/* Shop alone shares a centered title and fixed card size across local/online views.
-   Keep these after density overrides: card count wraps, never changes card size. */
+/* Shop shares a centered title and equal owned/market card size across local/online views.
+   Desktop sizing below budgets seven inventory slots before choosing the shared width. */
 .game-arena .shop-page{--shop-card-width:79px}
 .game-arena .shop-page>.round-header{justify-content:center;text-align:center}
 .game-arena .shop-page>.round-header>div:first-child{width:100%;max-width:100%;min-width:0}
@@ -530,7 +528,7 @@ main.game-arena:has(.match-loading)::before{background-image:linear-gradient(180
 }
 /* Keep R5 settlement rewards in view on short desktop windows. */
 @media(min-width:769px) and (max-height:780px){
-  .cinema.cinema-final{padding:12px;min-height:calc(100dvh - 24px)}
+  .cinema.cinema-final{padding:12px;min-height:calc(100dvh - 48px)}
   .cinema.cinema-final .cinema-heading{margin-bottom:12px}
   .cinema.cinema-final .cinema-heading h2{font-size:36px}
   .cinema.cinema-final .cinema-seats{gap:12px}
@@ -562,4 +560,138 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
 }
 @media(min-width:640px) and (max-width:768px){
  .cinema .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .cinema-board-cards .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
+}
+
+/* Desktop contract: card rows depend on their container, density on available height.
+   Preserve the mobile layout (including the narrow R4 3+2 showdown hand). */
+@media(min-width:769px){
+  /* A solid nav surface avoids backdrop-filter bleeding over the next heading. */
+  .game-arena nav{backdrop-filter:none;background:#051321f5}
+  .game-arena .shop-page{container-type:inline-size;padding-block:12px}
+  .game-arena .shop-page>.round-header{margin-bottom:12px}
+  .game-arena .shop-page>.action-bar{position:static;margin:8px 0 0;min-height:52px;padding:6px 10px}
+  .game-arena .shop-page .shop-layout{grid-template-columns:minmax(0,2fr) minmax(0,1fr);--shop-card-width:clamp(46px,calc((100cqw * 2 / 3 - 110px) / 7),88px)}
+  .game-arena .shop-page .owned-row{flex-wrap:nowrap}
+  .game-arena .showdown-prep-stage.is-4-way .showdown-prep-hand[data-count="7"]{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:100%;max-width:395px;gap:4px;margin-inline:auto}
+  .game-arena .showdown-prep-stage.is-4-way .showdown-prep-hand .playing-card.compact{width:100%;min-width:0;height:auto;aspect-ratio:53/75;padding:2px}
+
+  .cinema{margin:12px auto;padding:clamp(12px,2dvh,24px)}
+  .cinema.cinema-final{min-height:calc(100dvh - 24px)}
+  .cinema .cinema-heading{margin-bottom:clamp(10px,2dvh,24px)}
+  .cinema .cinema-seat{padding:12px}
+  .cinema .cinema-match-profile{margin-bottom:10px}
+  .cinema .cinema-made{min-height:44px;margin:10px 0 6px}
+  .cinema .cinema-board-stack{margin:10px auto 4px}
+  .cinema .cinema-board{padding:10px 8px}
+  .cinema .cinema-footer{margin-top:10px}
+  /* Both RUNs remain visible; use the available horizontal space, not a taller stack. */
+  .cinema[data-round="2"] .cinema-board-stack.run-it-twice{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .cinema .cinema-board-stack.run-it-twice .cinema-board+.cinema-board{border-top:0;border-left:1px solid #294839}
+  .cinema .cinema-board-stack.run-it-twice .cinema-board .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
+
+  .game-arena .page-shell:has(>.round-results),.game-arena .final-results-page,.game-arena .page-shell:has(>.r2-draft){padding-block:12px}
+  .game-arena .page-shell:has(>:is(.round-results,.r2-draft))>.round-header,.game-arena .final-results-page>.round-header{margin-bottom:10px;align-items:center}
+  .game-arena .page-shell:has(>:is(.round-results,.r2-draft))>.round-header h1,.game-arena .final-results-page>.round-header h1{font-size:clamp(32px,4.5dvh,48px);line-height:1.05}
+  .game-arena .page-shell:has(>:is(.round-results,.r2-draft)) .round-number{margin-bottom:4px}
+  .game-arena .page-shell:has(>.round-results)>.action-bar{position:static;min-height:52px;padding:6px 10px;margin:8px 0 0}
+  .game-arena .page-shell:has(>.round-results)>.action-bar :is(.primary,.secondary){min-height:40px;padding-block:8px}
+  .game-arena .round-results{gap:8px}
+  .game-arena .round-overview{padding:10px}
+  .game-arena .round-result-heading{margin-bottom:6px}
+  .game-arena .round-result-heading h2{margin:0}
+  .game-arena .page-shell:has(>.round-results) .online-scoreboard{margin:4px 0 8px}
+  .game-arena .page-shell:has(>.round-results) .online-scoreboard .score-toggle{min-height:32px;padding-block:6px}
+  .game-arena .round-overview .leaderboard-table thead th{height:32px;padding-block:3px!important}
+  .game-arena .round-overview .leaderboard-table tbody :is(th,td){height:clamp(40px,calc((100dvh - 400px)/8),56px);padding-block:3px!important}
+  .game-arena .round-results .summary-hand{flex-wrap:nowrap;gap:3px}
+  .game-arena .round-results .summary-hand>span{flex:0 1 24px;min-width:0}
+  .game-arena .personal-history{padding:6px 12px;font-size:13px}
+  .game-arena .page-shell:has(>.round-results){padding-bottom:6px}
+  .game-arena .round-results{gap:6px}
+
+  .game-arena .panel.r2-draft{display:grid;grid-template-columns:minmax(210px,240px) minmax(0,1fr);min-height:0;gap:16px}
+  .game-arena .r2-draft .r2-stage{align-self:stretch;padding:10px;margin:0;justify-content:center}
+  .game-arena .r2-draft .r2-draft-heading{margin-bottom:6px;min-height:44px;padding-block:0}
+  .game-arena .r2-draft .r2-current{min-height:24px}
+  .game-arena .r2-draft .r2-arena{grid-template-columns:repeat(8,minmax(0,1fr));min-height:0;padding:8px 0;gap:8px 5px}
+  .game-arena .r2-draft .r2-offer{gap:3px}
+  .game-arena .r2-draft .r2-offer .playing-card{max-width:clamp(46px,8dvh,76px);padding:2px}
+  .game-arena .r2-draft .r2-offer .card-rank{font-size:clamp(13px,34cqw,24px)}
+  .game-arena .r2-draft .r2-offer .card-suit{font-size:clamp(17px,44cqw,32px)}
+  .game-arena .r2-draft .r2-price{max-width:76px;min-height:28px;padding:3px 1px;font-size:10px}
+  .game-arena .r2-draft .r2-card-status{min-height:14px;font-size:9px;white-space:nowrap;text-overflow:ellipsis}
+  .game-arena .r2-draft .draft-private-hand{padding-top:6px;gap:4px}
+  .game-arena .r2-draft .draft-private-cards{flex-wrap:nowrap;gap:5px}
+  .game-arena .r2-draft .draft-private-cards .playing-card{width:clamp(38px,6dvh,53px);height:auto;aspect-ratio:var(--card-ratio)}
+  .game-arena .r2-draft .draft-private-timer .phase-timer{height:60px;aspect-ratio:auto}
+  .game-arena .r2-draft .r2-order-panel{margin:0;padding:10px}
+  .game-arena .r2-draft .r2-order{gap:4px}
+  .game-arena .r2-draft .r2-order li{min-height:clamp(42px,6dvh,52px);padding:4px 6px}
+  .game-arena .r2-draft .r2-order-name{white-space:nowrap;text-overflow:ellipsis}
+  .game-arena .r2-draft .r2-order-stats{font-size:10px;white-space:nowrap}
+
+  .game-arena .final-panel .standings{gap:4px}
+  .game-arena .final-standing.standing{min-height:clamp(44px,calc((100dvh - 360px)/8),72px);padding:4px 8px;border-radius:8px}
+  .game-arena .final-rank-panel{flex-direction:row;gap:4px;border:0;background:none;box-shadow:none;outline:0}
+  .game-arena .final-rank-panel strong{font-size:22px}
+  .game-arena .final-rank-ornament{display:none}
+  .game-arena .final-standing .final-hand{flex-wrap:nowrap;padding:0;gap:3px!important}
+  .game-arena .final-standing .final-mini-card{flex:0 1 24px;min-width:0}
+  .game-arena .final-mini-card b{font-size:12px}.game-arena .final-mini-card i{font-size:16px}
+  .game-arena .final-standing .final-total>button{min-height:34px;padding:3px;font-size:16px}
+  .game-arena .final-standings-head{min-height:28px}
+  .game-arena .final-results-tools{margin-bottom:6px}
+  .game-arena .final-results-tools>.secondary{min-height:32px;padding-block:5px}
+  .game-arena .final-exit-actions{padding:6px;margin:8px 0 0}
+  .game-arena .final-exit-actions button{min-height:38px;padding-block:6px}
+  .game-arena .final-results-page .rematch-panel{padding:8px;margin-top:8px}
+  .game-arena .final-results-page .rematch-panel :is(h2,p){margin:3px 0;font-size:13px}
+}
+@media(min-width:769px) and (max-height:800px){
+  .game-arena:has(.page-shell>:is(.round-results,.r2-draft,.final-panel)) nav{min-height:64px}
+  .game-arena .round-results .summary-hand>span{flex-basis:21px;width:21px;padding:1px;font-size:11px;line-height:1;gap:1px}
+  .game-arena .round-results .summary-hand .summary-card-suit{font-size:13px}
+  .game-arena .round-results .result-deadline{min-width:72px;padding:4px 8px}
+  .game-arena .round-results .result-deadline strong{font-size:24px}
+  .game-arena .round-results .result-deadline>span{font-size:9px;margin-bottom:2px}
+  .game-arena .page-shell:has(>.round-results) .action-bar p{margin:3px 0;font-size:11px}
+  .cinema .cinema-heading h2{font-size:28px}
+  .cinema .cinema-match-profile{margin-bottom:6px}
+  .cinema .cinema-seat{padding:10px}
+  .cinema .cinema-board-cards{max-width:285px}
+  .cinema .cinema-result-footer{margin-top:8px;padding-top:6px}
+}
+/* Keep equal shop/inventory cards on mobile as the hand grows; fixed 62px slots
+   were reintroducing a second row after the earlier density rules. */
+@media(max-width:768px){
+  .game-arena .shop-page{container-type:inline-size;--shop-hand-slots:2;--shop-card-width:min(62px,calc((100cqw - 34px - (var(--shop-hand-slots) - 1) * 4px) / var(--shop-hand-slots)))}
+  .game-arena .shop-page[data-round="2"]{--shop-hand-slots:3}
+  .game-arena .shop-page[data-round="3"]{--shop-hand-slots:4}
+  .game-arena .shop-page[data-round="4"]{--shop-hand-slots:5}
+  .game-arena .shop-page[data-round="5"]{--shop-hand-slots:7}
+  .game-arena .shop-page :is(.owned-row,.market-row){flex-wrap:nowrap;gap:4px}
+}
+/* Minimum-height phones keep the same content; trim controls/spacing, not overflow. */
+@media(max-width:768px) and (max-height:700px){
+  .game-arena .page-shell:has(>:is(.round-results,.r2-draft)),.game-arena .shop-page{padding-bottom:4px}
+  .game-arena .shop-page>.round-header{min-height:46px;margin-bottom:4px}
+  .game-arena .shop-page :is(.card-sell-button,.card-lock,.card-purchase){min-height:28px;padding-block:3px}
+  .game-arena .shop-page .market-actions>.secondary{min-height:30px;padding-block:3px}
+  .game-arena .shop-page .shop-layout>.panel{gap:4px;padding-block:6px}
+  .game-arena .shop-page>.action-bar{min-height:46px;padding:4px 6px}
+  .game-arena .round-results .round-result-heading{min-height:40px}
+  .game-arena .round-results .result-deadline{padding:3px 5px}
+  .game-arena .round-results .result-deadline strong{font-size:22px}
+  .game-arena .round-results .personal-history{padding-block:4px}
+  .game-arena .r2-draft .r2-order{gap:0}
+  .game-arena .r2-draft .r2-order li{min-height:18px;padding-block:1px}
+  .game-arena .r2-draft .r2-order-panel{margin-top:4px;padding-block:4px}
+  .game-arena .r2-draft .r2-draft-heading{padding-inline:40px}
+  .game-arena .r2-draft .r2-draft-heading h2{font-size:13px;line-height:1.2}
+  .game-arena .r2-draft .r2-stage{padding-block:3px}
+  .game-arena .r4-draft .r2-offer .playing-card{max-width:30px}
+  .cinema[data-round="2"] .cinema-board{padding-block:5px}
+  .cinema[data-round="2"] .cinema-board-cards{max-width:215px}
+  .cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
+  .cinema[data-round="2"] .cinema-board-matchup{margin-block:0 5px}
 }
