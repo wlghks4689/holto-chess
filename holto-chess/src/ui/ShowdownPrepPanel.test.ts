@@ -25,8 +25,10 @@ describe("showdown preparation presentation", () => {
     expect(html).not.toContain("card-rank");
     expect(html).not.toContain("card-suit");
     expect(html).not.toContain("showdown-prep-equity");
-    expect(html).toContain("final-arena-mobile.webp");
-    expect(html).toContain("final-arena-desktop.webp");
+    expect(html).not.toContain("final-arena-mobile.webp");
+    expect(html).not.toContain("final-arena-desktop.webp");
+    expect(html).not.toContain("cinema-final-arena");
+    expect(html).toContain("match-loading");
   });
   it("uses a player-versus-player loading composition without the old literal phase label", () => {
     const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, {

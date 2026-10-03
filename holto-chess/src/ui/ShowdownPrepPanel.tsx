@@ -1,6 +1,5 @@
 import { Fragment, useMemo, type CSSProperties } from "react";
 import type { ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
-import { FinalArenaBackdrop } from "./FinalArenaBackdrop";
 import { CardBack, CardView } from "./CardView";
 import { showdownEquity } from "./showdownEquity";
 import { abilityIconUrl } from "./abilityArtworkLoader";
@@ -52,7 +51,6 @@ function StandardShowdownPrepPanel({ round, playerName, seconds, secondary = fal
       ? showdownEquity(round as 1 | 2 | 3 | 4 | 5, matchup.viewer.cards, opponent.cards) : null;
   }, [round, matchup]);
   return <section className={`showdown-prep match-loading ${round === 5 ? "final-match-loading" : ""}`} data-round={round} aria-label={t("showdown.matchLoadingAria")} style={{ "--prep-duration": `${duration}s` } as CSSProperties}>
-    {round === 5 && <div className="cinema-final-arena" aria-hidden="true"><FinalArenaBackdrop /><i /></div>}
     <header className="showdown-prep-heading"><small>ROUND {String(round).padStart(2, "0")} · MATCH {matchNumber}</small><h1>{ROUND_TITLES[round] ?? `ROUND ${round}`}</h1></header>
     <div className={`showdown-prep-stage ${multiway ? `is-multiway is-${opponents.length + 1}-way` : ""}`}>
       {multiway ? <>

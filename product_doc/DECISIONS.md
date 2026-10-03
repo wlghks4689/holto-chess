@@ -396,3 +396,8 @@
 
 - User message Sentinel_0fb0224774f48191a5d0d84a022a8406 explicitly authorizes committing and pushing the completed work to main. Integrate SEC-001/002/003/004/006, preserve SEC-005 unresolved, and preserve concurrent UI commits 066045f and 2d4b988.
 - Prefix protocol version 14 preserves RUN 2's approved 1000ms settle timing and existing mismatch reload. Manual deployment is not part of this publication action.
+
+## UI-FINAL-BG-001 — R5 매칭과 파이널 배경 분리 (2026-10-03)
+
+- 사용자 지시: R5 매칭은 일반 match 아레나만 사용한다. 파이널 쇼다운만 final 아레나를 사용하며 일반 배경 위 작은 박스로 겹치지 않고 화면 전체 전용 배경으로 표시한다.
+- 기존 카메라 push-in·명암·카드 연출·레이아웃·게임 규칙은 유지한다. [검증 기록](qa/2026-10-03-final-arena-background.md).

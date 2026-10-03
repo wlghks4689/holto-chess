@@ -38,9 +38,10 @@
 .cinema-seats{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px}
 .cinema-multi .cinema-seats{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .cinema-final .cinema-seats{grid-template-columns:repeat(2,minmax(0,1fr))}
-.cinema-final{position:relative;overflow:hidden;background:
-  linear-gradient(90deg,transparent 0 16%,rgba(81,230,205,.035) 16% 17%,transparent 17% 39%,rgba(81,230,205,.045) 39% 40%,transparent 40% 60%,rgba(81,230,205,.045) 60% 61%,transparent 61% 83%,rgba(81,230,205,.035) 83% 84%,transparent 84%),
-  radial-gradient(ellipse at 50% 42%,#0d4038 0%,#06231d 42%,#020b09 82%)}
+.cinema-final{position:relative;overflow:hidden;background:transparent}
+/* The existing animated arena artwork is the only R5 showdown background, edge to edge. */
+main.game-arena:has(.cinema-final)::before{background-image:none}
+.cinema-final>.cinema-final-arena{position:fixed;border-radius:0}
 /* R5 Final Arena: the arena artwork is the stage. Establishing shot, then a camera push-in toward the
    central table (focal point = the arena emblem, 50% 57% of the artwork), then the UI settles on top. */
 .cinema-final{--arena-focus:50% 57%;--arena-scale:1.32}
