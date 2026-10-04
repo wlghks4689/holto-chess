@@ -955,6 +955,8 @@ export function completeDraft(source: PorenaGameState): PorenaGameState {
 function finishDraftIfComplete(state: PorenaGameState): void {
   if (state.draft!.picks.length !== state.draft!.order.length) return;
   state.phase = state.round === 2 ? "RUN_LOADOUT" : "SHOP";
+  // Pre-fill the recommended RUN order so the screen shows exactly what Ready locks in.
+  if (state.round === 2) for (const p of state.players.filter((p) => !p.eliminated && p.ownedCardIds.length === 3)) p.selectedCardIds = bestRunLoadout(p, cardsFor(state, p.ownedCardIds));
   if (state.round === 4) for (const p of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, p);
 }
 

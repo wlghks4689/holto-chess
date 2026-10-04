@@ -87,6 +87,15 @@ describe("open draft rules v2", () => {
     g = lockRunLoadouts(g); expect(g.players.every((p) => p.selectedCardIds.length === 3)).toBe(true);
     expect(() => setRunLoadout(g, "p1", [a!,b!,c!])).toThrow();
   });
+  it("shows the recommended RUN order from the start and Ready locks exactly what was shown", () => {
+    for (const seed of [789, 1, 2, 3, 4, 5, 6, 7]) {
+      const g = drafted(r2(seed));
+      const room = { ...addSession(createRoom("LOADOUT", seed), "hash-0").room, status: "PLAYING" as const, game: g };
+      const shown = createPlayerView(room, "p1").me.selectedCardIds;
+      expect(shown).toHaveLength(3);
+      expect(lockRunLoadouts(g).players[0]!.selectedCardIds).toEqual(shown);
+    }
+  });
   it("resolves each RUN with the manually placed representative and matching secondary", () => {
     const g = drafted();
     const [a, b, c] = g.players[0]!.ownedCardIds;
