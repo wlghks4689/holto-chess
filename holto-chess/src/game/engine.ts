@@ -873,6 +873,9 @@ export function resolveSecondary(source: PorenaGameState): PorenaGameState {
   loserMatches.forEach((match) => { match.group = "loser"; });
   winnerMatches.forEach((match) => rewardMatch(state, match, state.round === 2 ? BALANCE.points.r2WinnerBracket.win : BALANCE.points.r4WinnerGroup.first));
   loserMatches.forEach((match) => rewardMatch(state, match, state.round === 2 ? BALANCE.points.r2LoserBracket.survive : BALANCE.points.r4LoserGroup.survive));
+  // R4 group matches are regular matches: pay match abilities from the regulation board, before
+  // eliminations so a knocked-out seat's snapshot keeps them. Sudden-death boards still pay nothing.
+  if (state.round === 4) for (const match of [...winnerMatches, ...loserMatches]) rewardAbilities(state, match);
   eliminate(state, loserMatches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id))));
   rewardAbilityInterest(state);
   captureRewards(source, state, [...winnerMatches, ...loserMatches]);
