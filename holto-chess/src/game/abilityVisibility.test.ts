@@ -8,7 +8,7 @@ import { createPlayerView } from "./playerView";
 import { discloseMatch } from "./disclosure";
 import { cinematicTimeline } from "../shared/presentationTimeline";
 import { activeAbilityCues } from "../ui/abilityPresentation";
-import type { AbilityId } from "./abilities";
+import { CAPITALISM_INTEREST_PERCENT, type AbilityId } from "./abilities";
 import type { Round } from "./types";
 import type { RoomSnapshot } from "./room";
 import type { MatchResult } from "./types";
@@ -41,17 +41,19 @@ describe("actual economic benefits", () => {
   });
   it("records exact purchase savings and sale premiums without paying them twice", () => {
     let s = createGame(32); const p = s.players[0]!; p.abilityId = "royal-blood";
-    const card = s.ownershipCardPool.find(e => e.state === "AVAILABLE" && e.card.rank === 12)!;
+    const card = s.ownershipCardPool.find(e => e.state === "AVAILABLE" && e.card.rank >= 10)!;
+    const price = cardPrice(card.card.rank);
     card.state = "RESERVED_IN_SHOP"; card.reservedPlayerId = p.id; p.shopCardIds.push(card.card.id);
     const before = p.stackBB;
     s = buyCard(s, p.id, card.card.id);
-    expect(s.players[0]!.stackBB).toBe(before - 7);
-    expect(s.players[0]!.abilityTotals?.savedBB).toBe(8);
+    expect(s.players[0]!.stackBB).toBe(before - Math.floor(price / 2));
+    expect(s.players[0]!.abilityTotals?.savedBB).toBe(price - Math.floor(price / 2));
     s.players[0]!.abilityId = "golden-hand";
+    s.players[0]!.purchasesThisRound = 0; // R1 needs both buys, so free a purchase to make the sale legal
     const saleBefore = s.players[0]!.stackBB;
     s = sellCard(s, p.id, card.card.id);
-    expect(s.players[0]!.stackBB).toBe(saleBefore + 15);
-    expect(s.abilityEvents!.at(-1)!.savedBB).toBe(15 - Math.floor(15 * BALANCE.sellRate));
+    expect(s.players[0]!.stackBB).toBe(saleBefore + price);
+    expect(s.abilityEvents!.at(-1)!.savedBB).toBe(price - Math.floor(price * BALANCE.sellRate));
   });
   it("counts actual free rerolls and only the first lock of a card in a shop round", () => {
     let s = createGame(2); const p = s.players[0]!; p.abilityId = "trader";
@@ -103,7 +105,7 @@ describe("settlement and disclosure", () => {
     const result = resolvePrimary(fixture(2, "capitalism"));
     for (const p of result.players) {
       const before = base.players.find(b => b.id === p.id)!;
-      expect(p.stackBB).toBe(before.stackBB + Math.floor(before.stackBB * .15));
+      expect(p.stackBB).toBe(before.stackBB + Math.floor(before.stackBB * CAPITALISM_INTEREST_PERCENT / 100));
     }
     const count = result.abilityEvents!.length; rewardAbilityInterest(result); expect(result.abilityEvents).toHaveLength(count);
     const r3 = fixture(3, "capitalism"); r3.phase = "SURVIVAL_READY"; r3.survival = { playerIds: ["p1", "p2", "p3"], eliminateCount: 2 };
@@ -113,7 +115,9 @@ describe("settlement and disclosure", () => {
     expect(after.abilityEvents!.every(e => !after.players.find(p => p.id === e.playerId)!.eliminated)).toBe(true);
   });
   it("connects both R2 runs to the persisted match and releases cues one run at a time", () => {
-    const s = resolvePrimary(fixture(2, "target-sniper")); const full = createMatchView(s, s.roundResults[0]!);
+    const s = resolvePrimary(fixture(2, "target-sniper"));
+    // A match where the sniper's card won both runs, so each run carries one cue.
+    const full = s.roundResults.map(match => createMatchView(s, match)).find(view => view.abilityCues?.length === 2)!;
     expect(full.abilityCues?.map(c => c.run)).toEqual([1, 2]);
     const frames = cinematicTimeline(full); const entry = { matchId: full.id, offsetMs: 0, durationMs: 50000 };
     const at = (phase: string) => frames.find(f => f.phase === phase)!.at;

@@ -11,7 +11,7 @@ describe("round guide", () => {
 
     expect(html).toContain("2장의 카드와 커뮤니티 보드로 승부합니다.");
     expect(html).toContain("텍사스 홀덤 규칙입니다.");
-    expect(html).toContain("기본 카드 1장과 상점에서 구매한 카드 1장, 총 2장을 사용합니다.");
+    expect(html).toContain("상점에 놓인 4장 중 2장을 직접 구매해 핸드를 만듭니다.");
     expect(html).toContain("Swiss 방식의 3경기를 진행합니다.");
     expect(html).toContain("홀카드와 커뮤니티 보드를 조합해 BEST 5를 만들고 승패를 결정합니다.");
   });

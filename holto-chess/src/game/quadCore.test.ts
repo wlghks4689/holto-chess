@@ -134,6 +134,8 @@ describe("expanded ability draft", () => {
     expect(view.abilityDraft!.availableSlots).toHaveLength(ABILITY_IDS.length - 8);
     expect(view.abilityDraft).not.toHaveProperty("deck");
     const dealt = finishAbilitySelection(game);
-    expect(dealt.players.find(player => player.id === firstId)!.firstCardId).toBeDefined();
+    // Only Royal Blood and Target Sniper are dealt a starting card; Quad Core buys both R1 cards.
+    expect(dealt.players.find(player => player.id === firstId)!.ownedCardIds).toEqual([]);
+    expect(dealt.players.find(player => player.id === firstId)!.firstCardId).toBeUndefined();
   });
 });

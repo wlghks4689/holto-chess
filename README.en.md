@@ -60,9 +60,9 @@ Every number comes from the game code (`holto-chess/src/game/config.ts`, `engine
 | --- | --- |
 | Players | 8 · empty seats are AI |
 | Card pool | 52 unique cards, shared |
-| Start | 50BB · 1 starting card · 1 ability |
+| Start | 50BB · no starting card (buy both R1 cards in the shop) · 1 ability |
 | Round income | +30BB to survivors at the start of R2–R5 |
-| Shop cards | 2 |
+| Shop cards | R1 4 · R3–R5 2 (no shop in R2) |
 | Reroll / lock | 5BB / 3BB |
 | Sell refund | 60% of the base price (rounded down) |
 | Time limits | Shop 60s · draft 20s per pick · R2 lineup 30s |
@@ -86,12 +86,12 @@ Every number comes from the game code (`holto-chess/src/game/config.ts`, `engine
 
 | Match | Win | Loss |
 | --- | --- | --- |
-| R1 | +10 | +15 (+5 × losing streak) |
-| R2 RUN · R4 match 1 · R4 winner bracket | +20 (+5 × winning streak) | +10 × losing streak |
-| R3 | +10 | +15 (+5 × losing streak) |
-| R4 survival bracket · R5 | — | — |
+| R1 | 0 | +10 (+5 × losing streak) → 10 · 15 · 20 |
+| R2 RUN | 0 | +10 (per RUN) |
+| R3 | 0 | +10 (+5 × losing streak) → 10 · 15 · 20 |
+| R4 · R5 | 0 | 0 |
 
-Streaks count the matches in a row before this one. A forfeit for missing cards earns no points and no BB.
+Only the losing player earns match BB. A win pays in points only, and a split shares points only. A losing streak counts the losses in a row earlier in the same round and restarts every round. A forfeit for missing cards earns no points and no BB. Round income (+30BB at the start of R2–R5) is unchanged.
 
 ### 4. Rounds
 
@@ -145,15 +145,15 @@ Before the game, players take turns picking one of 12 face-down cards, so all ei
 
 | Ability | Effect | Timing · notes |
 | --- | --- | --- |
-| **Royal Blood** | Your starting card is an A, K, Q, J or T, and you buy those ranks at 50% (rounded down) in the shop and draft | e.g. Q 15BB → 7BB |
-| **Target Sniper** | +15BB for an outright regular-match win with your initially dealt card in your BEST 5 | No hand requirement · splits and tiebreak wins after a split excluded · R2 per RUN · off while the card is sold, back on if you rebuy it |
+| **Royal Blood** | Unlike everyone else you get a free starting card, an A, K, Q, J or T, and you buy those ranks at 50% (rounded down) in the shop and draft | e.g. Q 15BB → 7BB |
+| **Target Sniper** | Start R1 with one free random card; +15BB for an outright regular-match win with that card in your BEST 5 | No hand requirement · splits and tiebreak wins after a split excluded · R2 per RUN · off while the card is sold, back on if you rebuy it |
 | **Underdog** | +20P if your R5 BEST 5 contains a 2 and is a straight or better | Never triggers in R1–R4 |
 | **First Class** | Always pick first in the R2 and R4 open drafts | Everyone else keeps the usual order |
-| **Golden Hand** | +1 personal shop card; selling refunds 100% of the base price | R2 has no personal shop · the starting card also sells for 100% |
+| **Golden Hand** | +1 personal shop card; selling refunds 100% of the base price | R2 has no personal shop · five cards in the R1 shop |
 | **Trader** | Free personal-shop rerolls and locks, +1 reroll each shop phase | Not in R2 |
 | **Predator** | Each outright regular-match win adds 1 to your streak; from a 2-win streak each win pays streak × 5BB (2 → 10, 3 → 15, 4 → 20 …) | Streak carries across rounds · a split or loss resets it · tiebreak wins excluded |
 | **Architect** | +30BB when a regular match ends with exactly a full house | Win or lose · R2 per RUN · four of a kind and above excluded |
-| **Capitalism** | At the end of each round you survive, receive 15% of your BB (rounded down) | Once per round · not in the round you are eliminated · also paid after R5 |
+| **Capitalism** | At the end of each round you survive, receive 20% of your BB (rounded down) | Once per round · not in the round you are eliminated · also paid after R5 |
 | **Quad Core** | Making four of a kind in the R5 final doubles your R5 placement points | Any four of a kind counts (including ones completed by the board) · only placement points double · R1–R4 quads excluded |
 | **Front Runner** | Lead at the end of a round for bonus points: R1 +3 · R2 +4 · R3 +5 · R4 +6 · R5 +7P | R1–R4: only the single survivor on top of the standings (points → BB → seat) · R5: first in the final match, tied firsts all paid |
 | **Protector** | Lose an R1–R4 one-on-one regular match despite a 60%+ pre-match win chance to earn BB by tier: 60%+ +20 · 70%+ +30 · 80%+ +50 | Uses the win chance shown on the match screen (rounded down) · splits, R5 and tiebreaks excluded |

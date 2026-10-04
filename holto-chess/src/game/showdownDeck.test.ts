@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
-import { createGame, getCard } from "./engine";
+import { buyCard, createGame, getCard } from "./engine";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 
 describe("match-scoped showdown deck", () => {
@@ -26,7 +26,9 @@ describe("match-scoped showdown deck", () => {
   });
 
   it("keeps reservations and cards owned by outsiders eligible", () => {
-    const state = createGame(91); const participants = state.players.slice(0, 2);
+    let state = createGame(91);
+    state = buyCard(state, "p3", state.players[2]!.shopCardIds[0]!); // R1 starts empty, so give the outsider a card
+    const participants = state.players.slice(0, 2);
     const participantOwned = participants.flatMap((player) => player.ownedCardIds.map((id) => getCard(state, id)));
     const reservedId = participants[0]!.shopCardIds[0]!;
     const outsiderOwnedId = state.players[2]!.ownedCardIds[0]!;

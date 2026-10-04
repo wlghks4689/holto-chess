@@ -24,17 +24,15 @@ function fixture(seed: number) {
 }
 
 describe("R4 rewards", () => {
-  it.each([1, 17, 303, 707, 9001])("awards placement points independently of streak BB (seed %i)", (seed) => {
+  it.each([1, 17, 303, 707, 9001])("awards placement points and no match BB in either R4 group (seed %i)", (seed) => {
     const before = fixture(seed);
     const after = resolveSecondary(before);
     const winner = after.roundResults.find((match) => match.group === "winner")!;
     for (const result of winner.results) {
       const player = before.players.find((p) => p.id === result.playerId)!;
-      const won = winner.winnerIds.includes(player.id);
       const points = ({ 1: 10, 2: 5, 3: 3 } as Record<number, number>)[result.place];
-      const bb = won ? 20 + player.winStreak * 5 : player.loseStreak * 10;
       expect(winner.pointAwards![player.id]).toBe(points);
-      expect(winner.rewards!.find((r) => r.playerId === player.id)).toMatchObject({ deltaPoints: points, deltaBB: bb });
+      expect(winner.rewards!.find((r) => r.playerId === player.id)).toMatchObject({ deltaPoints: points, deltaBB: 0 });
       expect(after.players.find((p) => p.id === player.id)!.points - player.points).toBe(points);
     }
     const loser = after.roundResults.find((match) => match.group === "loser")!;
@@ -43,7 +41,7 @@ describe("R4 rewards", () => {
     expect(assertPoolIntegrity(after)).toBe(true);
   });
 
-  it("awards 6P for primary wins and 3P to each regulation split player", () => {
+  it("awards 6P for primary wins and 3P to each regulation split player, and no match BB", () => {
     const before = fixture(17);
     before.phase = "SHOWDOWN_PRIMARY";
     const after = resolvePrimary(before);
@@ -51,6 +49,7 @@ describe("R4 rewards", () => {
       const awardIds = match.regulationWinnerIds ?? match.winnerIds;
       for (const id of match.playerIds) {
         expect(match.pointAwards![id]).toBe(awardIds.includes(id) ? match.regulationWinnerIds ? 3 : 6 : 0);
+        expect(match.rewards!.find((r) => r.playerId === id)!.deltaBB).toBe(0);
       }
     }
   });

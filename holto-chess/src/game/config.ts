@@ -22,13 +22,16 @@ export const BALANCE = {
   playerCount: 8,
   startStackBB: 50,
   baseShopSize: 2,
-  maxShopSize: 2,
+  /** R1 starts with an empty hand, so its shop shows more cards than the two a seat may buy. */
+  r1ShopSize: 4,
   rerollCostBB: 5,
   cardLockCostBB: 3,
   roundIncomeBB: 30,
-  winRewardBB: 20,
-  winStreakStepBB: 5,
-  loseStreakStepBB: 10,
+  /**
+   * Match BB goes to the loser only: base + step × losses already taken this round. Wins, splits and
+   * forfeits pay nothing; a win already pays in points. R4 and R5 pay no match BB.
+   */
+  matchLossBB: { 1: { base: 10, step: 5 }, 2: { base: 10, step: 0 }, 3: { base: 10, step: 5 }, 4: { base: 0, step: 0 }, 5: { base: 0, step: 0 } },
   purchaseLimits: { 1: 2, 2: 2, 3: 2, 4: 3, 5: 3 },
   sellRate: 0.6,
   stackScoreUnitBB: 10,
@@ -42,6 +45,8 @@ export function cardPrice(rank: number): number {
   return BALANCE.rankPrices[rank as keyof typeof BALANCE.rankPrices] ?? 5;
 }
 
-export function regularShopSizeFor(round: Round): number { return round === 2 ? 0 : BALANCE.baseShopSize; }
+export function regularShopSizeFor(round: Round): number { return round === 1 ? BALANCE.r1ShopSize : round === 2 ? 0 : BALANCE.baseShopSize; }
+/** BB a regulation loss pays in this round, given the losses this seat already took in it. */
+export function matchLossBB(round: Round, lossesThisRound: number): number { const rule = BALANCE.matchLossBB[round]; return rule.base + rule.step * lossesThisRound; }
 export function purchaseLimitFor(round: Round, rulesVersion: number = 2): number { return round === 4 && rulesVersion === 1 ? 3 : BALANCE.purchaseLimits[round]; }
 export function rerollLimitFor(round: Round, rulesVersion: number = 2): number { return round === 4 && rulesVersion === 1 ? 2 : BALANCE.rerollLimits[round]; }

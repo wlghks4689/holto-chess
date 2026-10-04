@@ -15,7 +15,8 @@ it("keeps other seats at shop-entry BB through buy/sell/commit, but shows the ow
   expect(createPlayerView(room, "p1", [], 1000).players).toEqual(before.players);
   const restored = migrateRoomSnapshot(JSON.parse(JSON.stringify(room)));
   expect(createPlayerView(restored, "p1", [], 1000).players).toEqual(before.players);
-  room = applyRoomAction(room, "p2", { type: "SELL_CARD", cardId: card.card.id }, turnKey(room), 1000);
+  // R1 starts empty, so a sale would strand the hand; a reroll is the other spend to keep hidden.
+  room = applyRoomAction(room, "p2", { type: "REROLL" }, turnKey(room), 1000);
   expect(createPlayerView(room, "p1", [], 1000).players).toEqual(before.players);
   room = applyRoomAction(room, "p2", { type: "BUY_CARD", cardId: createPlayerView(room, "p2").me.shopCards.find(card => card.price <= room.game.players[1]!.stackBB)!.card.id }, turnKey(room), 1000);
   room = applyRoomAction(room, "p2", { type: "END_SHOP_PHASE" }, turnKey(room), 1000);
@@ -23,8 +24,9 @@ it("keeps other seats at shop-entry BB through buy/sell/commit, but shows the ow
   room = applyRoomAction(room, "p2", { type: "CANCEL_SHOP_READY" }, turnKey(room), 1000);
   for (const session of room.sessions) {
     const owner = createPlayerView(room, session.playerId, [], 1000);
-    if (owner.me.ownedCards.length === 1) {
-      const available = owner.me.shopCards.find(card => card.price <= owner.me.stackBB)!;
+    for (let have = owner.me.ownedCards.length; have < 2; have += 1) {
+      const me = createPlayerView(room, session.playerId, [], 1000).me;
+      const available = me.shopCards.find(card => card.price <= me.stackBB)!;
       room = applyRoomAction(room, session.playerId, { type: "BUY_CARD", cardId: available.card.id }, turnKey(room), 1000);
     }
     room = applyRoomAction(room, session.playerId, { type: "END_SHOP_PHASE" }, turnKey(room), 1000);

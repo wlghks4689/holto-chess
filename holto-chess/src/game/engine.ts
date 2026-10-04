@@ -1,8 +1,8 @@
 import { shuffle, type Card } from "../core/poker/cards";
 import { evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
-import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, purchaseLimitFor } from "./config";
-import { bestBotSelection, bestRunLoadout, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
+import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, matchLossBB, purchaseLimitFor } from "./config";
+import { bestBotSelection, bestRunLoadout, rankBotPairs, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { calculateIcm } from "./icm";
 import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
@@ -98,9 +98,8 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
     state.abilityEvents = [];
     return state;
   }
-  for (const player of players) giveRandomOwnedCard(state, player);
+  // Every seat builds its R1 hand from the shop; there is no free starting card.
   for (const player of players) reserveShopCards(state, player);
-  log(state, "8명의 플레이어에게 공용 풀에서 카드 1장씩 지급했습니다.", "info", { event: "INITIAL_CARDS_DEALT" });
   assertPoolIntegrity(state);
   return state;
 }
@@ -133,17 +132,17 @@ export function autoPickAbility(source: PorenaGameState): PorenaGameState {
 export function finishAbilitySelection(source: PorenaGameState): PorenaGameState {
   if (source.phase !== "ABILITY_REVEAL" || source.players.some(player => !player.abilityId)) throw new Error("어빌리티 선택이 완료되지 않았습니다.");
   const state = structuredClone(source); state.phase = "SHOP";
-  // The guaranteed starting rank is dealt before the rest so other seats cannot consume it.
+  // Royal Blood's guaranteed starting rank is dealt first so no other seat can consume it.
   const royal = state.players.find(player => player.abilityId === "royal-blood");
   if (royal) {
     const candidates = state.ownershipCardPool.filter(entry => entry.state === "AVAILABLE" && entry.card.rank >= 10);
     const entry = candidates[Math.floor(nextRandom(state) * candidates.length)]!;
     entry.state = "OWNED"; entry.ownerPlayerId = royal.id; royal.ownedCardIds.push(entry.card.id);
   }
-  for (const player of state.players) {
-    if (!player.ownedCardIds.length) giveRandomOwnedCard(state, player);
-    player.firstCardId = player.ownedCardIds[0];
-  }
+  // Besides Royal Blood, only Target Sniper gets a free card: a random one that becomes its reference card.
+  const sniper = state.players.find(player => player.abilityId === "target-sniper");
+  if (sniper) giveRandomOwnedCard(state, sniper);
+  for (const player of state.players) if (player.ownedCardIds.length) player.firstCardId = player.ownedCardIds[0];
   for (const player of state.players) reserveShopCards(state, player);
   log(state, "어빌리티 배정과 시작 카드 지급 완료", "info", { event: "ABILITY_SELECTION_COMPLETE" });
   assertPoolIntegrity(state); return state;
@@ -309,7 +308,10 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       const ranked = rankBotPurchases(state.round, player, ownedCards(), options, planContext); const best = ranked[0];
       const rerollCost = abilityRerollCost(player);
       const missing = limit - player.ownedCardIds.length;
-      if (hasRerollableSlot() && player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, best, rerollCost)) { reroll(); continue; }
+      const pair = missing >= 2 && purchaseLimitFor(state.round, state.rulesVersion ?? 1) - player.purchasesThisRound >= 2
+        ? rankBotPairs(state.round, player, ownedCards(), options, planContext)[0] : undefined;
+      if (hasRerollableSlot() && player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, pair ?? best, rerollCost)) { reroll(); continue; }
+      if (pair) { buy(pair.cards[0].card.id); buy(pair.cards[1].card.id); continue; }
       if (!best) break;
       buy(best.card.id);
     }
@@ -521,32 +523,14 @@ function rewardMatch(state: PorenaGameState, match: MatchResult, pointValue: num
       match.pointAwardDetails![playerId] = `카드 부족 · 몰수패 · +0P · +0BB${match.highCardDraw?.winnerId === playerId ? " · 추첨 진출" : ""}`;
       continue;
     }
-    if (state.round === 4 && match.group === "loser") {
-      const bb = 0;
-      player.stackBB += bb;
-      player.points += won ? pointValue : 0;
-      player.winStreak = won ? player.winStreak + 1 : 0;
-      player.loseStreak = won ? 0 : player.loseStreak + 1;
-      match.pointAwardDetails![playerId] += ` · +${bb}BB`;
-      continue;
-    }
-    if (state.round === 3) {
-      const split = match.winnerIds.length > 1;
-      const bb = split ? 0 : won ? 10 : 15 + player.loseStreak * 5;
-      player.stackBB += bb;
-      player.points += won ? pointValue : 0;
-      player.winStreak = split || !won ? 0 : player.winStreak + 1;
-      player.loseStreak = split || won ? 0 : player.loseStreak + 1;
-      match.pointAwardDetails![playerId] += ` · +${bb}BB`;
-      continue;
-    }
-    if (won) {
-      const base = state.round === 1 ? 10 : BALANCE.winRewardBB; const streakBonus = state.round === 1 ? 0 : player.winStreak * BALANCE.winStreakStepBB;
-      player.stackBB += base + streakBonus;
-      match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연승 ${streakBonus}` : ""}`;
-      player.winStreak += 1; player.loseStreak = 0; player.points += match.pointAwards[playerId]!;
-    } else { const base = state.round === 1 ? 15 : 0; const streakBonus = state.round === 1 ? player.loseStreak * 5 : player.loseStreak * BALANCE.loseStreakStepBB; player.stackBB += base + streakBonus; match.pointAwardDetails![playerId] += ` · BB ${base}${streakBonus ? ` + 연패 ${streakBonus}` : ""}`; player.loseStreak += 1; player.winStreak = 0; }
-    if (!won) player.points += match.pointAwards[playerId]!;
+    // An R3 split clears both streaks; any other split pays both seats as winners. Only a loss pays BB.
+    const split = state.round === 3 && match.winnerIds.length > 1;
+    const bb = won || split ? 0 : matchLossBB(state.round, player.loseStreak);
+    player.stackBB += bb;
+    player.points += match.pointAwards[playerId]!;
+    player.winStreak = won && !split ? player.winStreak + 1 : 0;
+    player.loseStreak = won || split ? 0 : player.loseStreak + 1;
+    match.pointAwardDetails![playerId] += ` · +${bb}BB`;
   }
 }
 
@@ -888,6 +872,7 @@ export function startNextRound(source: PorenaGameState): PorenaGameState {
   for (const match of state.matches) delete match.streetSnapshots;
   for (const player of state.players.filter((item) => !item.eliminated)) {
     player.stackBB += BALANCE.roundIncomeBB; player.purchasesThisRound = 0; player.rerollsUsed = 0; player.selectedCardIds = [];
+    player.loseStreak = 0; // loss BB escalates within a round only
     if (state.rulesVersion === 2 && (state.round === 2 || state.round === 4)) player.lockedShopCardIds = [];
     releaseShop(state, player);
   }

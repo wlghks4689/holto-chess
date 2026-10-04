@@ -17,6 +17,7 @@ export const GUIDE_RULES = {
   lockCostBB: BALANCE.cardLockCostBB,
   sellPercent: Math.round(BALANCE.sellRate * 100),
   shopSize: BALANCE.baseShopSize,
+  r1ShopSize: BALANCE.r1ShopSize,
   stackScoreUnitBB: BALANCE.stackScoreUnitBB,
   handLimits: BALANCE.handLimits,
   purchaseLimits: BALANCE.purchaseLimits,
@@ -27,12 +28,8 @@ export const GUIDE_RULES = {
   rankPoints: [8, 4, 2, 0, -1, -2, -4, -8],
   /** Mirrors `startNextRound`: cards revealed by each open draft. */
   draftCards: { 2: 8, 4: 16 } as const,
-  /** Mirrors `rewardMatch`: BB paid for one regulation match. `+n` grows with the running streak. */
-  matchBB: {
-    r1: { win: 10, loss: 15, lossStep: 5 },
-    r2: { win: BALANCE.winRewardBB, winStep: BALANCE.winStreakStepBB, loss: 0, lossStep: BALANCE.loseStreakStepBB },
-    r3: { win: 10, loss: 15, lossStep: 5 },
-  },
+  /** BB a regulation loss pays: base + step × losses already taken this round. Wins pay none. */
+  matchBB: { r1: BALANCE.matchLossBB[1], r2: BALANCE.matchLossBB[2], r3: BALANCE.matchLossBB[3] },
   /** Mirrors `resolveSurvival` / R4 group deciders: extra boards before a random-rank draw. */
   maxSuddenDeathBoards: 2,
   alive: [8, 8, 6, 4, 4],

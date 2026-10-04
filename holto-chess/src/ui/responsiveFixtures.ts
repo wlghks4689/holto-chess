@@ -3,26 +3,26 @@ import { makeDeck } from "../core/poker/cards";
 import { BALANCE } from "../game/config";
 import { createGame } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
-import { ABILITY_IDS } from "../game/abilities";
+import { ABILITY_IDS, abilityShopSize, type AbilityId } from "../game/abilities";
 import type { Round } from "../game/types";
 import type { MatchView, RoundSummaryRow } from "../shared/protocol";
 
 export const QA_NAMES = ["가나다라마바사아", "LongNicknameWithoutSpaces", "나", "River Fox", "♠ 다이아 바이퍼", "탈락 플레이어", "재접속 대기", "AI 대체"];
 export const qaDeck = makeDeck();
-export function qaGame(round: Round, count: number) {
+export function qaGame(round: Round, count: number, firstAbility?: AbilityId) {
   const game = createGame(303);
   game.round = round; game.phase = "SHOP";
   game.players.forEach((player, i) => {
     player.name = QA_NAMES[i]!; player.stackBB = 123456.75; player.points = 98765;
-    player.abilityId = ABILITY_IDS[i];
+    player.abilityId = i === 0 && firstAbility ? firstAbility : ABILITY_IDS[i];
     player.ownedCardIds = qaDeck.slice(i * 6, i * 6 + count).map(card => card.id);
-    player.shopCardIds = round === 2 ? [] : qaDeck.slice(48, 50).map(card => card.id);
+    player.shopCardIds = qaDeck.slice(52 - abilityShopSize(player, round), 52).map(card => card.id);
     player.selectedCardIds = []; player.lockedShopCardIds = [];
   });
   return game;
 }
-export function qaView(round: Round, count: number) {
-  return createPlayerView({ schema:1, roomId:"RESPONSIVE-QA", revision:0, status:"PLAYING", game:qaGame(round, count), sessions:[{ playerId:"p1", tokenHash:"fixture", requests:[] }], readyIds:[], endedShopIds:[] }, "p1");
+export function qaView(round: Round, count: number, firstAbility?: AbilityId) {
+  return createPlayerView({ schema:1, roomId:"RESPONSIVE-QA", revision:0, status:"PLAYING", game:qaGame(round, count, firstAbility), sessions:[{ playerId:"p1", tokenHash:"fixture", requests:[] }], readyIds:[], endedShopIds:[] }, "p1");
 }
 export function qaMatch(round: Round, count: number, multi = round >= 4): MatchView {
   const participantIds = Array.from({ length: multi ? round === 5 ? 4 : 3 : 2 }, (_, i) => `p${i + 1}`);

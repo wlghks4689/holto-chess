@@ -56,7 +56,9 @@ describe("PORENA engine", () => {
     state = rerollShop(state, "p1");
     expect(state.players[0]!.shopCardIds).toHaveLength(2);
     expect(new Set(state.players.flatMap((player) => player.shopCardIds)).size).toBe(16);
-    const bought = state.players[0]!.shopCardIds[0]!; state = buyCard(state, "p1", bought); state = sellCard(state, "p1", bought);
+    const bought = state.players[0]!.shopCardIds[0]!; state = buyCard(state, "p1", bought);
+    state.players[0]!.purchasesThisRound = 0; // R1 needs both buys, so free a purchase to make the sale legal
+    state = sellCard(state, "p1", bought);
     expect(state.ownershipCardPool.find((entry) => entry.card.id === bought)?.state).toBe("AVAILABLE"); expect(assertPoolIntegrity(state)).toBe(true);
   });
 
@@ -80,10 +82,15 @@ describe("PORENA engine", () => {
   });
 
   it("creates independent R2 match universes and excludes unselected owned cards", () => {
-    let state = playRound(createGame(2)); state = startNextRound(leaveRoundResult(state));
-    state = fillHuman(state); state = prepareShowdown(state);
-    for (const id of state.players[0]!.ownedCardIds.slice(0, 2)) state = toggleSelectedCard(state, "p1", id);
-    state = confirmSelection(state); state = resolvePrimary(state);
+    const playR2 = (seed: number) => {
+      let state = playRound(createGame(seed)); state = startNextRound(leaveRoundResult(state));
+      state = fillHuman(state); state = prepareShowdown(state);
+      for (const id of state.players[0]!.ownedCardIds.slice(0, 2)) state = toggleSelectedCard(state, "p1", id);
+      return resolvePrimary(confirmSelection(state));
+    };
+    // Sudden death needs tied runs, so take the first seed that produces one.
+    let state = playR2(1);
+    for (let seed = 2; seed < 60 && !state.roundResults.some((match) => match.suddenDeathCount > 0); seed += 1) state = playR2(seed);
     expect(state.roundResults).toHaveLength(4);
     for (const match of state.roundResults) {
       expect(match.runoutCount).toBe(2);

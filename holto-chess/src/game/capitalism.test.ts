@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CAPITALISM_INTEREST_PERCENT } from "./abilities";
 import { rewardAbilityInterest } from "./abilityRewards";
 import { BALANCE } from "./config";
 import { assertPoolIntegrity } from "./cardPool";
@@ -50,7 +51,7 @@ function pendingSurvival() {
 function assertInterest(control: PorenaGameState, paid: PorenaGameState, id: string) {
   const before = control.players.find(player => player.id === id)!;
   const player = paid.players.find(player => player.id === id)!;
-  const amount = before.eliminated ? 0 : Math.floor(before.stackBB * 15 / 100);
+  const amount = before.eliminated ? 0 : Math.floor(before.stackBB * CAPITALISM_INTEREST_PERCENT / 100);
   expect(player.stackBB).toBe(before.stackBB + amount);
   const events = paid.abilityEvents?.filter(event => event.reason === "round-interest" && event.playerId === id) ?? [];
   expect(events).toHaveLength(amount ? 1 : 0);
@@ -120,15 +121,15 @@ describe("Capitalism round settlement", () => {
     expect(paid.players.find(player => player.id === holder.id)!.eliminationSnapshot).toEqual(holder.eliminationSnapshot);
   });
 
-  it.each([0, 1, 6, 7, 19, 20, 57, 99, 100, 101])("floors 15%% of %s BB and persists even a zero payout", bb => {
+  it.each([0, 1, 6, 7, 19, 20, 57, 99, 100, 101])("floors the interest rate of %s BB and persists even a zero payout", bb => {
     const state = fixture(1); state.phase = "ROUND_RESULT";
     state.players[0]!.abilityId = "capitalism"; state.players[0]!.stackBB = bb;
     state.players[1]!.abilityId = "capitalism"; state.players[1]!.eliminated = true;
     const others = structuredClone(state.players.slice(1));
     rewardAbilityInterest(state);
-    expect(state.players[0]!.stackBB).toBe(bb + Math.floor(bb * 15 / 100));
+    expect(state.players[0]!.stackBB).toBe(bb + Math.floor(bb * CAPITALISM_INTEREST_PERCENT / 100));
     expect(state.players.slice(1)).toEqual(others);
-    expect(state.abilityEvents ?? []).toHaveLength(bb >= 7 ? 1 : 0);
+    expect(state.abilityEvents ?? []).toHaveLength(Math.floor(bb * CAPITALISM_INTEREST_PERCENT / 100) > 0 ? 1 : 0);
     const restored = JSON.parse(JSON.stringify(state)) as PorenaGameState;
     restored.players[0]!.stackBB += 100;
     rewardAbilityInterest(restored);

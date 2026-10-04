@@ -31,9 +31,10 @@ export function abilitySellRate(player: Pick<PlayerState, "abilityId">): number 
 const STRAIGHT_OR_BETTER = new Set(["STRAIGHT", "FLUSH", "FULL_HOUSE", "QUADS", "STRAIGHT_FLUSH", "ROYAL_FLUSH"]);
 // 2026-10-01 user-approved rebalance: Target Sniper pays on wins, Zero Risk becomes tiered Protector,
 // Quad Core accepts any Quads, Predator scales with the streak, Capitalism interest 20% → 15%.
+// 2026-10-03: back to 20% because match BB now goes to losers only and stacks are smaller.
 export const TARGET_SNIPER_WIN_BB = 15;
 export const PREDATOR_BB_PER_STREAK = 5;
-export const CAPITALISM_INTEREST_PERCENT = 15;
+export const CAPITALISM_INTEREST_PERCENT = 20;
 /** Protector (`zero-risk`) payout tiers by the pre-board win chance, highest first. */
 export const PROTECTOR_TIERS = [{ minPercent: 80, bb: 50 }, { minPercent: 70, bb: 30 }, { minPercent: 60, bb: 20 }] as const;
 

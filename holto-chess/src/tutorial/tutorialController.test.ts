@@ -6,11 +6,11 @@ import { buyCard, rerollShop, sellCard } from "../game/engine";
 import { advance, applyGame, currentStep, restartStep, startChapter, sync } from "./tutorialController";
 
 describe("tutorial progression", () => {
-  it("starts immediately with one purchase, without pre-reading", () => {
+  it("starts immediately with an empty hand, without pre-reading", () => {
     const session = startChapter(1);
     expect(currentStep(session)!.id).toBe("r1-buy");
     expect(session.game.round).toBe(1);
-    expect(session.game.players[0]!.ownedCardIds.length).toBe(1);
+    expect(session.game.players[0]!.ownedCardIds.length).toBe(0);
     expect(TUTORIAL_CHAPTERS[0]!.steps).toHaveLength(6);
     expect(currentStep(session)!.kind).toBe("ACT");
   });
@@ -27,6 +27,8 @@ describe("tutorial progression", () => {
     let session = startChapter(1);
     const me = session.game.players[0]!;
     session = applyGame(session, buyCard(session.game, "p1", me.shopCardIds[0]!));
+    expect(currentStep(session)!.id).toBe("r1-buy");
+    session = applyGame(session, buyCard(session.game, "p1", session.game.players[0]!.shopCardIds[0]!));
     expect(currentStep(session)!.id).toBe("r1-commit");
     expect(session.game.players[0]!.ownedCardIds.length).toBe(BALANCE.handLimits[1]);
   });
@@ -34,10 +36,12 @@ describe("tutorial progression", () => {
   it("re-opens the buying step when a sale undoes it", () => {
     let session = startChapter(1);
     expect(currentStep(session)!.id).toBe("r1-buy");
-    const bought = buyCard(session.game, "p1", session.game.players[0]!.shopCardIds[0]!);
+    const once = buyCard(session.game, "p1", session.game.players[0]!.shopCardIds[0]!);
+    const bought = buyCard(once, "p1", once.players[0]!.shopCardIds[0]!);
     session = applyGame(session, bought);
     expect(currentStep(session)!.id).toBe("r1-commit");
-    session = applyGame(session, sellCard(session.game, "p1", session.game.players[0]!.ownedCardIds[1]!));
+    const resellable = structuredClone(session.game); resellable.players[0]!.purchasesThisRound = 0; // a sale needs a purchase left to refill
+    session = applyGame(session, sellCard(resellable, "p1", session.game.players[0]!.ownedCardIds[1]!));
     expect(currentStep(session)!.id).toBe("r1-buy");
   });
 

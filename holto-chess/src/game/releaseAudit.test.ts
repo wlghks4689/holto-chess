@@ -132,7 +132,6 @@ describe("release audit: approved timeout forfeit policy", () => {
   });
   it("finishes the game after legal lock spending leaves an empty hand at timeout", () => {
     let room = started();
-    room = act(room, "p1", { type: "SELL_CARD", cardId: room.game.players[0]!.ownedCardIds[0]! });
     const locked = room.game.players[0]!.shopCardIds[0]!;
     while (room.game.players[0]!.stackBB >= 3) {
       room = act(room, "p1", { type: "LOCK_SHOP", cardId: locked });

@@ -4,7 +4,7 @@ import { createRoundSummary } from "./roundSummary";
 
 it("summarizes all Swiss matches without exposing unrevealed cards or boards", () => {
   const game = createGame(42);
-  for (const p of game.players) {
+  for (const p of game.players) for (let i = 0; i < 2; i += 1) {
     const id = p.shopCardIds.shift()!;
     p.ownedCardIds.push(id);
     const entry = game.ownershipCardPool.find((e) => e.card.id === id)!;

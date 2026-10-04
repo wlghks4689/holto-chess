@@ -157,6 +157,19 @@ export function makeAbilityPolicy(kind: "ABILITY_NEUTRAL" | "ABILITY_AWARE", abi
       return b.base.equity < TARGET_EQUITY[round] - (behind ? 0.025 : 0) && b.price >= 10;
     };
 
+    if (missing >= 2 && input.purchasesLeft >= 2) {
+      // Same as the engine bot: an empty R1 hand is scored two cards at a time so pairs and suited combos count.
+      const pairs = affordable.flatMap((x, i) => affordable.slice(i + 1).filter((y) => x.price + y.price <= stackBB).map((y) => {
+        const u = utility(round, [...ownedCards, x.card, y.card], stackBB - x.price - y.price, x.price + y.price, `${key}:pair`, shared);
+        return { first: x.card.id, second: y.card.id, price: x.price + y.price, base: u.base, total: u.total };
+      })).sort((x, y) => y.total - x.total || x.price - y.price);
+      const pair = pairs[0];
+      if (pair) {
+        if (wantsReroll(pair) && stackBB >= input.rerollCost + missing * 5) return { type: "REROLL" as const };
+        pendingBuy = pair.second;
+        return { type: "BUY" as const, cardId: pair.first };
+      }
+    }
     if (missing > 0 && input.purchasesLeft > 0) {
       if (wantsReroll(best) && stackBB >= input.rerollCost + missing * 5) return { type: "REROLL" as const };
       return best ? { type: "BUY" as const, cardId: best.card.id } : { type: "DONE" as const };

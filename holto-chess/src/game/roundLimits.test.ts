@@ -34,8 +34,8 @@ describe("round-specific shop limits", () => {
     expect(([1, 2, 3, 4, 5] as Round[]).map((r) => rerollLimitFor(r))).toEqual([1, 2, 2, 2, 3]);
   });
 
-  it("deals two cards in every regular shop and none in R2", () => {
-    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => regularShopSizeFor(r))).toEqual([2, 0, 2, 2, 2]);
+  it("deals four cards in the R1 shop, two in later regular shops and none in R2", () => {
+    expect(([1, 2, 3, 4, 5] as Round[]).map((r) => regularShopSizeFor(r))).toEqual([4, 0, 2, 2, 2]);
   });
 });
 

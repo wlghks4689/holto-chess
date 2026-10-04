@@ -1,8 +1,6 @@
-import { SUIT_SYMBOL } from "../core/poker/cards";
 import { BALANCE } from "../game/config";
-import { autoPickDraft, getCard, leaveRoundResult, openDraft, resolveSurvival } from "../game/engine";
+import { autoPickDraft, leaveRoundResult, openDraft, resolveSurvival } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
-import { rankWord } from "./rankWord";
 import type { TutorialChapter, TutorialStep } from "./tutorialTypes";
 
 const me = (game: PorenaGameState) => game.players[0]!;
@@ -50,15 +48,12 @@ function showdownSteps(prefix: string): TutorialStep[] {
 
 export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
   {
-    id: 1, title: "첫 승부 체험", round: 1, summary: "카드 구매 → 준비 완료 → 자동 승부 → 순위",
+    id: 1, title: "첫 승부 체험", round: 1, summary: "카드 2장 구매 → 준비 완료 → 자동 승부 → 순위",
     steps: [
       {
-        id: "r1-buy", kind: "ACT", focus: "shop", goal: "상점에서 카드 1장 구매",
-        title: "카드 한 장을 사보세요",
-        body: (game) => {
-          const card = getCard(game, me(game).ownedCardIds[0]!);
-          return [`지금 내 카드는 ${rankWord(card.rank)}${SUIT_SYMBOL[card.suit]}입니다. 같은 숫자를 사면 원페어로 시작할 수 있어요. 다른 카드를 골라도 괜찮습니다.`];
-        },
+        id: "r1-buy", kind: "ACT", focus: "shop", goal: "상점에서 카드 2장 구매",
+        title: "카드 두 장을 사보세요",
+        body: ["R1은 빈손으로 시작합니다. 상점에 놓인 4장 중 2장을 사서 내 핸드를 만드세요. 같은 숫자 두 장이면 원페어로 시작할 수 있어요.", "높은 카드는 강하지만 비쌉니다. 남은 BB는 다음 라운드 구매와 최종 점수에 쓰입니다."],
         more: ["BB는 카드 구매와 리롤에 쓰는 돈입니다. 구매 버튼에서 가격을 확인하세요.", "랭크는 2~10, J, Q, K, A 순서로 높습니다. 같은 문양 두 장만으로 플러시가 완성되지는 않습니다."],
         done: handFull,
       },

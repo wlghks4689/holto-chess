@@ -743,3 +743,5 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
 @media(max-width:768px) and (max-height:700px){
   .cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:27.6px;row-gap:3px;padding-block:5px}
 }
+/* R1 holds two cards but its market shows four or five, so two-column layouts give the market half the row. */
+@media(min-width:769px){.game-arena .shop-page[data-round="1"] .shop-layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}

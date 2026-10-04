@@ -42,8 +42,7 @@ describe("server room authority and projections", () => {
   });
   it("lets a player cancel deck readiness while another player is still preparing", () => {
     let r = start();
-    const shopCard = createPlayerView(r, "p1").me.shopCards[0]!.card.id;
-    r = act(r, "p1", { type: "BUY_CARD", cardId: shopCard });
+    for (let i = 0; i < 2; i += 1) r = act(r, "p1", { type: "BUY_CARD", cardId: createPlayerView(r, "p1").me.shopCards[0]!.card.id });
     r = act(r, "p1", { type: "END_SHOP_PHASE" });
     expect(createPlayerView(r, "p1").me.committed).toBe(true);
     r = act(r, "p1", { type: "CANCEL_SHOP_READY" });
@@ -78,7 +77,7 @@ describe("server room authority and projections", () => {
       else expect(view.players.every((p) => !(key in p))).toBe(true);
     }
     expect(view.matches).toEqual([]);
-    view.me.ownedCards[0].rank = 2;
+    view.me.shopCards[0].card.rank = 2;
     expect(r).not.toHaveProperty("me");
   });
   it("publishes picked abilities and slots immediately while concealing unpicked cards", () => {
@@ -215,6 +214,7 @@ describe("server room authority and projections", () => {
   it("freezes a committed shop and only advances after all surviving humans commit", () => {
     let r = start();
     r = act(r, "p1", { type: "BUY_CARD", cardId: r.game.players[0].shopCardIds[0] });
+    r = act(r, "p1", { type: "BUY_CARD", cardId: r.game.players[0].shopCardIds[0] });
     r = act(r, "p1", { type: "END_SHOP_PHASE" });
     expect(r.game.phase).toBe("SHOP");
     expect(() => act(r, "p1", { type: "REROLL" })).toThrow();
@@ -224,20 +224,19 @@ describe("server room authority and projections", () => {
     const base = start(); const id = base.game.players[0].shopCardIds[0];
     const broke = structuredClone(base); broke.game.players[0].stackBB = 0;
     expect(() => act(broke, "p1", { type: "BUY_CARD", cardId: id })).toThrow();
-    const capped = act(base, "p1", { type: "BUY_CARD", cardId: id });
-    expect(() => act(capped, "p1", { type: "BUY_CARD", cardId: capped.game.players[0].shopCardIds[0] })).toThrow();
+    const one = act(base, "p1", { type: "BUY_CARD", cardId: id });
+    const capped = act(one, "p1", { type: "BUY_CARD", cardId: one.game.players[0].shopCardIds[0] });
+    const extra = structuredClone(capped); extra.game.players[0].purchasesThisRound = 0; extra.game.players[0].shopCardIds = [...one.game.players[1].shopCardIds];
+    expect(() => act(extra, "p1", { type: "BUY_CARD", cardId: extra.game.players[0].shopCardIds[0] })).toThrow();
     const spent = structuredClone(base); spent.game.players[0].purchasesThisRound = 2;
     expect(() => act(spent, "p1", { type: "BUY_CARD", cardId: id })).toThrow();
     const dead = structuredClone(base); dead.game.players[0].eliminated = true;
     expect(() => act(dead, "p1", { type: "BUY_CARD", cardId: id })).toThrow();
-    expect(() => act(base, "p1", { type: "SELL_CARD", cardId: base.game.players[1].ownedCardIds[0] })).toThrow();
+    expect(() => act(capped, "p1", { type: "SELL_CARD", cardId: base.game.players[1].shopCardIds[0] })).toThrow();
     expect(() => act(base, "p1", { type: "END_SHOP_PHASE" })).toThrow();
   });
   it("prevents selling into an unrecoverable hand-size deadlock", () => {
     let r = start();
-    const initial = r.game.players[0].ownedCardIds[0];
-    r = act(r, "p1", { type: "SELL_CARD", cardId: initial });
-    r = act(r, "p1", { type: "BUY_CARD", cardId: r.game.players[0].shopCardIds[0] });
     r = act(r, "p1", { type: "BUY_CARD", cardId: r.game.players[0].shopCardIds[0] });
     const before = structuredClone(r);
     expect(() => act(r, "p1", { type: "SELL_CARD", cardId: r.game.players[0].ownedCardIds[0] })).toThrow("남은 구매 횟수");

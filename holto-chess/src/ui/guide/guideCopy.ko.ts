@@ -69,7 +69,7 @@ export const guideCopyKo: GuideCopy = {
     nav: ["기본", "카드 풀", "경제", "라운드", "드래프트", "승점", "탈락", "최종 점수", "어빌리티", "동률·예외"],
     basics: {
       title: "기본 규칙",
-      rows: [["플레이어", `${R.players}명 · 빈 좌석은 AI`], ["카드 풀", `고유 카드 ${R.poolSize}장 공유`], ["시작 BB", `${R.startBB} BB · 시작 카드 1장`], ["라운드 수입", `R2~R5 시작 시 생존자 +${R.roundIncomeBB} BB`], ["상점 카드", `${R.shopSize}장`], ["리롤 / 잠금", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["판매", `기본 가격의 ${R.sellPercent}% (소수점 버림)`], ["제한 시간", `상점 ${R.timers.shop}초 · 드래프트 1픽 ${R.timers.draftPick}초 · R2 배치 ${R.timers.runLoadout}초`]],
+      rows: [["플레이어", `${R.players}명 · 빈 좌석은 AI`], ["카드 풀", `고유 카드 ${R.poolSize}장 공유`], ["시작 BB", `${R.startBB} BB · 시작 카드 없음 (R1 카드 2장을 직접 구매)`], ["라운드 수입", `R2~R5 시작 시 생존자 +${R.roundIncomeBB} BB`], ["상점 카드", `R1 ${R.r1ShopSize}장 · R3~R5 ${R.shopSize}장`], ["리롤 / 잠금", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["판매", `기본 가격의 ${R.sellPercent}% (소수점 버림)`], ["제한 시간", `상점 ${R.timers.shop}초 · 드래프트 1픽 ${R.timers.draftPick}초 · R2 배치 ${R.timers.runLoadout}초`]],
       perRound: { title: "라운드별 한도", round: "라운드", hand: "보유 장수", buys: "구매", rerolls: "리롤", noShop: "상점 없음" },
       prices: "카드 가격 (BB)",
     },
@@ -82,12 +82,12 @@ export const guideCopyKo: GuideCopy = {
       income: [["시작", `${R.startBB} BB`], ["라운드 수입", `+${R.roundIncomeBB} BB (R2~R5)`], ["남은 BB 점수", `⌊BB ÷ ${R.stackScoreUnitBB}⌋`]],
       matchTitle: "정규 경기 BB 보상", matchHead: ["라운드", "승리", "패배"],
       matchRows: [
-        ["R1", `+${R.matchBB.r1.win}`, `+${R.matchBB.r1.loss} (+${R.matchBB.r1.lossStep} × 연패)`],
-        ["R2 RUN · R4 1차전 · R4 승자조", `+${R.matchBB.r2.win} (+${R.matchBB.r2.winStep} × 연승)`, `+${R.matchBB.r2.lossStep} × 연패`],
-        ["R3", `+${R.matchBB.r3.win}`, `+${R.matchBB.r3.loss} (+${R.matchBB.r3.lossStep} × 연패)`],
-        ["R4 생존조 · R5", "—", "—"],
+        ["R1", "0", `+${R.matchBB.r1.base} (+${R.matchBB.r1.step} × 연패)`],
+        ["R2 RUN", "0", `+${R.matchBB.r2.base}`],
+        ["R3", "0", `+${R.matchBB.r3.base} (+${R.matchBB.r3.step} × 연패)`],
+        ["R4 · R5", "0", "0"],
       ],
-      notes: ["연승·연패는 이번 경기 전까지 이어진 횟수입니다.", "카드가 부족해 몰수패하면 BB와 승점을 받지 않습니다.", "구매 한도와 리롤 한도는 라운드마다 초기화됩니다."],
+      notes: ["경기 BB는 진 플레이어만 받습니다. 승리와 Split은 승점만 받습니다.", "연패는 이번 라운드 안에서 이번 경기 전까지 이어진 패배 수입니다. 라운드가 바뀌면 처음부터 셉니다.", "카드가 부족해 몰수패하면 BB와 승점을 받지 않습니다.", "구매 한도와 리롤 한도는 라운드마다 초기화됩니다."],
     },
     rounds: {
       title: "라운드",
@@ -139,7 +139,7 @@ export const guideCopyKo: GuideCopy = {
   },
   abilities: {
     "royal-blood": { style: "처음부터 높은 카드를 쥐고 비싼 카드를 싸게 모으는 빌드.", effect: `시작 카드 1장을 A·K·Q·J·T 중에서 받습니다. 이 랭크의 카드는 상점과 드래프트에서 ${A["royal-blood"].discountPercent}% 가격(소수점 버림)에 삽니다.`, timing: "게임 시작 · 매 구매", notes: ["예: Q 15BB → 7BB, A 20BB → 10BB."] },
-    "target-sniper": { style: "시작 카드를 지키며 그 카드로 승리를 노리는 빌드.", effect: `처음 받은 카드가 BEST 5에 들어간 채로 정규 경기에서 단독 승리하면 +${A["target-sniper"].bb}BB.`, timing: "정규 경기 승리마다 · R2는 RUN마다", notes: ["족보 조건은 없습니다. 하이 카드로 이겨도 받습니다.", "Split이나 Split 뒤 타이브레이크 승리는 받지 않습니다.", "처음 받은 카드를 팔면 발동하지 않고, 다시 사면 조건 충족 시 다시 발동합니다."] },
+    "target-sniper": { style: "무료로 받은 시작 카드를 지키며 그 카드로 승리를 노리는 빌드.", effect: `R1 시작 시 무작위 카드 1장을 무료로 받습니다. 이 카드가 BEST 5에 들어간 채로 정규 경기에서 단독 승리하면 +${A["target-sniper"].bb}BB.`, timing: "정규 경기 승리마다 · R2는 RUN마다", notes: ["족보 조건은 없습니다. 하이 카드로 이겨도 받습니다.", "Split이나 Split 뒤 타이브레이크 승리는 받지 않습니다.", "처음 받은 카드를 팔면 발동하지 않고, 다시 사면 조건 충족 시 다시 발동합니다."] },
     underdog: { style: "가장 싼 2를 모아 마지막 한 방을 노리는 빌드.", effect: `R5에서 2가 포함된 BEST 5로 스트레이트 이상을 만들면 +${A.underdog.points}P.`, timing: "R5 결승 · 승패 무관", notes: ["R1~R4에서는 발동하지 않습니다."] },
     "first-class": { style: "드래프트에서 원하는 카드를 먼저 가져가는 빌드.", effect: "R2·R4 공개 드래프트에서 순위와 관계없이 가장 먼저 고릅니다.", timing: "R2·R4 드래프트", notes: ["나머지 플레이어의 순서는 원래 규칙을 따릅니다."] },
     "golden-hand": { style: "카드를 자주 바꾸며 패를 유연하게 다듬는 빌드.", effect: `개인 상점 카드 +${A["golden-hand"].extraShop}장. 카드를 팔면 기본 가격의 ${A["golden-hand"].refundPercent}%를 돌려받습니다.`, timing: "개인 상점이 있는 라운드 · 판매할 때", notes: ["R2에는 개인 상점이 없어 상점 카드 추가가 없습니다.", "시작 카드도 100%로 팔립니다."] },

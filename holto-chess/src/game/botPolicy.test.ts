@@ -4,11 +4,11 @@ import { BALANCE } from "./config";
 import { buyCard, createGame, getCard, prepareShowdown, type BotShopAction, type BotShopInput } from "./engine";
 import { tutorialBotPolicy } from "../tutorial/tutorialBots";
 
-/** R1 needs two cards, so buy one for the human before every showdown preparation. */
+/** R1 starts empty and needs two cards, so buy both for the human before every showdown preparation. */
 function readyHuman() {
   const state = createGame(2052);
   const me = state.players[0]!;
-  return buyCard(state, me.id, me.shopCardIds[0]!);
+  return buyCard(buyCard(state, me.id, me.shopCardIds[0]!), me.id, me.shopCardIds[1]!);
 }
 
 describe("bot shop policy injection", () => {
@@ -23,16 +23,16 @@ describe("bot shop policy injection", () => {
     const prepared = prepareShowdown(readyHuman(), ["p1"], (input) => { seen.push(input); return { type: "DONE" }; });
     expect(seen.length).toBe(7);
     expect(seen.every((input) => input.playerId !== "p1")).toBe(true);
-    // Every bot stopped at its starting card because the policy asked for nothing.
-    for (const bot of prepared.players.slice(1)) expect(bot.ownedCardIds.length).toBe(1);
+    // Every bot stayed empty-handed because the policy asked for nothing.
+    for (const bot of prepared.players.slice(1)) expect(bot.ownedCardIds.length).toBe(0);
     expect(assertPoolIntegrity(prepared)).toBe(true);
   });
 
   it("refuses an illegal request without bending the rules", () => {
-    const illegal = (input: BotShopInput): BotShopAction => ({ type: "BUY", cardId: input.ownedCards[0]!.id });
+    const illegal = (input: BotShopInput): BotShopAction => ({ type: "BUY", cardId: input.shopCards.length ? "not-in-shop" : "" });
     const prepared = prepareShowdown(readyHuman(), ["p1"], illegal);
     for (const bot of prepared.players.slice(1)) {
-      expect(bot.ownedCardIds.length).toBe(1);
+      expect(bot.ownedCardIds.length).toBe(0);
       expect(bot.stackBB).toBe(BALANCE.startStackBB);
       expect(bot.purchasesThisRound).toBe(0);
     }

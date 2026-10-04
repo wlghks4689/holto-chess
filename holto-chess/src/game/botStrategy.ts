@@ -267,6 +267,22 @@ export function rankBotPurchases(round: Round, player: PlayerState, ownedCards: 
 }
 
 /**
+ * Best affordable two-card buys, scored as one hand. Scoring one card at a time cannot see a pocket
+ * pair or a suited combo, which matters most for the empty R1 hand.
+ */
+export function rankBotPairs(round: Round, player: PlayerState, ownedCards: readonly Card[], options: readonly PricedCard[], context: BotPlanOptions = {}): { cards: [PricedCard, PricedCard]; price: number; plan: BotPlanScore }[] {
+  const seedKey = `${player.id}:${player.points}:${player.stackBB}:pair`;
+  const sharedKnown = [...ownedCards, ...options.map((option) => option.card)];
+  const pairs: { cards: [PricedCard, PricedCard]; price: number; plan: BotPlanScore }[] = [];
+  options.forEach((first, i) => options.slice(i + 1).forEach((second) => {
+    const price = first.price + second.price;
+    if (price > player.stackBB) return;
+    pairs.push({ cards: [first, second], price, plan: scoreBotPlan(round, [...ownedCards, first.card, second.card], player.stackBB - price, seedKey, { ...context, sharedKnown }) });
+  }));
+  return pairs.sort((a, b) => b.plan.utility - a.plan.utility || a.price - b.price);
+}
+
+/**
  * Orders R2's three cards as [anchor, run-1, run-2]. The anchor plays both runs,
  * so each candidate anchor is scored over full head-to-head samples rather than
  * by the in-sample heuristic.
@@ -281,7 +297,7 @@ export function bestRunLoadout(player: PlayerState, cards: readonly Card[]): str
   return ranked[0]!.order.map((card) => card.id);
 }
 
-export function shouldBotReroll(round: Round, player: PlayerState, best: (PricedCard & { plan: BotPlanScore }) | undefined, rerollCost: number): boolean {
+export function shouldBotReroll(round: Round, player: PlayerState, best: { price: number; plan: BotPlanScore } | undefined, rerollCost: number): boolean {
   if ((player.rerollsUsed ?? 0) >= BALANCE.rerollLimits[round] || player.stackBB < rerollCost + 5) return false;
   if (!best) return true;
   const targetEquity: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5 };

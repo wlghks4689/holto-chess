@@ -25,6 +25,7 @@ import { cinematicTimeline } from "./cinematicTimeline";
 type Case = { id: string; screen: string; round: Round; count: number };
 const cases: Case[] = [];
 cases.push({ id: "shop-reroll-interaction", screen: "shop", round: 1, count: 1 });
+cases.push({ id: "shop-r1-golden-hand", screen: "shop", round: 1, count: 0 });
 for (const round of [1,2,3,4,5] as const) {
   for (const count of [...new Set([0, Math.ceil(BALANCE.handLimits[round] / 2), BALANCE.handLimits[round]])]) {
     for (const screen of ["shop", "match", "showdown"]) cases.push({ id:`${screen}-r${round}-${count}`, screen, round, count });
@@ -61,7 +62,7 @@ function InteractiveShop() {
 function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
   if (scene.id === "shop-reroll-interaction") return <InteractiveShop />;
   const { screen, round, count } = scene;
-  const view = qaView(round, count);
+  const view = qaView(round, count, scene.id.endsWith("golden-hand") ? "golden-hand" : undefined);
   const match = qaMatch(round, count, screen.endsWith("headsup") ? false : screen === "showdown-tiebreak" || round >= 4);
   if (screen === "showdown-tiebreak") {
     match.stage = "secondary"; match.group = "loser"; match.tiebreakKind = "SURVIVAL_TIEBREAK";
@@ -91,7 +92,7 @@ function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
   const rows = qaRows(round);
   if (screen === "loadout-two-games") { view.me.loadoutSlots = view.me.ownedCards.map(c=>c.id); return <OnlineLoadout me={view.me} disabled={false} onChange={()=>{}} />; }
   if (screen === "shop" || screen === "prep") {
-    const state = qaGame(round,count);
+    const state = qaGame(round,count,scene.id.endsWith("golden-hand") ? "golden-hand" : undefined);
     if (benefitQa) { state.players[0]!.abilityId = "architect"; state.abilityEvents = [{sequence:1,round,playerId:"p1",abilityId:"architect",reason:"made-hand",bb:60,points:0,savedBB:0}]; }
     return <ShopPanel state={state} act={() => {}} />;
   }

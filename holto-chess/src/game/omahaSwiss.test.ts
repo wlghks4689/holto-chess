@@ -158,7 +158,7 @@ describe("R3 Omaha Swiss", () => {
     expect(resolvePrimary(structuredClone(before))).toEqual(after);
   });
 
-  it("pays only 10BB per win, 15/20/25BB for losses, and no win-streak bonus", () => {
+  it("pays no BB for a win and 10/15/20BB for losses within the round", () => {
     const before = prepared();
     before.players.forEach((p) => { p.winStreak = 5; p.loseStreak = 0; });
     const fixed = poker.findBestFive(before.ownershipCardPool.slice(0, 5).map((e) => e.card));
@@ -171,13 +171,13 @@ describe("R3 Omaha Swiss", () => {
       for (const m of after.roundResults) for (const r of m.rewards!) {
         const won = m.winnerIds.includes(r.playerId);
         expect(r.deltaPoints).toBe(won ? 4 : 0);
-        expect(r.deltaBB).toBe(won ? 10 : 15 + losses[r.playerId] * 5);
+        expect(r.deltaBB).toBe(won ? 0 : 10 + losses[r.playerId] * 5);
         losses[r.playerId] = won ? 0 : losses[r.playerId] + 1;
       }
       const undefeated = after.players.find((p) => p.winStreak === 8)!;
       expect(undefeated.points).toBe(12);
       const loser = after.players.find((p) => p.loseStreak === 3)!;
-      expect(after.roundResults.flatMap((m) => m.rewards!).filter((r) => r.playerId === loser.id).map((r) => r.deltaBB)).toEqual([15, 20, 25]);
+      expect(after.roundResults.flatMap((m) => m.rewards!).filter((r) => r.playerId === loser.id).map((r) => r.deltaBB)).toEqual([10, 15, 20]);
     } finally { spy.mockRestore(); }
   });
 

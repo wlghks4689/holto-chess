@@ -1,10 +1,7 @@
-import { SUIT_SYMBOL } from "../core/poker/cards";
-import { getCard } from "../game/engine";
 import type { ChapterId, StepText, TutorialStep } from "./tutorialTypes";
-import { rankWord } from "./rankWord";
 
 export const EN_CHAPTERS: Record<ChapterId, { title: string; summary: string }> = {
-  1: { title: "Your first match", summary: "Buy a card → ready up → watch → review" },
+  1: { title: "Your first match", summary: "Buy two cards → ready up → watch → review" },
   2: { title: "Two runs", summary: "Open Draft · lead card and RUN lineups" },
   3: { title: "Exactly two hole cards", summary: "Omaha 2+3 · cumulative Points and survival" },
   4: { title: "Your BEST 5", summary: "Unrestricted BEST 5 · winner and survival brackets" },
@@ -14,11 +11,8 @@ export const EN_CHAPTERS: Record<ChapterId, { title: string; summary: string }> 
 type Copy = { title: string; body: StepText; more?: StepText; goal?: string; next?: string };
 const EN_STEPS: Record<string, Copy> = {
   "r1-buy": {
-    title: "Buy one card", goal: "Buy one card from the shop",
-    body: (game) => {
-      const card = getCard(game, game.players[0]!.ownedCardIds[0]!);
-      return [`You have ${rankWord(card.rank)}${SUIT_SYMBOL[card.suit]}. Buying the same rank gives you One Pair to start. Another card is fine too.`];
-    },
+    title: "Buy two cards", goal: "Buy two cards from the shop",
+    body: ["R1 starts with an empty hand. Buy two of the four cards in your shop to build it. Two of the same rank start you with One Pair.", "High cards are strong but expensive. BB you keep pays for later rounds and counts toward your final score."],
     more: ["BB pays for cards and rerolls. Check the price on each buy button.", "Ranks increase from 2 to 10, then J, Q, K, A. Two matching suits alone are not a Flush."],
   },
   "r1-commit": { title: "Ready to play these two cards?", goal: "Press Ready", body: ["Your strongest five cards from two hole cards and five shared board cards compete automatically. Press Ready to begin."] },

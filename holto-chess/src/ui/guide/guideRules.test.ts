@@ -15,12 +15,13 @@ import { abilityThumb, GUIDE_RULES } from "./guideRules";
 const render = (initialView: GuideView) => renderToStaticMarkup(createElement(GameOverviewGuide, { onClose: () => undefined, initialView }));
 
 describe("game guide rules mirror the engine", () => {
-  it("matches the engine's literal R1 BB rewards, R2 draft size and rank points", () => {
+  it("matches the engine's R1 BB rewards, R2 draft size and rank points", () => {
     let state = resolvePrimary(prepareShowdown(createGame(4242, "seeded", 2), []));
     const firstDay = state.matches.filter((match) => match.matchday === 1 && match.winnerIds.length === 1);
     expect(firstDay.length).toBeGreaterThan(0);
     for (const match of firstDay) for (const reward of match.rewards ?? []) {
-      expect(reward.deltaBB).toBe(match.winnerIds.includes(reward.playerId) ? GUIDE_RULES.matchBB.r1.win : GUIDE_RULES.matchBB.r1.loss);
+      // Matchday 1 has no earlier loss this round, so a loss pays the base.
+      expect(reward.deltaBB).toBe(match.winnerIds.includes(reward.playerId) ? 0 : GUIDE_RULES.matchBB.r1.base);
     }
     expect(finalStandings(state).map((row) => row.rankPoints)).toEqual(GUIDE_RULES.rankPoints);
     state = startNextRound(leaveRoundResult(state));

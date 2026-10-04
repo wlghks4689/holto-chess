@@ -69,7 +69,7 @@ export const guideCopyEn: GuideCopy = {
     nav: ["Basics", "Card pool", "Economy", "Rounds", "Draft", "Points", "Elimination", "Final score", "Abilities", "Ties & edge cases"],
     basics: {
       title: "Basics",
-      rows: [["Players", `${R.players} · AI fills empty seats`], ["Card pool", `${R.poolSize} unique cards, shared`], ["Starting BB", `${R.startBB} BB · one starting card`], ["Round income", `+${R.roundIncomeBB} BB to survivors at the start of R2–R5`], ["Shop cards", `${R.shopSize}`], ["Reroll / lock", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["Selling", `${R.sellPercent}% of base price (rounded down)`], ["Time limits", `Shop ${R.timers.shop}s · draft pick ${R.timers.draftPick}s · R2 loadout ${R.timers.runLoadout}s`]],
+      rows: [["Players", `${R.players} · AI fills empty seats`], ["Card pool", `${R.poolSize} unique cards, shared`], ["Starting BB", `${R.startBB} BB · no starting card (buy both R1 cards)`], ["Round income", `+${R.roundIncomeBB} BB to survivors at the start of R2–R5`], ["Shop cards", `R1 ${R.r1ShopSize} · R3–R5 ${R.shopSize}`], ["Reroll / lock", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["Selling", `${R.sellPercent}% of base price (rounded down)`], ["Time limits", `Shop ${R.timers.shop}s · draft pick ${R.timers.draftPick}s · R2 loadout ${R.timers.runLoadout}s`]],
       perRound: { title: "Limits by round", round: "Round", hand: "Hand size", buys: "Buys", rerolls: "Rerolls", noShop: "No shop" },
       prices: "Card prices (BB)",
     },
@@ -82,12 +82,12 @@ export const guideCopyEn: GuideCopy = {
       income: [["Start", `${R.startBB} BB`], ["Round income", `+${R.roundIncomeBB} BB (R2–R5)`], ["Leftover BB score", `⌊BB ÷ ${R.stackScoreUnitBB}⌋`]],
       matchTitle: "BB for regulation matches", matchHead: ["Round", "Win", "Loss"],
       matchRows: [
-        ["R1", `+${R.matchBB.r1.win}`, `+${R.matchBB.r1.loss} (+${R.matchBB.r1.lossStep} × loss streak)`],
-        ["R2 runs · R4 first match · R4 winner group", `+${R.matchBB.r2.win} (+${R.matchBB.r2.winStep} × win streak)`, `+${R.matchBB.r2.lossStep} × loss streak`],
-        ["R3", `+${R.matchBB.r3.win}`, `+${R.matchBB.r3.loss} (+${R.matchBB.r3.lossStep} × loss streak)`],
-        ["R4 survival group · R5", "—", "—"],
+        ["R1", "0", `+${R.matchBB.r1.base} (+${R.matchBB.r1.step} × loss streak)`],
+        ["R2 runs", "0", `+${R.matchBB.r2.base}`],
+        ["R3", "0", `+${R.matchBB.r3.base} (+${R.matchBB.r3.step} × loss streak)`],
+        ["R4 · R5", "0", "0"],
       ],
-      notes: ["A streak counts the consecutive results before this match.", "A forfeit for missing cards earns no BB and no points.", "Buy and reroll limits reset every round."],
+      notes: ["Only the losing player earns match BB. Wins and splits earn points only.", "A loss streak counts the losses in a row earlier in this round; it restarts every round.", "A forfeit for missing cards earns no BB and no points.", "Buy and reroll limits reset every round."],
     },
     rounds: {
       title: "Rounds",
@@ -139,7 +139,7 @@ export const guideCopyEn: GuideCopy = {
   },
   abilities: {
     "royal-blood": { style: "Start with a high card and collect expensive ranks cheaply.", effect: `Your starting card is an A, K, Q, J or T. Cards of those ranks cost ${A["royal-blood"].discountPercent}% (rounded down) in the shop and draft.`, timing: "Game start · every purchase", notes: ["Example: Q 15 BB → 7 BB, A 20 BB → 10 BB."] },
-    "target-sniper": { style: "Guard your starting card and win with it.", effect: `Win a regulation match outright with your starting card in your BEST 5: +${A["target-sniper"].bb} BB.`, timing: "Every regulation win · each R2 run", notes: ["No hand requirement; a high-card win counts.", "Splits and tiebreak wins after a split do not count.", "Selling your starting card turns it off; buying it back turns it on again."] },
+    "target-sniper": { style: "Guard your free starting card and win with it.", effect: `Start R1 with one free random card. Win a regulation match outright with it in your BEST 5: +${A["target-sniper"].bb} BB.`, timing: "Every regulation win · each R2 run", notes: ["No hand requirement; a high-card win counts.", "Splits and tiebreak wins after a split do not count.", "Selling your starting card turns it off; buying it back turns it on again."] },
     underdog: { style: "Collect the cheapest cards, the 2s, for one final strike.", effect: `In R5, a BEST 5 that contains a 2 and is a straight or better earns +${A.underdog.points}P.`, timing: "R5 final · win or lose", notes: ["Does not trigger in R1–R4."] },
     "first-class": { style: "Take the card you want before anyone else in the draft.", effect: "Picks first in the R2 and R4 open drafts, regardless of standing.", timing: "R2 and R4 drafts", notes: ["Everyone else keeps the normal order."] },
     "golden-hand": { style: "Swap cards often and keep your hand flexible.", effect: `+${A["golden-hand"].extraShop} personal shop card. Selling refunds ${A["golden-hand"].refundPercent}% of the base price.`, timing: "Rounds with a personal shop · when selling", notes: ["R2 has no personal shop, so no extra card there.", "Your starting card also sells at 100%."] },
