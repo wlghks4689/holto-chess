@@ -379,6 +379,11 @@ describe("cinematic initial rendering", () => {
     expect(html).toContain("+ 2P 획득");
     expect(html.match(/class="cinema-reward"/g)).toHaveLength(1);
     expect(html).not.toContain("+ 0P 획득");
+    // Most matches no longer pay BB: a zero is left out instead of printing "+ 0BB".
+    const pointsOnly = { ...survival, id: "points-only", rewards: survival.rewards.map((r) => ({ ...r, deltaBB: 0, afterBB: r.beforeBB })) };
+    const pointsHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: pointsOnly, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
+    expect(pointsHtml).toContain("+ 2P 획득");
+    expect(pointsHtml).not.toContain("0BB");
     const regularMatch = { ...survival, id: "regular", group: undefined };
     const regularHtml = renderToStaticMarkup(createElement(ShowdownCinematic, { match: regularMatch, profiles, viewerId: "p1", onComplete: () => {}, elapsedMs: rewardAt }));
     expect(regularHtml).toContain('cinema-status-stamp is-eliminated">탈락');
