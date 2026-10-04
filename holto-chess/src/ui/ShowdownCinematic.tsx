@@ -21,6 +21,7 @@ import { useCinematicMotion } from "./useCinematicMotion";
 import { showdownSeatOrder } from "./showdownSeatOrder";
 import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { RoundProgress } from "./PrepPhase";
+import { ArenaBrand } from "./ArenaBrand";
 import "./cinematic.css";
 import { HighCardDrawNotice, HighCardDrawResult } from "./HighCardDraw";
 import { useTranslation } from "../i18n";
@@ -311,20 +312,21 @@ function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string):
     viewer: seat(ids[0]!), ...(opponents.length === 1 ? { opponent: opponents[0] } : { opponents }) };
 }
 
-function MatchPrepScreen({ match, profiles, viewerId, seconds }: {
-  match: MatchView; profiles: Profile[]; viewerId: string; seconds: number;
+/** Later matches' prep screens reuse the game's own nav so every prep screen in a round looks the same. */
+function MatchPrepScreen({ match, profiles, viewerId, seconds, nav }: {
+  match: MatchView; profiles: Profile[]; viewerId: string; seconds: number; nav?: React.ReactNode;
 }) {
-  return <main className="game-arena"><nav className="match-prep-nav">
-    <div className="brand"><span><img src="/assets/brand/porena-mark.webp" alt="" width="38" height="38" /></span><div><b>PORENA</b><small>TACTICAL POKER AUTOBATTLER</small></div></div>
+  return <main className="game-arena">{nav ?? <nav>
+    <div className="brand"><ArenaBrand /></div>
     <RoundProgress round={match.round} prep={null} />
     <div className="nav-status" />
-  </nav><div className="page-shell" id="top"><GameViewportReset screenKey={`prep:${match.id}`} /><ShowdownPrepPanel round={match.round}
+  </nav>}<div className="page-shell" id="top"><GameViewportReset screenKey={`prep:${match.id}`} /><ShowdownPrepPanel round={match.round}
     playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
     seconds={seconds} matchup={matchPrepView(match, profiles, viewerId)} /></div></main>;
 }
 
-function MatchPrepInterlude({ match, profiles, viewerId, onComplete }: {
-  match: MatchView; profiles: Profile[]; viewerId: string; onComplete: () => void;
+function MatchPrepInterlude({ match, profiles, viewerId, onComplete, nav }: {
+  match: MatchView; profiles: Profile[]; viewerId: string; onComplete: () => void; nav?: React.ReactNode;
 }) {
   const [seconds, setSeconds] = useState(MATCH_PREP_MS / 1000);
   const finish = useRef(onComplete);
@@ -335,7 +337,7 @@ function MatchPrepInterlude({ match, profiles, viewerId, onComplete }: {
     const done = setTimeout(() => finish.current(), MATCH_PREP_MS);
     return () => { clearInterval(timer); clearTimeout(done); };
   }, []);
-  return <MatchPrepScreen match={match} profiles={profiles} viewerId={viewerId} seconds={seconds} />;
+  return <MatchPrepScreen match={match} profiles={profiles} viewerId={viewerId} seconds={seconds} nav={nav} />;
 }
 
 /**
@@ -343,8 +345,8 @@ function MatchPrepInterlude({ match, profiles, viewerId, onComplete }: {
  * steps through shared match slots (with a three-second inter-match result hold), and releases the
  * results at the shared endsAt. Missed frames (hidden tab, reconnect) are skipped, not replayed.
  */
-function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId, identityId, receivedAt, soundSessionId, children }: {
-  matches: MatchView[]; presentation: PresentationView; clock: ServerClock; profiles: Profile[]; viewerId: string; identityId?: string; receivedAt?: number; soundSessionId: string; children: React.ReactNode;
+function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId, identityId, receivedAt, soundSessionId, nav, children }: {
+  matches: MatchView[]; presentation: PresentationView; clock: ServerClock; profiles: Profile[]; viewerId: string; identityId?: string; receivedAt?: number; soundSessionId: string; nav?: React.ReactNode; children: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const [tick, setTick] = useState(() => ({ now: clock.now(), jumped: false }));
@@ -380,26 +382,28 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
   }
   const matchElapsed = elapsed - entry.offsetMs;
   if (match.round < 5 && entry.prepMs && matchElapsed < entry.prepMs) return <MatchPrepScreen key={`${match.id}:prep`} match={match}
-    profiles={profiles} viewerId={viewerId} seconds={Math.ceil((entry.prepMs - matchElapsed) / 1000)} />;
+    profiles={profiles} viewerId={viewerId} seconds={Math.ceil((entry.prepMs - matchElapsed) / 1000)} nav={nav} />;
   const next = progressive ? presentation.matches.find(item => item.offsetMs > entry.offsetMs) : undefined;
   return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} identityId={identityId} soundSessionId={soundSessionId} onComplete={() => {}} elapsedMs={matchElapsed - (entry.prepMs ?? 0)} catchUp={tick.jumped}
     nextMatchSeconds={next ? Math.max(0, Math.ceil((next.offsetMs - elapsed) / 1000)) : undefined} />;
 }
 
 /** Hides scoreboards, logs, final standings and next-stage controls until presentation completes. */
-export function CinematicGate({ matches, profiles, viewerId, identityId, receivedAt, controls = false, presentation, clock, soundSessionId = "game", children }: {
+export function CinematicGate({ matches, profiles, viewerId, identityId, receivedAt, controls = false, presentation, clock, soundSessionId = "game", nav, children }: {
   matches: MatchView[]; profiles: Profile[]; viewerId: string; identityId?: string; receivedAt?: number; controls?: boolean;
   soundSessionId?: string;
+  /** The game's nav, shown on the prep screens between matches. */
+  nav?: React.ReactNode;
   /** Online: server schedule + clock. Without them (local simulation) playback stays client-paced. */
   presentation?: PresentationView; clock?: ServerClock; children: React.ReactNode;
 }) {
   const [completed, setCompleted] = useState<string[]>([]);
   const [prepared, setPrepared] = useState<string[]>([]);
-  if (presentation && clock) return <SyncedCinematicGate matches={matches} presentation={presentation} clock={clock} profiles={profiles} viewerId={viewerId} identityId={identityId} receivedAt={receivedAt} soundSessionId={soundSessionId}>{children}</SyncedCinematicGate>;
+  if (presentation && clock) return <SyncedCinematicGate matches={matches} presentation={presentation} clock={clock} profiles={profiles} viewerId={viewerId} identityId={identityId} receivedAt={receivedAt} soundSessionId={soundSessionId} nav={nav}>{children}</SyncedCinematicGate>;
   const current = matches.find((match) => !completed.includes(match.id));
   if (!current) return <>{children}</>;
   if (current.round < 5 && matches[0]?.id !== current.id && !prepared.includes(current.id)) return <MatchPrepInterlude key={`${current.id}:prep`}
-    match={current} profiles={profiles} viewerId={viewerId} onComplete={() => setPrepared((ids) => [...ids, current.id])} />;
+    match={current} profiles={profiles} viewerId={viewerId} nav={nav} onComplete={() => setPrepared((ids) => [...ids, current.id])} />;
   return <ShowdownCinematic key={current.id} match={current} profiles={profiles} viewerId={viewerId} soundSessionId={soundSessionId} controls={controls} hasNextMatch={matches.some((match) => match.id !== current.id && !completed.includes(match.id))}
     onComplete={() => setCompleted((ids) => [...ids, current.id])} />;
 }

@@ -224,10 +224,11 @@ export function App({ onHome }: { onHome: () => void }) {
     if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
   const reset = () => { setGameVersion((value) => value + 1); setState(createAbilityGame()); };
-  return <CinematicGate key={gameVersion} soundSessionId={`local:${gameVersion}`} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated, abilityId: p.abilityId }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase.startsWith("ABILITY_") ? "ABILITY" : state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
+  const nav = <><nav><a className="brand" href="#top"><ArenaBrand /></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="nav-actions"><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
+      {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}</>;
+  return <CinematicGate key={gameVersion} nav={nav} soundSessionId={`local:${gameVersion}`} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated, abilityId: p.abilityId }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase.startsWith("ABILITY_") ? "ABILITY" : state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {guideOpen ? <RoundGuide round={guideRound} onClose={closeGuide} confirmLabel={manualGuideRound === null ? undefined : t("round.returnToGame")} /> : null}
-    <nav><a className="brand" href="#top"><ArenaBrand /></a><RoundProgress round={state.round} prep={prep} /><div className="nav-status"><div className="nav-actions"><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
-      {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}
+    {nav}
     <div id="top" data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
       <GameViewportReset screenKey={`local:${gameVersion}:${state.round}:${state.phase}`} />
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN) / 1000} />}
