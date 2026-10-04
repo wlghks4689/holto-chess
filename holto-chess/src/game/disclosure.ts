@@ -7,6 +7,12 @@ import type { RoomSnapshot } from "./room";
 /** An opaque slot, not a real card. The UI never renders/evaluates its dummy rank/suit. */
 export const concealedCard = (slot: string): Card => ({ id: `hidden:${slot}`, rank: 2, suit: "c", hidden: true });
 export const presentationComplete = (room: RoomSnapshot, now: number) => !room.presentation || now >= room.presentation.endsAt;
+/**
+ * Cinematic beats are released this far ahead of the shared clock. Clients hold on the last released
+ * beat, so releasing exactly on time turned every alarm or network delay into a visible stall.
+ * Final standings still wait for the real end of the presentation.
+ */
+export const DISCLOSURE_LEAD_MS = 1_500;
 
 export function discloseMatch(view: MatchView, entry: PresentationEntry, startsAt: number, now: number): MatchView | undefined {
   const start = startsAt + entry.offsetMs;
@@ -67,10 +73,10 @@ export function nextDisclosureAt(room: RoomSnapshot, now: number): number | unde
     const match = room.game.roundResults.find(match => match.id === entry.matchId);
     if (!match) continue;
     const start = schedule.startsAt + entry.offsetMs;
-    times.push(start);
+    times.push(start - DISCLOSURE_LEAD_MS);
     times.push(start + entry.durationMs);
     if (entry.offsetMs > 0) times.push(start - INTER_MATCH_HOLD_MS);
-    for (const frame of cinematicTimeline(createMatchView(room.game, match))) times.push(start + (entry.prepMs ?? 0) + frame.at);
+    for (const frame of cinematicTimeline(createMatchView(room.game, match))) times.push(start + (entry.prepMs ?? 0) + frame.at - DISCLOSURE_LEAD_MS);
   }
   return Math.min(...times.filter(time => time > now));
 }

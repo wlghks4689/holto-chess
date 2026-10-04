@@ -5,7 +5,7 @@ import type { PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/
 import { createMatchView, normalizeMatchStandings } from "./matchView";
 import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
-import { concealedCard, discloseMatch, presentationComplete } from "./disclosure";
+import { concealedCard, discloseMatch, DISCLOSURE_LEAD_MS, presentationComplete } from "./disclosure";
 import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
 import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
@@ -85,7 +85,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     full.abilityCues = personalAbilityCues(full.abilityCues ?? [], viewerPlayerId);
     if (complete) return [full];
     const entry = room.presentation?.perPlayer[id]?.find(entry => entry.matchId === match.id);
-    const disclosed = entry && discloseMatch(full, entry, room.presentation!.startsAt, now);
+    const disclosed = entry && discloseMatch(full, entry, room.presentation!.startsAt, now + DISCLOSURE_LEAD_MS);
     return disclosed ? [disclosed] : [];
   });
   const isEliminated = (id: string) => {
