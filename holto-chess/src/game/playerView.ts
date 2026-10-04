@@ -1,7 +1,7 @@
 import { BALANCE, purchaseLimitFor } from "./config";
 import { finalStandings, getCard, getCardPrice } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
-import type { PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
+import type { MatchView, PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
 import { createMatchView, normalizeMatchStandings } from "./matchView";
 import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
@@ -112,6 +112,20 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       ...(!spectator && value.abilityId ? { abilityBenefit: abilityBenefit(visibleAbilityEvents(g.abilityEvents ?? [], g.round, complete,
         new Set(g.roundResults.map(match => match.id)), publicMatches(id)), id) } : {}) };
   };
+  const historyFor = (id: string) => visible && complete ? roundMatches(g).filter((match) => match.playerIds.includes(id)).map((match, index) => ({ ...matchForViewer(match), matchNumber: index + 1 })) : [];
+  const sameIds = (a: readonly MatchView[], b: readonly MatchView[]) => a.length === b.length && a.every((match, i) => match.id === b[i]!.id);
+  const myMatches = visible ? publicMatches(me.id) : [];
+  const myHistory = historyFor(me.id);
+  // Eliminated seats follow every survivor; each match goes out once and perspectives list ids.
+  const spectatorPool = new Map<string, MatchView>();
+  const spectatorViews = isEliminated(me.id) ? g.players.filter((player) => !isEliminated(player.id)).map((player) => {
+    const matches = visible ? publicMatches(player.id) : [];
+    const history = historyFor(player.id);
+    for (const match of [...matches, ...history]) if (!spectatorPool.has(match.id)) spectatorPool.set(match.id, match);
+    return { playerId: player.id, me: privateView(player.id, true), matchIds: matches.map((match) => match.id),
+      ...(sameIds(history, matches) ? {} : { historyIds: history.map((match) => match.id) }),
+      ...(presentationViewFor(room, player.id, now) ? { presentation: presentationViewFor(room, player.id, now) } : {}) };
+  }) : undefined;
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
     ...(complete && ["ROUND_RESULT", "GAME_RESULT"].includes(g.phase) && !g.survival ? { roundAbilityCues:
@@ -140,17 +154,11 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     barrierEndsAt: complete ? barrierDeadline(room) : undefined, waitingOn: complete ? pendingBarrierIds(room) : [],
     me: privateView(me.id),
     ...(showdownPrepView(room, me.id) ? { showdownPrep: showdownPrepView(room, me.id) } : {}),
-    ...(isEliminated(me.id) ? { spectatorViews: g.players.filter((player) => !isEliminated(player.id)).map((player) => ({
-      playerId: player.id,
-      me: privateView(player.id, true),
-      matches: visible ? publicMatches(player.id) : [],
-      roundHistory: visible && complete ? roundMatches(g).filter((match) => match.playerIds.includes(player.id)).map((match, index) => ({ ...matchForViewer(match), matchNumber: index + 1 })) : [],
-      ...(presentationViewFor(room, player.id, now) ? { presentation: presentationViewFor(room, player.id, now) } : {}),
-    })) } : {}),
+    ...(spectatorViews ? { spectatorViews, spectatorMatches: [...spectatorPool.values()] } : {}),
     players: g.players.map((p) => ({ abilityId: p.abilityId, playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
-    matches: visible ? publicMatches(me.id) : [],
+    matches: myMatches,
     roundSummary: visible && complete ? createRoundSummary(g) : [],
-    roundHistory: visible && complete ? roundMatches(g).filter((m) => m.playerIds.includes(me.id)).map((m, index) => ({ ...matchForViewer(m), matchNumber: index + 1 })) : [],
+    ...(sameIds(myHistory, myMatches) ? {} : { roundHistory: myHistory }),
     standings: g.phase === "GAME_RESULT" && complete ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, stackBB: s.stackBB, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound, cards: s.cards, usedCardIds: s.usedCardIds })) : [],
   };
   return structuredClone(view);

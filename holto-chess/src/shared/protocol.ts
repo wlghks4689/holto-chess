@@ -78,11 +78,13 @@ export type PrivatePlayerView = {
   purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
   rerollsUsed: number; rerollLimit: number;
 };
+/** Matches are sent once in `PlayerView.spectatorMatches`; a perspective lists their ids in order. */
 export type SpectatorPlayerView = {
   playerId: string;
   me: PrivatePlayerView;
-  matches: MatchView[];
-  roundHistory: MatchView[];
+  matchIds: string[];
+  /** Omitted when it equals `matchIds`. */
+  historyIds?: string[];
   presentation?: PresentationView;
 };
 export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; abilityId?: AbilityId; runCards?: [Card[], Card[]] };
@@ -110,9 +112,12 @@ export type PlayerView = {
   showdownPrep?: ShowdownPrepView;
   /** Read-only private perspectives, sent only to an eliminated seat. */
   spectatorViews?: SpectatorPlayerView[];
+  /** Every match the spectator perspectives refer to, once each. */
+  spectatorMatches?: MatchView[];
   players: PublicPlayer[];
   matches: MatchView[];
   roundSummary?: RoundSummaryRow[];
+  /** Omitted when it holds the same matches as `matches`; the client numbers them in order. */
   roundHistory?: MatchView[];
   standings: FinalStandingView[];
 };
