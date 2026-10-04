@@ -713,7 +713,29 @@ function pointSnapshot(state: PorenaGameState): Record<string, number> {
   return Object.fromEntries(state.players.filter((p) => !p.eliminated).map((p) => [p.id, p.points]));
 }
 
-function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGameState {
+/** R2: two matches against different opponents, each played as RUN 1 + RUN 2 with the same placement. */
+function resolveSplitRuns(state: PorenaGameState, firstPairs: string[][]): PorenaGameState {
+  const alive = firstPairs.flat();
+  const records = Object.fromEntries(alive.map((id) => [id, emptySwissRecord()]));
+  const history: string[][] = []; const all: MatchResult[] = [];
+  for (const day of [1, 2] as const) {
+    // Match 2 never repeats a match-1 opponent and pairs similar match-1 results, as R1/R3 Swiss does.
+    const pairs = day === 1 ? firstPairs : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
+    const matches = resolveRunMatches(state, pairs);
+    for (const match of matches) {
+      match.matchday = day;
+      for (const reward of match.rewards!) records[reward.playerId]!.score += reward.deltaPoints;
+    }
+    history.push(...pairs); all.push(...matches);
+  }
+  state.matches.push(...all); state.roundResults = all; state.phase = "ROUND_RESULT";
+  rewardAbilityInterest(state);
+  rewardRoundLeader(state);
+  log(state, "R2 매치 2회(RUN 4번) 종료 · 전원 생존", "win", { event: "R2_RUNS_COMPLETE" }); return state;
+}
+
+function resolveRunMatches(state: PorenaGameState, pairs: string[][]): MatchResult[] {
+  const { win, split, sweepBonus } = BALANCE.points.r2Run;
   const decks = pairs.map((ids) => encounterBoards(state, ids, 2));
   const before = pointSnapshot(state);
   const runs: MatchResult[][] = [[], []]; const snapshots: Record<string, number>[] = [];
@@ -722,20 +744,30 @@ function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGame
       const match = resolveParticipants(state, ids, 1, "primary", false, undefined, false, run, [decks[i]![run - 1]!]);
       if (match.winnerIds.length > 1) {
         const previous = structuredClone(state);
-        match.pointAwards = Object.fromEntries(ids.map((id) => [id, BALANCE.points.r2Run.split]));
-        match.pointAwardDetails = Object.fromEntries(ids.map((id) => [id, "SPLIT · +2P · BB 0 · 연승/연패 초기화"]));
-        for (const id of ids) { const p = playerById(state, id); p.points += BALANCE.points.r2Run.split; p.winStreak = 0; p.loseStreak = 0; }
+        match.pointAwards = Object.fromEntries(ids.map((id) => [id, split]));
+        match.pointAwardDetails = Object.fromEntries(ids.map((id) => [id, `SPLIT · +${split}P · BB 0 · 연승/연패 초기화`]));
+        for (const id of ids) { const p = playerById(state, id); p.points += split; p.winStreak = 0; p.loseStreak = 0; }
         rewardAbilities(state, match); captureRewards(previous, state, [match]);
       } else {
         const previous = structuredClone(state);
-        rewardMatchWithLedger(state, match, BALANCE.points.r2Run.win);
+        rewardMatchWithLedger(state, match, win);
         rewardAbilities(state, match); captureRewards(previous, state, [match]);
+      }
+      const first = runs[0]![i];
+      const sweeper = run === 2 && first!.winnerIds.length === 1 && match.winnerIds.length === 1 && first!.winnerIds[0] === match.winnerIds[0] ? match.winnerIds[0]! : undefined;
+      if (sweeper) {
+        // Both RUNs won outright: the bonus lands with RUN 2 so its reward beat and standings include it.
+        playerById(state, sweeper).points += sweepBonus;
+        match.pointAwards![sweeper] = (match.pointAwards![sweeper] ?? 0) + sweepBonus;
+        match.pointAwardDetails![sweeper] = `${match.pointAwardDetails![sweeper] ?? ""} · 완승 보너스 +${sweepBonus}P`;
+        const reward = match.rewards!.find((r) => r.playerId === sweeper)!;
+        reward.deltaPoints += sweepBonus; reward.afterPoints += sweepBonus;
       }
       runs[run - 1]!.push(match);
     });
     snapshots.push(pointSnapshot(state));
   }
-  const matches = pairs.map((ids, i) => {
+  return pairs.map((ids, i) => {
     const a = runs[0]![i]!; const b = runs[1]![i]!;
     // Persist RUN 2 events against the combined match, retaining their run number.
     for (const event of state.abilityEvents ?? []) if (event.matchId === b.id) event.matchId = a.id;
@@ -749,10 +781,6 @@ function resolveSplitRuns(state: PorenaGameState, pairs: string[][]): PorenaGame
         return { ...r, afterBB: end.afterBB, afterPoints: end.afterPoints, deltaBB: r.deltaBB + end.deltaBB, deltaPoints: r.deltaPoints + end.deltaPoints, detail: "RUN1 + RUN2 합계" }; }),
     } satisfies MatchResult;
   });
-  state.matches.push(...matches); state.roundResults = matches; state.phase = "ROUND_RESULT";
-  rewardAbilityInterest(state);
-  rewardRoundLeader(state);
-  log(state, "R2 RUN1·RUN2 종료 · 전원 생존", "win", { event: "R2_RUNS_COMPLETE" }); return state;
 }
 
 function assignSurvivalBoundary(state: PorenaGameState): void {

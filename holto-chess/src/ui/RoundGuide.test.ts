@@ -19,12 +19,12 @@ describe("round guide", () => {
   it("describes the R2 round itself and omits the redundant display notice", () => {
     const html = renderToStaticMarkup(createElement(RoundGuide, { round: 2, onClose: () => undefined, secondsLeft: 17 }));
 
-    expect(html).toContain("대표 카드와 RUN별 보조 카드로 두 번 승부합니다.");
+    expect(html).toContain("같은 배치로 서로 다른 상대와 두 매치, RUN 4번을 승부합니다.");
     expect(html).toContain("기존 카드 2장에 드래프트 카드 1장을 더해 총 3장을 사용합니다.");
     expect(html).toContain("대표 카드 1장과 RUN별 보조 카드 1장씩을 배치합니다.");
-    expect(html).toContain("각 카드 조합으로 한 번씩, 총 두 번의 RUN을 진행합니다.");
+    expect(html).toContain("매치마다 RUN 2번을 진행하고, 상대를 바꿔 한 매치를 더 치릅니다.");
     expect(html).toContain("RUN 1에 나온 카드는 RUN 2에 다시 나오지 않습니다.");
-    expect(html).toContain("RUN별 승리 +4P · Split +2P · 패배 +0P");
+    expect(html).toContain("RUN 승리 +2P · Split +1P · 패배 +0P · 매치 완승 +2P (최대 12P)");
     expect(html).not.toContain("전원 생존");
     expect(html).not.toContain("기존 두 장을 공개하고 8장 공개 풀");
     expect(html).toContain("남은 시간 17초");

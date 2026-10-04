@@ -44,7 +44,7 @@ export const guideCopyEn: GuideCopy = {
     rounds: {
       kicker: "06 · ROUNDS", title: "Every round changes the rules", lead: "All five rounds are a different kind of poker. Take them one at a time.",
       r1: { name: "TWO HAND", tagline: "Start with familiar Hold'em.", bullets: ["You fight with your two cards.", "Five board cards open in the middle.", "The best five of those seven cards (BEST 5) decides the winner.", "Three matches, and nobody is eliminated yet."] },
-      r2: { name: "RUN IT TWICE", tagline: "Three cards, two fights.", bullets: ["Pick one card in the open draft to make three.", "One card is the anchor used in both runs.", "The other two are used once each, in RUN 1 and RUN 2.", "Each run scores its own points."] },
+      r2: { name: "RUN IT TWICE", tagline: "Three cards, two fights.", bullets: ["Pick one card in the open draft to make three.", "One card is the anchor used in both runs.", "The other two are used once each, in RUN 1 and RUN 2.", "You play two matches with that lineup against different opponents; every run scores."] },
       r3: { name: "OMAHA", tagline: "Four cards, but you can't pick freely.", bullets: ["Always exactly 2 of your cards + 3 board cards.", "Three matches.", "Eliminations start here: the bottom two in points leave."] },
       r4: { name: "BEST FIVE", tagline: "Your 5 cards and 5 board cards: best 5 of 10.", bullets: ["The first match splits players into a winner group and a survival group.", "The winner group plays for extra points.", "Only one of the three in the survival group stays."] },
       r5: { name: "THE LAST HAND", tagline: "No board, just your seven cards.", bullets: ["The last four players face off at once.", "Your best five of seven is chosen automatically.", "Then the final score is counted."] },
@@ -83,7 +83,7 @@ export const guideCopyEn: GuideCopy = {
       matchTitle: "BB for regulation matches", matchHead: ["Round", "Win", "Loss"],
       matchRows: [
         ["R1", "0", `+${R.matchBB.r1.base} (+${R.matchBB.r1.step} × loss streak)`],
-        ["R2 runs", "0", `+${R.matchBB.r2.base}`],
+        ["R2 runs", "0", "0"],
         ["R3", "0", `+${R.matchBB.r3.base} (+${R.matchBB.r3.step} × loss streak)`],
         ["R4 · R5", "0", "0"],
       ],
@@ -93,7 +93,7 @@ export const guideCopyEn: GuideCopy = {
       title: "Rounds",
       r1: { name: "HOLD'EM SWISS", tagline: "Hold'em · 3 Swiss matches", specs: [["Players", "8"], ["Cards", "2"], ["Matches", "1v1 Swiss ×3"], ["Points", `Win +${P.r1.win}P · Split +${P.r1.split}P`], ["Rule", "BEST 5 of 2 hole + 5 board"], ["Elimination", "None"]],
         details: ["The same two cards play all three matches. Matches 2 and 3 pair players with similar records."] },
-      r2: { name: "RUN IT TWICE", tagline: `${R.draftCards[2]}-card open draft → split runs`, specs: [["Players", "8"], ["Cards", "3"], ["Matches", "1v1 · 2 runs"], ["Points", `Per run: win +${P.r2Run.win}P · split +${P.r2Run.split}P`], ["Rule", "Anchor 1 + support 1 + board 5"], ["Elimination", "None"]],
+      r2: { name: "RUN IT TWICE", tagline: `${R.draftCards[2]}-card open draft → split runs`, specs: [["Players", "8"], ["Cards", "3"], ["Matches", "1v1 × 2 matches (new opponent) · 2 runs each"], ["Points", `Per run: win +${P.r2Run.win}P · split +${P.r2Run.split}P · match sweep +${P.r2Run.sweepBonus}P`], ["Rule", "Anchor 1 + support 1 + board 5"], ["Elimination", "None"]],
         details: ["No personal shop. The third card comes from the draft.", "RUN 1 = anchor + support 1, RUN 2 = anchor + support 2, on different boards.", `An unfinished loadout is completed automatically after ${R.timers.runLoadout}s.`] },
       r3: { name: "OMAHA SWISS", tagline: "Omaha · 3 Swiss matches", specs: [["Players", "8"], ["Cards", "4"], ["Matches", "1v1 Swiss ×3"], ["Points", `Win +${P.r3.gameWin}P · Split +${P.r3.gameSplit}P`], ["Rule", "Exactly 2 hole + exactly 3 board"], ["Elimination", "Bottom 2 in points"]],
         details: ["Match 1 pairings follow total points (then BB)."] },
@@ -111,7 +111,7 @@ export const guideCopyEn: GuideCopy = {
       title: "Points", head: ["Round", "Match", "Points"],
       rows: [
         ["R1", "Swiss match", `Win +${P.r1.win} · Split +${P.r1.split}`],
-        ["R2", "RUN 1 and RUN 2 each", `Win +${P.r2Run.win} · Split +${P.r2Run.split}`],
+        ["R2", "Every run (2 matches · 4 runs)", `Win +${P.r2Run.win} · Split +${P.r2Run.split} · both runs of a match won +${P.r2Run.sweepBonus}`],
         ["R3", "Swiss match", `Win +${P.r3.gameWin} · Split +${P.r3.gameSplit}`],
         ["R4", "First match", `Win +${P.r4Primary.win} · Split +${P.r4Primary.split} each`],
         ["R4", "Winner group", `+${P.r4WinnerGroup.first} / +${P.r4WinnerGroup.second} / +${P.r4WinnerGroup.third} (tied 2nd +${P.r4WinnerGroup.tiedSecond} each)`],

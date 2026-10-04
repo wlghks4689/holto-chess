@@ -7,7 +7,8 @@ export const FRONT_RUNNER_POINTS: Readonly<Record<Round, number>> = { 1: 3, 2: 4
 /** Every round-point award lives here so engine and UI never carry competing constants. */
 export const ROUND_POINTS = {
   r1: { win: 3, split: 1 },
-  r2Run: { win: 4, split: 2 },
+  /** R2 plays two matches against different opponents, two RUNs each; winning both RUNs of a match adds the sweep bonus. */
+  r2Run: { win: 2, split: 1, sweepBonus: 2 },
   r2Primary: { win: 6, suddenDeathBonus: 0 },
   r2WinnerBracket: { win: 3 },
   r2LoserBracket: { survive: 2 },
@@ -29,9 +30,9 @@ export const BALANCE = {
   roundIncomeBB: 30,
   /**
    * Match BB goes to the loser only: base + step × losses already taken this round. Wins, splits and
-   * forfeits pay nothing; a win already pays in points. R4 and R5 pay no match BB.
+   * forfeits pay nothing; a win already pays in points. R2, R4 and R5 pay no match BB.
    */
-  matchLossBB: { 1: { base: 10, step: 5 }, 2: { base: 10, step: 0 }, 3: { base: 10, step: 5 }, 4: { base: 0, step: 0 }, 5: { base: 0, step: 0 } },
+  matchLossBB: { 1: { base: 10, step: 5 }, 2: { base: 0, step: 0 }, 3: { base: 10, step: 5 }, 4: { base: 0, step: 0 }, 5: { base: 0, step: 0 } },
   purchaseLimits: { 1: 2, 2: 2, 3: 2, 4: 3, 5: 3 },
   sellRate: 0.6,
   stackScoreUnitBB: 10,

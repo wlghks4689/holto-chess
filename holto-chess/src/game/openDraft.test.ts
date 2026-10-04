@@ -123,13 +123,35 @@ describe("open draft rules v2", () => {
       for (const id of m.playerIds) {
         const runs = m.runCards![id]!; expect(runs[0]![0]).toBe(runs[1]![0]); expect(runs[0]![1]).not.toBe(runs[1]![1]);
         expect(new Set(runs.flat()).size).toBe(3);
+        const outright = (i: number) => m.boardWinnerIds[i]!.length === 1 && m.boardWinnerIds[i]!.includes(id);
         for (let i=0;i<2;i++) { const reward = m.runRewards![i]!.find((r) => r.playerId === id)!;
-          expect(reward.deltaPoints).toBe(m.boardWinnerIds[i]!.includes(id) ? m.boardWinnerIds[i]!.length > 1 ? 2 : 4 : 0);
-          if (m.boardWinnerIds[i]!.length > 1) expect(reward.deltaBB).toBe(0);
+          // RUN win 2P, split 1P, loss 0P; winning both RUNs adds the 2P sweep bonus on RUN 2. No match BB.
+          const sweep = i === 1 && outright(0) && outright(1) ? 2 : 0;
+          expect(reward.deltaPoints).toBe((m.boardWinnerIds[i]!.includes(id) ? m.boardWinnerIds[i]!.length > 1 ? 1 : 2 : 0) + sweep);
+          expect(reward.deltaBB).toBe(0);
         }
       }
       const phases = cinematicTimeline(createMatchView(g,m)).map((f) => f.phase);
       expect(phases).toContain("CARD_SWITCH_OUT"); expect(phases).toContain("CARD_SWITCH_IN");
+    }
+  });
+  it("plays two R2 matches against different opponents, up to 12P per player", () => {
+    for (const seed of [789, 11, 12, 13, 14]) {
+      const before = lockRunLoadouts(drafted(r2(seed))); const g = resolvePrimary(before);
+      expect(g.roundResults).toHaveLength(8);
+      expect(g.roundResults.map((m) => m.matchday)).toEqual([1, 1, 1, 1, 2, 2, 2, 2]);
+      for (const p of g.players) {
+        const mine = g.roundResults.filter((m) => m.playerIds.includes(p.id));
+        expect(mine.map((m) => m.matchday)).toEqual([1, 2]);
+        const [first, second] = mine.map((m) => m.playerIds.find((id) => id !== p.id));
+        expect(first).not.toBe(second);
+        const gained = p.points - before.players.find((x) => x.id === p.id)!.points;
+        const sweeps = mine.filter((m) => m.boardWinnerIds.every((w) => w.length === 1 && w[0] === p.id)).length;
+        const runPoints = mine.flatMap((m) => m.boardWinnerIds).reduce((sum, w) => sum + (w.includes(p.id) ? w.length > 1 ? 1 : 2 : 0), 0);
+        expect(gained).toBe(runPoints + 2 * sweeps);
+        expect(gained).toBeLessThanOrEqual(12);
+        expect(p.stackBB).toBe(before.players.find((x) => x.id === p.id)!.stackBB);
+      }
     }
   });
   it("marks direct R3 points-cut eliminations in their showdown reward", () => {

@@ -64,7 +64,7 @@ function OnlineMatch({ match, view }: { match: MatchView; view: PlayerView }) {
   const { t } = useTranslation();
   const name = (id: string) => view.players.find((p) => p.playerId === id)?.name ?? id;
   const matchNumber = match.matchNumber;
-  const stageLabel = match.matchday ? `MATCH ${match.matchday}/3 · ${match.round === 3 && match.matchday === 1 ? "SEED GROUP" : "SWISS PAIRING"}` : match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : t(match.stage === "final" ? "match.final" : match.group === "winner" ? "match.winnerGroup" : match.group === "loser" ? "match.survivalGroup" : match.stage === "secondary" ? "match.second" : "match.first");
+  const stageLabel = match.matchday ? match.round === 2 ? `MATCH ${match.matchday}/2 · RUN IT TWICE` : `MATCH ${match.matchday}/3 · ${match.round === 3 && match.matchday === 1 ? "SEED GROUP" : "SWISS PAIRING"}` : match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : t(match.stage === "final" ? "match.final" : match.group === "winner" ? "match.winnerGroup" : match.group === "loser" ? "match.survivalGroup" : match.stage === "secondary" ? "match.second" : "match.first");
   const outcomeLabel = t(match.stage === "final" ? "match.finalFirst" : match.group === "loser" ? "match.survived" : "match.win");
   return <article className="match-card">
     {match.highCardDraw && <HighCardDrawResult draw={match.highCardDraw} name={name} survival={match.group === "loser"} />}

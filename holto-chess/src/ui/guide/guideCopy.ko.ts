@@ -44,7 +44,7 @@ export const guideCopyKo: GuideCopy = {
     rounds: {
       kicker: "06 · ROUNDS", title: "라운드마다 규칙이 바뀝니다", lead: "다섯 라운드가 모두 다른 포커입니다. 한 번에 하나씩 보세요.",
       r1: { name: "TWO HAND", tagline: "가장 익숙한 홀덤으로 시작합니다.", bullets: ["내 카드 2장으로 싸웁니다.", "가운데 보드 카드 5장이 열립니다.", "7장 중 가장 좋은 5장(BEST 5)으로 승부합니다.", "3번 겨루고, 아직 아무도 탈락하지 않습니다."] },
-      r2: { name: "RUN IT TWICE", tagline: "카드 3장으로 두 번 싸웁니다.", bullets: ["공개 드래프트에서 카드 1장을 골라 3장이 됩니다.", "한 장은 두 판 모두 쓰는 중심 카드입니다.", "나머지 두 장은 RUN 1과 RUN 2에 하나씩 씁니다.", "두 판의 결과가 각각 승점이 됩니다."] },
+      r2: { name: "RUN IT TWICE", tagline: "카드 3장으로 두 번 싸웁니다.", bullets: ["공개 드래프트에서 카드 1장을 골라 3장이 됩니다.", "한 장은 두 판 모두 쓰는 중심 카드입니다.", "나머지 두 장은 RUN 1과 RUN 2에 하나씩 씁니다.", "같은 배치로 상대를 바꿔 두 매치를 치르고, RUN마다 승점을 받습니다."] },
       r3: { name: "OMAHA", tagline: "4장을 가지지만 마음대로 고르지 못합니다.", bullets: ["반드시 내 카드 2장 + 보드 3장으로 5장을 만듭니다.", "3번 겨룹니다.", "이 라운드부터 탈락이 있습니다. 승점 하위 2명이 떠납니다."] },
       r4: { name: "BEST FIVE", tagline: "내 카드 5장과 보드 5장, 10장 중 BEST 5.", bullets: ["첫 경기 결과로 승자조와 생존조가 나뉩니다.", "승자조는 추가 승점을 두고 겨룹니다.", "생존조는 3명 중 1명만 살아남습니다."] },
       r5: { name: "THE LAST HAND", tagline: "보드 없이, 내 카드 7장만으로.", bullets: ["남은 4명이 한 번에 겨룹니다.", "7장 중 가장 좋은 5장이 자동으로 골라집니다.", "끝나면 최종 점수를 계산합니다."] },
@@ -83,7 +83,7 @@ export const guideCopyKo: GuideCopy = {
       matchTitle: "정규 경기 BB 보상", matchHead: ["라운드", "승리", "패배"],
       matchRows: [
         ["R1", "0", `+${R.matchBB.r1.base} (+${R.matchBB.r1.step} × 연패)`],
-        ["R2 RUN", "0", `+${R.matchBB.r2.base}`],
+        ["R2 RUN", "0", "0"],
         ["R3", "0", `+${R.matchBB.r3.base} (+${R.matchBB.r3.step} × 연패)`],
         ["R4 · R5", "0", "0"],
       ],
@@ -93,7 +93,7 @@ export const guideCopyKo: GuideCopy = {
       title: "라운드",
       r1: { name: "HOLD'EM SWISS", tagline: "홀덤 · 스위스 3경기", specs: [["인원", "8"], ["카드", "2"], ["경기", "1:1 스위스 ×3"], ["승점", `승 +${P.r1.win}P · Split +${P.r1.split}P`], ["규칙", "홀 2 + 보드 5 중 BEST 5"], ["탈락", "없음"]],
         details: ["같은 2장으로 3경기를 치릅니다. 2·3경기는 전적이 비슷한 상대와 붙습니다."] },
-      r2: { name: "RUN IT TWICE", tagline: `공개 드래프트 ${R.draftCards[2]}장 → 스플릿 런`, specs: [["인원", "8"], ["카드", "3"], ["경기", "1:1 · RUN ×2"], ["승점", `RUN당 승 +${P.r2Run.win}P · Split +${P.r2Run.split}P`], ["규칙", "앵커 1 + 보조 1 + 보드 5"], ["탈락", "없음"]],
+      r2: { name: "RUN IT TWICE", tagline: `공개 드래프트 ${R.draftCards[2]}장 → 스플릿 런`, specs: [["인원", "8"], ["카드", "3"], ["경기", "1:1 매치 ×2 (상대 변경) · 매치당 RUN ×2"], ["승점", `RUN당 승 +${P.r2Run.win}P · Split +${P.r2Run.split}P · 매치 완승 +${P.r2Run.sweepBonus}P`], ["규칙", "앵커 1 + 보조 1 + 보드 5"], ["탈락", "없음"]],
         details: ["개인 상점이 없습니다. 드래프트로 3장째를 얻습니다.", "RUN 1 = 앵커 + 보조 1, RUN 2 = 앵커 + 보조 2. 두 RUN은 서로 다른 보드입니다.", `배치하지 않으면 ${R.timers.runLoadout}초 뒤 자동으로 완성됩니다.`] },
       r3: { name: "OMAHA SWISS", tagline: "오마하 · 스위스 3경기", specs: [["인원", "8"], ["카드", "4"], ["경기", "1:1 스위스 ×3"], ["승점", `승 +${P.r3.gameWin}P · Split +${P.r3.gameSplit}P`], ["규칙", "홀 정확히 2 + 보드 정확히 3"], ["탈락", "누적 승점 하위 2명"]],
         details: ["1경기 대진은 누적 승점(동점이면 BB) 순서로 정해집니다."] },
@@ -111,7 +111,7 @@ export const guideCopyKo: GuideCopy = {
       title: "승점", head: ["라운드", "경기", "승점"],
       rows: [
         ["R1", "스위스 경기", `승 +${P.r1.win} · Split +${P.r1.split}`],
-        ["R2", "RUN 1 · RUN 2 각각", `승 +${P.r2Run.win} · Split +${P.r2Run.split}`],
+        ["R2", "RUN마다 (매치 2회 · RUN 4번)", `승 +${P.r2Run.win} · Split +${P.r2Run.split} · 한 매치 RUN 2번 모두 승리 +${P.r2Run.sweepBonus}`],
         ["R3", "스위스 경기", `승 +${P.r3.gameWin} · Split +${P.r3.gameSplit}`],
         ["R4", "1차전", `승 +${P.r4Primary.win} · Split 각 +${P.r4Primary.split}`],
         ["R4", "승자조", `+${P.r4WinnerGroup.first} / +${P.r4WinnerGroup.second} / +${P.r4WinnerGroup.third} (공동 2위 각 +${P.r4WinnerGroup.tiedSecond})`],

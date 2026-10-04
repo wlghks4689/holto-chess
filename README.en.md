@@ -37,7 +37,7 @@ R1 8 players ─ R2 8 ─ R3 8 → 6 ─ R4 6 → 4 ─ R5 final standings
 | Round | In one line |
 | --- | --- |
 | **R1 CLASSIC HOLD'EM** | Your 2 cards + a 5-card board. Three familiar Hold'em matches |
-| **R2 RUN IT TWICE** | Draft a third card; one lead card plays in both runs |
+| **R2 RUN IT TWICE** | Draft a third card; one lead card plays in both runs · two matches against different opponents |
 | **R3 OMAHA SWISS** | You hold 4 cards but must use exactly 2 of them + 3 board cards. Eliminations begin |
 | **R4 BEST FIVE OF TEN** | Your 5 cards + a 5-card board. Split into a winner bracket and a survival bracket |
 | **R5 THE LAST HAND** | No board: BEST 5 from your own 7 cards. The final four play it out |
@@ -87,7 +87,7 @@ Every number comes from the game code (`holto-chess/src/game/config.ts`, `engine
 | Match | Win | Loss |
 | --- | --- | --- |
 | R1 | 0 | +10 (+5 × losing streak) → 10 · 15 · 20 |
-| R2 RUN | 0 | +10 (per RUN) |
+| R2 RUN | 0 | 0 |
 | R3 | 0 | +10 (+5 × losing streak) → 10 · 15 · 20 |
 | R4 · R5 | 0 | 0 |
 
@@ -98,12 +98,12 @@ Only the losing player earns match BB. A win pays in points only, and a split sh
 | Round | Players | Cards | Matches | Points | Rule | Elimination |
 | --- | ---: | ---: | --- | --- | --- | --- |
 | **R1** Hold'em Swiss | 8 | 2 | 1-on-1 Swiss ×3 | Win +3P · Split +1P | BEST 5 from 2 hole + 5 board | None |
-| **R2** Run It Twice | 8 | 3 | Draft → 1-on-1 RUN ×2 | Per RUN: win +4P · Split +2P | Lead 1 + support 1 + 5 board | None |
+| **R2** Run It Twice | 8 | 3 | Draft → 1-on-1 match ×2 (2 RUNs each) | Per RUN: win +2P · Split +1P · match sweep +2P (up to 12P) | Lead 1 + support 1 + 5 board | None |
 | **R3** Omaha Swiss | 8 | 4 | 1-on-1 Swiss ×3 | Win +4P · Split +2P | Exactly 2 hole + exactly 3 board | Bottom 2 by points |
 | **R4** Best Five of Ten | 6 | 5 | Draft → shop → match 1 → groups of 3 | Match 1 win +6P · Split +3P | BEST 5 from 5 hole + 5 board | 2 from the survival bracket |
 | **R5** The Last Hand | 4 | 7 | All four at once | +20 / +12 / +5 / +3P | BEST 5 from your 7 cards | Final standings |
 
-- **R2** — There is no personal shop. Arrange your 3 cards as `lead 1 + support 2`: RUN 1 plays lead + support 1, RUN 2 plays lead + support 2, each on its own board.
+- **R2** — There is no personal shop. Arrange your 3 cards as `lead 1 + support 2`: RUN 1 plays lead + support 1, RUN 2 plays lead + support 2, each on its own board. The same lineup plays two matches; the second is against a different opponent with a similar result. Winning both RUNs of a match adds a +2P sweep bonus.
 - **R3** — Match 1 pairs players by cumulative points (BB on ties); matches 2 and 3 pair players with similar records.
 - **R4** — The 3 match-1 winners enter the winner bracket (1st +10P · 2nd +5P · 3rd +3P; tied 2nd gets +3P each). The 3 losers enter the survival bracket (only 1st survives, +0P).
 - **R5** — There is no community board. Tied places share the combined points of those places, split by remaining BB (ICM).

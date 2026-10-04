@@ -90,8 +90,8 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
         onEnter: finishDraft, done: (game) => game.phase === "SHOWDOWN_PRIMARY" || game.roundResults.length > 0,
       },
       { id: "r2-run1", kind: "REVIEW", hold: { matchIndex: 0, at: "RUN_RESULT" }, next: "RUN 2 보기", title: "첫 번째 보드의 결과", body: ["대표 카드와 RUN 1 보조 카드가 쓰였습니다. 다음에는 대표 카드는 그대로, 보조 카드와 보드가 바뀝니다."] },
-      { id: "r2-run2", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "라운드 순위 보기", title: "두 RUN의 승점을 합산해요", body: ["한 RUN에서 졌어도 다른 RUN에서 승점을 얻을 수 있습니다. 두 결과가 모두 반영됩니다."] },
-      { id: "r2-round-result", kind: "REVIEW", focus: "round-results", next: "연습 마치기", title: "R2는 탈락 없이 마무리", body: ["두 RUN에서 얻은 승점과 BB를 확인하세요. 다음 라운드부터는 생존 경쟁도 시작됩니다."] },
+      { id: "r2-run2", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "라운드 순위 보기", title: "두 RUN의 승점을 합산해요", body: ["RUN 승리는 +2P, Split은 +1P입니다. 한 매치의 RUN 2번을 모두 이기면 완승 보너스 +2P를 더 받습니다.", "같은 배치로 상대를 바꿔 한 매치를 더 치릅니다. 체험에서는 두 번째 매치를 자동으로 정산합니다."] },
+      { id: "r2-round-result", kind: "REVIEW", focus: "round-results", next: "연습 마치기", title: "R2는 탈락 없이 마무리", body: ["두 매치, RUN 4번에서 얻은 승점을 확인하세요. 다음 라운드부터는 생존 경쟁도 시작됩니다."] },
     ],
   },
   {
@@ -137,4 +137,4 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
 ];
 
 /** A continued practice keeps the player's own cards. */
-export const TUTORIAL_SEED = 2628;
+export const TUTORIAL_SEED = 2629;
