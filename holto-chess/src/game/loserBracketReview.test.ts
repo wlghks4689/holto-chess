@@ -104,15 +104,14 @@ describe("current R4 loser bracket review", () => {
     expect(presentationViewFor(room, "p3")!.matches.length).toBeGreaterThan(0);
   });
 
-  it("rejects eliminated viewer READY and lets the server timer open the next showdown", () => {
+  it("rejects eliminated viewer READY and lets the server timer end the bots-only game", () => {
     const { room } = bothHumansLose();
     let next = forceBarrier(room, barrierDeadline(room)!)!;
     const end = next.presentation!.endsAt;
     expect(() => applyRoomAction(next, "p1", { type: "READY" }, turnKey(next), end)).toThrow(/관전자는 READY/);
     expect(pendingBarrierIds(next)).toEqual([]);
     next = forceBarrier(next, barrierDeadline(next)!)!;
-    expect(next.game.round).toBe(5);
-    expect(next.game.phase).toBe("SHOWDOWN_PRIMARY");
+    expect(next.game.phase).toBe("GAME_RESULT");
   });
 
   it("does not require eliminated viewers to confirm while a human survivor remains", () => {

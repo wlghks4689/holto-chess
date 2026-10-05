@@ -40,7 +40,9 @@ describe("release audit: real v2 room loop", () => {
       }
     }
     expect(room.game.phase).toBe("GAME_RESULT");
-    expect([...rounds]).toEqual([1, 2, 3, 4, 5]);
+    // With every human out after R4, the bots' R5 is skipped straight to the final standings.
+    const humanAlive = room.sessions.some((s) => !room.game.players.find((p) => p.id === s.playerId)!.eliminated);
+    expect([...rounds]).toEqual(humanAlive ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]);
     expect(phases.has("OPEN_DRAFT")).toBe(true);
     expect(phases.has("RUN_LOADOUT")).toBe(true);
     expect(room.game.players.filter((p) => !p.eliminated)).toHaveLength(4);

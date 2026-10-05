@@ -16,6 +16,8 @@ export const BARRIER_TIMEOUT_MS = {
   GROUP_REVIEW: 10_000,
   RUN_LOADOUT: 30_000,
   BOT_DRAFT_PICK: 1_800,
+  /** Result review after the last human is eliminated, before the bots' game is skipped to the end. */
+  ALL_OUT_RESULT: 5_000,
 } as const;
 export function barrierTimeoutMs(phase: string): number {
   if (phase === "OPEN_DRAFT") return 20_000;

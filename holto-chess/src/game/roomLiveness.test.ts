@@ -179,10 +179,37 @@ describe("leaving a room", () => {
     expect(createPlayerView(room, "p1", ["p1", "p2"], T0).waitingOn).toEqual([]);
     expect(() => act(room, "p1", { type: "READY" }, T0)).toThrow(/관전자는 READY/);
 
-    const forced = forceBarrier(room, T0 + barrierTimeoutMs(room.game.phase));
-    expect(forced).not.toBeNull();
-    expect(forced!.game.phase).not.toBe("ROUND_RESULT");
+    // Forcing it ends the game for the bots; a real game covers that in the test below.
+    expect(barrierDeadline(room)).toBe(T0 + BARRIER_TIMEOUT_MS.ALL_OUT_RESULT);
   });
+
+  it("ends the game for the bots once every human is eliminated, so the room can rematch", () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      let room = started(2, seed);
+      const humansOut = (r: RoomSnapshot) => ["p1", "p2"].every((id) => r.game.players.find((p) => p.id === id)!.eliminated);
+      for (let step = 0; step < 200 && room.game.phase !== "GAME_RESULT" && !humansOut(room); step++) {
+        const next = forceBarrier(room, barrierDeadline(room) ?? T0);
+        if (!next) break;
+        room = next;
+      }
+      if (room.game.phase === "GAME_RESULT") continue;
+      // The last elimination stays on screen for its cinematic plus a short review, not the 30s spectator timer.
+      expect(room.game.phase).toBe("ROUND_RESULT");
+      const reviewEnds = Math.max(room.barrierSince!, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.ALL_OUT_RESULT;
+      expect(barrierDeadline(room)).toBe(reviewEnds);
+      expect(room.game.round).toBeLessThan(5);
+      const ended = forceBarrier(room, reviewEnds)!;
+      expect(ended.game.phase).toBe("GAME_RESULT");
+      expect(createPlayerView(ended, "p1", ["p1", "p2"], reviewEnds).presentation?.complete).toBe(true);
+      let rematch = act(ended, "p1", { type: "FINAL_RESULTS_VIEWED" }, reviewEnds);
+      rematch = act(rematch, "p1", { type: "REMATCH_READY" }, reviewEnds);
+      rematch = act(rematch, "p2", { type: "REMATCH_READY" }, reviewEnds);
+      expect(rematch.game.phase).not.toBe("GAME_RESULT");
+      expect(rematch.gameGeneration).toBe(1);
+      return;
+    }
+    throw new Error("no seed eliminated both humans");
+  }, 120_000);
 
   it("every human leaving still lets the game finish on bots", () => {
     let room = started(2);

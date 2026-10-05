@@ -113,6 +113,27 @@ function waitingForSpectatorTimer(room: RoomSnapshot): boolean {
     && activeHumans(room).length === 0 && controlledHumanIds(room).length > 0;
 }
 
+/** Every seated human is eliminated (seats that left don't count): only bots are still playing. */
+function humansAllOut(room: RoomSnapshot): boolean {
+  return room.status === "PLAYING" && room.game.phase !== "GAME_RESULT" && !activeHumans(room).length
+    && room.sessions.some((s) => room.game.players.find((p) => p.id === s.playerId)!.eliminated);
+}
+
+/**
+ * Plays the bots' remaining rounds instantly and opens the final standings without a cinematic,
+ * so eliminated humans can start a new game instead of spectating bots.
+ */
+function finishForBots(room: RoomSnapshot, now: number): void {
+  for (let guard = 0; guard < 400 && room.game.phase !== "GAME_RESULT"; guard += 1) {
+    if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
+    else if (room.game.phase === "OPEN_DRAFT") room.game = isDraftRevealing(room.game) ? completeDraft(room.game) : autoPickDraft(room.game, true);
+    else if (room.game.phase === "ABILITY_PICK") room.game = autoPickAbility(room.game);
+    else advanceReadyBarrier(room);
+  }
+  syncPresentation(room, now);
+  if (room.presentation) room.presentation.endsAt = now;
+}
+
 /** The finished draft is held on screen for everyone; nobody acts, the server clock ends it. */
 function waitingForDraftReveal(room: RoomSnapshot): boolean {
   return room.status === "PLAYING" && isDraftRevealing(room.game);
@@ -151,6 +172,8 @@ function refreshBarrier(room: RoomSnapshot, now: number): void {
  */
 export function barrierDeadline(room: RoomSnapshot): number | undefined {
   if (room.barrierSince === undefined) return undefined;
+  // The last human's elimination result gets a short look, then the game ends for the bots.
+  if (room.game.phase === "ROUND_RESULT" && humansAllOut(room)) return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.ALL_OUT_RESULT;
   if (waitingForDraftReveal(room)) return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.DRAFT_REVEAL;
   const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId
     : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.order[room.game.abilityDraft.picks.length] : undefined;
@@ -197,7 +220,9 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
  * next one too - with every human gone there is nobody left to wait for - so it
  * keeps stepping while nothing is pending and the phase still moves.
  */
-function settleBarrier(room: RoomSnapshot): void {
+function settleBarrier(room: RoomSnapshot, now: number): void {
+  // Keep the elimination result on screen; anything after it is bots only.
+  if (humansAllOut(room) && room.game.phase !== "ROUND_RESULT") { finishForBots(room, now); return; }
   for (let guard = 0; guard < 64; guard += 1) {
     if (room.status === "PLAYING" && room.game.phase === "NEXT_ROUND") { advanceReadyBarrier(room); continue; }
     if (room.status !== "PLAYING" || pendingBarrierIds(room).length || waitingForSpectatorTimer(room) || waitingForDraftReveal(room)) return;
@@ -260,7 +285,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     if (room.status === "LOBBY") {
       const remaining = controlledHumanIds(room);
       if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; }
-    } else settleBarrier(room);
+    } else settleBarrier(room, now);
   } else if (room.status === "LOBBY") {
     if (action.type !== "READY") throw new Error("아직 게임이 시작되지 않았습니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
@@ -333,7 +358,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
         break;
     }
   }
-  settleBarrier(room);
+  settleBarrier(room, now);
   captureShopBalances(room);
   syncPresentation(room, now);
   refreshBarrier(room, now);
@@ -368,7 +393,7 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
     room.readyIds = [...new Set([...room.readyIds, ...pending])];
     advanceReadyBarrier(room);
   }
-  settleBarrier(room);
+  settleBarrier(room, now);
   captureShopBalances(room);
   syncPresentation(room, now);
   refreshBarrier(room, now);
