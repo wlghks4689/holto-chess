@@ -89,4 +89,11 @@ body:has(.ability-draft-dialog[open]){overflow:hidden}
 .ability-gather-ghost{position:absolute;pointer-events:none;opacity:.32;animation:ability-ghost-out .34s ease-in forwards}
 @keyframes ability-ghost-out{to{opacity:0;transform:scale(.88)}}
 .ability-motion-enabled.is-ability_reveal .ability-draft-heading>*{animation:ability-card-reveal .45s ease-out .2s both}
-.ability-motion-enabled.is-ability_reveal .ability-reveal-actions{animation:ability-card-reveal .45s ease-out .9s both}
+.ability-motion-enabled.is-ability_reveal .ability-reveal-actions{animation:ability-card-reveal .45s ease-out 1.3s both}
+/* PC reveal: tighter top so the two card rows and the Ready button fit one screen (768px tall and up). */
+@media(min-width:769px){
+  .game-arena .ability-selection.is-ability_reveal{margin-block:6px 12px;padding-block:6px 12px}
+  .game-arena .ability-selection.is-ability_reveal .ability-draft-heading{min-height:0}
+  .game-arena .ability-selection.is-ability_reveal h2{margin-bottom:20px}
+  .game-arena .ability-selection.is-ability_reveal .ability-back-grid{width:min(100%,900px,calc((100dvh - 320px) * 4 / 3))}
+}

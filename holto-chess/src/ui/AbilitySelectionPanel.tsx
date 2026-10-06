@@ -12,9 +12,11 @@ import { useTranslation } from "../i18n";
 import "./abilitySelection.css";
 
 type Box = { left: number; top: number; width: number; height: number };
-// The last pick finishes turning over before the eight cards glide into the reveal grid.
+// The last pick finishes turning over, then the eight cards gather into one stack and deal out to
+// the reveal grid. Straight slides from the 6-column draft to the 4-column reveal cross each other.
 const GATHER_DELAY_MS = 380;
-const GATHER_MS = 620;
+const GATHER_MS = 900;
+const GATHER_STAGGER_MS = 35;
 
 export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = false }: { view: PlayerView; send: (action: GameAction) => void; seconds?: number; disabled?: boolean }) {
   const { t } = useTranslation();
@@ -38,8 +40,9 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
     return () => { element?.close(); };
   }, []);
   const phase = view.phase;
-  // PICK -> REVEAL: remember where every slot sat, then slide the picked cards from there (FLIP)
-  // while the unpicked ones fade out in place. Joining straight into REVEAL just shows the grid.
+  // PICK -> REVEAL: remember where every slot sat, then move the picked cards from there through a
+  // stack at the grid centre to their reveal spots (FLIP) while the unpicked ones fade out in place.
+  // Joining straight into REVEAL just shows the grid.
   useLayoutEffect(() => {
     const root = section.current;
     if (!root) return;
@@ -55,14 +58,20 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
     pickBoxes.current = null;
     if (phase !== "ABILITY_REVEAL" || !before || !motionEnabled) return;
     const after = measure();
-    for (const [slot, to] of after) {
+    const base = root.getBoundingClientRect(), grid = root.querySelector(".ability-back-grid")!.getBoundingClientRect();
+    const centerX = grid.left + grid.width / 2 - base.left, centerY = grid.top + grid.height / 2 - base.top;
+    [...after].forEach(([slot, to], index) => {
       const from = before.get(slot), element = root.querySelector<HTMLElement>(`[data-slot="${slot}"]`);
-      if (!from || !element || !to.width) continue;
+      if (!from || !element || !to.width) return;
+      const scale = from.width / to.width, depth = (index - (after.size - 1) / 2) * 3;
+      const stackX = centerX - to.width * scale / 2 + depth - to.left, stackY = centerY - to.height * scale / 2 - depth - to.top;
       element.animate([
-        { transformOrigin: "top left", transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width})` },
-        { transformOrigin: "top left", transform: "none" },
-      ], { duration: GATHER_MS, delay: GATHER_DELAY_MS, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
-    }
+        { offset: 0, easing: "cubic-bezier(.4,0,.2,1)", transformOrigin: "top left", transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${scale})` },
+        { offset: 0.42, easing: "linear", transformOrigin: "top left", transform: `translate(${stackX}px, ${stackY}px) scale(${scale})` },
+        { offset: 0.5, easing: "cubic-bezier(.2,.8,.2,1)", transformOrigin: "top left", transform: `translate(${stackX}px, ${stackY}px) scale(${scale})` },
+        { offset: 1, transformOrigin: "top left", transform: "none" },
+      ], { duration: GATHER_MS, delay: GATHER_DELAY_MS + index * GATHER_STAGGER_MS, fill: "backwards" });
+    });
     setGhosts([...before].filter(([slot, box]) => !after.has(slot) && box.width > 0).map(([, box]) => box));
   }, [phase, draft?.pickedCount, motionEnabled]);
   useEffect(() => {
