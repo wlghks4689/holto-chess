@@ -496,6 +496,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "pool.owned": "Player-owned {count}",
   "shop.myCards": "My Cards",
   "shop.stack": "Stack:",
+  "shop.currentHand": "Current hand",
   "shop.cannotSell": "Cannot sell",
   "shop.sellConfirm": "Sell {card}?",
   "shop.sellRefund": "Sale return: {refund}BB ({percent}% of original price)",

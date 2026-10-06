@@ -181,7 +181,7 @@ h1 { margin:0; font-family:Georgia,'Times New Roman',serif; font-size:clamp(38px
 .showdown-hand.uses-five-cards .showdown-hand-name small{margin-left:8px}
 .run-winner{color:var(--mint);font-weight:800;margin:12px 0 0}
 .board,.showdown-hand{--made-color:#84f5b6}
-.made-trips{--made-color:#fb923c}.made-straight{--made-color:#fbbf24}.made-flush{--made-color:#38bdf8}.made-full-house{--made-color:#a78bfa}.made-quads{--made-color:#fb7185}.made-straight-flush{--made-color:#c084fc}.made-royal{--made-color:#fde68a}
+.made-trips{--made-color:#fb923c}.made-straight{--made-color:#fbbf24}.made-flush{--made-color:#38bdf8}.made-full-house{--made-color:#a78bfa}.made-quads{--made-color:#fb7185}.made-straight-flush{--made-color:#f0abfc}.made-royal{--made-color:#fde68a}
 .winner .showdown-hand-name{color:var(--made-color);text-shadow:0 0 14px color-mix(in srgb,var(--made-color) 55%,transparent)}
 .board .playing-card.glow,.showdown-hand .playing-card.glow{position:relative;z-index:1;transform:scale(1.04);filter:brightness(1.16) contrast(1.1) saturate(1.12);box-shadow:0 0 5px var(--made-color),0 0 18px color-mix(in srgb,var(--made-color) 55%,transparent);animation:none}
 .board .playing-card.dimmed{opacity:.35;filter:brightness(.63) contrast(.8) saturate(.4) grayscale(.43)}
@@ -381,3 +381,9 @@ nav{border-color:var(--line);background:rgba(3,10,20,.78);box-shadow:0 10px 34px
 .final-exit-actions{display:flex;justify-content:center;gap:10px;margin:14px 0 4px;padding:14px;border:1px solid var(--line-strong);border-radius:10px;background:rgba(3,13,25,.82)}
 .final-exit-actions button{min-width:180px}.final-exit-actions button span{margin-left:12px}
 @media(max-width:620px){.final-exit-actions{display:grid;grid-template-columns:1fr;padding:10px}.final-exit-actions button{width:100%;min-width:0}}
+/* PC shop: current made hand under my cards. The stacked <=768px layout has no spare height, so it stays hidden there. */
+.owned-hand-label{display:flex;align-items:baseline;justify-content:center;gap:10px;width:fit-content;max-width:100%;margin:28px auto 0;padding:9px 20px;border:1px solid #2c5263;border-radius:999px;background:rgba(4,20,32,.62);font-family:Manrope,'Noto Sans KR','Malgun Gothic',sans-serif}
+.owned-hand-label small{color:#8fb3c2;font-size:12px;font-weight:700;letter-spacing:.04em}
+.owned-hand-label strong{color:var(--made-color,#e6f4ee);font-size:20px;line-height:1.2;text-shadow:0 0 12px color-mix(in srgb,var(--made-color,#7de7ed) 35%,transparent)}
+.owned-hand-label span{color:#9fb8c4;font-size:12px}
+@media(max-width:768px){.owned-hand-label{display:none}}

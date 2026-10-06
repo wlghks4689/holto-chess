@@ -13,7 +13,7 @@
 .hand-score-table th[data-category=FLUSH]{color:#38bdf8}
 .hand-score-table th[data-category=FULL_HOUSE]{color:#a78bfa}
 .hand-score-table th[data-category=QUADS]{color:#fb7185}
-.hand-score-table th[data-category=STRAIGHT_FLUSH]{color:#c084fc}
+.hand-score-table th[data-category=STRAIGHT_FLUSH]{color:#f0abfc}
 .hand-score-table th[data-category=ROYAL_FLUSH]{color:#e2efff}
 .hand-score-table+.hand-score-note{margin:7px 0}
 .hand-score-close{display:block;margin:6px 0 0 auto;min-height:36px;padding:5px 12px;border:1px solid #31596b;border-radius:6px;background:#102e3b;color:#cfe6ec;font-size:12px;cursor:pointer}

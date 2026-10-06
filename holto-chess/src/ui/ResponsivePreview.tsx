@@ -1,6 +1,6 @@
 import { ArenaBrand } from "./ArenaBrand";
 import { GameViewportReset } from "./GameViewportReset";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createGame } from "../game/engine";
 import { BALANCE, cardPrice } from "../game/config";
 import { ABILITY_IDS, type AbilityId } from "../game/abilities";
@@ -36,6 +36,7 @@ for (const round of [1,2,3,4,5] as const) {
   cases.push({ id:`results-r${round}`, screen:"results", round, count:BALANCE.handLimits[round] });
 }
 for (const count of [0,1,4,7,8]) cases.push({ id:`ability-${count}`, screen:"ability", round:1, count });
+cases.push({ id:"ability-transition", screen:"ability", round:1, count:7 });
 cases.push({ id:"ability-8-full-preview", screen:"ability-full-preview", round:1, count:8 });
 cases.push({ id:"ability-8-logo-only-preview", screen:"ability-logo-only-preview", round:1, count:8 });
 cases.push({ id:"ability-8-two-column-preview", screen:"ability-two-column-preview", round:1, count:8 });
@@ -63,8 +64,16 @@ function InteractiveShop() {
   return <ShopPanel state={state} act={fn => setState(previous => fn(previous))} />;
 }
 
+/** The last ability pick lands 1.5s in, so the PICK -> REVEAL transition can be watched. */
+function AbilityTransition() {
+  const [count, setCount] = useState(7);
+  useEffect(() => { const timer = setTimeout(() => setCount(8), 1500); return () => clearTimeout(timer); }, []);
+  return <Scene scene={{ id:"ability-transition-step", screen:"ability", round:1, count }} interactive={false} />;
+}
+
 function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
   if (scene.id === "shop-reroll-interaction") return <InteractiveShop />;
+  if (scene.id === "ability-transition") return <AbilityTransition />;
   const { screen, round, count } = scene;
   const view = qaView(round, count, scene.id.endsWith("golden-hand") ? "golden-hand" : undefined);
   const match = qaMatch(round, count, screen.endsWith("headsup") ? false : screen === "showdown-tiebreak" || round >= 4);

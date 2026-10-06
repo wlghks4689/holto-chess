@@ -494,6 +494,7 @@ export const koKR = {
   "pool.owned": "플레이어 보유 {count}",
   "shop.myCards": "내 카드",
   "shop.stack": "스택 :",
+  "shop.currentHand": "현재 족보",
   "shop.cannotSell": "판매 불가",
   "shop.sellConfirm": "{card}를 판매합니다.",
   "shop.sellRefund": "판매 BB는 {refund}BB입니다. (원가의 {percent}%)",

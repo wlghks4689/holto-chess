@@ -158,7 +158,7 @@ main.game-arena:has(.cinema-final)::before{background-image:none}
 .cinema-card-open{animation:cinema-flip var(--flip-duration,.22s) ease-out both;perspective:800px}
 .cinema-card-open.cinema-river{animation:cinema-river-impact var(--river-duration,.4s) ease-out both}
 .cinema-suspense{animation:cinema-suspense var(--suspense-duration,.25s) ease-in both}
-.cinema .made-straight{--made-color:#fbbf24}.cinema .made-flush{--made-color:#38bdf8}.cinema .made-full-house{--made-color:#a78bfa}.cinema .made-quads{--made-color:#fb7185}.cinema .made-straight-flush{--made-color:#c084fc}.cinema .made-royal{--made-color:#fde68a}
+.cinema .made-straight{--made-color:#fbbf24}.cinema .made-flush{--made-color:#38bdf8}.cinema .made-full-house{--made-color:#a78bfa}.cinema .made-quads{--made-color:#fb7185}.cinema .made-straight-flush{--made-color:#f0abfc}.cinema .made-royal{--made-color:#fde68a}
 .cinema .playing-card.glow{position:relative;z-index:2;transform:scale(1.025);filter:none;box-shadow:0 0 0 1px color-mix(in srgb,var(--made-color) 78%,white),0 0 14px color-mix(in srgb,var(--made-color) 58%,transparent);animation:none}
 .cinema .playing-card.dimmed{opacity:.4;filter:brightness(.72) saturate(.5)}
 /* Community cards must remain readable even when excluded from the focused BEST 5. */

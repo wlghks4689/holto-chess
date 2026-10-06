@@ -84,3 +84,9 @@ body:has(.ability-draft-dialog[open]){overflow:hidden}
   .ability-selection .ability-selection-turn{width:min(100%,900px)}
   .game-arena .ability-selection .ability-back-grid{width:min(100%,900px,calc((100dvh - 280px) * var(--ability-columns,5) / 3));gap:12px}
 }
+/* PICK -> REVEAL gather: unpicked slots fade where they were, the reveal copy settles in after the cards. */
+.ability-selection{position:relative}
+.ability-gather-ghost{position:absolute;pointer-events:none;opacity:.32;animation:ability-ghost-out .34s ease-in forwards}
+@keyframes ability-ghost-out{to{opacity:0;transform:scale(.88)}}
+.ability-motion-enabled.is-ability_reveal .ability-draft-heading>*{animation:ability-card-reveal .45s ease-out .2s both}
+.ability-motion-enabled.is-ability_reveal .ability-reveal-actions{animation:ability-card-reveal .45s ease-out .9s both}
