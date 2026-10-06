@@ -5,6 +5,7 @@ import type { GameAction, PlayerView, ServerMessage, SessionCredential } from ".
 import type { RoomSnapshot } from "../../src/game/room";
 import { assertPoolIntegrity, releasePlayerCards } from "../../src/game/cardPool";
 import { createMatchView } from "../../src/game/matchView";
+import { DISCLOSURE_LEAD_MS } from "../../src/game/disclosure";
 import { cinematicTimeline } from "../../src/shared/presentationTimeline";
 
 const origin = "https://porena.test";
@@ -97,9 +98,19 @@ async function inspectPresentation(roomId: string, clients: Awaited<ReturnType<t
   for (const entry of entries) {
     const match = saved.game.roundResults.find(match => match.id === entry.matchId)!;
     if (entry.offsetMs) times.add(entry.offsetMs - 1);
+    // NET001 authorizes the next match/beat 1.5s early. Sample both sides of
+    // that release boundary as well as the cinematic's playback boundaries.
+    if (entry.offsetMs >= DISCLOSURE_LEAD_MS) {
+      times.add(entry.offsetMs - DISCLOSURE_LEAD_MS - 1);
+      times.add(entry.offsetMs - DISCLOSURE_LEAD_MS);
+    }
     for (const frame of cinematicTimeline(createMatchView(saved.game, match))) {
       const elapsed = entry.offsetMs + (entry.prepMs ?? 0) + frame.at;
       if (elapsed < duration) times.add(elapsed);
+      if (elapsed >= DISCLOSURE_LEAD_MS && elapsed - DISCLOSURE_LEAD_MS < duration) {
+        times.add(elapsed - DISCLOSURE_LEAD_MS - 1);
+        times.add(elapsed - DISCLOSURE_LEAD_MS);
+      }
     }
   }
   let deliveries = 0;
@@ -117,9 +128,14 @@ async function inspectPresentation(roomId: string, clients: Awaited<ReturnType<t
       await instance.alarm();
       return current.presentation!.startsAt;
     });
-    await Promise.all(clients.map((client, index) => client.wait(message => client.messages.indexOf(message) >= after[index]! && message.type === "PLAYER_VIEW")));
-    for (const client of clients) {
-      const view = client.view();
+    const observed = await Promise.all(clients.map((client, index) => client.wait(message =>
+      client.messages.indexOf(message) >= after[index]! && message.type === "PLAYER_VIEW"
+      && message.payload.presentation?.startsAt === epoch)));
+    for (const message of observed) {
+      if (message.type !== "PLAYER_VIEW") throw new Error("Expected a presentation view");
+      // Inspect the payload from this re-based epoch, not an earlier queued
+      // alarm or a later broadcast racing client.view().
+      const view = message.payload;
       const actualElapsed = view.serverNow - epoch;
       const presentation = view.presentation!;
       waitingForTablesObserved ||= !!presentation.waitingForTables;
@@ -131,7 +147,8 @@ async function inspectPresentation(roomId: string, clients: Awaited<ReturnType<t
         expect(view.roundHistory ?? []).toEqual([]);
         for (const match of view.matches) {
           const entry = schedule.perPlayer[view.me.playerId]!.find(entry => entry.matchId === match.id)!;
-          expect(entry.offsetMs).toBeLessThanOrEqual(actualElapsed);
+          expect(entry.offsetMs).toBeLessThanOrEqual(actualElapsed + DISCLOSURE_LEAD_MS);
+          expect(match.disclosure!.elapsedMs).toBe(actualElapsed + DISCLOSURE_LEAD_MS - entry.offsetMs - (entry.prepMs ?? 0));
           expect(match.disclosure!.frames.every(frame => frame.at <= Math.max(0, match.disclosure!.elapsedMs))).toBe(true);
         }
       }
@@ -398,12 +415,19 @@ describe("GameRoom in the Cloudflare runtime", () => {
       expect(enteredMatches).toBeGreaterThan(10);
       console.log(JSON.stringify({ securityFlow: "ticket/shared-IP R1-R5", prefixBoundaries, prefixDeliveries, enteredMatches, waitingForTablesObserved, cinematicReconnected, spectatorObserved, reconnectedPhases: reconnected.size }));
     }
-    if (!ip) expect(clients[0].view().standings).toEqual([]);
+    // With two/four random human hands, all humans can be eliminated before R5.
+    // NET002 then settles the bots after the elimination cinematic + hold and
+    // intentionally arrives with an already-complete final presentation.
+    const botsOnly = clients[0].view().players.filter(player => player.human).every(player => !player.alive);
+    if (!ip) {
+      expect(clients[0].view().presentation?.complete).toBe(botsOnly);
+      expect(clients[0].view().standings).toHaveLength(botsOnly ? 8 : 0);
+    }
     const sessionBefore = await exports.default.fetch(`${origin}/api/rooms/${a.roomId}/session`, { method: "POST", headers: { Origin: origin, "X-Porena-Session": a.token } });
     expect(sessionBefore.status).toBe(204);
     const unreleasedExpiry = await runInDurableObject(env.GAME_ROOM.getByName(`room:${a.roomId}`), (_instance, state) => state.storage.get<number>("expiresAt"));
     expect(unreleasedExpiry).toBeGreaterThan(Date.now() + 23 * 60 * 60 * 1000);
-    if (!ip) expect(await clients[0].send({ type: "FINAL_RESULTS_VIEWED" })).toMatchObject({ type: "ERROR" });
+    if (!ip && !botsOnly) expect(await clients[0].send({ type: "FINAL_RESULTS_VIEWED" })).toMatchObject({ type: "ERROR" });
     const finalStub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
     await runInDurableObject(finalStub, async (_instance, state) => {
       const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;

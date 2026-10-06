@@ -2,9 +2,9 @@ import type { SessionCredential } from "../shared/protocol";
 import { endpoints } from "./endpoints";
 
 /** Short-lived proof stays out of URL/storage; the durable seat token is POST-only. */
-export async function connectionProtocols(session: SessionCredential, request: typeof fetch = fetch): Promise<string[]> {
+export async function connectionProtocols(session: SessionCredential, request: typeof fetch = fetch, signal?: AbortSignal): Promise<string[]> {
   const response = await request(endpoints.connectionTicket(session.roomId), {
-    method: "POST", headers: { "X-Porena-Session": session.token }, cache: "no-store",
+    method: "POST", headers: { "X-Porena-Session": session.token }, cache: "no-store", ...(signal ? { signal } : {}),
   });
   if (!response.ok) throw new Error("Connection ticket unavailable");
   const value: unknown = await response.json();

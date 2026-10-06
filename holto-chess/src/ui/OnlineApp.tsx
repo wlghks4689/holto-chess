@@ -3,8 +3,9 @@ import { GameViewportReset } from "./GameViewportReset";
 import { ShopAbilityPanel, RoundAbilityBenefits } from "./AbilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createRoomConnection } from "../network/roomConnection";
 import { connectionProtocols } from "../network/connectionTicket";
-import type { GameAction, MatchView, PlayerView, ServerMessage, SessionCredential } from "../shared/protocol";
+import type { GameAction, MatchView, PlayerView, SessionCredential } from "../shared/protocol";
 import { CinematicGate } from "./ShowdownCinematic";
 import { invitedRoom } from "./roomInvite";
 import { endpoints, roomSocketUrl } from "../network/endpoints";
@@ -115,7 +116,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const [tiebreakSpectating, setTiebreakSpectating] = useState(false);
   const [spectatedPlayerId, setSpectatedPlayerId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const socket = useRef<WebSocket | null>(null);
+  const connection = useRef<ReturnType<typeof createRoomConnection> | null>(null);
   const archivedGameId = useRef<string | null>(null);
   // One clock per tab: every received view refines the server-time estimate used by the cinematic.
   const [serverClock] = useState(createServerClock);
@@ -159,51 +160,23 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
 
   useEffect(() => {
     if (!credential) return;
-    let disposed = false;
-    let attempts = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const probes = new Map<string, number>();
-    let burst: ReturnType<typeof setTimeout> | undefined;
-    const probe = () => {
-      if (socket.current?.readyState !== WebSocket.OPEN || document.hidden || !clockNeededRef.current) return;
-      const nonce = crypto.randomUUID();
-      const at = Date.now();
-      for (const [id, sent] of probes) if (at - sent > 10_000) probes.delete(id);
-      probes.set(nonce, at);
-      socket.current.send(JSON.stringify({ type: "SYNC_CLOCK", nonce }));
-    };
-    const resync = () => { if (!document.hidden) { serverClock.reset?.(); probe(); clearTimeout(burst); burst = setTimeout(probe, 1000); } };
-    probeRef.current = probe;
-    const probeTimer = setInterval(probe, 10_000);
-    document.addEventListener("visibilitychange", resync);
-    window.addEventListener("online", resync);
-    const reconnect = () => {
-      if (disposed) return;
-      if (attempts >= 5) { setError("client.reconnectFailed"); return; }
-      setStatus("Reconnecting");
-      timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 10000));
-    };
-    const connect = async () => {
-      if (disposed) return;
-      setStatus("Connecting"); clearPending();
-      let protocols: string[];
-      try { protocols = await connectionProtocols(credential); }
-      catch { if (!disposed) { setError("client.checkConnection"); reconnect(); } return; }
-      if (disposed) return;
-      const ws = new WebSocket(roomSocketUrl(credential.roomId), protocols);
-      socket.current = ws;
-      ws.onopen = () => ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: storedNickname() }));
-      ws.onmessage = (event) => {
-        if (disposed) return;
-        const message = JSON.parse(event.data) as ServerMessage;
-        // Opt-in local diagnostics: exact received views, never session credentials.
-        if (import.meta.env.DEV && new URLSearchParams(location.search).has("inspect") && message.type === "PLAYER_VIEW") console.debug("[PORENA WS received]", JSON.stringify(message));
-        if (message.type === "ROOM_JOINED") { setStatus("Connected"); attempts = 0; setError(""); resync(); }
-        if (message.type === "CLOCK_SYNC") {
-          const sent = probes.get(message.nonce);
-          if (sent !== undefined) serverClock.roundTrip?.(sent, Date.now(), message.receivedAt, message.sentAt);
-          probes.delete(message.nonce);
-        }
+    const transport = createRoomConnection({
+      protocols: signal => connectionProtocols(credential, fetch, signal),
+      open: protocols => new WebSocket(roomSocketUrl(credential.roomId), protocols),
+      join: () => JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: storedNickname() }),
+      needsClock: () => clockNeededRef.current,
+      visible: () => !document.hidden,
+      onStatus: value => { setStatus(value); if (value !== "Connected") clearPending(); },
+      onError: setError,
+      onResume: () => serverClock.reset?.(),
+      onClock: (sent, received, serverReceived, serverSent) => serverClock.roundTrip?.(sent, received, serverReceived, serverSent),
+      onExpired: () => {
+        forgetSession(credential.roomId); setCredential(null); setView(null); setPendingSale(null);
+        setResumable(storedSessions()); setError("client.roomExpired");
+      },
+      diagnostic: import.meta.env.DEV && new URLSearchParams(location.search).has("inspect")
+        ? (event, detail) => console.debug("[PORENA transport]", JSON.stringify({ event, ...detail })) : undefined,
+      onMessage: message => {
         if (message.type === "PLAYER_VIEW") {
           serverClock.observe(message.payload.serverNow);
           if (message.payload.phase !== "SURVIVAL_READY") setTiebreakSpectating(false);
@@ -224,24 +197,17 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
           } else pendingRequest.current.revision = message.revision;
         }
         if (message.type === "ERROR") { if (!message.requestId || message.requestId === pendingRequest.current?.id) clearPending(); setError({ code: message.code, params: message.params, message: message.message }); }
-      };
-      ws.onclose = (event) => {
-        if (disposed) return;
-        setStatus("Disconnected"); clearPending();
-        if (event.code === 4001) { setError("client.otherTab"); return; }
-        // The server deleted the room (idle lobby, finished game or 24h limit): drop the seat and return to the entry screen.
-        if (event.code === 1008 && event.reason === "Room expired") {
-          forgetSession(credential.roomId); setCredential(null); setView(null); setPendingSale(null);
-          setResumable(storedSessions()); setError("client.roomExpired"); return;
-        }
-        if (event.code === 1008 || attempts >= 5) { setError("client.reconnectFailed"); return; }
-        setStatus("Reconnecting");
-        timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 10000));
-      };
-      ws.onerror = () => { if (!disposed) setError("client.checkConnection"); };
+      },
+    });
+    connection.current = transport;
+    probeRef.current = transport.sync;
+    document.addEventListener("visibilitychange", transport.resume);
+    window.addEventListener("online", transport.resume);
+    return () => {
+      document.removeEventListener("visibilitychange", transport.resume);
+      window.removeEventListener("online", transport.resume);
+      transport.dispose(); connection.current = null; probeRef.current = null; clearPending();
     };
-    connect();
-    return () => { disposed = true; clearTimeout(timer); clearTimeout(burst); clearInterval(probeTimer); document.removeEventListener("visibilitychange", resync); window.removeEventListener("online", resync); clearPending(); socket.current?.close(1000, "Leaving view"); socket.current = null; };
   }, [credential, connectionKey, serverClock]);
 
   const join = async (create: boolean) => {
@@ -267,7 +233,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     finally { setBusy(false); }
   };
   const send = (action: GameAction) => {
-    if (!view || socket.current?.readyState !== WebSocket.OPEN || status !== "Connected" || pendingRequest.current) return;
+    if (!view || !connection.current || status !== "Connected" || pendingRequest.current) return;
     const requestId = crypto.randomUUID();
     // A lost ACK must not disable every control for the rest of the session, so
     // the in-flight lock always carries a deadline that releases it.
@@ -275,11 +241,13 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
       if (pendingRequest.current?.id !== requestId) return;
       clearPending();
       setError("client.noResponse");
+      connection.current?.sync();
     }, ACTION_TIMEOUT_MS);
     pendingRequest.current = { id: requestId, type: action.type, timer };
     setPending(action.type); setError("");
-    try { socket.current.send(JSON.stringify({ ...action, requestId, turnKey: view.turnKey })); }
-    catch { clearPending(); setError("client.sendFailed"); }
+    if (!connection.current.send(JSON.stringify({ ...action, requestId, turnKey: view.turnKey }))) {
+      clearPending(); setError("client.sendFailed");
+    }
   };
   const leaveRoom = () => {
     send({ type: "LEAVE_ROOM" });

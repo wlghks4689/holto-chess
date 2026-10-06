@@ -87,7 +87,7 @@ export class GameRoom extends DurableObject<Env> {
    * One alarm slot serves authentication, authorized reveal, phase advancement
    * and room expiry. Always arm the earliest deadline.
    */
-  private async rescheduleAlarm(): Promise<void> {
+  private async rescheduleAlarm(disclosedAt = Date.now()): Promise<void> {
     const deadlines: number[] = [];
     if (this.expiresAt) deadlines.push(this.expiresAt);
     deadlines.push(...Object.values(this.tickets).map(ticket => ticket.expiresAt));
@@ -97,18 +97,24 @@ export class GameRoom extends DurableObject<Env> {
     }
     const barrier = this.room ? barrierDeadline(this.room) : undefined;
     if (barrier !== undefined) deadlines.push(barrier);
-    const reveal = this.room ? nextDisclosureAt(this.room, Date.now()) : undefined;
+    // Serialization can cross a reveal boundary. Schedule from the state we
+    // actually published, even if its next boundary is now overdue, so a final
+    // prefix cannot wait for the later barrier or a client's clock probe.
+    const reveal = this.room ? nextDisclosureAt(this.room, disclosedAt) : undefined;
     if (reveal !== undefined) deadlines.push(reveal);
     const next = deadlines.length ? Math.min(...deadlines) : null;
-    // Avoid a billed write when the scheduled deadline has not changed.
-    if (await this.ctx.storage.getAlarm() === next) return;
+    const scheduled = await this.ctx.storage.getAlarm();
+    // An overdue broadcast may be queued behind this request. A per-seat clock
+    // response must not cancel that reveal for everybody else. In alarm() the
+    // runtime returns null for the alarm currently executing.
+    if (scheduled === next || scheduled !== null && scheduled <= Date.now()) return;
     if (next === null) await this.ctx.storage.deleteAlarm();
     else await this.ctx.storage.setAlarm(next);
   }
   private send(ws: WebSocket, message: ServerMessage): void {
     try { ws.send(JSON.stringify(message)); } catch { /* Closed sockets have no state authority. */ }
   }
-  private broadcast(): void {
+  private broadcast(): number | undefined {
     if (!this.room) return;
     const now = Date.now();
     const sockets = this.ctx.getWebSockets();
@@ -117,6 +123,7 @@ export class GameRoom extends DurableObject<Env> {
       const a = ws.deserializeAttachment() as Attachment | null;
       if (a?.playerId && a.roomId === this.room.roomId) this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, a.playerId, connected, now) });
     }
+    return now;
   }
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -246,8 +253,9 @@ export class GameRoom extends DurableObject<Env> {
           if (!attachment.playerId) throw new Error("먼저 세션을 연결하세요.");
           this.send(ws, { type: "CLOCK_SYNC", nonce: message.nonce, receivedAt: now, sentAt: Date.now() });
           // Returning tabs receive the current authorized reveal, never an old replay.
-          this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, attachment.playerId, this.ctx.getWebSockets().map(socket => (socket.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id)) });
-          await this.rescheduleAlarm();
+          const disclosedAt = Date.now();
+          this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, attachment.playerId, this.ctx.getWebSockets().map(socket => (socket.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id), disclosedAt) });
+          await this.rescheduleAlarm(disclosedAt);
           return;
         }
         requestId = message.requestId;
@@ -293,14 +301,15 @@ export class GameRoom extends DurableObject<Env> {
         await this.ctx.storage.put(TICKET_KEY, activeTickets);
         this.tickets = activeTickets;
       }
+      let disclosedAt: number | undefined;
       if (this.room) {
         // Bots stand in for whoever the barrier is still waiting on, so one
         // unresponsive player can never strand the rest of the room.
         const forced = forceBarrier(this.room, now);
         if (forced) await this.commit(forced);
-        this.broadcast();
+        disclosedAt = this.broadcast();
       }
-      await this.rescheduleAlarm();
+      await this.rescheduleAlarm(disclosedAt);
     });
   }
 }
