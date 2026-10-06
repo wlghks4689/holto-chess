@@ -7,7 +7,7 @@ Status: SEC-001/002/003/004/006 implemented and automatically verified in the is
 - Actual execution path: `C:/Users/USER/Documents/Codex/2026-10-02/task-2/security-review`; branch `fix/security-disclosure-002-003-006`; base/unchanged HEAD `09dfdef03f6136f2558c3f457849e2b6ed944db3`.
 - The parent relayed and reconfirmed user approval for shop-entry BB visibility, public-time-only metadata with delayed-packet hold, and short-lived one-use existing-seat connection proof. SEC-002/003 were preserved.
 - No commit, stage, push, deploy, production attack, main edits, dependency changes, game-rule/balance changes, or IP-per-person restriction. The copied source audit remains historical evidence, not a description of the final implementation.
-- A resumed turn briefly followed historical CrazyGames context before the parent corrected the target. CG checks are excluded from all security results below. No CG source/index/commit/deployment mutation occurred. Its dedicated local browser/server were cleaned up. Security checks thereafter used the explicit security-review workdir.
+- Security checks used the explicit security-review workdir.
 
 ## SEC-001: shop economy projection
 

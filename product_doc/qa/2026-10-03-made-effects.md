@@ -1,6 +1,6 @@
 # 2026-10-03 메이드 연출·공개 플립
 
-- 기준 main `abeb7b6`; 기존 미추적 `.wrangler-config/`, `varco-export/`, CrazyGames handoff 문서 보존.
+- 기준 main `abeb7b6`; 기존 미추적 `.wrangler-config/`, `varco-export/` 보존.
 - PC 내장 브라우저 `prefers-reduced-motion: reduce` 환경에서 상대 슬롯에 `can-flip`이 있지만 transition이 0s인 것을 실제 싱글 플레이로 확인. 어빌리티 전용 및 전역 reduced-motion CSS가 게임 내 모션 설정과 불일치했다. 기존 `useCinematicMotion`을 연결하고 활성화된 슬롯 회전에만 전역 예외를 적용. OS 설정·다른 모션은 변경하지 않음.
 - 수정 후 실제 드래프트 상대 카드의 transition 0.6s, 회전 중 matrix3d(-0.405588, … -0.914056 …), 완료 후 180도 행렬을 확인. 이미지 프레임·아이콘 decode 완료 후 동시 공개하는 기존 로직 유지. 디바이스 성능 문제로 단정하지 않음.
 - 트립스 `#fb923c`, 0.9초 단일 주황 펄스 추가. 스트레이트보다 낮은 불투명도·짧은 시간이며 스윕/궤도 장식 없음. 결과 리캡도 동일 팔레트 사용.

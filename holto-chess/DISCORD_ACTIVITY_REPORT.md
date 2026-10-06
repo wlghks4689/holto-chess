@@ -3,7 +3,7 @@
 - 작성: 2026-10-02 · 작업 브랜치 `claude/zen-edison-cxisk1`
 - **기준 커밋(BASE)**: 최초 `39ba4dbd33a6770340b7b981987fa17c00c12c44` → **2026-10-02 재정리 후 `629901931601c8abca0c5d539426069480c376b1`**(`origin/main`, idle lobby/room expiry 포함) 위로 rebase. 재정리 내용은 §10
 - 범위: Discord Activity iframe에서 기존 웹 버전이 부팅되고, 기존 Multiplayer(방 생성 → 방 코드 → 참가 → 진행)가 동작하는지를 코드와 실행 증거로 확인한다.
-- 이번 작업에서 하지 않은 것: 게임 규칙·밸런스·엔진·state machine 변경, CrazyGames 코드, 배포, Developer Portal 설정, Discord Verification 신청.
+- 이번 작업에서 하지 않은 것: 게임 규칙·밸런스·엔진·state machine 변경, 배포, Developer Portal 설정, Discord Verification 신청.
 
 > 협업 계약 참고: `AGENTS.md`와 `product_doc/README.md`는 Claude를 분석 보조로 규정합니다. 이번 구현은 사용자가 직접 요청한 범위의 플랫폼·네트워크 코드에 한정됩니다. 게임 규칙·밸런스는 손대지 않았고, `product_doc/TODO.md`와 `DECISIONS.md`도 수정하지 않았습니다. 통합 전에 Codex 검토와 TODO·DECISIONS 기록이 필요합니다.
 
@@ -41,7 +41,7 @@
 | 테스트 | `src/platform/runtime.test.ts`, `src/platform/discord.test.ts`, `src/network/endpoints.test.ts`, `tests/worker/discordOrigin.test.ts` |
 | `tools/discord-activity-sim.mjs` | 로컬 Discord 프록시·iframe 시뮬레이션 하네스(재현용, 빌드에 포함되지 않음) |
 
-> `src/platform/web.ts`는 만들지 않았다. 웹 동작은 "아무것도 하지 않음"이므로 별도 파일은 빈 껍데기가 된다. CrazyGames 같은 다음 플랫폼은 `runtime.ts`의 `PlatformRuntime` 유니언에 kind를 하나 추가하고, 자기 모듈을 동적 import하는 방식으로 확장한다.
+> `src/platform/web.ts`는 만들지 않았다. 웹 동작은 "아무것도 하지 않음"이므로 별도 파일은 빈 껍데기가 된다.
 
 ### 1.5 Discord Developer Portal에서 사용자가 직접 설정할 항목
 
@@ -74,15 +74,6 @@
 - 관리자 페이지(`admin.porena.kr`)는 별도의 Origin·Fetch-Metadata 검사를 그대로 사용하며 이번 변경과 무관하다.
 - Origin 검사는 원래도 "브라우저가 보장하는 출처 신호"이지 인증이 아니다. 비브라우저 클라이언트에 대한 방어 수준은 이전과 같다.
 - 방 초대 링크: Activity 안에서는 `https://<id>.discordsays.com/?room=…` 대신 **`https://porena.kr/?room=…`** 를 보여준다. 기존 값은 Discord 밖에서는 열 수 없는 링크였다. 이 변경으로 Discord 플레이어와 웹 플레이어가 같은 방에서 플레이할 수 있다(§5에서 확인).
-
-### 1.8 기존 web / CrazyGames 작업과의 충돌 가능성
-
-- 원격에는 CrazyGames 브랜치가 아직 없다(`git ls-remote` 확인 시점 기준). 아래는 예상 충돌 지점이다.
-  - `src/main.tsx`: 양쪽 모두 SDK 초기화 지점이 필요하다. 이번에는 `void startPlatform();` 한 줄과 `<PlatformNotice />`만 추가했다.
-  - `package.json`, `package-lock.json`: 의존성 추가가 겹치면 lockfile 충돌이 난다. 수동 병합하지 말고 `npm install`로 재생성한다.
-  - `index.html`(GA): 이번에는 **수정하지 않았다.**
-  - `src/ui/OnlineLobby.tsx`의 초대 링크: CrazyGames도 자체 초대 방식을 쓴다면 `shareOrigin()`을 확장하는 방식으로 합치는 것을 권장한다.
-- 권장: CrazyGames도 `src/platform/runtime.ts`에 `kind: "crazygames"`를 추가한다. 그러면 플랫폼 분기가 한 파일에만 모인다.
 
 ---
 
@@ -225,7 +216,7 @@
 
 ### 참고
 
-- 게임 페이지는 `X-Frame-Options`·`frame-ancestors`를 보내지 않는다. 그래서 Discord iframe 임베딩에 장애가 없다. 반대로 누구나 프레이밍할 수 있다는 뜻이며, 이는 기존 상태다. 필요하면 `frame-ancestors 'self' https://discord.com https://*.discordsays.com …` 형태의 정책을 별도로 검토한다(CrazyGames 임베딩도 함께 고려해야 함).
+- 게임 페이지는 `X-Frame-Options`·`frame-ancestors`를 보내지 않는다. 그래서 Discord iframe 임베딩에 장애가 없다. 반대로 누구나 프레이밍할 수 있다는 뜻이며, 이는 기존 상태다. 필요하면 `frame-ancestors 'self' https://discord.com https://*.discordsays.com …` 형태의 정책을 별도로 검토한다.
 
 ---
 
