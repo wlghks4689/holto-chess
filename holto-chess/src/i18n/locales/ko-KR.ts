@@ -570,7 +570,7 @@ export const koKR = {
   "online.watchOthers": "다른 플레이어 관전",
   "online.observedCards": "{player} 카드",
   "online.readyWaiting": "다른 플레이어를 기다립니다 · 준비 {ready}/{total}",
-  "online.readyWarning": "준비를 누르면 이번 상점에서는 더 행동할 수 없습니다 · 준비 {ready}/{total}",
+  "online.readyWarning": "준비 {ready}/{total}",
   "online.readyHint": "전원이 준비하면 상점이 종료됩니다. 시간 종료 후에도 카드가 부족하면 보유 카드 그대로 몰수패 처리됩니다 (승점·BB 보상 없음).",
   "online.cancelReady": "준비 취소",
   "online.confirmReady": "준비 완료",

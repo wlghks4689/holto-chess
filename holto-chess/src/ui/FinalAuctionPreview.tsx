@@ -11,12 +11,14 @@ import { ShowdownCinematic } from "./ShowdownCinematic";
 import { FinalRoundTransition } from "./ShowdownPrepPanel";
 import type { GameAction } from "../shared/protocol";
 import type { PorenaGameState } from "../game/types";
+import { ABILITY_IDS } from "../game/abilities";
 
 /** Development-only playable preview; no server routes or production bypass. */
 export function FinalAuctionPreview() {
   const matchOnly = new URLSearchParams(location.search).get("screen") === "match";
   const [game, setGame] = useState(() => {
     const initial = practiceState(TUTORIAL_SEED, 5);
+    initial.players.forEach((player, index) => { player.abilityId = ABILITY_IDS[index % ABILITY_IDS.length]; });
     if (new URLSearchParams(location.search).get("screen") === "bid") return bidFinalAuction(initial, initial.players.find(p => !p.eliminated && p.id !== "p1")!.id, { cardId: initial.finalAuction!.cardIds[0]!, expectedHighestAmount: null }, initial.finalAuction!.startedAt + 500);
     if (!matchOnly) return initial;
     const settled = settleFinalAuction(initial, initial.finalAuction!.endsAt);
@@ -44,6 +46,7 @@ export function FinalAuctionPreview() {
     if (a.type === "LOCK_FINAL_LOADOUT") act(s => finishFinalLoadouts(setFinalLoadout(s, "p1", s.players[0]!.finalLoadoutCardIds!, now, true), now));
   };
   if (matchOnly) return <main className="game-arena"><div className="page-shell"><FinalRoundTransition matchup={view.showdownPrep} /></div></main>;
+  if (game.phase === "GAME_RESULT" && !viewed) return <ShowdownCinematic match={createMatchView(game, game.roundResults[0]!)} profiles={view.players} viewerId="p1" onComplete={() => setViewed(true)} elapsedMs={Number.MAX_SAFE_INTEGER} catchUp />;
   return <main className="game-arena"><div className="page-shell"><p>DEVELOPMENT · R5 FINAL AUCTION · 실제 엔진 규칙</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
     <button className="secondary" onClick={() => { setGame(practiceState(TUTORIAL_SEED, 5)); setRunning(false); setViewed(false); }}>처음부터</button>
     <button className="secondary" onClick={() => { setGame(practiceState(TUTORIAL_SEED, 5)); setRunning(true); setViewed(false); }}>40초 실시간 경매 시작</button>

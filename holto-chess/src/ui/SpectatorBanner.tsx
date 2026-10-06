@@ -8,12 +8,12 @@ export function SpectatorBanner({ candidates, activeId, onPick, onClose }: {
   onClose?: () => void;
 }) {
   const { t } = useTranslation();
-  const active = candidates.find((candidate) => candidate.playerId === activeId);
   return <section className="spectator-banner" role="status">
-    <div><span>{t("spectator.title")}</span><b>{active?.name ?? ""}</b><small>{t("spectator.readOnly")}</small></div>
-    <div className="spectator-picker" role="group" aria-label={t("spectator.choosePlayer")}>
-      {candidates.map((candidate) => <button key={candidate.playerId} type="button" className={candidate.playerId === activeId ? "active" : ""}
-        aria-pressed={candidate.playerId === activeId} onClick={() => onPick(candidate.playerId)}>{candidate.name}</button>)}
+    <div><span>{t("spectator.title")}</span></div>
+    <div className="spectator-picker">
+      <select aria-label={t("spectator.choosePlayer")} value={activeId ?? candidates[0]?.playerId ?? ""} disabled={!candidates.length} onChange={event => onPick(event.target.value)}>
+        {candidates.map(candidate => <option key={candidate.playerId} value={candidate.playerId}>{candidate.name}</option>)}
+      </select>
       {onClose && <button type="button" className="spectator-close" onClick={onClose}>{t("spectator.close")}</button>}
     </div>
   </section>;

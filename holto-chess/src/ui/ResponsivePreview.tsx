@@ -22,6 +22,8 @@ import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
 import { getPrepPresentation } from "./prepPresentation";
 import { cinematicTimeline } from "./cinematicTimeline";
 import { SpectatorBanner } from "./SpectatorBanner";
+import { ShopReadyBar } from "./ShopReadyBar";
+import { GameEndActions } from "./GameEndActions";
 
 type Case = { id: string; screen: string; round: Round; count: number };
 const cases: Case[] = [];
@@ -127,20 +129,24 @@ function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
 export function ResponsivePreview() {
   const [selected,setSelected] = useState(new URLSearchParams(location.search).get("case") ?? "shop-r4-5");
   const [audit,setAudit] = useState<ReturnType<typeof auditResponsiveLayout> | null>(null);
+  const [shopReady,setShopReady] = useState(false);
+  const [observedPlayer,setObservedPlayer] = useState("p2");
   const shown = selected === "all" ? cases : cases.filter(scene=>scene.id === selected);
   const toolbar = <details className="qa-controls"><summary>QA</summary><header className="qa-toolbar"><label>UI QA 상태 <select value={selected} onChange={e=>{setSelected(e.target.value);setAudit(null);}}><option value="all">전체 상태 매트릭스</option>{cases.map(scene=><option key={scene.id}>{scene.id}</option>)}</select></label><p>단일 상태: 내비·헤더·하단 조작 포함. 쇼다운은 실제처럼 root 바로 아래 렌더링.</p><button onClick={()=>setAudit(auditResponsiveLayout())}>레이아웃 검사</button>{audit && <pre data-qa-report>{JSON.stringify(audit,null,2)}</pre>}</header></details>;
   if (shown.length === 1 && shown[0]!.screen.startsWith("showdown")) return <>{toolbar}<Scene scene={shown[0]!} interactive={false} /></>;
   return <main className={`game-arena responsive-preview ${selected === "all" ? "qa-matrix" : "qa-single"}`}>
     {toolbar}
     {shown.map(scene=><section data-qa-case={scene.id} key={scene.id}>
-      {scene.screen === "spectator" && <SpectatorBanner activeId="p2" candidates={QA_NAMES.slice(1,5).map((name,i)=>({ playerId:`p${i+2}`, name }))} onPick={()=>{}} onClose={()=>{}} />}
+      {scene.screen === "spectator" && <SpectatorBanner activeId={observedPlayer} candidates={QA_NAMES.slice(1,5).map((name,i)=>({ playerId:`p${i+2}`, name }))} onPick={setObservedPlayer} onClose={()=>{}} />}
       {!scene.screen.startsWith("showdown") && <nav><div className="brand"><ArenaBrand /></div><RoundProgress round={scene.round} prep={null}/><div className="nav-status"><button className="secondary">나가기</button></div></nav>}
       <div data-round={scene.round} className={`page-shell ${scene.screen === "shop" ? "shop-page" : scene.screen === "final" ? "final-results-page" : ""}`}>
         {selected !== "all" && <GameViewportReset screenKey={scene.id} />}
         {(scene.screen === "prep" || scene.screen === "shop" && scene.round > 1) && <PrepRoundHeader prep={getPrepPresentation(scene.round, "SHOP")!} />}
         {!scene.screen.startsWith("match") && !scene.screen.startsWith("ability") && !scene.screen.startsWith("showdown") && scene.screen !== "prep" && !(scene.screen === "shop" && scene.round > 1) && <header className={`round-header ${["draft","loadout"].includes(scene.screen) ? "is-centered-phase-header" : ""}`}><div>{scene.screen !== "final" && <span className="round-number">{scene.screen === "draft" ? `ROUND ${scene.round} · DRAFT PHASE` : `ROUND 0${scene.round}`}</span>}<div className="round-title-row"><h1>{scene.screen === "final" ? "FINAL STANDINGS" : ["","TWO HAND","RUN IT TWICE","OMAHA SWISS","BEST FIVE","THE LAST HAND"][scene.round]}</h1>{scene.screen !== "final" && <button className="secondary title-guide-trigger">?</button>}</div></div>{scene.screen !== "shop" && scene.screen !== "loadout" && scene.screen !== "final" && <div className="phase-badge"><b>{scene.screen === "shop" ? "상점" : scene.screen === "draft" ? "공개 드래프트" : "라운드 결과"}</b></div>}</header>}
         <Scene scene={scene} interactive={false} />
-        {["shop","prep","results","brackets","spectator"].includes(scene.screen) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{["shop","prep"].includes(scene.screen) ? "준비 완료" : "결과 확인"}</b><p>다음 단계로 진행합니다.</p></div><button className="primary">{["shop","prep"].includes(scene.screen) ? "준비 완료" : "다음 라운드"} →</button></div>}
+        {scene.screen === "final" && <section className="panel rematch-panel"><GameEndActions onStart={()=>{}} onHome={()=>{}} /></section>}
+        {scene.screen === "shop" && <ShopReadyBar ready={shopReady ? 2 : 1} total={2} committed={shopReady} disabled={false} endsAt={43000} now={0} onToggle={()=>setShopReady(ready=>!ready)} />}
+        {["prep","results","brackets","spectator"].includes(scene.screen) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{scene.screen === "prep" ? "준비 완료" : "결과 확인"}</b><p>다음 단계로 진행합니다.</p></div><button className="primary">{scene.screen === "prep" ? "준비 완료" : "다음 라운드"} →</button></div>}
       </div>
     </section>)}
   </main>;

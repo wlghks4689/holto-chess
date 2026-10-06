@@ -58,10 +58,10 @@
   .cinema.cinema-final>.cinema-final-heading h2{font-size:32px}
 }
 @media(max-width:768px){
-  .cinema.cinema-final>.cinema-final-heading h2{font-size:20px}
+  .cinema.cinema-final>.cinema-final-heading h2{font-size:36px;letter-spacing:0}
   .cinema.cinema-final>.final-community-board>.cinema-board{padding:10px}
-  .cinema.cinema-final:has(.final-community-board){width:calc(100% - 8px);margin:4px auto;padding:6px;gap:8px 6px}
-  .cinema.cinema-final:has(.final-community-board) .cinema-seat{padding:8px 4px}
+  .cinema.cinema-final:has(.final-community-board){width:calc(100% - 4px);max-width:none;margin:2px auto;padding:2px;gap:6px 4px}
+  .cinema.cinema-final:has(.final-community-board) .cinema-seat{padding:8px 2px}
   .cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="5"] .playing-card.compact{width:100%;height:auto;aspect-ratio:53/75;padding:2px;border-radius:4px}
   .cinema.cinema-final>.final-community-board{width:min(280px,100%)}
   .cinema.cinema-final>.final-community-board .cinema-flip-slot{zoom:1}
@@ -71,3 +71,15 @@
 }
 
 .auction-opponents article>div{justify-content:center}
+.cinema.cinema-final:has(.final-community-board){margin-top:4px;padding-top:4px;column-gap:8px}
+.game-arena .page-shell:has(>.cinema-final){padding-top:0;width:100%;max-width:100%}
+@media(max-width:768px){.cinema.cinema-final:has(.final-community-board){column-gap:4px}}
+.cinema.cinema-final .cinema-seat>.cinema-profile{display:grid;grid-template-columns:46px minmax(0,1fr) 38px;padding:0;gap:4px;align-items:center}
+.cinema.cinema-final .cinema-profile>.ability-badge{grid-column:1;grid-row:1}
+.cinema.cinema-final .cinema-profile>b{grid-column:2;grid-row:1;width:100%;text-align:center}
+.cinema.cinema-final .cinema-profile>.cinema-victory{position:static;grid-column:3;grid-row:1;justify-self:center;margin:0;font-size:12px}
+@media(max-width:768px){
+ .cinema.cinema-final:has(.final-community-board){margin-top:10px;padding-top:4px;row-gap:14px}
+ .cinema.cinema-final:has(.final-community-board) .cinema-seat{padding-block:16px}
+ .cinema.cinema-final .cinema-seat>.cinema-profile{grid-template-columns:38px minmax(0,1fr) 32px;min-height:44px;margin-bottom:12px}
+}

@@ -572,7 +572,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "online.watchOthers": "Watch other players",
   "online.observedCards": "{player}'s cards",
   "online.readyWaiting": "Waiting for others · Ready {ready}/{total}",
-  "online.readyWarning": "Ready locks further shop actions · Ready {ready}/{total}",
+  "online.readyWarning": "Ready {ready}/{total}",
   "online.readyHint": "The shop closes when everyone is ready. If time expires without enough cards, you forfeit with your current hand (no points or BB reward).",
   "online.cancelReady": "Cancel ready",
   "online.confirmReady": "Ready",
