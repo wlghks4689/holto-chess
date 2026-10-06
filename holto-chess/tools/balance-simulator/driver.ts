@@ -8,6 +8,11 @@ import {
   resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound,
 } from "../../src/game/engine";
 import type { PorenaGameState } from "../../src/game/types";
+import { tickAuctionBots } from "../../src/game/finalAuctionBot";
+import { settleFinalAuction } from "../../src/game/finalAuction";
+import { finishFinalLoadouts } from "../../src/game/engine";
+import { findBestFive } from "../../src/core/poker/evaluate";
+import type { GameRow } from "./types";
 import { makePolicy, type Policy } from "./policies";
 import { makeRandom } from "./stats";
 import { EXPECTED_ALIVE_AFTER, type GameOutcome, type MatchRoundStats, type PlayerRow, type PolicyName, type RoundRow, type SimConfig } from "./types";
@@ -132,6 +137,13 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
       if (step > STEP_LIMIT) throw new Error("phase loop did not converge");
       const phase = state.phase;
       switch (phase) {
+        case "FINAL_AUCTION": {
+          const start = state.finalAuction!.startedAt;
+          for (let now = start; now < state.finalAuction!.endsAt; now += 500) state = tickAuctionBots(state, [], now);
+          state = settleFinalAuction(state, state.finalAuction!.endsAt);
+          break;
+        }
+        case "FINAL_LOADOUT": state = finishFinalLoadouts(state, state.finalAuction!.loadoutEndsAt!, []); break;
         case "SHOP": shopStep(); break;
         case "DRAFT_ORDER": state = openDraft(state); break;
         case "OPEN_DRAFT": draftStep(); if (state.phase !== "OPEN_DRAFT") closeDraft(); break;
@@ -176,7 +188,24 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
   if (error) return { game: { game, seed, ok: false, error, failedAt, aliveAfter, matchStats: [], ms }, players: [] };
 
   finish(state, rows);
-  return { game: { game, seed, ok: true, aliveAfter, matchStats: matchStats(state), ms }, players: [...rows.values()] };
+  const a = state.finalAuction;
+  let auction: GameRow["auction"];
+  if (a) {
+    const standings = finalStandings(state), final = state.roundResults[0]!;
+    const entryLeaders = Math.max(...state.players.filter(p => !p.eliminated).map(p => roundRow(p.id).startPoints));
+    auction = { overtime: a.endsAt > a.startedAt + 40_000, raises: Object.values(a.raises).reduce((s, n) => s + n, 0),
+      tied: new Set(final.results.map(r => r.place)).size < final.results.length,
+      icm: final.results.some(r => final.results.filter(x => x.place === r.place).length > 1),
+      reversal: roundRow(standings[0]!.playerId).startPoints < entryLeaders,
+      seats: state.players.filter(p => !p.eliminated).map(p => {
+        const wins = a.results!.filter(r => r.playerId === p.id), row = standings.find(s => s.playerId === p.id)!;
+        const original = a.originalCardIds[p.id]!.map(id => getCard(state, id));
+        const baseline = original.length === 5 ? BALANCE.handScores[findBestFive([...original, ...final.boards[0]!]).category] : 0;
+        return { playerId: p.id, entryBB: roundRow(p.id).startBB, endBB: p.stackBB, spent: wins.reduce((s, r) => s + r.amount, 0), wins: wins.length,
+          blocks: wins.filter(r => !p.finalLoadoutCardIds!.includes(r.cardId)).length, handScore: row.handScore, total: row.total, handGain: row.handScore - baseline };
+      }), prices: a.results!.map(r => ({ rank: getCard(state, r.cardId).rank, amount: r.amount, raises: a.raises[r.cardId] ?? 0 })) };
+  }
+  return { game: { game, seed, ok: true, aliveAfter, matchStats: matchStats(state), ms, auction }, players: [...rows.values()] };
 }
 
 function finish(state: PorenaGameState, rows: Map<string, PlayerRow>): void {

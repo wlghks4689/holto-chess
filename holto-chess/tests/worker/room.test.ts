@@ -1,3 +1,4 @@
+import { beginFinalAuction } from "../../src/game/finalAuction";
 import { env, exports } from "cloudflare:workers";
 import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
@@ -191,6 +192,8 @@ describe("GameRoom in the Cloudflare runtime", () => {
       const player = saved.game.players.find((p) => p.id === a.playerId)!;
       releasePlayerCards(saved.game, player); player.stackBB = 0;
       saved.barrierSince = Date.now() - 120_000;
+          if (saved.game.phase === "FINAL_AUCTION") saved.game.finalAuction!.endsAt = Date.now() - 1;
+          if (saved.game.phase === "FINAL_LOADOUT") { saved.game.finalAuction!.loadoutStartsAt = Date.now() - 31_000; saved.game.finalAuction!.loadoutEndsAt = Date.now() - 1; }
       expect(assertPoolIntegrity(saved.game)).toBe(true);
       await state.storage.put("snapshot:v1", saved);
     });
@@ -200,6 +203,8 @@ describe("GameRoom in the Cloudflare runtime", () => {
     await runInDurableObject(stub, async (_instance, state) => {
       const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
       saved.barrierSince = Date.now() - 120_000;
+          if (saved.game.phase === "FINAL_AUCTION") saved.game.finalAuction!.endsAt = Date.now() - 1;
+          if (saved.game.phase === "FINAL_LOADOUT") { saved.game.finalAuction!.loadoutStartsAt = Date.now() - 31_000; saved.game.finalAuction!.loadoutEndsAt = Date.now() - 1; }
       await state.storage.put("snapshot:v1", saved);
     });
     await evictDurableObject(stub);
@@ -228,6 +233,8 @@ describe("GameRoom in the Cloudflare runtime", () => {
     await runInDurableObject(stub, async (_instance, state) => {
       const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
       saved.barrierSince = Date.now() - 120_000;
+          if (saved.game.phase === "FINAL_AUCTION") saved.game.finalAuction!.endsAt = Date.now() - 1;
+          if (saved.game.phase === "FINAL_LOADOUT") { saved.game.finalAuction!.loadoutStartsAt = Date.now() - 31_000; saved.game.finalAuction!.loadoutEndsAt = Date.now() - 1; }
       await state.storage.put("snapshot:v1", saved);
     });
     await evictDurableObject(stub);
@@ -341,6 +348,8 @@ describe("GameRoom in the Cloudflare runtime", () => {
         await runInDurableObject(stub, async (_instance, state) => {
           const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
           saved.barrierSince = Date.now() - 120_000;
+          if (saved.game.phase === "FINAL_AUCTION") saved.game.finalAuction!.endsAt = Date.now() - 1;
+          if (saved.game.phase === "FINAL_LOADOUT") { saved.game.finalAuction!.loadoutStartsAt = Date.now() - 31_000; saved.game.finalAuction!.loadoutEndsAt = Date.now() - 1; }
           saved.presentation!.startsAt = Date.now() - 240_000;
           saved.presentation!.endsAt = Date.now() - 120_000;
           await state.storage.put("snapshot:v1", saved);
@@ -369,11 +378,13 @@ describe("GameRoom in the Cloudflare runtime", () => {
         }
         continue;
       }
-      if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) {
+      if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "FINAL_AUCTION", "FINAL_LOADOUT"].includes(phase)) {
         const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
         await runInDurableObject(stub, async (_instance, state) => {
           const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
           saved.barrierSince = Date.now() - 120_000;
+          if (saved.game.phase === "FINAL_AUCTION") saved.game.finalAuction!.endsAt = Date.now() - 1;
+          if (saved.game.phase === "FINAL_LOADOUT") { saved.game.finalAuction!.loadoutStartsAt = Date.now() - 31_000; saved.game.finalAuction!.loadoutEndsAt = Date.now() - 1; }
           await state.storage.put("snapshot:v1", saved);
         });
         await evictDurableObject(stub);
@@ -559,3 +570,60 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(await one.wait((m) => m.type === "ERROR")).toMatchObject({ type: "ERROR" });
   });
 });
+
+it("runs R5 bids through two human sockets plus AI, persists escrow and settles once", async () => {
+  const a = await session(), b = await session(a.roomId);
+  let ca = await connect(a); const cb = await connect(b);
+  const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
+  await runInDurableObject(stub, async (instance, storage) => {
+    const room = (instance as unknown as { room: RoomSnapshot }).room;
+    room.status = "PLAYING"; room.game.round = 5;
+    room.game.ownershipCardPool.forEach(e => { e.state = "AVAILABLE"; delete e.ownerPlayerId; delete e.reservedPlayerId; });
+    room.game.players.forEach((p, i) => {
+      p.eliminated = i >= 4; p.stackBB = 100; p.ownedCardIds = []; p.shopCardIds = [];
+      if (i < 4) for (const e of room.game.ownershipCardPool.slice(i * 5, i * 5 + 5)) { e.state = "OWNED"; e.ownerPlayerId = p.id; p.ownedCardIds.push(e.card.id); }
+    });
+    room.game = beginFinalAuction(room.game, Date.now());
+    room.game.finalAuction!.botNextAt.p3 = Date.now() - 1;
+    room.barrierSince = Date.now();
+    await storage.storage.put("snapshot:v1", room);
+    await instance.alarm();
+  });
+  await ca.wait(m => m.type === "PLAYER_VIEW" && m.payload.phase === "FINAL_AUCTION");
+  await cb.wait(m => m.type === "PLAYER_VIEW" && m.payload.phase === "FINAL_AUCTION");
+  const offer = ca.view().finalAuction!.cards.find(c => !c.hasBid)!;
+  expect(await ca.send({ type: "FINAL_AUCTION_BID", cardId: offer.card.id, expectedHighestAmount: null })).toMatchObject({ type: "ACK" });
+  await cb.wait(m => m.type === "PLAYER_VIEW" && m.payload.finalAuction?.cards.some(c => c.card.id === offer.card.id && c.hasBid) === true);
+  expect(cb.view().finalAuction!.cards.find(c => c.card.id === offer.card.id)!.isMine).toBe(false);
+  expect(await cb.send({ type: "FINAL_AUCTION_BID", cardId: offer.card.id, expectedHighestAmount: null })).toMatchObject({ type: "ERROR", code: "STALE_PRICE" });
+  const before = ca.view().finalAuction!;
+  ca.ws.close(1000); ca = await connect(a);
+  expect(ca.view().finalAuction!.endsAt).toBe(before.endsAt);
+  expect(ca.view().finalAuction!.mine).toEqual(before.mine);
+  const amount = offer.basePrice;
+  expect(await cb.send({ type: "FINAL_AUCTION_BID", cardId: offer.card.id, expectedHighestAmount: amount, amount: amount + 6 })).toMatchObject({ type: "ACK" });
+  await ca.wait(m => m.type === "PLAYER_VIEW" && !!m.payload.finalAuction?.outbid);
+  expect(ca.view().finalAuction!.mine!.reservedBB).toBe(0);
+  expect(cb.view().finalAuction!.outbid).toBeUndefined();
+  await runInDurableObject(stub, async instance => {
+    const room = (instance as unknown as { room: RoomSnapshot }).room;
+    room.game.finalAuction!.endsAt = Date.now() - 1;
+    await instance.alarm();
+  });
+  await cb.wait(m => m.type === "PLAYER_VIEW" && m.payload.phase === "FINAL_LOADOUT");
+  expect(cb.view().finalAuction!.settlement!.results.some(r => r.playerId === "p2" && r.cardId === offer.card.id)).toBe(true);
+  const deadline = cb.view().finalAuction!.loadout!.endsAt;
+  const again = await connect(b);
+  expect(again.view().finalAuction!.loadout!.endsAt).toBe(deadline);
+  await runInDurableObject(stub, async instance => {
+    const room = (instance as unknown as { room: RoomSnapshot }).room;
+    room.game.finalAuction!.loadoutStartsAt = Date.now() - 31_000;
+    room.game.finalAuction!.loadoutEndsAt = Date.now() - 1;
+    await instance.alarm();
+    expect(room.game.players.find(p => p.id === "p2")!.stackBB).toBe(100 - amount - 6);
+  });
+  const prep = await again.wait(m => m.type === "PLAYER_VIEW" && m.payload.phase === "SHOWDOWN_PRIMARY");
+  if (prep.type !== "PLAYER_VIEW") throw new Error("Missing prep");
+  expect(prep.payload.finalAuction?.loadout?.revealed).toBe(true);
+  expect(prep.payload.showdownPrep?.opponents).toHaveLength(3);
+}, 20_000);

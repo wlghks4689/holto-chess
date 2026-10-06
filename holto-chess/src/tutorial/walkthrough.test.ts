@@ -1,3 +1,4 @@
+import { autoStep } from "./practiceState";
 import { describe, expect, it } from "vitest";
 import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
 import { assertPoolIntegrity } from "../game/cardPool";
@@ -18,6 +19,7 @@ import {
 function play(game: PorenaGameState): PorenaGameState {
   const me = game.players[0]!;
   switch (game.phase) {
+    case "FINAL_AUCTION": case "FINAL_LOADOUT": return autoStep(game);
     case "SHOP": {
       if (me.ownedCardIds.length >= BALANCE.handLimits[game.round]) return prepareShowdown(game, ["p1"], tutorialBotPolicy);
       const affordable = me.shopCardIds.find((id) => getCardPrice(game, "p1", id) <= me.stackBB);

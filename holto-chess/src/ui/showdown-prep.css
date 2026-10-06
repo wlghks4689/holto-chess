@@ -34,3 +34,7 @@
 .final-match-loading .showdown-prep-vs{display:none}
 .final-match-loading .showdown-prep-heading{color:#fff;text-shadow:0 2px 12px #000}
 @media(max-width:768px){.final-match-loading{padding:10px}.final-match-loading .showdown-prep-stage{gap:12px 8px}.final-match-loading .showdown-prep-player{padding:10px 5px;min-height:180px}.final-match-loading .showdown-prep-hand .playing-card{width:27px;flex-basis:27px}.final-match-loading .showdown-prep-identity b{font-size:11px}.final-match-loading .showdown-prep-identity small{font-size:9px}}
+.final-match-loading .showdown-prep-stage .showdown-prep-identity b{font-size:18px}
+.final-match-loading .showdown-prep-stage .showdown-prep-identity small{font-size:16px}
+.final-match-loading .final-block-cards{text-align:center}
+@media(max-width:768px){.final-match-loading .showdown-prep-stage .showdown-prep-identity b,.final-match-loading .showdown-prep-stage .showdown-prep-identity small{font-size:12px}}

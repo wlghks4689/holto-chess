@@ -109,7 +109,7 @@ describe("barrier liveness", () => {
   it("forcing repeatedly always makes progress instead of looping", () => {
     let room = started();
     const seen = new Set<string>();
-    for (let step = 0; step < 40 && room.game.phase !== "GAME_RESULT"; step++) {
+    for (let step = 0; step < 180 && room.game.phase !== "GAME_RESULT"; step++) {
       const next = forceBarrier(room, barrierDeadline(room) ?? T0);
       if (!next) break;
       const key = `${turnKey(next)}|${next.revision}`;
@@ -216,7 +216,7 @@ describe("leaving a room", () => {
     room = act(room, "p1", { type: "LEAVE_ROOM" });
     room = act(room, "p2", { type: "LEAVE_ROOM" });
     expect(pendingBarrierIds(room)).toEqual([]);
-    for (let step = 0; step < 40 && room.game.phase !== "GAME_RESULT"; step++) {
+    for (let step = 0; step < 180 && room.game.phase !== "GAME_RESULT"; step++) {
       const next = forceBarrier(room, barrierDeadline(room) ?? T0);
       if (!next) break;
       room = next;

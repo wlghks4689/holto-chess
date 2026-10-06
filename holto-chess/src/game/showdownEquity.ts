@@ -1,6 +1,31 @@
 import { makeDeck, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha } from "../core/poker/evaluate";
 import type { Round } from "./types";
+import { FINAL_EQUITY_SAMPLES } from "./config";
+
+/** Public-input-only, independent from the game's RNG and future board. */
+export function finalFourWayEquity(hands: readonly (readonly Card[])[], deadCards: readonly Card[] = []): number[] {
+  const keys = hands.map(hand => hand.map(card => card.id).sort().join(","));
+  const ordered = hands.map((hand, index) => ({ hand, key: keys[index]!, index })).sort((a, b) => a.key.localeCompare(b.key) || a.index - b.index);
+  const ids = new Set([...hands.flat(), ...deadCards].map(c => c.id));
+  const deck = makeDeck().filter(c => !ids.has(c.id));
+  const random = seededRandom(`final:${ordered.map(p => p.key).join("|")}:${[...ids].sort().join(",")}`);
+  const shares = hands.map(() => 0);
+  for (let sample = 0; sample < FINAL_EQUITY_SAMPLES; sample++) {
+    const pool = [...deck];
+    for (let i = 0; i < 5; i++) { const j = i + Math.floor(random() * (pool.length - i)); [pool[i], pool[j]] = [pool[j]!, pool[i]!]; }
+    const scores = ordered.map(p => p.hand.length === 5 ? scoreUnrestricted([...p.hand, ...pool.slice(0, 5)]) : -1);
+    const best = Math.max(...scores), winners = scores.flatMap((s, i) => s === best && s >= 0 ? [i] : []);
+    for (const i of winners) shares[ordered[i]!.index]! += 100 / FINAL_EQUITY_SAMPLES / winners.length;
+  }
+  return shares;
+}
+
+/** The existing rank evaluator supports 10 cards except the two-flush case. */
+export function scoreUnrestricted(cards: readonly Card[]): number {
+  const suits = (["s", "h", "d", "c"] as const).filter(s => cards.filter(c => c.suit === s).length >= 5);
+  return suits.length > 1 ? Math.max(...suits.map(s => scoreSeven(cards.filter(c => c.suit === s)))) : scoreSeven(cards);
+}
 
 const REQUIRED_CARDS: Record<Round, number> = { 1: 2, 2: 2, 3: 4, 4: 5, 5: 7 };
 // Two-card rounds sample 10k boards (95% error about +-1%p); a board costs one 7-card evaluation per hand.

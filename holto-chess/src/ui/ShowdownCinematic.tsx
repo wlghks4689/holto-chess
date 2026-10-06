@@ -96,6 +96,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const previousSoundFrame = useRef<{ scene: string; phase: string } | null>(null);
   const flags = revealFlags(frame.phase);
   const final = match.round === 5;
+  const finalBoard = final && match.boards.length > 0;
   const stage = showdownStage(match.round);
   const intro = frame.phase === "VS_INTRO";
   const arenaEnter = frame.phase === "ARENA_ENTER";
@@ -184,7 +185,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const forfeited = result?.displayName === "몰수패";
       const won = !forfeited && winners.includes(id);
       const cards = cardsForRun(id);
-      const label = result ? labelFor(id, result, final ? [] : match.boards[frame.boardIndex] ?? []) : undefined;
+      const label = result ? labelFor(id, result, final && !finalBoard ? [] : match.boards[frame.boardIndex] ?? []) : undefined;
       const swiss = (flags.result ? match.swissAfter : match.swissBefore)?.[id];
       const reward = (match.runRewards?.[frame.boardIndex] ?? match.rewards).find((r) => r.playerId === id);
       const showReward = !(match.round === 4 && match.group === "loser" && reward?.outcome === "ELIMINATED");
@@ -203,7 +204,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const currentPoints = rankPoints[id];
       const currentRank = currentPoints === undefined ? undefined : 1 + Object.values(rankPoints).filter((points) => points > currentPoints).length;
       const tiedOnPoints = currentPoints === undefined ? false : Object.values(rankPoints).filter((points) => points === currentPoints).length > 1;
-      const read = !final ? undefined : readStage.kind === "final" && label
+      const read = !final ? undefined : finalBoard ? { stage: flags.made ? "final" : "current", tag: undefined, title: (flags.made ? label : streetLabel)?.title ?? "—", detail: (flags.made ? label : streetLabel)?.kicker } : readStage.kind === "final" && label
         ? { stage: "final", tag: undefined, title: label.title, detail: label.kicker }
         : interimLabel
           ? { stage: `current-${readCards}`, tag: t(readCards === 3 ? "cinema.currentReadThree" : "cinema.currentBestFive"), title: interimLabel.title, detail: interimLabel.kicker }
@@ -230,7 +231,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         <div className="cinema-hole-cards" data-count={cards.length}>{cards.map((card, cardIndex) => {
           const visible = (!final && intro) || (!intro && (!final || cardIndex < frame.finalCards));
           const used = result?.usedCardIds.includes(card.id) ?? false;
-          if (final) {
+          if (final && !finalBoard) {
             const slot = finalRevealSlot(cardIndex);
             const slotStyle = { "--flip-delay": `${slot.offset * FINAL_REVEAL_STAGGER_MS[slot.batch]}ms` } as CSSProperties;
             return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used}
@@ -251,7 +252,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {final && showRewardAmount && reward && match.pointAwards?.[id] !== undefined && <div className="cinema-reward"><strong>{results.filter(r => r.place === result?.place).length > 1 ? `${t("cinema.tied").trim()} ` : ""}{placeText(result?.place)} +{Number(match.pointAwards[id].toFixed(2))}P</strong>{Math.abs(reward.deltaPoints - match.pointAwards[id]) > 0.005 && <small className="final-extra-points">BONUS {reward.deltaPoints - match.pointAwards[id] > 0 ? "+" : ""}{Number((reward.deltaPoints - match.pointAwards[id]).toFixed(2))}P</small>}</div>}
       </div>;
     })}</div>
-    {!intro && !final && <div className={`cinema-board-stack ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
+    {!intro && (!final || finalBoard) && <div className={`cinema-board-stack ${finalBoard ? "final-community-board" : ""} ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
       const current = boardIndex === frame.boardIndex;
       const pending = boardIndex > frame.boardIndex;
       const shownBoard = match.boards[boardIndex] ?? [];

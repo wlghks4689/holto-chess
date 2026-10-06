@@ -5,6 +5,9 @@ import { ABILITY_IDS, type AbilityDraftView, type AbilityId } from "../game/abil
 import type { AbilityBenefitView, AbilityCue } from "../game/abilities";
 
 export type GameAction =
+  | { type: "FINAL_AUCTION_BID"; cardId: string; expectedHighestAmount: number | null; amount?: number }
+  | { type: "FINAL_LOADOUT"; cardIds: string[] }
+  | { type: "LOCK_FINAL_LOADOUT" }
   | { type: "ABILITY_PICK"; slot: number }
   | { type: "DRAFT_PICK"; cardId: string }
   | { type: "RUN_LOADOUT"; cardIds: string[] }
@@ -30,6 +33,7 @@ export type PublicPlayer = { abilityId?: AbilityId; playerId: string; name: stri
 export type RevealedHand = { playerId: string; place: number; category: HandCategory; kickers: number[]; displayName: string; usedCardIds: string[] };
 export type StreetSnapshotView = { street: "PRE_FLOP" | "FLOP" | "TURN" | "RIVER"; results: RevealedHand[] };
 export type MatchView = {
+  blockCards?: Record<string, Card[]>;
   abilityCues?: AbilityCue[];
   /** Only frames already authorized by server time; hold the latest while awaiting the next packet. */
   disclosure?: { frames: import("./presentationTimeline").CinematicFrame[]; elapsedMs: number; frameDurationMs?: number };
@@ -87,9 +91,20 @@ export type SpectatorPlayerView = {
   historyIds?: string[];
   presentation?: PresentationView;
 };
-export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; abilityId?: AbilityId; runCards?: [Card[], Card[]] };
+export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; blockCards?: Card[]; equity?: number; abilityId?: AbilityId; runCards?: [Card[], Card[]] };
 export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView; opponents?: ShowdownPrepSeatView[] };
+export type FinalAuctionView = {
+  cards: { card: Card; basePrice: number; highestAmount: number | null; hasBid: boolean; isMine: boolean; minNextBid: number }[];
+  startedAt: number; endsAt: number; hardEndsAt: number; serverNow: number;
+  publicHands: Record<string, Card[]>;
+  mine?: { stackBB: number; reservedBB: number; availableBidBB: number; leadingCount: number };
+  outbid?: { cardId: string; amount: number; sequence: number };
+  settlement?: { settledAt: number; loadoutStartsAt: number; results: { cardId: string; playerId: string; amount: number }[] };
+  loadout?: { startsAt: number; endsAt: number; cardIds?: string[]; locked: boolean; revealed: boolean };
+  poolWarning?: string;
+};
 export type PlayerView = {
+  finalAuction?: FinalAuctionView;
   roundAbilityCues?: AbilityCue[];
   abilityDraft?: AbilityDraftView;
   survival?: { playerIds: string[]; eliminateCount: number };
@@ -147,6 +162,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   }
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^(?:[a-f0-9]{64}|[0-9]+:[A-Z_]+(?::[0-9]+:[0-9]+)?)$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
+    FINAL_AUCTION_BID: ["cardId", "expectedHighestAmount", "amount"], FINAL_LOADOUT: ["cardIds"], LOCK_FINAL_LOADOUT: [],
     ABILITY_PICK: ["slot"],
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
@@ -156,6 +172,12 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");
   const allowed = ["type", "requestId", "turnKey", ...fields[v.type]];
   if (Object.keys(v).some((k) => !allowed.includes(k))) throw new Error("허용되지 않은 필드입니다.");
+  if (v.type === "FINAL_AUCTION_BID") {
+    if (!string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("NOT_AUCTION_CARD");
+    if (v.expectedHighestAmount !== null && (typeof v.expectedHighestAmount !== "number" || !Number.isSafeInteger(v.expectedHighestAmount) || v.expectedHighestAmount < 0)) throw new Error("INVALID_AMOUNT");
+    if (v.amount !== undefined && (typeof v.amount !== "number" || !Number.isSafeInteger(v.amount) || v.amount < 0)) throw new Error("INVALID_AMOUNT");
+  }
+  if (v.type === "FINAL_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 5 || new Set(v.cardIds).size !== 5 || v.cardIds.some(id => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("INVALID_LOADOUT");
   if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP", "DRAFT_PICK"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
   if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 3 || new Set(v.cardIds).size !== 3 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");

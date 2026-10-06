@@ -1,5 +1,17 @@
 import type { HandCategory } from "../core/poker/evaluate";
 import type { Round } from "./types";
+import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
+
+export const FINAL_AUCTION_DURATION_MS = 40_000;
+export const FINAL_AUCTION_HARD_CAP_MS = 55_000;
+export const FINAL_AUCTION_SNIPE_WINDOW_MS = 3_000;
+export const FINAL_AUCTION_MIN_RAISE_BB = 5;
+export const FINAL_AUCTION_MAX_WINS = 2;
+export const AUCTION_REVEAL_MS = 3_000;
+export const FINAL_LOADOUT_SIZE = 5;
+export const FINAL_LOADOUT_TIMEOUT_MS = BARRIER_TIMEOUT_MS.DEFAULT;
+export const FINAL_EQUITY_SAMPLES = 240;
+export const FINAL_BOT_REACTION_MS = { min: 900, max: 2_200 } as const;
 
 export const FINAL_ROUND_PLACEMENT_POINTS: Readonly<Record<number, number>> = { 1: 20, 2: 12, 3: 5, 4: 3 };
 export const FRONT_RUNNER_POINTS: Readonly<Record<Round, number>> = { 1: 3, 2: 4, 3: 5, 4: 6, 5: 7 };

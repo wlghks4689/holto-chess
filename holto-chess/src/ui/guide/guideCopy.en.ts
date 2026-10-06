@@ -47,8 +47,8 @@ export const guideCopyEn: GuideCopy = {
       r2: { name: "RUN IT TWICE", tagline: "Three cards, two fights.", bullets: ["Pick one card in the open draft to make three.", "One card is the anchor used in both runs.", "The other two are used once each, in RUN 1 and RUN 2.", "You play two matches with that lineup against different opponents; every run scores."] },
       r3: { name: "OMAHA", tagline: "Four cards, but you can't pick freely.", bullets: ["Always exactly 2 of your cards + 3 board cards.", "Three matches.", "Eliminations start here: the bottom two in points leave."] },
       r4: { name: "BEST FIVE", tagline: "Your 5 cards and 5 board cards: best 5 of 10.", bullets: ["The first match splits players into a winner group and a survival group.", "The winner group plays for extra points.", "Only one of the three in the survival group stays."] },
-      r5: { name: "THE LAST HAND", tagline: "No board, just your seven cards.", bullets: ["The last four players face off at once.", "Your best five of seven is chosen automatically.", "Then the final score is counted."] },
-      labels: { hole: "Your cards", board: "Board", best: "BEST 5", anchor: "Anchor", run: "RUN", mine: "Your 7 cards", players: " players", noBoard: "No community cards",
+      r5: { name: "THE LAST HAND", tagline: "Public auction, five selected cards and a shared board.", bullets: ["The last four players face off at once.", "Bid for up to two cards in 40 seconds, then select five.", "Unselected cards also block the board. Resolve the shared board, then calculate the final score."] },
+      labels: { hole: "Your cards", board: "Board", best: "BEST 5", anchor: "Anchor", run: "RUN", mine: "Your 5 selected cards", players: " players", noBoard: "Five community cards",
         primary: "First match · 1v1 ×3", winnerGroup: "Winner group · 3", survivalGroup: "Survival group · 3", winnerNote: "Extra points", survivalNote: "1 survives · 2 out", draft: "Starts with an open draft" },
     },
     survival: {
@@ -69,7 +69,7 @@ export const guideCopyEn: GuideCopy = {
     nav: ["Basics", "Card pool", "Economy", "Rounds", "Draft", "Points", "Elimination", "Final score", "Abilities", "Ties & edge cases"],
     basics: {
       title: "Basics",
-      rows: [["Players", `${R.players} · AI fills empty seats`], ["Card pool", `${R.poolSize} unique cards, shared`], ["Starting BB", `${R.startBB} BB · no starting card (buy both R1 cards)`], ["Round income", `+${R.roundIncomeBB} BB to survivors at the start of R2–R5`], ["Shop cards", `R1 ${R.r1ShopSize} · R3–R5 ${R.shopSize}`], ["Reroll / lock", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["Selling", `${R.sellPercent}% of base price (rounded down)`], ["Time limits", `Shop ${R.timers.shop}s · draft pick ${R.timers.draftPick}s · R2 loadout ${R.timers.runLoadout}s`]],
+      rows: [["Players", `${R.players} · AI fills empty seats`], ["Card pool", `${R.poolSize} unique cards, shared`], ["Starting BB", `${R.startBB} BB · no starting card (buy both R1 cards)`], ["Round income", `+${R.roundIncomeBB} BB to survivors at the start of R2–R4`], ["Shop cards", `R1 ${R.r1ShopSize} · R3–R4 ${R.shopSize}`], ["Reroll / lock", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["Selling", `${R.sellPercent}% of base price (rounded down)`], ["Time limits", `Shop ${R.timers.shop}s · draft pick ${R.timers.draftPick}s · R2 loadout ${R.timers.runLoadout}s`]],
       perRound: { title: "Limits by round", round: "Round", hand: "Hand size", buys: "Buys", rerolls: "Rerolls", noShop: "No shop" },
       prices: "Card prices (BB)",
     },
@@ -79,7 +79,7 @@ export const guideCopyEn: GuideCopy = {
     },
     economy: {
       title: "Economy",
-      income: [["Start", `${R.startBB} BB`], ["Round income", `+${R.roundIncomeBB} BB (R2–R5)`], ["Leftover BB score", `⌊BB ÷ ${R.stackScoreUnitBB}⌋`]],
+      income: [["Start", `${R.startBB} BB`], ["Round income", `+${R.roundIncomeBB} BB (R2–R4)`], ["Leftover BB score", `⌊BB ÷ ${R.stackScoreUnitBB}⌋`]],
       matchTitle: "BB for regulation matches", matchHead: ["Round", "Win", "Loss"],
       matchRows: [
         ["R1", "0", `+${R.matchBB.r1.base} (+${R.matchBB.r1.step} × loss streak)`],
@@ -99,8 +99,8 @@ export const guideCopyEn: GuideCopy = {
         details: ["Match 1 pairings follow total points (then BB)."] },
       r4: { name: "BEST FIVE OF TEN", tagline: "Open draft → shop → bracket", specs: [["Players", "6"], ["Cards", "5"], ["Matches", "1v1 ×3 → two 3-player groups"], ["Points", `First match: win +${P.r4Primary.win}P · split +${P.r4Primary.split}P`], ["Rule", "BEST 5 of 5 hole + 5 board"], ["Elimination", "2 from the survival group"]],
         details: [`Take one card from the draft (${R.draftCards[4]} revealed), then the personal shop opens.`, "The three first-match winners form the winner group; the three losers form the survival group.", `Winner group: 1st +${P.r4WinnerGroup.first}P · 2nd +${P.r4WinnerGroup.second}P · 3rd +${P.r4WinnerGroup.third}P. Tied 2nd pays +${P.r4WinnerGroup.tiedSecond}P each.`, `Survival group: only 1st survives (+${P.r4LoserGroup.survive}P); two are eliminated.`] },
-      r5: { name: "THE LAST HAND", tagline: "Final with no board", specs: [["Players", "4"], ["Cards", "7"], ["Matches", "All four at once"], ["Points", `+${f1} / +${f2} / +${f3} / +${f4}P`], ["Rule", "BEST 5 of your 7 (automatic)"], ["Elimination", "Final ranking"]],
-        details: ["There is no community board.", "Tied places pool their points and split them, giving more to the player with more BB."] },
+      r5: { name: "THE LAST HAND", tagline: "Auction → five-card loadout → shared board", specs: [["Players", "4"], ["Cards", "Own 5–7 · play 5"], ["Matches", "All four at once"], ["Points", `+${f1} / +${f2} / +${f3} / +${f4}P`], ["Rule", "Free BEST 5 of selected 5 + board 5"], ["Elimination", "Final ranking"]],
+        details: ["No R5 income. Auction: 40 seconds, extended by late bids up to 55 seconds.", "Tied places pool their points and split them, giving more to the player with more BB."] },
     },
     draft: {
       title: "Open draft",

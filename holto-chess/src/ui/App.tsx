@@ -50,6 +50,10 @@ import { advanceLocalNextRound } from "./localRoundTransition";
 import { markRoundGuideSeen, shouldAutoShowRoundGuide, useRoundGuidePreferences } from "./roundGuidePreferences";
 import { useTranslation, type TranslationKey } from "../i18n";
 import { SellCardDialog } from "./SellCardDialog";
+import { FinalAuctionPanel } from "./FinalAuctionPanel";
+import { bidFinalAuction, settleFinalAuction, setFinalLoadout } from "../game/finalAuction";
+import { tickAuctionBots } from "../game/finalAuctionBot";
+import { finishFinalLoadouts } from "../game/engine";
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const ROUND_TITLES = ["", "TWO HAND", "RUN IT TWICE", "OMAHA SWISS", "BEST FIVE", "THE LAST HAND"];
@@ -142,7 +146,7 @@ function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; matc
 
 function ShowdownPanel({ state, secondsLeft, matchup }: { state: PorenaGameState; secondsLeft: number | null; matchup?: ShowdownPrepView }) {
   if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return state.round === 5
-    ? <FinalRoundTransition matchup={finalPrepMatchup(state.players.filter(p => !p.eliminated).map(p => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId })), "p1")} seconds={secondsLeft} />
+    ? <FinalRoundTransition matchup={matchup ?? finalPrepMatchup(state.players.filter(p => !p.eliminated).map(p => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId })), "p1")} seconds={secondsLeft} />
     : <LocalShowdownPrep state={state} matchup={matchup} />;
   if (!state.roundResults.length) return null;
   return <RoundResults round={state.round} rows={createRoundSummary(state)} viewerId="p1" showBrackets={state.round === 4 && state.phase === "GROUP_ASSIGNMENT"} secondsLeft={state.phase === "ROUND_RESULT" ? secondsLeft : null}>{roundMatches(state).filter((match) => match.playerIds.includes("p1")).map((match, index) => <MatchCard state={state} match={match} matchNumber={index + 1} key={match.id} />)}</RoundResults>;
@@ -181,7 +185,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const draftRevealing = isDraftRevealing(state);
   const abilityPickIndex = state.abilityDraft?.picks.length ?? 0;
   const abilityPickerId = state.abilityDraft?.order[abilityPickIndex];
-  const guideOpen = manualGuideRound !== null || shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
+  const guideOpen = manualGuideRound !== null || state.round !== 5 && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
   const guideRound = manualGuideRound ?? state.round;
   const closeGuide = () => {
     markRoundGuideSeen(guideRound);
@@ -210,6 +214,15 @@ export function App({ onHome }: { onHome: () => void }) {
     return () => clearTimeout(timer);
   }, [state.phase, draftPickIndex, draftPickerId, draftRevealing, abilityPickIndex, abilityPickerId, guideOpen]);
   useEffect(() => { if (state.round === 5) preloadFinalArena(); else preloadShowdownStage(state.round); }, [state.round]);
+  useEffect(() => {
+    if (state.phase !== "FINAL_AUCTION" && state.phase !== "FINAL_LOADOUT") return;
+    const timer = setInterval(() => setState(s => {
+      const now = Date.now();
+      if (s.phase === "FINAL_AUCTION") return now >= s.finalAuction!.endsAt ? finishFinalLoadouts(settleFinalAuction(s, now), now) : tickAuctionBots(s, ["p1"], now);
+      return finishFinalLoadouts(s, now);
+    }), 150);
+    return () => clearInterval(timer);
+  }, [state.phase]);
   const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(advanceLocalNextRound(fn(state))); setError(null); } catch (caught) { const message = caught instanceof Error ? caught.message : ""; setError({ ...classifyGameError(message), message }); } };
   const prep = getPrepPresentation(state.round, state.phase);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
@@ -217,6 +230,9 @@ export function App({ onHome }: { onHome: () => void }) {
   const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [] }, "p1");
   const isShowdownPrep = ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase);
   const draftAction = (a: GameAction) => {
+    if (a.type === "FINAL_AUCTION_BID") act(s => bidFinalAuction(s, "p1", a, Date.now()));
+    if (a.type === "FINAL_LOADOUT") act(s => setFinalLoadout(s, "p1", a.cardIds, Date.now()));
+    if (a.type === "LOCK_FINAL_LOADOUT") act(s => finishFinalLoadouts(setFinalLoadout(s, "p1", s.players[0]!.finalLoadoutCardIds ?? [], Date.now(), true), Date.now()));
     if (a.type === "READY" && state.phase === "ABILITY_REVEAL") act(finishAbilitySelection);
     if (a.type === "ABILITY_PICK") act(s => pickAbility(s, "p1", a.slot));
     if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId, true));
@@ -234,6 +250,7 @@ export function App({ onHome }: { onHome: () => void }) {
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN) / 1000} />}
       {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className={`round-header ${["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(state.phase) ? "is-centered-phase-header" : ""}`}><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : ROUND_TITLES[state.round]}</h1>{state.phase !== "GAME_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "SHOP" && state.phase !== "GAME_RESULT" && state.phase !== "RUN_LOADOUT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} />}
+      {["FINAL_AUCTION", "FINAL_LOADOUT"].includes(state.phase) && <FinalAuctionPanel view={draftView} send={draftAction} />}
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{renderGameError(error, t)}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>{t("spectator.mode")}</h2><p>{t("spectator.cardsReturned")}</p></section> : <ShopPanel state={state} act={act} /> : null}

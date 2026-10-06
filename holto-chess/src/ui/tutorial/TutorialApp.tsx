@@ -34,6 +34,9 @@ import { ShowdownCinematic } from "../ShowdownCinematic";
 import { TutorialChapterMenu } from "./TutorialChapterMenu";
 import { TutorialCoachmark } from "./TutorialCoachmark";
 import "./tutorial.css";
+import { FinalAuctionPanel } from "../FinalAuctionPanel";
+import { bidFinalAuction, setFinalLoadout, settleFinalAuction } from "../../game/finalAuction";
+import { finishFinalLoadouts } from "../../game/engine";
 
 type Screen = { kind: "menu" } | { kind: "chapter"; session: TutorialSession } | { kind: "chapter-done"; session: TutorialSession };
 
@@ -214,11 +217,19 @@ function TutorialArena({ game, act, error, onDismissError }: {
   const rerollLimit = rerollLimitFor(game.round);
   const view = createPlayerView({ schema: 1, roomId: "TUTORIAL", revision: 0, status: "PLAYING", game, sessions: [{ playerId: "p1", tokenHash: "tutorial", requests: [] }], readyIds: [], endedShopIds: [] }, "p1");
   const send = (action: GameAction) => {
+    if (action.type === "FINAL_AUCTION_BID") act(s => bidFinalAuction(s, "p1", action, s.finalAuction!.startedAt + 1000));
+    if (action.type === "FINAL_LOADOUT") act(s => setFinalLoadout(s, "p1", action.cardIds, s.finalAuction!.loadoutStartsAt! + 1));
+    if (action.type === "LOCK_FINAL_LOADOUT") act(s => finishFinalLoadouts(setFinalLoadout(s, "p1", s.players[0]!.finalLoadoutCardIds!, s.finalAuction!.loadoutStartsAt! + 1, true), s.finalAuction!.loadoutStartsAt! + 1));
     if (action.type === "DRAFT_PICK") act((state) => pickDraftCard(state, "p1", action.cardId));
     if (action.type === "RUN_LOADOUT") act((state) => setRunLoadout(state, "p1", action.cardIds));
     if (action.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
   };
   return <main className="tutorial-arena">
+    {["FINAL_AUCTION", "FINAL_LOADOUT"].includes(game.phase) && <div data-tutorial-id="auction">
+      <FinalAuctionPanel view={view} send={send} clock={{ now: () => game.phase === "FINAL_AUCTION" ? game.finalAuction!.startedAt + 1000 : game.finalAuction!.loadoutStartsAt! + 1, offset: () => 0, observe: () => {} }} />
+      {game.phase === "FINAL_AUCTION" && <button className="primary" onClick={() => act(s => settleFinalAuction(s, s.finalAuction!.endsAt))}>{locale === "ko-KR" ? "경매 연습 종료 · 낙찰 확인" : "Finish auction practice · Reveal winners"}</button>}
+      {game.phase === "FINAL_LOADOUT" && <div className="panel"><p>{game.finalAuction!.results!.map(r => `${game.players.find(p => p.id === r.playerId)!.name}: ${r.cardId} ${r.amount}BB`).join(" · ")}</p>{me.finalLoadoutLocked && <button className="primary" onClick={() => act(s => finishFinalLoadouts(s, s.finalAuction!.loadoutStartsAt!))}>{locale === "ko-KR" ? "출전 카드 공개 · 쇼다운" : "Reveal loadouts · Showdown"}</button>}</div>}
+    </div>}
     {error ? <div className="error-toast" role="alert"><span>!</span>{locale === "ko-KR" ? error : renderGameError({ ...classifyGameError(error), message: error }, t)}<button type="button" onClick={onDismissError}>×</button></div> : null}
 
     {game.phase === "SHOP" && <section className="panel tutorial-inventory" data-tutorial-id="owned-cards">

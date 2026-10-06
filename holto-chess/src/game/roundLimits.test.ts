@@ -1,3 +1,4 @@
+import { autoStep } from "../tutorial/practiceState";
 import { describe, expect, it } from "vitest";
 import { purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
 import { beginSecondary, buyCard, createGame as createGameCurrent, finalStandings, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, startNextRound } from "./engine";
@@ -50,7 +51,7 @@ describe("persisted snapshot trimming", () => {
     let game = createGame(4242);
     let sawSnapshots = false;
     for (let round = 1; round <= 5; round += 1) {
-      game = prepareShowdown(game, []);
+      game = game.phase === "FINAL_AUCTION" ? autoStep(autoStep(game)) : prepareShowdown(game, []);
       game = resolvePrimary(game);
       if (game.phase === "GROUP_ASSIGNMENT") { game = beginSecondary(game); game = resolveSecondary(game); }
       // R5 has no community board, so it produces no street snapshots.
@@ -69,7 +70,7 @@ describe("persisted snapshot trimming", () => {
   it("final standings ignore street snapshots entirely", () => {
     let game = createGame(9001);
     for (let round = 1; round <= 5; round += 1) {
-      game = prepareShowdown(game, []);
+      game = game.phase === "FINAL_AUCTION" ? autoStep(autoStep(game)) : prepareShowdown(game, []);
       game = resolvePrimary(game);
       if (game.phase === "GROUP_ASSIGNMENT") { game = beginSecondary(game); game = resolveSecondary(game); }
       if (round === 5) break;

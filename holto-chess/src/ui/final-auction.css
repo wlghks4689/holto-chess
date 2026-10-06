@@ -1,0 +1,73 @@
+.final-auction{position:relative;max-width:1120px;margin:0 auto;color:#e7f1ff}.auction-hud{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 24px;background:rgba(9,17,36,.97);border:1px solid #354565;border-radius:16px;box-shadow:0 12px 35px #0007}.auction-hud h2{margin:4px 0 0;letter-spacing:.08em;font-size:28px}.auction-clock{font-size:36px;color:#7ce4ff}.auction-clock small{font-size:11px;margin-left:6px}.auction-clock.is-urgent{color:#ff977c}.auction-hud dl{display:flex;justify-content:space-between;gap:26px;margin:0}.auction-hud dt{color:#9daecb;font-size:11px}.auction-hud dd{margin:4px 0 0;font-size:22px;font-weight:800}.auction-hud dd small{font-size:13px;color:#8699b7}.auction-available{color:#7ce4ff}.auction-opponents{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}.auction-opponents article{padding:12px;background:#111d32;border:1px solid #283852;border-radius:12px;min-width:0}.auction-opponents header{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px}.auction-opponents header img{width:24px;height:24px;object-fit:contain}.auction-opponents header span{margin-left:auto;color:#95aaca;font-size:11px}.auction-opponents article>div{display:flex;gap:3px;margin-top:10px}.auction-opponents .playing-card{width:34px!important;height:48px!important;min-width:0!important;font-size:12px!important}.auction-opponents .card-rank{font-size:13px}.auction-opponents .card-suit{font-size:15px}.auction-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;padding:8px 0 20px;touch-action:pan-y}.auction-tile{display:flex;align-items:center;flex-direction:column;gap:4px;background:linear-gradient(145deg,#19263e,#111a2c);border:1px solid #334159;border-radius:9px;padding:7px 4px;min-width:0}.auction-tile.is-selected{border-color:#78dfff;box-shadow:0 0 0 2px #78dfff55}.auction-tile.is-mine{border-color:#8d8aff;background:#252644}.auction-tile>.playing-card{width:48px;max-width:100%;height:64px;min-width:0;padding:3px;transform:none}.auction-tile>.playing-card .card-rank{font-size:19px}.auction-tile>.playing-card .card-suit{font-size:23px}.auction-tile>strong{font-size:14px;line-height:1.25;font-variant-numeric:tabular-nums;white-space:nowrap;color:#a7b8d3}.auction-tile.has-bid>strong{color:#ffd385}.auction-tile.is-selected>strong{color:#78dfff}.auction-tile.is-mine>strong{color:#b9aaff}.auction-tile.is-selected>.playing-card{box-shadow:inset 0 0 0 2px #40cee9,0 0 9px #40cee960;transform:none}.auction-tile.is-mine>.playing-card{box-shadow:inset 0 0 0 2px #947fff,0 0 10px #947fff80;transform:none}.auction-tile.has-bid>.playing-card{box-shadow:inset 0 0 0 1px #d2a64e}.auction-tile>strong small{color:inherit}.auction-tile small{font-size:10px;color:#96aaca}.auction-outbid{padding:10px 14px;background:#273047;color:#b8eaff;border-radius:9px;font-size:12px}.auction-bid-sheet{position:fixed;z-index:80;bottom:24px;right:24px;width:min(360px,calc(100vw - 32px));padding:20px;background:#12223b;border:1px solid #6883b0;border-radius:18px;box-shadow:0 18px 80px #000a}.auction-bid-sheet header,.auction-input,.auction-shortcuts{display:flex;align-items:center;justify-content:space-between;gap:8px}.auction-bid-sheet p{font-size:12px;line-height:1.6;color:#b5c6df}.auction-bid-sheet button{padding:9px 14px;border-radius:8px}.auction-input input{min-width:0;width:100%;padding:12px;text-align:center;background:#081226;border:1px solid #54749d;color:white;border-radius:8px;font-size:20px}.auction-shortcuts{margin:12px 0}.auction-bid-sheet>.primary{width:100%}.auction-reveal{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:12px;min-height:330px;align-content:center}.auction-reveal article{display:flex;flex-direction:column;align-items:center;gap:12px;animation:auction-arrive .4s ease-out}.auction-reveal span{font-size:12px}.final-loadout{text-align:center;padding:24px 0}.final-loadout p{color:#aebfd9;font-size:14px;line-height:1.7}.final-loadout-cards{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin:30px 0}.final-block-cards{font-size:10px;color:#9facbe;margin-top:8px}.final-block-cards>div{display:flex;justify-content:center;gap:4px;margin-top:4px}.final-block-cards .playing-card{width:27px!important;height:38px!important;min-width:0!important;opacity:.65}.final-block-cards .card-rank,.final-block-cards .card-suit{font-size:12px!important}.cinema-final .final-community-board{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:36%;z-index:4}.cinema-final .final-community-board .playing-card{width:clamp(30px,4.8vw,65px);height:clamp(44px,6.8vw,92px);min-width:0}.cinema-final .final-community-board .cinema-board{padding:5px}.cinema-final .final-community-board h3{font-size:11px}@keyframes auction-arrive{from{opacity:0;transform:translateY(30px) scale(.85)}to{opacity:1;transform:none}}@media(max-width:700px){.auction-hud{padding:14px;gap:12px;border-radius:12px}.auction-hud h2{font-size:20px}.auction-hud dl{width:100%;gap:8px}.auction-hud dd{font-size:20px}.auction-clock{font-size:28px}.auction-opponents{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.auction-opponents article{padding:8px}.auction-opponents .playing-card{width:24px!important;height:35px!important}.auction-opponents .card-rank,.auction-opponents .card-suit{font-size:11px!important}.auction-grid{grid-template-columns:repeat(8,minmax(0,1fr));gap:3px}.auction-tile{padding:4px 2px;gap:4px;border-radius:6px}.auction-tile>.playing-card{width:100%;height:auto;aspect-ratio:3/4;border-radius:4px;padding:1px;gap:0}.auction-tile>.playing-card .card-rank{font-size:clamp(10px,3vw,15px);line-height:1}.auction-tile>.playing-card .card-suit{font-size:clamp(12px,3.6vw,17px);line-height:1}.auction-tile>strong{font-size:10px}.auction-tile>strong small{font-size:7px}.auction-reveal{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 6px;padding:24px 0}.auction-reveal .playing-card{width:54px;height:76px}.auction-bid-sheet{right:16px;bottom:16px}.final-loadout-cards{gap:9px}.final-loadout-cards .playing-card{width:60px;height:84px}.cinema-final .final-community-board{width:66%}.cinema-final .final-community-board .playing-card{width:34px;height:48px}.cinema-final .final-community-board .card-rank,.cinema-final .final-community-board .card-suit{font-size:15px}}
+
+.auction-tile.has-bid{border-color:#ffc76a;background:linear-gradient(145deg,#493820,#251e18);box-shadow:inset 0 0 0 1px #ffc76a66,0 0 8px #ffc76a45}
+.auction-tile.has-bid>.playing-card{box-shadow:inset 0 0 0 2px #f5b950,0 0 8px #ffc76a75;transform:none}
+.auction-tile.has-bid>strong{color:#ffe0a3}
+.auction-shortcuts>button{background:#213b58;color:#e7f1ff;border:1px solid #6685aa;font-weight:700}
+.auction-shortcuts>button:hover{background:#2d5075;border-color:#7ce4ff}
+.auction-hud dl>div{text-align:center}
+.auction-hud .auction-clock{font-size:44px}
+@media(max-width:700px){.auction-hud .auction-clock{font-size:34px}}
+.auction-winner{display:flex;gap:5px;align-items:center}.auction-winner img{width:28px;height:28px;object-fit:contain}
+
+.cinema-final[data-phase="ARENA_ENTER"] .final-community-board{visibility:hidden}
+
+.auction-reveal{display:flex;justify-content:center;align-items:center;flex-wrap:wrap}.auction-reveal article{width:calc(12.5% - 12px)}.auction-reveal .playing-card{opacity:1}@media(max-width:700px){.auction-reveal article{width:calc(25% - 6px)}}
+
+/* Give the shared board its own row between the two pairs of final seats. */
+.cinema.cinema-final:has(.final-community-board){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-content:start}
+.cinema.cinema-final:has(.final-community-board)>.cinema-heading{grid-column:1/-1;grid-row:1;margin:0}
+.cinema.cinema-final:has(.final-community-board)>.cinema-seats{display:contents}
+.cinema.cinema-final:has(.final-community-board) .cinema-seat{position:relative;z-index:2;min-width:0}
+.cinema.cinema-final:has(.final-community-board) .cinema-seat:nth-child(1){grid-column:1;grid-row:2}
+.cinema.cinema-final:has(.final-community-board) .cinema-seat:nth-child(2){grid-column:2;grid-row:2}
+.cinema.cinema-final:has(.final-community-board) .cinema-seat:nth-child(3){grid-column:1;grid-row:4}
+.cinema.cinema-final:has(.final-community-board) .cinema-seat:nth-child(4){grid-column:2;grid-row:4}
+.cinema.cinema-final>.final-community-board{position:relative;grid-column:1/-1;grid-row:3;left:auto;top:auto;transform:none;width:min(380px,100%);margin:0 auto}
+.cinema.cinema-final:has(.final-community-board)>.cinema-footer{grid-column:1/-1;grid-row:5}
+.cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="5"]{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;max-width:300px;gap:3px;margin-inline:auto}
+.cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="5"]>.cinema-flip-slot:nth-child(n){width:100%;min-width:0;zoom:1;grid-column:auto;grid-row:auto}
+.cinema.cinema-final.cinema-arena-enter:has(.final-community-board) .cinema-seat{opacity:0}
+@media(max-width:700px){
+.cinema.cinema-final:has(.final-community-board){gap:10px;padding:12px}
+.cinema.cinema-final:has(.final-community-board) .cinema-seat{padding:8px 6px}
+.cinema.cinema-final:has(.final-community-board) .cinema-seat>.cinema-profile{margin-bottom:8px}
+.cinema.cinema-final>.final-community-board{width:min(260px,100%)}
+.cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="5"]{gap:2px}
+.cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="5"] .card-rank{font-size:12px}
+.cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="5"] .card-suit{font-size:14px}
+}
+
+.auction-heading{position:relative;display:flex;align-items:center;gap:9px}
+.auction-help{flex:0 0 auto;margin-top:4px}
+.auction-help>button{display:grid;place-items:center;width:23px;height:23px;padding:0;border:1px solid #6bbbd0;border-radius:50%;background:#102a3e;color:#9be7fa;cursor:pointer;list-style:none;font:800 13px/1 sans-serif}
+.auction-help>button::-webkit-details-marker{display:none}
+.auction-help>button:focus-visible{outline:2px solid #78dfff;outline-offset:3px}
+.auction-help-popover{position:absolute;top:calc(100% + 10px);left:0;z-index:30;width:min(320px,calc(100vw - 64px));padding:15px 17px;border:1px solid #547b9b;border-radius:12px;background:#0b1a2e;color:#c2d3e9;box-shadow:0 14px 35px #000b;font-size:12px;line-height:1.65;max-height:55dvh;overflow-y:auto}
+.auction-help-popover>strong{color:#9be7fa;font-size:13px}
+.auction-help-popover ul{margin:9px 0 0;padding-left:18px}
+.auction-help-popover li+li{margin-top:8px}
+.auction-grid+.auction-opponents{margin-top:0}
+
+/* Keep final-stage information legible against the arena artwork. */
+.cinema.cinema-final>.cinema-final-heading{padding-top:0;align-self:start;justify-content:center;text-align:center}
+.cinema.cinema-final>.cinema-final-heading h2{font-size:calc(clamp(28px,5vw,52px) + 4px);margin:4px 0;line-height:1.2}
+.cinema.cinema-final>.final-community-board>.cinema-board{padding:12px 14px;border:1px solid #426373;border-radius:12px;background:linear-gradient(145deg,#112939,#071824);box-shadow:0 8px 22px #0007,inset 0 1px 0 #89d5e914}
+.cinema.cinema-final>.final-community-board .cinema-board-label h3{color:#c3e6ed;text-shadow:0 1px 3px #000}
+@media(min-width:769px) and (max-height:800px){
+  .cinema.cinema-final>.cinema-final-heading h2{font-size:32px}
+}
+@media(max-width:768px){
+  .cinema.cinema-final>.cinema-final-heading h2{font-size:20px}
+  .cinema.cinema-final>.final-community-board>.cinema-board{padding:10px}
+  .cinema.cinema-final:has(.final-community-board){width:calc(100% - 8px);margin:4px auto;padding:6px;gap:8px 6px}
+  .cinema.cinema-final:has(.final-community-board) .cinema-seat{padding:8px 4px}
+  .cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="5"] .playing-card.compact{width:100%;height:auto;aspect-ratio:53/75;padding:2px;border-radius:4px}
+  .cinema.cinema-final>.final-community-board{width:min(280px,100%)}
+  .cinema.cinema-final>.final-community-board .cinema-flip-slot{zoom:1}
+  .cinema.cinema-final>.final-community-board .playing-card.compact{width:clamp(40px,11vw,44px);height:auto;aspect-ratio:53/75;padding:2px;border-radius:4px}
+  .cinema.cinema-final:has(.final-community-board) .playing-card.compact .card-rank{font-size:clamp(13px,34cqw,16px)}
+  .cinema.cinema-final:has(.final-community-board) .playing-card.compact .card-suit{font-size:clamp(16px,44cqw,20px)}
+}
+
+.auction-opponents article>div{justify-content:center}

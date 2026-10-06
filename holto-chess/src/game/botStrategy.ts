@@ -3,6 +3,7 @@ import { compareHands, findBestFive, findBestOmaha, type HandCategory, type Hand
 import { BALANCE } from "./config";
 import type { PlayerState, Round } from "./types";
 import { strategicCardValue, type PreflopStrength } from "./preflopStrength";
+import { scoreUnrestricted } from "./showdownEquity";
 
 type PricedCard = { card: Card; price: number };
 export type BotPlanScore = {
@@ -15,6 +16,8 @@ export type BotPlanScore = {
   utility: number;
 };
 export type BotPlanOptions = {
+  /** R5 auction uses R4 sampling with rank-only evaluation to avoid blocking live bids. */
+  fastUnrestricted?: boolean;
   /** Version 2 plays R2 as [anchor, run-1 secondary] and [anchor, run-2 secondary]. */
   rulesVersion?: 1 | 2;
   /**
@@ -30,6 +33,7 @@ export type BotPlanOptions = {
 // Common-random sampling keeps seven bots responsive. Cheap rounds afford more
 // universes; R4 evaluates ten cards per player, so it stays lean.
 const SAMPLES: Record<Round, number> = { 1: 24, 2: 48, 3: 24, 4: 24, 5: 24 };
+const UNRESTRICTED_CATEGORIES: HandCategory[] = ["HIGH_CARD", "PAIR", "TWO_PAIR", "TRIPS", "STRAIGHT", "FLUSH", "FULL_HOUSE", "QUADS", "STRAIGHT_FLUSH"];
 
 function hash(value: string): number {
   let output = 2166136261;
@@ -177,7 +181,15 @@ function scoreHeadsUp(
   deck: readonly Card[],
   rulesVersion: 1 | 2,
   runOrder?: readonly Card[],
+  fastUnrestricted = false,
 ): { result: number; handScore: number } {
+  if (round === 4 && fastUnrestricted) {
+    const board = deck.slice(0, 5);
+    const hero = scoreUnrestricted([...heroCards, ...board]);
+    const opponent = scoreUnrestricted([...opponentCards, ...board]);
+    const category = hero >= 8 * 16 ** 5 + 14 * 16 ** 4 ? "ROYAL_FLUSH" : UNRESTRICTED_CATEGORIES[Math.floor(hero / 16 ** 5)]!;
+    return { result: hero > opponent ? 1 : hero === opponent ? 0.5 : 0, handScore: BALANCE.handScores[category] };
+  }
   if (round === 5) {
     const hero = findBestFive(heroCards); const opponent = findBestFive(opponentCards);
     return { result: compare(hero, opponent), handScore: BALANCE.handScores[hero.category] };
@@ -242,7 +254,7 @@ export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: n
     const deck = shuffled(unseen, random); let cursor = 0;
     const completedHero = [...cards, ...deck.slice(cursor, cursor += limit - cards.length)];
     const opponent = deck.slice(cursor, cursor += limit);
-    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor), rulesVersion, cards.length === limit ? options.runOrder : undefined);
+    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor), rulesVersion, cards.length === limit ? options.runOrder : undefined, options.fastUnrestricted);
     equity += outcome.result; expectedHandScore += outcome.handScore;
   }
   equity /= samples; expectedHandScore /= samples;

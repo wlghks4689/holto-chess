@@ -53,6 +53,9 @@ export type MatchRoundStats = {
 };
 
 export type GameRow = {
+  auction?: { overtime: boolean; raises: number; tied: boolean; icm: boolean; reversal: boolean;
+    seats: { playerId: string; entryBB: number; endBB: number; spent: number; wins: number; blocks: number; handScore: number; total: number; handGain: number }[];
+    prices: { rank: number; amount: number; raises: number }[] };
   game: number; seed: number; ok: boolean; error?: string; failedAt?: string;
   aliveAfter: number[]; matchStats: MatchRoundStats[]; ms: number;
 };

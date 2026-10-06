@@ -5,7 +5,7 @@ export const EN_CHAPTERS: Record<ChapterId, { title: string; summary: string }> 
   2: { title: "Two runs", summary: "Open Draft · lead card and RUN lineups" },
   3: { title: "Exactly two hole cards", summary: "Omaha 2+3 · cumulative Points and survival" },
   4: { title: "Your BEST 5", summary: "Unrestricted BEST 5 · winner and survival brackets" },
-  5: { title: "Final hand and score", summary: "Seven hole cards · final hand and total score" },
+  5: { title: "Final auction and shared board", summary: "Final Auction · Five-card loadout · Four-way board" },
 };
 
 type Copy = { title: string; body: StepText; more?: StepText; goal?: string; next?: string };
@@ -30,9 +30,10 @@ const EN_STEPS: Record<string, Copy> = {
   "r4-rule": { title: "The 2+3 restriction is gone", goal: "Prepare five cards and press Ready", body: ["Use the strongest five cards freely from your five hole cards and five board cards."] },
   "r4-enter-secondary": { title: "Check your bracket", goal: "Start the second stage", body: ["The winner bracket has qualified and competes for extra Points. The survival bracket fights for one remaining place."] },
   "r4-secondary": { title: "Same hand, bracket match", next: "Finish practice", body: ["This is your bracket match result. Four survivors reach the final round."] },
-  "r5-shop": { title: "No shared board in the final", goal: "Own seven cards", body: ["Build your strongest five from seven hole cards alone. Buy cards to complete your final hand."] },
-  "r5-commit": { title: "Four players, one final showdown", goal: "Press Ready", body: ["Cards reveal in sequence and each player's strongest five are highlighted."] },
-  "r5-best5": { title: "Your bright five form the final hand", next: "View match result", body: ["The five bright cards are used. The two dim cards are excluded from hand comparison."] },
+  "r5-rules": { title: "Bid with the BB you saved", next: "Practice auction", body: ["R5 adds no income. All remaining cards are offered; bidders stay anonymous until settlement.", "Live auctions last 40 seconds. Valid bids in the final three seconds extend the deadline up to 55 seconds. Practice advances by button."] },
+  "r5-auction": { title: "Tap twice for an opening bid", goal: "Try bidding, then finish practice (buying is optional)", body: ["Select an unbid card, then tap again to bid its base price. For a contested card, enter any whole amount at least 5BB above the current bid.", "Lead on at most two cards within your stack. BB is reserved until settlement. Bids cannot be cancelled.", "Read public opponent builds to infer intent. Winners, cards and amounts are revealed together."] },
+  "r5-loadout": { title: "Choose five; the rest BLOCK", goal: "Lock five cards", body: ["Choose five from your five to seven owned cards. Exactly five locks automatically. Choices stay private until everyone locks.", "Unselected owned cards also stay out of the board (BLOCK)."] },
+  "r5-best5": { title: "Five selected cards plus five shared cards", next: "View match result", body: ["Four players share one board. Any five of your selected five and the board five form your BEST5, including the board alone."] },
   "r5-result": { title: "The final hand ranking", next: "View total score", body: ["The four hands determine placing and placement Points. Next, check the overall game score."] },
   "r5-score": { title: "Best final hand does not always win overall", next: "Finish practice", body: ["Total score = cumulative Points + hand score + BB conversion."], more: ["Every 10 BB converts to one point; the remainder is discarded. R5 placement Points are already included in cumulative Points."] },
 };

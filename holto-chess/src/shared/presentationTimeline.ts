@@ -21,7 +21,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     else add("BEST5_GLOW", 650);
   };
   // R5 only: the Final Arena establishing shot and camera push-in play before the existing intro.
-  if (match.round === 5 && !match.boards.length) add("ARENA_ENTER", FINAL_ARENA_ENTER_MS);
+  if (match.round === 5) { if (match.boards.length) finalCards = 5; add("ARENA_ENTER", FINAL_ARENA_ENTER_MS); }
   // The separate match-loading screen now owns the opponent/hand reveal beat.
   // Enter the table immediately so the board reveal does not repeat that information.
   add("TABLE_ENTER", 400);
@@ -55,7 +55,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
       revealed = 3; add("FLOP_3", 500); add("FLOP_SETTLE", 200); add("FLOP_HAND", 900);
       revealed = 4; add("TURN", 720); add("TURN_SETTLE", 200); add("TURN_HAND", 920);
       add("RIVER_SUSPENSE", 250);
-      revealed = 5; add("RIVER", 900); add("RIVER_SETTLE", 200);
+      revealed = 5; add("RIVER", 900); add("RIVER_SETTLE", match.round === 5 ? 1200 : 200);
       // One hand read, then one outcome. Intermediate run results are needed only
       // when another board follows; the final board flows straight into RESULT.
       bestFive();
@@ -69,6 +69,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
     add("HIGH_CARD_DRAW", 3000);
   }
   // Outcome and payout enter together; REWARD remains a hold with no second reveal.
+  if (match.round === 5) { for (const place of [4, 3, 2]) add("FINAL_PLACE", 900, place); add("FINAL_WINNER", 1300, 1); add("REWARD", 1600); add("COMPLETE", 0); return frames; }
   add("RESULT", 650); add("REWARD", 1100); add("COMPLETE", 0);
   return frames;
 }
@@ -107,7 +108,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 15;
+export const PRESENTATION_VERSION = 16;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */

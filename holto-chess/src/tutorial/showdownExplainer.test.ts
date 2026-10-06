@@ -59,14 +59,15 @@ describe("showdown explanations", () => {
     }
   });
 
-  it("R5 explains seven cards with no board", () => {
+  it("R5 explains five selected cards with the shared board", () => {
     const { matches } = playedRound(5);
     const match = matches[0]!;
-    expect(match.boards.length).toBe(0);
+    expect(match.boards).toHaveLength(1);
+    expect(match.revealedCards.p1).toHaveLength(5);
     const explanation = explainResult(match, "p1", 0)!;
     expect(explanation.headline.length).toBeGreaterThan(0);
-    expect(explanation.detail.some((line) => line.includes("보드"))).toBe(false);
-    expect(explanation.unused).toBeDefined();
+    const visible = [...match.revealedCards.p1!, ...match.boards[0]!].map(card => card.id);
+    expect(explanation.highlightCardIds.every(id => visible.includes(id))).toBe(true);
   });
 
   it("R3 uses exactly two of my four cards and three from the board", () => {

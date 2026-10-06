@@ -67,7 +67,7 @@ export function AbilitySelectionPanel({ view, send, seconds = 0, disabled = fals
       </>}
       </div>
       {cardGrid}
-      {phase === "ABILITY_PICK" ? <small className="ability-selection-count">{draft.pickedCount} / 8</small> : <div className="ability-reveal-actions">
+      {phase !== "ABILITY_PICK" && <div className="ability-reveal-actions">
         <p className="ability-reveal-countdown" role="status">{t("ability.selection.startsIn", { seconds })}</p>
         <button type="button" className="primary" disabled={disabled || ready || !view.me.alive} onClick={() => send({ type: "READY" })}>{t(ready ? "online.readyDone" : "online.readyAction")}</button>
       </div>}

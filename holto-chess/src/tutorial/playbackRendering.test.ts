@@ -1,3 +1,4 @@
+import { autoStep } from "./practiceState";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -21,6 +22,7 @@ import type { ChapterId } from "./tutorialTypes";
 function play(game: PorenaGameState): PorenaGameState {
   const me = game.players[0]!;
   switch (game.phase) {
+    case "FINAL_AUCTION": case "FINAL_LOADOUT": return autoStep(game);
     case "SHOP": {
       if (me.ownedCardIds.length >= BALANCE.handLimits[game.round]) return prepareShowdown(game, ["p1"]);
       const affordable = me.shopCardIds.find((id) => getCardPrice(game, "p1", id) <= me.stackBB);
@@ -112,17 +114,14 @@ describe("the guide's checkpoints land on frames that actually show the cards", 
     }
   });
 
-  it("plays the final seven in three batches without requiring a click for each batch", () => {
-    const wanted: Record<string, number> = { FINAL_FIRST_HAND: 3, FINAL_SECOND_HAND: 5, FINAL_SEVEN_SETTLE: 7 };
+  it("reveals the shared final board in flop, turn and river order", () => {
     const bestFive = beatsOf(5).find((beat) => beat.at === "BEST5_GLOW")!;
     expect(bestFive).toBeDefined();
-    for (const at of ["FINAL_FIRST_HAND", "FINAL_SECOND_HAND", "FINAL_SEVEN_SETTLE"] as const) {
+    for (const [at, count] of [["FLOP_HAND", 3], ["TURN_HAND", 4], ["RIVER_SETTLE", 5]] as const) {
       const beat = { ...bestFive, at, elapsed: checkpointMs(bestFive.match, at)! };
       expect(beat.elapsed).toBeLessThan(bestFive.elapsed);
-      const html = render(beat);
-      const mine = beat.match.revealedCards["p1"] ?? [];
-      const open = mine.filter((card) => new RegExp(`data-card-id="${card.id}" data-open="true"`).test(html)).length;
-      expect({ at: beat.at, open }).toEqual({ at: beat.at, open: wanted[beat.at] });
+      expect(openBoardCards(render(beat), beat)).toBe(count);
+      expect(beat.match.revealedCards.p1).toHaveLength(5);
     }
   });
 });

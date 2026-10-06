@@ -7,6 +7,9 @@ import { PRESENTATION_LEAD_MS, PRESENTATION_VERSION } from "../shared/presentati
 import type { PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
 import { openDraft, autoPickDraft, pickDraftCard, completeDraft, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
+import { finishFinalLoadouts } from "./engine";
+import { bidFinalAuction, setFinalLoadout, settleFinalAuction } from "./finalAuction";
+import { tickAuctionBots } from "./finalAuctionBot";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
@@ -128,7 +131,9 @@ function finishForBots(room: RoomSnapshot, now: number): void {
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
     else if (room.game.phase === "OPEN_DRAFT") room.game = isDraftRevealing(room.game) ? completeDraft(room.game) : autoPickDraft(room.game, true);
     else if (room.game.phase === "ABILITY_PICK") room.game = autoPickAbility(room.game);
-    else advanceReadyBarrier(room);
+    else if (room.game.phase === "FINAL_AUCTION") { room.game = settleFinalAuction(room.game, room.game.finalAuction!.endsAt); }
+    else if (room.game.phase === "FINAL_LOADOUT") room.game = finishFinalLoadouts(room.game, room.game.finalAuction!.loadoutEndsAt!, []);
+    else advanceReadyBarrier(room, now);
   }
   syncPresentation(room, now);
   if (room.presentation) room.presentation.endsAt = now;
@@ -171,6 +176,9 @@ function refreshBarrier(room: RoomSnapshot, now: number): void {
  * runs during the shared cinematic: it counts from whichever is later, the barrier or its end.
  */
 export function barrierDeadline(room: RoomSnapshot): number | undefined {
+  const a = room.game.finalAuction;
+  if (room.game.phase === "FINAL_AUCTION" && a) return Math.min(a.endsAt, ...room.game.players.filter(p => !p.eliminated && !controlledHumanIds(room).includes(p.id)).map(p => a.botNextAt[p.id] ?? a.endsAt));
+  if (room.game.phase === "FINAL_LOADOUT" && a) return a.loadoutStartsAt! > (room.barrierSince ?? 0) ? a.loadoutStartsAt : a.loadoutEndsAt;
   if (room.barrierSince === undefined) return undefined;
   // The last human's elimination result gets a short look, then the game ends for the bots.
   if (room.game.phase === "ROUND_RESULT" && humansAllOut(room)) return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.ALL_OUT_RESULT;
@@ -191,7 +199,7 @@ export function addSession(source: RoomSnapshot, tokenHash: string): { room: Roo
 }
 
 /** Runs the transition a fully-satisfied READY barrier triggers. */
-function advanceReadyBarrier(room: RoomSnapshot): void {
+function advanceReadyBarrier(room: RoomSnapshot, now = Date.now()): void {
   if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "SURVIVAL_READY"].includes(room.game.phase)) {
     room.presentationPlayers = { round: room.game.round, players: structuredClone(room.game.players) };
   }
@@ -209,7 +217,7 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
       room.game.phase = "NEXT_ROUND";
       break;
     }
-    case "NEXT_ROUND": room.game = startNextRound(room.game); room.endedShopIds = []; room.loadoutDrafts = {}; break;
+    case "NEXT_ROUND": room.game = startNextRound(room.game, now); room.endedShopIds = []; room.loadoutDrafts = {}; break;
   }
   room.readyIds = [];
   if (room.game.phase === "SHOP" && !activeHumans(room).length) room.game = prepareShowdown(room.game, controlledHumanIds(room));
@@ -221,14 +229,19 @@ function advanceReadyBarrier(room: RoomSnapshot): void {
  * keeps stepping while nothing is pending and the phase still moves.
  */
 function settleBarrier(room: RoomSnapshot, now: number): void {
+  if (room.game.phase === "FINAL_AUCTION") return;
+  if (room.game.phase === "FINAL_LOADOUT") {
+    room.game = finishFinalLoadouts(room.game, now, controlledHumanIds(room));
+    if (room.game.phase === "FINAL_LOADOUT") return;
+  }
   // Keep the elimination result on screen; anything after it is bots only.
   if (humansAllOut(room) && room.game.phase !== "ROUND_RESULT") { finishForBots(room, now); return; }
   for (let guard = 0; guard < 64; guard += 1) {
-    if (room.status === "PLAYING" && room.game.phase === "NEXT_ROUND") { advanceReadyBarrier(room); continue; }
+    if (room.status === "PLAYING" && room.game.phase === "NEXT_ROUND") { advanceReadyBarrier(room, now); continue; }
     if (room.status !== "PLAYING" || pendingBarrierIds(room).length || waitingForSpectatorTimer(room) || waitingForDraftReveal(room)) return;
     const before = `${room.game.round}:${room.game.phase}`;
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
-    else if (BARRIER_PHASES.includes(room.game.phase)) advanceReadyBarrier(room);
+    else if (BARRIER_PHASES.includes(room.game.phase)) advanceReadyBarrier(room, now);
     else return;
     if (`${room.game.round}:${room.game.phase}` === before) return;
   }
@@ -311,10 +324,14 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const eligible = activeHumans(room);
     if (!eligible.includes(playerId)) throw new Error("관전자는 READY를 대신할 수 없습니다.");
     if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
-    if (["ABILITY_PICK", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
+    if (["FINAL_AUCTION", "FINAL_LOADOUT", "ABILITY_PICK", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
     if (AUTOMATIC_PRESENTATION_PHASES.includes(room.game.phase)) throw new Error("공통 연출이 끝나면 자동으로 진행됩니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
-    if (allReady(eligible)) advanceReadyBarrier(room);
+    if (allReady(eligible)) advanceReadyBarrier(room, now);
+  } else if (action.type === "FINAL_AUCTION_BID") {
+    room.game = bidFinalAuction(room.game, playerId, action, now);
+  } else if (action.type === "FINAL_LOADOUT" || action.type === "LOCK_FINAL_LOADOUT") {
+    room.game = setFinalLoadout(room.game, playerId, action.type === "FINAL_LOADOUT" ? action.cardIds : me.finalLoadoutCardIds ?? [], now, action.type === "LOCK_FINAL_LOADOUT");
   } else if (action.type === "DRAFT_PICK") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
     room.game = pickDraftCard(room.game, playerId, action.cardId, true);
@@ -374,6 +391,15 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
 export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapshot | null {
   const deadline = barrierDeadline(source);
   if (deadline === undefined || now < deadline) return null;
+  if (source.game.phase === "FINAL_AUCTION" || source.game.phase === "FINAL_LOADOUT") {
+    const room = structuredClone(source);
+    if (room.game.phase === "FINAL_AUCTION") room.game = now >= room.game.finalAuction!.endsAt
+      ? settleFinalAuction(room.game, now) : tickAuctionBots(room.game, controlledHumanIds(room), now);
+    settleBarrier(room, now); captureShopBalances(room); syncPresentation(room, now); refreshBarrier(room, now);
+    // Reveal wake-up has occurred. The next alarm is the fixed loadout deadline.
+    if (room.game.phase === "FINAL_LOADOUT") room.barrierSince = now;
+    room.revision++; assertPoolIntegrity(room.game); return room;
+  }
   const pending = pendingBarrierIds(source);
   const spectatorTimer = waitingForSpectatorTimer(source);
   const draftReveal = waitingForDraftReveal(source);

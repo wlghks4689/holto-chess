@@ -47,8 +47,8 @@ export const guideCopyKo: GuideCopy = {
       r2: { name: "RUN IT TWICE", tagline: "카드 3장으로 두 번 싸웁니다.", bullets: ["공개 드래프트에서 카드 1장을 골라 3장이 됩니다.", "한 장은 두 판 모두 쓰는 중심 카드입니다.", "나머지 두 장은 RUN 1과 RUN 2에 하나씩 씁니다.", "같은 배치로 상대를 바꿔 두 매치를 치르고, RUN마다 승점을 받습니다."] },
       r3: { name: "OMAHA", tagline: "4장을 가지지만 마음대로 고르지 못합니다.", bullets: ["반드시 내 카드 2장 + 보드 3장으로 5장을 만듭니다.", "3번 겨룹니다.", "이 라운드부터 탈락이 있습니다. 승점 하위 2명이 떠납니다."] },
       r4: { name: "BEST FIVE", tagline: "내 카드 5장과 보드 5장, 10장 중 BEST 5.", bullets: ["첫 경기 결과로 승자조와 생존조가 나뉩니다.", "승자조는 추가 승점을 두고 겨룹니다.", "생존조는 3명 중 1명만 살아남습니다."] },
-      r5: { name: "THE LAST HAND", tagline: "보드 없이, 내 카드 7장만으로.", bullets: ["남은 4명이 한 번에 겨룹니다.", "7장 중 가장 좋은 5장이 자동으로 골라집니다.", "끝나면 최종 점수를 계산합니다."] },
-      labels: { hole: "내 카드", board: "보드", best: "BEST 5", anchor: "중심 카드", run: "RUN", mine: "내 카드 7장", players: "명", noBoard: "커뮤니티 카드 없음",
+      r5: { name: "THE LAST HAND", tagline: "공개 경매 후, 출전 5장과 공용 보드 5장.", bullets: ["남은 4명이 한 번에 겨룹니다.", "40초 경매에서 최대 2장을 낙찰받고 출전 5장을 선택합니다.", "선택하지 않은 카드도 보드에서 제외합니다. 공용 보드 5장으로 승부 후 최종 점수를 계산합니다."] },
+      labels: { hole: "내 카드", board: "보드", best: "BEST 5", anchor: "중심 카드", run: "RUN", mine: "출전 카드 5장", players: "명", noBoard: "공용 보드 5장",
         primary: "첫 경기 · 1:1 ×3", winnerGroup: "승자조 3명", survivalGroup: "생존조 3명", winnerNote: "추가 승점 경쟁", survivalNote: "1명 생존 · 2명 탈락", draft: "공개 드래프트로 시작" },
     },
     survival: {
@@ -69,7 +69,7 @@ export const guideCopyKo: GuideCopy = {
     nav: ["기본", "카드 풀", "경제", "라운드", "드래프트", "승점", "탈락", "최종 점수", "어빌리티", "동률·예외"],
     basics: {
       title: "기본 규칙",
-      rows: [["플레이어", `${R.players}명 · 빈 좌석은 AI`], ["카드 풀", `고유 카드 ${R.poolSize}장 공유`], ["시작 BB", `${R.startBB} BB · 시작 카드 없음 (R1 카드 2장을 직접 구매)`], ["라운드 수입", `R2~R5 시작 시 생존자 +${R.roundIncomeBB} BB`], ["상점 카드", `R1 ${R.r1ShopSize}장 · R3~R5 ${R.shopSize}장`], ["리롤 / 잠금", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["판매", `기본 가격의 ${R.sellPercent}% (소수점 버림)`], ["제한 시간", `상점 ${R.timers.shop}초 · 드래프트 1픽 ${R.timers.draftPick}초 · R2 배치 ${R.timers.runLoadout}초`]],
+      rows: [["플레이어", `${R.players}명 · 빈 좌석은 AI`], ["카드 풀", `고유 카드 ${R.poolSize}장 공유`], ["시작 BB", `${R.startBB} BB · 시작 카드 없음 (R1 카드 2장을 직접 구매)`], ["라운드 수입", `R2~R4 시작 시 생존자 +${R.roundIncomeBB} BB`], ["상점 카드", `R1 ${R.r1ShopSize}장 · R3~R4 ${R.shopSize}장`], ["리롤 / 잠금", `${R.rerollCostBB} BB / ${R.lockCostBB} BB`], ["판매", `기본 가격의 ${R.sellPercent}% (소수점 버림)`], ["제한 시간", `상점 ${R.timers.shop}초 · 드래프트 1픽 ${R.timers.draftPick}초 · R2 배치 ${R.timers.runLoadout}초`]],
       perRound: { title: "라운드별 한도", round: "라운드", hand: "보유 장수", buys: "구매", rerolls: "리롤", noShop: "상점 없음" },
       prices: "카드 가격 (BB)",
     },
@@ -79,7 +79,7 @@ export const guideCopyKo: GuideCopy = {
     },
     economy: {
       title: "경제",
-      income: [["시작", `${R.startBB} BB`], ["라운드 수입", `+${R.roundIncomeBB} BB (R2~R5)`], ["남은 BB 점수", `⌊BB ÷ ${R.stackScoreUnitBB}⌋`]],
+      income: [["시작", `${R.startBB} BB`], ["라운드 수입", `+${R.roundIncomeBB} BB (R2~R4)`], ["남은 BB 점수", `⌊BB ÷ ${R.stackScoreUnitBB}⌋`]],
       matchTitle: "정규 경기 BB 보상", matchHead: ["라운드", "승리", "패배"],
       matchRows: [
         ["R1", "0", `+${R.matchBB.r1.base} (+${R.matchBB.r1.step} × 연패)`],
@@ -99,8 +99,8 @@ export const guideCopyKo: GuideCopy = {
         details: ["1경기 대진은 누적 승점(동점이면 BB) 순서로 정해집니다."] },
       r4: { name: "BEST FIVE OF TEN", tagline: "공개 드래프트 → 상점 → 브래킷", specs: [["인원", "6"], ["카드", "5"], ["경기", "1:1 ×3 → 3인 그룹 ×2"], ["승점", `1차전 승 +${P.r4Primary.win}P · Split +${P.r4Primary.split}P`], ["규칙", "홀 5 + 보드 5 중 BEST 5"], ["탈락", "생존조 2명"]],
         details: [`드래프트(${R.draftCards[4]}장 공개)로 1장을 얻은 뒤 개인 상점이 열립니다.`, "1차전 승자 3명은 승자조, 패자 3명은 생존조로 갑니다.", `승자조: 1위 +${P.r4WinnerGroup.first}P · 2위 +${P.r4WinnerGroup.second}P · 3위 +${P.r4WinnerGroup.third}P. 2위가 공동이면 각 +${P.r4WinnerGroup.tiedSecond}P.`, `생존조: 1위 1명만 생존 (+${P.r4LoserGroup.survive}P), 2명 탈락.`] },
-      r5: { name: "THE LAST HAND", tagline: "보드 없는 결승", specs: [["인원", "4"], ["카드", "7"], ["경기", "4인 동시"], ["승점", `+${f1} / +${f2} / +${f3} / +${f4}P`], ["규칙", "보유 7장 중 BEST 5 (자동)"], ["탈락", "최종 순위 결정"]],
-        details: ["커뮤니티 보드가 없습니다.", "공동 순위는 해당 순위들의 승점을 합쳐 남은 BB가 많은 쪽에 더 많이 나눕니다."] },
+      r5: { name: "THE LAST HAND", tagline: "공개 경매 → 출전 5장 → 공용 보드", specs: [["인원", "4"], ["카드", "보유 5~7 · 출전 5"], ["경기", "4인 동시"], ["승점", `+${f1} / +${f2} / +${f3} / +${f4}P`], ["규칙", "출전 5 + 보드 5 중 자유 BEST 5"], ["탈락", "최종 순위 결정"]],
+        details: ["R5 추가 수입은 없습니다. 경매는 40초, 마지막 3초 유효 입찰로 최대 55초까지 연장됩니다.", "공동 순위는 해당 순위들의 승점을 합쳐 남은 BB가 많은 쪽에 더 많이 나눕니다."] },
     },
     draft: {
       title: "공개 드래프트",

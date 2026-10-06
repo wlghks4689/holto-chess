@@ -106,7 +106,7 @@ export function BracketScene({ labels }: { labels: Labels }) {
 
 export function FinalScene({ labels }: { labels: Labels }) {
   const best = ["9c", "9d", "9s", "4h", "4c"];
-  return <figure className="pg-scene"><GCards label={`${labels.mine} · ${labels.noBoard}`} codes={["9c", "9d", "9s", "4h", "4c", "Ks", "2d"]} on={best} off={["Ks", "2d"]} /><span className="pg-op eq">→</span>
+  return <figure className="pg-scene"><GCards label={labels.mine} codes={["9c", "9d", "4h", "Ks", "2d"]} on={best} off={["Ks", "2d"]} /><span className="pg-op">+</span><GCards label={labels.board} codes={["9s", "4c", "6h", "Jd", "Ac"]} on={best} off={["6h", "Jd", "Ac"]} /><span className="pg-op eq">→</span>
     <GCards label={labels.best} codes={best} on={best} /></figure>;
 }
 

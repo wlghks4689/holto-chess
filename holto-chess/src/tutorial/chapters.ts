@@ -125,11 +125,12 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
     ],
   },
   {
-    id: 5, title: "마지막 패와 최종 점수", round: 5, summary: "내 카드 7장 · 최종 족보와 총점",
+    id: 5, title: "최종 경매와 공통 보드", round: 5, summary: "Final Auction · 출전 5장 · 4-WAY 공통 보드",
     steps: [
-      { id: "r5-shop", kind: "ACT", focus: "shop", goal: "내 카드 7장 채우기", title: "마지막에는 공용 보드가 없어요", body: ["내 카드 7장만으로 가장 강한 5장을 만듭니다. 최종 족보에 필요한 카드를 모으세요."], done: handFull },
-      { id: "r5-commit", kind: "ACT", focus: "action-bar", goal: "준비 완료 누르기", title: "네 명의 마지막 승부", body: ["카드가 차례로 공개되고, 각자 가장 강한 다섯 장이 표시됩니다."], done: ready },
-      { id: "r5-best5", kind: "REVIEW", hold: { matchIndex: 0, at: "BEST5_GLOW" }, next: "승부 결과 보기", title: "밝은 다섯 장이 최종 족보", body: ["일곱 장 중 밝은 다섯 장이 사용됩니다. 어두운 두 장은 족보 비교에서 빠집니다."] },
+      { id: "r5-rules", kind: "EXPLAIN", focus: "auction", next: "경매 연습", title: "모아 둔 BB로 마지막 경매", body: ["R5에는 +30BB 수입이 없습니다. 남은 카드 전부를 공개하고, 입찰자 정체는 낙찰 때 공개합니다.", "실전 경매는 40초, 마지막 3초의 유효 입찰은 최대 55초까지 연장합니다. 연습은 버튼으로 진행합니다."] },
+      { id: "r5-auction", kind: "ACT", focus: "auction", goal: "입찰 후 경매 연습 종료 (구매 없이 진행 가능)", title: "첫 입찰은 두 번 누르기", body: ["처음에는 카드 선택, 다시 누르면 기본가로 입찰합니다. 이미 입찰이 있으면 시트에서 +5BB 이상 정수를 입력합니다.", "최고 입찰은 최대 2장이고 합계는 보유 BB 이내입니다. 예약만 되며 낙찰 때 차감됩니다. 입찰은 취소할 수 없습니다.", "상대의 공개된 패로 의도를 추론하세요. 낙찰 후 카드·금액·낙찰자가 공개됩니다."], done: game => game.phase !== "FINAL_AUCTION" },
+      { id: "r5-loadout", kind: "ACT", focus: "auction", goal: "출전 5장 확정", title: "출전 카드와 BLOCK", body: ["보유 5~7장 중 출전 5장을 선택합니다. 5장이면 자동 확정합니다. 전원 확정 전에는 선택이 비공개입니다.", "선택하지 않은 카드도 OWNED를 유지하므로 공통 보드에 나오지 않습니다 (BLOCK)."], done: game => game.phase === "SHOWDOWN_PRIMARY" || game.phase === "GAME_RESULT" },
+      { id: "r5-best5", kind: "REVIEW", hold: { matchIndex: 0, at: "BEST5_GLOW" }, next: "승부 결과 보기", title: "내 5장 + 공통 보드 5장", body: ["네 명이 같은 보드 5장을 공유합니다. 내 출전 5장과 보드 5장에서 제한 없이 BEST5를 만듭니다. 보드만으로 만든 족보도 인정됩니다."] },
       { id: "r5-result", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "총점 보기", title: "마지막 패의 순위", body: ["네 명의 족보를 비교해 순위와 배치 승점을 정합니다. 이제 전체 게임의 총점을 확인하세요."] },
       { id: "r5-score", kind: "REVIEW", focus: "final-score", next: "연습 마치기", title: "마지막 승부와 종합 우승은 달라요", body: ["누적 승점 + 족보 점수 + BB 환산 점수가 최종 총점입니다."], more: ["BB는 10BB당 1점으로 환산하며 나머지는 버립니다. R5 배치 승점은 이미 누적 승점에 포함되어 다시 더하지 않습니다."] },
     ],

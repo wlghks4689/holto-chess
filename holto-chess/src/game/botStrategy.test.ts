@@ -12,6 +12,21 @@ const player = (overrides: Partial<PlayerState> = {}): PlayerState => ({
 });
 
 describe("strategic bot planner", () => {
+  it("keeps auction sampling scores identical with the fast ten-card evaluator", () => {
+    const hands = [
+      ["As", "Ks", "Qs", "Js", "Ts"],
+      ["As", "Ah", "Ad", "Ac", "2s"],
+      ["As", "Ah", "Ad", "Kh", "Kd"],
+      ["7d", "6d", "5d", "2c", "Kh"],
+      ...Array.from({ length: 12 }, (_, i) => Array.from({ length: 5 }, (_, j) => deck[(i * 7 + j * 11) % 52]!.id)),
+    ];
+    for (const [i, ids] of hands.entries()) {
+      const cards = ids.map(card), sharedKnown = [...cards, ...deck.filter(c => !ids.includes(c.id)).slice(0, 15)];
+      const options = { sharedKnown };
+      expect(scoreBotPlan(4, cards, 75, `auction-regression:${i}`, { ...options, fastUnrestricted: true }))
+        .toEqual(scoreBotPlan(4, cards, 75, `auction-regression:${i}`, options));
+    }
+  });
   it("prefers a made premium pair over buying an isolated ace", () => {
     const bot = player({ ownedCardIds: ["Kh"] });
     const ranked = rankBotPurchases(1, bot, [card("Kh")], [

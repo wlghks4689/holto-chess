@@ -10,7 +10,7 @@
 | R2 | `DRAFT_ORDER` → `OPEN_DRAFT`(8장 공개, 픽) → `RUN_LOADOUT` → `SHOWDOWN_PRIMARY`(RUN1·RUN2) → `ROUND_RESULT` |
 | R3 | `SHOP` → `SHOWDOWN_PRIMARY`(Omaha Swiss) → 필요 시 `SURVIVAL_READY` → `ROUND_RESULT` (8→6) |
 | R4 | `DRAFT_ORDER` → `OPEN_DRAFT`(16장) → `SHOP` → `SHOWDOWN_PRIMARY` → `GROUP_ASSIGNMENT` → `SHOWDOWN_SECONDARY` → `ROUND_RESULT` (6→4) |
-| R5 | `SHOP` → `SHOWDOWN_PRIMARY`(7장 BEST5) → `GAME_RESULT` |
+| R5 | `FINAL_AUCTION` → `FINAL_LOADOUT` → `SHOWDOWN_PRIMARY`(출전 5 + 공용 보드 5) → `GAME_RESULT` |
 
 매 단계 뒤에 카드 원장(`assertPoolIntegrity`)과 라운드 종료 생존 인원(8·8·6·4·4)을 검사합니다. 위반하거나 엔진이 예외를 던지면 그 게임만 **실패**로 기록하고 어떤 지표에도 섞지 않습니다.
 

@@ -1,3 +1,4 @@
+import { autoStep } from "../tutorial/practiceState";
 import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
@@ -20,7 +21,8 @@ function fillHuman(state: PorenaGameState): PorenaGameState {
 }
 
 function playRound(state: PorenaGameState): PorenaGameState {
-  state = fillHuman(state); state = prepareShowdown(state);
+  if (state.phase === "FINAL_AUCTION") state = autoStep(autoStep(state));
+  else { state = fillHuman(state); state = prepareShowdown(state); }
   if (state.phase === "DECK_SELECT") {
     const required = state.round === 3 ? 4 : 2;
     for (const id of state.players[0]!.ownedCardIds.slice(0, required)) state = toggleSelectedCard(state, "p1", id);
@@ -84,7 +86,8 @@ describe("PORENA engine", () => {
   it("creates independent R2 match universes and excludes unselected owned cards", () => {
     const playR2 = (seed: number) => {
       let state = playRound(createGame(seed)); state = startNextRound(leaveRoundResult(state));
-      state = fillHuman(state); state = prepareShowdown(state);
+      if (state.phase === "FINAL_AUCTION") state = autoStep(autoStep(state));
+  else { state = fillHuman(state); state = prepareShowdown(state); }
       for (const id of state.players[0]!.ownedCardIds.slice(0, 2)) state = toggleSelectedCard(state, "p1", id);
       return resolvePrimary(confirmSelection(state));
     };
@@ -176,7 +179,8 @@ describe("PORENA engine", () => {
       state = playRound(state); state = leaveRoundResult(state);
       state = startNextRound(state);
     }
-    state = fillHuman(state); state = prepareShowdown(state); state = resolvePrimary(state);
+    if (state.phase === "FINAL_AUCTION") state = autoStep(autoStep(state));
+  else { state = fillHuman(state); state = prepareShowdown(state); } state = resolvePrimary(state);
     expect(state.roundResults).toHaveLength(3);
     expect(state.roundResults.every((match) => match.playerIds.length === 2 && match.boards.length >= 1)).toBe(true);
     state = resolveSecondary(beginSecondary(state));

@@ -7,10 +7,12 @@ import {
 } from "../game/engine";
 import type { PorenaGameState, Round } from "../game/types";
 import { tutorialBotPolicy } from "./tutorialBots";
+import { settleFinalAuction } from "../game/finalAuction";
+import { finishFinalLoadouts } from "../game/engine";
 
 /** Phase a round opens on, so the autopilot knows where a chapter begins. */
-export function roundEntryPhase(round: Round): "SHOP" | "DRAFT_ORDER" {
-  return round === 2 || round === 4 ? "DRAFT_ORDER" : "SHOP";
+export function roundEntryPhase(round: Round): "SHOP" | "DRAFT_ORDER" | "FINAL_AUCTION" {
+  return round === 5 ? "FINAL_AUCTION" : round === 2 || round === 4 ? "DRAFT_ORDER" : "SHOP";
 }
 
 /** The practice seat shops like a practice bot: legal, simple, and never given anything extra. */
@@ -38,6 +40,8 @@ function autoShop(source: PorenaGameState): PorenaGameState {
 export function autoStep(source: PorenaGameState): PorenaGameState {
   const me = source.players[0]!;
   switch (source.phase) {
+    case "FINAL_AUCTION": return settleFinalAuction(source, source.finalAuction!.endsAt);
+    case "FINAL_LOADOUT": return finishFinalLoadouts(source, source.finalAuction!.loadoutEndsAt!, []);
     case "SHOP": return prepareShowdown(autoShop(source), ["p1"], tutorialBotPolicy);
     case "DECK_SELECT": {
       let state = source;

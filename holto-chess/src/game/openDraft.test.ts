@@ -1,3 +1,4 @@
+import { autoStep } from "../tutorial/practiceState";
 import { describe, expect, it, vi } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import * as poker from "../core/poker/evaluate";
@@ -191,7 +192,7 @@ describe("open draft rules v2", () => {
     g = rerollShop(rerollShop(g,p.id),p.id); expect(() => rerollShop(g,p.id)).toThrow(/리롤 횟수/);
     g = resolveSecondary(beginSecondary(resolvePrimary(prepareShowdown(g, []))));
     expect(g.players.filter((p) => !p.eliminated)).toHaveLength(4);
-    g = next(g); g = resolvePrimary(prepareShowdown(g, []));
+    g = next(g); g = resolvePrimary(autoStep(autoStep(g)));
     expect(g.phase).toBe("GAME_RESULT");
     expect(g.roundResults[0]!.standingsBefore).toBeDefined();
     expect(g.roundResults[0]!.standingsAfterRuns?.[0]).toBeDefined();

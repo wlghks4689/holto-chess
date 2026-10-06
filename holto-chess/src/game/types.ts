@@ -3,7 +3,7 @@ import type { HandValue } from "../core/poker/evaluate";
 import type { AbilityDraft, AbilityEvent, AbilityId, AbilityTotals } from "./abilities";
 
 export type Round = 1 | 2 | 3 | 4 | 5;
-export type Phase = "ABILITY_ORDER" | "ABILITY_PICK" | "ABILITY_REVEAL" | "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
+export type Phase = "FINAL_AUCTION" | "FINAL_LOADOUT" | "ABILITY_ORDER" | "ABILITY_PICK" | "ABILITY_REVEAL" | "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
 export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: number; stackBB: number }[]; picks: { playerId: string; cardId: string | null; price: number }[] };
 export type PoolCardState = "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED";
 
@@ -15,6 +15,8 @@ export type PoolCard = {
 };
 
 export type PlayerState = {
+  finalLoadoutCardIds?: string[];
+  finalLoadoutLocked?: boolean;
   abilityId?: AbilityId;
   firstCardId?: string;
   abilityWinStreak?: number;
@@ -93,6 +95,8 @@ export type GameLog = { id: number; tone: "info" | "win" | "danger" | "economy";
   event?: string; params?: Record<string, string | number>; playerId?: string };
 
 export type PorenaGameState = {
+  /** Absent in a saved legacy R5: that round retains its seven-card/no-board rules. */
+  finalAuction?: FinalAuctionState;
   abilityDraft?: AbilityDraft;
   abilityEvents?: AbilityEvent[];
   abilityEventSequence?: number;
@@ -120,4 +124,19 @@ export type PorenaGameState = {
   randomMode: "seeded" | "secure";
   logSequence: number;
   logs: GameLog[];
+};
+
+/** Server-only. Projections must explicitly allowlist fields. */
+export type FinalAuctionState = {
+  cardIds: string[]; startedAt: number; endsAt: number; hardEndsAt: number;
+  bids: Record<string, { amount: number; playerId: string; sequence: number }>;
+  bidSequence: number; settledAt: number | null;
+  results: { cardId: string; playerId: string; amount: number }[] | null;
+  originalCardIds: Record<string, string[]>;
+  loadoutStartsAt?: number; loadoutEndsAt?: number; loadoutsRevealed?: boolean;
+  equities?: Record<string, number>;
+  botNextAt: Record<string, number>;
+  outbid: Record<string, { cardId: string; amount: number; sequence: number }>;
+  raises: Record<string, number>;
+  poolWarning?: string;
 };

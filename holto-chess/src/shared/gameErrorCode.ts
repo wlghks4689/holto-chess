@@ -1,5 +1,6 @@
 /** Stable wire identifiers. Existing Korean Error.message remains a legacy compatibility field. */
 export const GAME_ERROR_CODES = [
+  "AUCTION_CLOSED", "NOT_AUCTION_PARTICIPANT", "NOT_AUCTION_CARD", "STALE_PRICE", "ALREADY_LEADING", "MAX_LEADING_REACHED", "INVALID_AMOUNT", "BELOW_MIN_RAISE", "LOADOUT_CLOSED", "LOADOUT_LOCKED", "INVALID_LOADOUT",
   "SESSION_INVALID", "SESSION_REQUIRED", "ROOM_UNAVAILABLE", "SEAT_DEPARTED", "STALE_TURN", "ACTION_EXPIRED",
   "GAME_NOT_STARTED", "RESULTS_NOT_RELEASED", "REMATCH_UNAVAILABLE", "REMATCH_NEEDS_PLAYERS",
   "READY_NOT_CANCELLABLE", "SPECTATOR_CANNOT_READY", "SHOWDOWN_IN_PROGRESS", "PHASE_ACTION_REQUIRED",
@@ -56,6 +57,7 @@ const exact: Record<string, GameErrorCode> = {
 };
 
 export function classifyGameError(message: string): StructuredGameError {
+  if (GAME_ERROR_CODES.includes(message as GameErrorCode)) return { code: message as GameErrorCode };
   const code = exact[message];
   if (code) return { code };
   if (/^보유 카드 \d+장을 선택하세요\.$/.test(message) || /^R\d+ 출전 카드를 올바르게 나누세요\.$/.test(message)) return { code: "CARD_SELECTION_INVALID" };

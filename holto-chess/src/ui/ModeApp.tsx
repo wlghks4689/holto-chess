@@ -16,6 +16,7 @@ const AbilityPreview = lazy(() => import("./AbilityPreview").then((m) => ({ defa
 const ResponsivePreview = import.meta.env.DEV ? lazy(() => import("./ResponsivePreview").then(m => ({ default: m.ResponsivePreview }))) : null;
 const MadePreview = import.meta.env.DEV ? lazy(() => import("./MadePreview").then(m => ({ default: m.MadePreview }))) : null;
 const RunTwicePreview = import.meta.env.DEV ? lazy(() => import("./RunTwicePreview").then(m => ({ default: m.RunTwicePreview }))) : null;
+const FinalAuctionPreview = import.meta.env.DEV ? lazy(() => import("./FinalAuctionPreview").then(m => ({ default: m.FinalAuctionPreview }))) : null;
 // Chapters, practice scenarios and the simple bots load only when the guide is opened.
 // Privacy policy and terms (/privacy, /terms): public pages, fetched only when visited.
 const LegalPage = lazy(() => import("../legal/LegalPage").then((module) => ({ default: module.LegalPage })));
@@ -38,6 +39,7 @@ export function ModeApp() {
   if (import.meta.env.DEV && location.pathname === "/abilities-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><AbilityPreview /></Suspense>;
   if (MadePreview && location.pathname === "/made-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><MadePreview /></Suspense>;
   if (RunTwicePreview && location.pathname === "/run-twice-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><RunTwicePreview /></Suspense>;
+  if (FinalAuctionPreview && location.pathname === "/final-auction-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><FinalAuctionPreview /></Suspense>;
   if (ResponsivePreview && location.pathname === "/responsive-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><ResponsivePreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
   if (!mode) return <StartScreen onStart={setMode} />;

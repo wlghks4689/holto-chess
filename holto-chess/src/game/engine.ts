@@ -11,6 +11,8 @@ import { ABILITY_IDS, abilityPrice, abilityShopSize, abilitySellRate, abilityRer
 import { rawShowdownEquity } from "./showdownEquity";
 import { recordAbilityBenefit, recordAbilitySaving, rewardAbilities, rewardAbilityInterest, rewardQuadCorePlacement, rewardRoundLeader } from "./abilityRewards";
 import type { GameLog, PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
+import { beginFinalAuction, bestFinalLoadout } from "./finalAuction";
+import { finalFourWayEquity } from "./showdownEquity";
 
 function nextRandom(state: PorenaGameState): number {
   if (state.randomMode === "secure") return crypto.getRandomValues(new Uint32Array(1))[0]! / 4294967296;
@@ -370,11 +372,13 @@ function forfeitHand(): HandValue {
 }
 
 function lacksRequiredCards(state: PorenaGameState, playerId: string): boolean {
+  if (state.round === 5 && state.finalAuction) return playerById(state, playerId).finalLoadoutCardIds?.length !== 5;
   return playerById(state, playerId).ownedCardIds.length < BALANCE.handLimits[state.round];
 }
 
 function shownCardIds(state: PorenaGameState, playerId: string, gameNumber?: 1 | 2): string[] {
   const player = playerById(state, playerId);
+  if (state.round === 5 && state.finalAuction) return [...(player.finalLoadoutCardIds ?? [])];
   // An incomplete R2 hand cannot form two legal runs. Show what is actually owned.
   if (state.round !== 2 || lacksRequiredCards(state, playerId)) return [...player.ownedCardIds];
   return state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
@@ -386,10 +390,10 @@ function handFor(state: PorenaGameState, playerId: string, board: Card[], gameNu
   const player = playerById(state, playerId);
   const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
     : player.selectedCardIds;
-  const owned = cardsFor(state, state.round === 2 ? selected : player.ownedCardIds);
+  const owned = cardsFor(state, state.round === 5 && state.finalAuction ? player.finalLoadoutCardIds ?? [] : state.round === 2 ? selected : player.ownedCardIds);
   const preferred = player.abilityId === "target-sniper" && player.ownedCardIds.includes(player.firstCardId ?? "") ? player.firstCardId : undefined;
   if (state.round === 3) return findBestOmaha(owned, board, preferred);
-  if (state.round === 5) return findBestFive(owned, preferred);
+  if (state.round === 5 && !state.finalAuction) return findBestFive(owned, preferred);
   return findBestFive([...owned, ...board], preferred);
 }
 
@@ -595,7 +599,7 @@ function streetHandFor(state: PorenaGameState, playerId: string, board: Card[], 
   const player = playerById(state, playerId);
   const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
     : player.selectedCardIds;
-  const owned = cardsFor(state, state.round === 2 ? selected : player.ownedCardIds);
+  const owned = cardsFor(state, state.round === 5 && state.finalAuction ? player.finalLoadoutCardIds ?? [] : state.round === 2 ? selected : player.ownedCardIds);
   if (state.round === 3) return board.length === 0 ? evaluateOmahaPreflop(owned) : findBestOmaha(owned, board);
   const candidates = [...owned, ...board];
   return candidates.length >= 5 ? findBestFive(candidates) : evaluatePartial(candidates);
@@ -671,7 +675,7 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
   if (state.round === 2 && state.rulesVersion === 2) return resolveSplitRuns(state, state.primaryPairings ?? pair(alive));
   const boardCount = state.round === 2 ? 2 : state.round === 5 ? 0 : 1;
   const matches = state.round === 5
-    ? [resolveParticipants(state, alive, 0, "final", false)]
+    ? [resolveParticipants(state, alive, state.finalAuction ? 1 : 0, "final", false)]
     : (state.primaryPairings ?? pair(alive)).map((ids) => resolveParticipants(state, ids, boardCount, "primary",
       state.round === 2 || state.round === 4,
       state.round === 4 ? "GROUP_DECIDER" : undefined,
@@ -892,7 +896,7 @@ export function leaveRoundResult(source: PorenaGameState): PorenaGameState {
   return state;
 }
 
-export function startNextRound(source: PorenaGameState): PorenaGameState {
+export function startNextRound(source: PorenaGameState, now = Date.now()): PorenaGameState {
   const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= 5) throw new Error("다음 라운드로 진행할 수 없습니다.");
   state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = [];
   delete state.draft; delete state.survival;
@@ -902,11 +906,13 @@ export function startNextRound(source: PorenaGameState): PorenaGameState {
   // history, so past rounds drop the largest field in the persisted snapshot.
   for (const match of state.matches) delete match.streetSnapshots;
   for (const player of state.players.filter((item) => !item.eliminated)) {
-    player.stackBB += BALANCE.roundIncomeBB; player.purchasesThisRound = 0; player.rerollsUsed = 0; player.selectedCardIds = [];
+    if (state.round !== 5) player.stackBB += BALANCE.roundIncomeBB;
+    player.purchasesThisRound = 0; player.rerollsUsed = 0; player.selectedCardIds = [];
     player.loseStreak = 0; // loss BB escalates within a round only
     if (state.rulesVersion === 2 && (state.round === 2 || state.round === 4)) player.lockedShopCardIds = [];
     releaseShop(state, player);
   }
+  if (state.round === 5) return beginFinalAuction(state, now);
   if (state.rulesVersion === 2 && (state.round === 2 || state.round === 4)) {
     const alive = shuffle(state.players.filter((p) => !p.eliminated), () => nextRandom(state));
     const count = state.round === 2 ? 8 : 16;
@@ -1028,7 +1034,7 @@ export function finalStandings(state: PorenaGameState) {
     const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
     const lastMatch = [...state.matches].reverse().find((match) => match.revealedCardIds[player.id]?.length);
     const cardIds = player.ownedCardIds.length ? player.ownedCardIds : lastMatch?.revealedCardIds[player.id];
-    const cards = cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
+    const cards = state.finalAuction && final ? hand?.bestFive ?? [] : cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
     return { playerId: player.id, points, handScore, stackScore, total: points + handScore + stackScore, hand,
       cards, usedCardIds: hand?.bestFive.map((card) => card.id) ?? [],
       finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
@@ -1052,4 +1058,20 @@ export function finalStandings(state: PorenaGameState) {
 }
 
 export function getCard(state: PorenaGameState, id: string): Card { return state.ownershipCardPool.find((entry) => entry.card.id === id)!.card; }
+/** Completes decisions together; no future board exists until resolvePrimary. */
+export function finishFinalLoadouts(source: PorenaGameState, now: number, humanIds: readonly string[] = ["p1"]): PorenaGameState {
+  const auction = source.finalAuction;
+  if (source.phase !== "FINAL_LOADOUT" || !auction || now < auction.loadoutStartsAt!) return source;
+  const state = structuredClone(source), a = state.finalAuction!;
+  const players = state.players.filter(p => !p.eliminated);
+  for (const p of players) if (!p.finalLoadoutLocked && (!humanIds.includes(p.id) || now >= a.loadoutEndsAt!)) {
+    p.finalLoadoutCardIds = bestFinalLoadout(p.ownedCardIds.map(id => getCard(state, id)), a.originalCardIds[p.id] ?? []);
+    p.finalLoadoutLocked = true;
+  }
+  if (!players.every(p => p.finalLoadoutLocked)) return state;
+  a.loadoutsRevealed = true;
+  const equities = finalFourWayEquity(players.map(p => p.finalLoadoutCardIds!.map(id => getCard(state, id))), players.flatMap(p => p.ownedCardIds.map(id => getCard(state, id))));
+  a.equities = Object.fromEntries(players.map((p, i) => [p.id, equities[i]!]));
+  state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); return state;
+}
 export function getCardPrice(state: PorenaGameState, playerId: string, cardId: string): number { return abilityPrice(playerById(state, playerId), getCard(state, cardId).rank); }

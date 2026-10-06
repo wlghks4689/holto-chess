@@ -40,7 +40,7 @@ R1 8 players ─ R2 8 ─ R3 8 → 6 ─ R4 6 → 4 ─ R5 final standings
 | **R2 RUN IT TWICE** | Draft a third card; one lead card plays in both runs · two matches against different opponents |
 | **R3 OMAHA SWISS** | You hold 4 cards but must use exactly 2 of them + 3 board cards. Eliminations begin |
 | **R4 BEST FIVE OF TEN** | Your 5 cards + a 5-card board. Split into a winner bracket and a survival bracket |
-| **R5 THE LAST HAND** | No board: BEST 5 from your own 7 cards. The final four play it out |
+| **R5 THE LAST HAND** | 40-second public auction → select five → unrestricted BEST 5 with five shared community cards |
 
 ```text
 Final score = round points + R5 hand score + ⌊remaining BB ÷ 10⌋
@@ -61,15 +61,15 @@ Every number comes from the game code (`holto-chess/src/game/config.ts`, `engine
 | Players | 8 · empty seats are AI |
 | Card pool | 52 unique cards, shared |
 | Start | 50BB · no starting card (buy both R1 cards in the shop) · 1 ability |
-| Round income | +30BB to survivors at the start of R2–R5 |
-| Shop cards | R1 4 · R3–R5 2 (no shop in R2) |
+| Round income | +30BB to survivors at the start of R2–R4 |
+| Shop cards | R1 4 · R3–R4 2 (no shop in R2) |
 | Reroll / lock | 5BB / 3BB |
 | Sell refund | 60% of the base price (rounded down) |
 | Time limits | Shop 60s · draft 20s per pick · R2 lineup 30s |
 
 | Round | R1 | R2 | R3 | R4 | R5 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Hand size | 2 | 3 | 4 | 5 | 7 |
+| Hand size | 2 | 3 | 4 | 5 | Own 5–7, play 5 |
 | Purchase limit | 2 | no shop | 2 | 3 | 3 |
 | Reroll limit | 1 | — | 2 | 2 | 3 |
 
@@ -91,7 +91,7 @@ Every number comes from the game code (`holto-chess/src/game/config.ts`, `engine
 | R3 | 0 | +10 (+5 × losing streak) → 10 · 15 · 20 |
 | R4 · R5 | 0 | 0 |
 
-Only the losing player earns match BB. A win pays in points only, and a split shares points only. A losing streak counts the losses in a row earlier in the same round and restarts every round. A forfeit for missing cards earns no points and no BB. Round income (+30BB at the start of R2–R5) is unchanged.
+Only the losing player earns match BB. A win pays in points only, and a split shares points only. A losing streak counts the losses in a row earlier in the same round and restarts every round. A forfeit for missing cards earns no points and no BB. Round income (+30BB at the start of R2–R4) is unchanged.
 
 ### 4. Rounds
 
@@ -101,12 +101,12 @@ Only the losing player earns match BB. A win pays in points only, and a split sh
 | **R2** Run It Twice | 8 | 3 | Draft → 1-on-1 match ×2 (2 RUNs each) | Per RUN: win +2P · Split +1P · match sweep +2P (up to 12P) | Lead 1 + support 1 + 5 board | None |
 | **R3** Omaha Swiss | 8 | 4 | 1-on-1 Swiss ×3 | Win +4P · Split +2P | Exactly 2 hole + exactly 3 board | Bottom 2 by points |
 | **R4** Best Five of Ten | 6 | 5 | Draft → shop → match 1 → groups of 3 | Match 1 win +6P · Split +3P | BEST 5 from 5 hole + 5 board | 2 from the survival bracket |
-| **R5** The Last Hand | 4 | 7 | All four at once | +20 / +12 / +5 / +3P | BEST 5 from your 7 cards | Final standings |
+| **R5** The Last Hand | 4 | Own 5–7, play 5 | All four at once | +20 / +12 / +5 / +3P | BEST 5 from selected five + five shared board cards | Final standings |
 
 - **R2** — There is no personal shop. Arrange your 3 cards as `lead 1 + support 2`: RUN 1 plays lead + support 1, RUN 2 plays lead + support 2, each on its own board. The same lineup plays two matches; the second is against a different opponent with a similar result. Winning both RUNs of a match adds a +2P sweep bonus.
 - **R3** — Match 1 pairs players by cumulative points (BB on ties); matches 2 and 3 pair players with similar records.
 - **R4** — The 3 match-1 winners enter the winner bracket (1st +10P · 2nd +5P · 3rd +3P; tied 2nd gets +3P each). The 3 losers enter the survival bracket (only 1st survives, +0P).
-- **R5** — There is no community board. Tied places share the combined points of those places, split by remaining BB (ICM).
+- **R5** — A public auction with no R5 income precedes a five-card loadout and one shared board. Tied places share the combined points of those places, split by remaining BB (ICM).
 
 ### 5. Open draft (R2 · R4)
 
@@ -208,7 +208,7 @@ R4 runs as `Draft Order 3s → sequential draft (20s each, AI 1.8s) → draft re
 
 ![Showdown](holto-chess/docs/screenshots/en/showdown-r2.webp)
 
-**Final Showdown** — No community board: the last four decide the final placings with the BEST 5 of their seven cards.
+**Final Showdown** — The final four share one five-card board and each use their selected five cards for unrestricted BEST 5.
 
 ![Final Showdown](holto-chess/docs/screenshots/en/final-table.webp)
 
@@ -360,3 +360,6 @@ PORENA is not a copy of Texas Hold'em.
 This is a private project at the prototype stage. Until a license is granted, all rights are reserved by the creator.
 
 Bug reports · feedback · questions: **Feedback & Contact** on the game's start screen
+
+
+R5 Final Auction: [implementation and verification](product_doc/R5_FINAL_AUCTION.md).

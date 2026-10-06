@@ -9,6 +9,8 @@ import { concealedCard, discloseMatch, DISCLOSURE_LEAD_MS, presentationComplete 
 import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
 import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
+import { auctionBudget } from "./finalAuction";
+import { cardPrice, FINAL_AUCTION_MIN_RAISE_BB } from "./config";
 
 function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow: number): PrivatePlayerView {
   const g = room.game;
@@ -41,6 +43,13 @@ function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow:
 
 function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownPrepView | undefined {
   const game = room.game;
+  if (game.round === 5 && game.finalAuction?.loadoutsRevealed && game.phase === "SHOWDOWN_PRIMARY") {
+    const seats = game.players.filter(p => !p.eliminated).map(p => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId,
+      cards: (p.finalLoadoutCardIds ?? []).map(id => getCard(game, id)),
+      blockCards: p.ownedCardIds.filter(id => !p.finalLoadoutCardIds?.includes(id)).map(id => getCard(game, id)), equity: game.finalAuction!.equities?.[p.id] }));
+    const viewer = seats.find(p => p.playerId === viewerPlayerId) ?? seats[0]!;
+    return { matchNumber: 1, viewer, opponents: seats.filter(p => p.playerId !== viewer.playerId) };
+  }
   if (game.round === 5 || !["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(game.phase)) return undefined;
   const pairIds = (ids: string[]) => Array.from({ length: Math.floor(ids.length / 2) }, (_, index) => ids.slice(index * 2, index * 2 + 2));
   const groups = game.phase === "SHOWDOWN_PRIMARY" ? game.primaryPairings ?? []
@@ -128,6 +137,23 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   }) : undefined;
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
   const view: PlayerView = {
+    ...(g.finalAuction ? { finalAuction: {
+      startedAt: g.finalAuction.startedAt, endsAt: g.finalAuction.endsAt, hardEndsAt: g.finalAuction.hardEndsAt, serverNow: now,
+      cards: g.finalAuction.settledAt === null ? g.finalAuction.cardIds.map(id => {
+        const card = getCard(g, id), bid = g.finalAuction!.bids[id];
+        return { card, basePrice: cardPrice(card.rank), highestAmount: bid?.amount ?? null, hasBid: !!bid,
+          isMine: !me.eliminated && bid?.playerId === me.id, minNextBid: bid ? bid.amount + FINAL_AUCTION_MIN_RAISE_BB : cardPrice(card.rank) };
+      }) : [],
+      publicHands: Object.fromEntries(g.players.filter(p => !p.eliminated).map(p => [p.id, p.ownedCardIds.map(id => getCard(g, id))])),
+      ...(!me.eliminated && g.finalAuction.settledAt === null ? { mine: auctionBudget(g, me.id),
+        ...(g.finalAuction.outbid[me.id] ? { outbid: { ...g.finalAuction.outbid[me.id]! } } : {}) } : {}),
+      ...(g.finalAuction.settledAt !== null ? {
+        settlement: { settledAt: g.finalAuction.settledAt, loadoutStartsAt: g.finalAuction.loadoutStartsAt!, results: g.finalAuction.results!.map(r => ({ ...r })) },
+        loadout: { startsAt: g.finalAuction.loadoutStartsAt!, endsAt: g.finalAuction.loadoutEndsAt!, locked: !!me.finalLoadoutLocked,
+          revealed: !!g.finalAuction.loadoutsRevealed, ...(!me.eliminated ? { cardIds: [...(me.finalLoadoutCardIds ?? [])] } : {}) },
+      } : {}),
+      ...(g.finalAuction.poolWarning ? { poolWarning: g.finalAuction.poolWarning } : {}),
+    } } : {}),
     ...(complete && ["ROUND_RESULT", "GAME_RESULT"].includes(g.phase) && !g.survival ? { roundAbilityCues:
       personalAbilityCues((g.abilityEvents ?? []).filter(event => event.round === g.round && isRoundAbilityEvent(event)).flatMap(event => {
         const cue = abilityCue(event); return cue ? [cue] : [];

@@ -150,7 +150,7 @@ describe("server room authority and projections", () => {
   it.each([2, 3, 8])("completes all five rounds with %i humans using shared rules", (count) => {
     let r = start(count);
     let sawR2 = false; let sawR5 = false;
-    for (let steps = 0; steps < 100 && r.game.phase !== "GAME_RESULT"; steps++) {
+    for (let steps = 0; steps < 220 && r.game.phase !== "GAME_RESULT"; steps++) {
       const active = r.sessions.filter((s) => !r.game.players.find((p) => p.id === s.playerId)!.eliminated);
       if (r.game.phase === "SHOP") {
         for (const s of active) {
@@ -165,7 +165,7 @@ describe("server room authority and projections", () => {
           }
           r = act(r, s.playerId, { type: "END_SHOP_PHASE" });
         }
-      } else if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(r.game.phase)) {
+      } else if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "FINAL_AUCTION", "FINAL_LOADOUT"].includes(r.game.phase)) {
         r = forceBarrier(r, barrierDeadline(r)!)!;
       } else {
         if (!active.length) r = forceBarrier(r, barrierDeadline(r)!)!;
@@ -197,10 +197,10 @@ describe("server room authority and projections", () => {
             else expect(reward.afterPoints).toBeLessThanOrEqual(currentPoints);
           }
           if (r.game.round === 5) {
-            sawR5 = true; expect(m.boards).toHaveLength(0); expect(m.participantIds).toHaveLength(4);
+            sawR5 = true; expect(m.boards).toHaveLength(1); expect(m.participantIds).toHaveLength(4);
             for (const id of m.participantIds) {
-              expect(m.revealedCards[id].map((card) => card.id)).toEqual(r.game.players.find((p) => p.id === id)!.ownedCardIds);
-              expect(m.revealedCards[id].length).toBeLessThanOrEqual(7);
+              expect(m.revealedCards[id].map((card) => card.id)).toEqual(r.game.players.find((p) => p.id === id)!.finalLoadoutCardIds);
+              expect(m.revealedCards[id]).toHaveLength(5);
             }
           }
         }

@@ -22,7 +22,7 @@ export function FinalRoundTransition({ matchup, playerName = "PLAYER", seconds =
 }
 
 function PrepSeat({ seat, viewer, pending = false, winPercent, hidden = false }: { seat?: ShowdownPrepSeatView; viewer: boolean; pending?: boolean; winPercent?: number; hidden?: boolean }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const name = seat?.name ?? t("showdown.findingOpponent");
   const avatar = pending ? "?" : [...name][0] ?? "P";
   const cards = seat?.cards.slice(0, 7) ?? [];
@@ -31,6 +31,7 @@ function PrepSeat({ seat, viewer, pending = false, winPercent, hidden = false }:
     <div className="showdown-prep-hand" data-count={hidden ? 7 : cards.length} aria-label={t("showdown.cardsAria", { player: name })}>
       {hidden ? Array.from({ length: 7 }, (_, i) => <CardBack key={i} compact />) : cards.map((card) => <CardView key={card.id} card={card} compact />)}
     </div>
+    {!!seat?.blockCards?.length && <div className="final-block-cards"><small>{locale === "ko-KR" ? "미사용 카드" : "Unused cards"}</small><div>{seat.blockCards.map(card => <CardView key={card.id} card={card} compact />)}</div></div>}
     {winPercent !== undefined && <p className="showdown-prep-equity" aria-label={t("showdown.equityAria", { player: name, percent: winPercent })}>{t("showdown.equityLabel")} <strong>{winPercent}%</strong></p>}
   </article>;
 }
@@ -57,8 +58,8 @@ function StandardShowdownPrepPanel({ round, playerName, seconds, secondary = fal
     <header className="showdown-prep-heading"><small>ROUND {String(round).padStart(2, "0")} · MATCH {matchNumber}</small><h1>{ROUND_TITLES[round] ?? `ROUND ${round}`}</h1></header>
     <div className={`showdown-prep-stage ${multiway ? `is-multiway is-${opponents.length + 1}-way` : ""}`}>
       {multiway ? <>
-        <PrepSeat seat={viewer} viewer hidden={round === 5} winPercent={equity?.[0]} />
-        {opponents.map((opponent, index) => <PrepSeat key={opponent.playerId} seat={opponent} viewer={false} hidden={round === 5} winPercent={equity?.[index + 1]} />)}
+        <PrepSeat seat={viewer} viewer hidden={round === 5 && viewer.equity === undefined} winPercent={viewer.equity === undefined ? equity?.[0] : Math.round(viewer.equity)} />
+        {opponents.map((opponent, index) => <PrepSeat key={opponent.playerId} seat={opponent} viewer={false} hidden={round === 5 && opponent.equity === undefined} winPercent={opponent.equity === undefined ? equity?.[index + 1] : Math.round(opponent.equity)} />)}
         <strong className="showdown-prep-vs" aria-label={t("showdown.versus")}>VS</strong>
       </> : <>
         <PrepSeat seat={viewer} viewer winPercent={equity?.[0]} />
