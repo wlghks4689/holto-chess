@@ -1,16 +1,17 @@
-import { BALANCE, purchaseLimitFor } from "./config";
-import { finalStandings, getCard, getCardPrice } from "./engine";
+import { handLimitFor, isAuctionRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor, purchaseLimitFor } from "./config";
+import { burnCardIds, draftPrice, finalStandings, getCard } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { MatchView, PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
 import { createMatchView, normalizeMatchStandings } from "./matchView";
 import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
 import { concealedCard, discloseMatch, DISCLOSURE_LEAD_MS, presentationComplete } from "./disclosure";
-import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
+import { abilityLockCost, abilityPrice, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
 import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
-import { auctionBudget } from "./finalAuction";
-import { cardPrice, FINAL_AUCTION_MIN_RAISE_BB } from "./config";
+import { auctionBudget, auctionMaxWins, auctionMinRaise } from "./finalAuction";
+import { cardPrice } from "./config";
+import type { Card } from "../core/poker/cards";
 
 function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow: number): PrivatePlayerView {
   const g = room.game;
@@ -29,12 +30,12 @@ function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow:
     ...(player.abilityId === "target-sniper" && player.firstCardId ? { abilityStartingCard: getCard(g, player.firstCardId) } : {}),
     playerId: player.id, stackBB: player.stackBB, points: player.points, alive: !player.eliminated,
     ownedCards: player.ownedCardIds.map((id) => getCard(g, id)),
-    shopCards: player.shopCardIds.map((id) => ({ card: getCard(g, id), price: getCardPrice(g, player.id, id) })),
+    shopCards: player.shopCardIds.map((id) => ({ card: getCard(g, id), price: abilityPrice(player, getCard(g, id).rank) })),
     selectedCardIds: [...player.selectedCardIds],
-    handLimit: BALANCE.handLimits[g.round], shopSize: abilityShopSize(player, g.round, g.rulesVersion ?? 1),
+    handLimit: handLimitFor(g.round, g), minHand: minHandFor(g.round, g), shopSize: abilityShopSize(player, g.round, g),
     shopLocked: false, lockedShopCardIds: [...(player.lockedShopCardIds ?? [])],
-    purchases: player.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round, g.rulesVersion ?? 1),
-    rerollsUsed: player.rerollsUsed ?? 0, rerollLimit: abilityRerollLimit(player, g.round, g.rulesVersion ?? 1),
+    purchases: player.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round, g),
+    rerollsUsed: player.rerollsUsed ?? 0, rerollLimit: abilityRerollLimit(player, g.round, g),
     rerollCost: abilityRerollCost(player), lockCost: abilityLockCost(player),
     sellPercent: Math.round(abilitySellRate(player) * 100),
     committed: room.endedShopIds.includes(player.id),
@@ -50,7 +51,22 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
     const viewer = seats.find(p => p.playerId === viewerPlayerId) ?? seats[0]!;
     return { matchNumber: 1, viewer, opponents: seats.filter(p => p.playerId !== viewer.playerId) };
   }
-  if (game.round === 5 || !["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(game.phase)) return undefined;
+  if (isLineupFinal(game.round, game) && game.phase === "SHOWDOWN_PRIMARY") {
+    // R6: the viewer sees their own five, an opponent only card backs; every seat's burn cards are public.
+    const seats = game.players.filter(p => !p.eliminated).map(p => {
+      const burned = burnCardIds(game, p.id);
+      // In lineup order when the saved five is the one played.
+      const fromLineup = p.selectedCardIds.filter(id => p.ownedCardIds.includes(id) && !burned.includes(id));
+      const played = fromLineup.length === p.ownedCardIds.length - burned.length ? fromLineup : p.ownedCardIds.filter(id => !burned.includes(id));
+      return { playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId,
+        cards: p.id === viewerPlayerId ? played.map(id => getCard(game, id)) : played.map((_, index): Card => concealedCard(`prep:${p.id}:${index}`)),
+        blockCards: burned.map(id => getCard(game, id)) };
+    });
+    const viewer = seats.find(p => p.playerId === viewerPlayerId) ?? seats[0]!;
+    return { matchNumber: 1, viewer, opponents: seats.filter(p => p.playerId !== viewer.playerId) };
+  }
+  if (isFinalRound(game.round, game) || game.round === 5 && !game.sixRounds || !["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(game.phase)) return undefined;
+  const tripleRun = isTripleRunRound(game.round, game);
   const pairIds = (ids: string[]) => Array.from({ length: Math.floor(ids.length / 2) }, (_, index) => ids.slice(index * 2, index * 2 + 2));
   const groups = game.phase === "SHOWDOWN_PRIMARY" ? game.primaryPairings ?? []
     : game.round === 2 ? [...pairIds(game.winnerGroup), ...pairIds(game.loserGroup)]
@@ -61,11 +77,16 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
     const player = game.players.find((candidate) => candidate.id === playerId)!;
     const cards = player.ownedCardIds.map((id) => getCard(game, id));
     const selected = player.selectedCardIds;
+    // R5 opens each RUN's cards only when that RUN plays: the viewer sees their own split, an opponent only card backs.
+    if (tripleRun) return { playerId, name: player.name, points: player.points, abilityId: player.abilityId,
+      ...(playerId === viewerPlayerId
+        ? { cards, runCards: Array.from({ length: Math.floor(selected.length / 2) }, (_, run) => selected.slice(run * 2, run * 2 + 2).map((id) => getCard(game, id))) }
+        : { cards: cards.map((_, index): Card => concealedCard(`prep:${playerId}:${index}`)) }) };
     const runIds = game.round !== 2 ? undefined : game.rulesVersion === 2 && selected.length === 3
       ? [[selected[0]!, selected[1]!], [selected[0]!, selected[2]!]] as [string[], string[]]
       : selected.length === 2 ? [selected, selected] as [string[], string[]] : undefined;
     return { playerId, name: player.name, points: player.points, cards: (game.round === 2 ? cards : cards.slice(0, 7)), abilityId: player.abilityId,
-      ...(runIds ? { runCards: runIds.map((ids) => ids.map((id) => getCard(game, id))) as [ReturnType<typeof getCard>[], ReturnType<typeof getCard>[]] } : {}) };
+      ...(runIds ? { runCards: runIds.map((ids) => ids.map((id) => getCard(game, id))) } : {}) };
   };
   const opponents = group.filter((id) => id !== viewerPlayerId).map(seat);
   return { matchNumber: game.phase === "SHOWDOWN_SECONDARY" ? 2 : 1, viewer: seat(viewerPlayerId),
@@ -142,8 +163,9 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       cards: g.finalAuction.settledAt === null ? g.finalAuction.cardIds.map(id => {
         const card = getCard(g, id), bid = g.finalAuction!.bids[id];
         return { card, basePrice: cardPrice(card.rank), highestAmount: bid?.amount ?? null, hasBid: !!bid,
-          isMine: !me.eliminated && bid?.playerId === me.id, minNextBid: bid ? bid.amount + FINAL_AUCTION_MIN_RAISE_BB : cardPrice(card.rank) };
+          isMine: !me.eliminated && bid?.playerId === me.id, minNextBid: bid ? bid.amount + auctionMinRaise(g.finalAuction!) : cardPrice(card.rank) };
       }) : [],
+      maxWins: auctionMaxWins(g.finalAuction), minRaiseBB: auctionMinRaise(g.finalAuction),
       publicHands: Object.fromEntries(g.players.filter(p => !p.eliminated).map(p => [p.id, p.ownedCardIds.map(id => getCard(g, id))])),
       ...(!me.eliminated && g.finalAuction.settledAt === null ? { mine: auctionBudget(g, me.id),
         ...(g.finalAuction.outbid[me.id] ? { outbid: { ...g.finalAuction.outbid[me.id]! } } : {}) } : {}),
@@ -172,10 +194,20 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     status: room.status, round: g.round, phase: room.status === "LOBBY" ? "LOBBY" : g.phase,
     ...(g.survival && complete ? { survival: structuredClone(g.survival) } : {}),
     ...(g.draft && ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(g.phase) ? { draft: {
-      cards: g.draft.cardIds.map((id) => ({ card: getCard(g, id), price: g.draft!.picks.find((p) => p.cardId === id)?.price ?? getCardPrice(g, g.draft!.order[g.draft!.picks.length]?.playerId ?? me.id, id), claimedBy: g.draft!.picks.find((p) => p.cardId === id)?.playerId })),
+      cards: g.draft.cardIds.map((id) => ({ card: getCard(g, id), price: g.draft!.picks.find((p) => p.cardId === id)?.price ?? draftPrice(g, g.draft!.order[g.draft!.picks.length]?.playerId ?? me.id, id), claimedBy: g.draft!.picks.find((p) => p.cardId === id)?.playerId })),
       order: g.draft.order.map((p) => ({ ...p })), currentPlayerId: g.draft.order[g.draft.picks.length]?.playerId,
-      ...(g.round === 2 ? { publicHands: Object.fromEntries(g.players.map((p) => [p.id, p.ownedCardIds.map((id) => getCard(g, id))])) } : {}),
+      ...(g.round === 2 || isAuctionRound(g.round, g) ? { publicHands: Object.fromEntries(g.players.filter((p) => !p.eliminated).map((p) => [p.id, p.ownedCardIds.map((id) => getCard(g, id))])) } : {}),
+      ...(g.draft.priceMultiplier ? { priceMultiplier: g.draft.priceMultiplier } : {}),
     } } : {}),
+    ...(g.opponentSelect && g.phase === "OPPONENT_SELECT" ? { opponentSelect: {
+      order: g.opponentSelect.order.map((id) => { const p = g.players.find((player) => player.id === id)!;
+        return { playerId: id, points: p.points, stackBB: p.stackBB, cards: p.ownedCardIds.map((cardId) => getCard(g, cardId)) }; }),
+      chooserId: g.opponentSelect.chooserId, ...(g.opponentSelect.opponentId ? { opponentId: g.opponentSelect.opponentId } : {}),
+    } } : {}),
+    // The R5 pairing stays public through the shop and placement; never the other seats' new cards.
+    ...(g.opponentSelect?.opponentId && ["SHOP", "RUN_LOADOUT", "SHOWDOWN_PRIMARY"].includes(g.phase) ? { pairings: [[g.opponentSelect.chooserId, g.opponentSelect.opponentId],
+      g.opponentSelect.order.filter((id) => id !== g.opponentSelect!.chooserId && id !== g.opponentSelect!.opponentId)] } : {}),
+    lastRound: lastRoundFor(g),
     humanCount: room.sessions.length, capacity: 8,
     barrierEndsAt: complete ? barrierDeadline(room) : undefined, waitingOn: complete ? pendingBarrierIds(room) : [],
     me: privateView(me.id),

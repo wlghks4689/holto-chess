@@ -2,9 +2,9 @@ import { AbilityBadge } from "./AbilityVisibility";
 import { GameViewportReset } from "./GameViewportReset";
 import { activeAbilityCues } from "./abilityPresentation";
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
-import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, type CinematicFrame } from "./cinematicTimeline";
+import { cinematicTimeline, displayedStreetIndex, frameAt, isFinalMatch, revealFlags, type CinematicFrame } from "./cinematicTimeline";
 import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
 import { FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
@@ -23,6 +23,7 @@ import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { RoundProgress } from "./PrepPhase";
 import { ArenaBrand } from "./ArenaBrand";
 import "./cinematic.css";
+import "./six-round.css";
 import { HighCardDrawNotice, HighCardDrawResult } from "./HighCardDraw";
 import { useTranslation } from "../i18n";
 
@@ -38,6 +39,8 @@ const CATCH_UP_MS = 400;
 /** A table's array index is not the player's match number in R2/R4. */
 function displayedMatchNumber(match: MatchView): number {
   if (match.round === 2 && match.matchday) return match.matchday;
+  // R5 plays one RUN IT THREE TIMES match per seat, listed after the other table.
+  if (match.runCards && match.runoutCount === 3) return 1;
   if (match.round === 2 || match.round === 4) return match.stage === "secondary" ? 2 : 1;
   return match.matchday ?? match.matchNumber;
 }
@@ -68,15 +71,41 @@ function RunMatchup({ match, index, viewerId, complete, name }: {
   </div>;
 }
 
+/** A finished R5 RUN on hover or tap: each seat's hand for that RUN, the five cards it played and the result. */
+function RunDetail({ match, index, ids, name }: { match: MatchView; index: number; ids: readonly string[]; name: (id: string) => string }) {
+  const { t } = useTranslation();
+  const board = match.boards[index] ?? [];
+  const winners = match.boardWinnerIds[index] ?? [];
+  return <div className="cinema-run-detail">{ids.map((id) => {
+    const result = match.boardResults[index]?.find((entry) => entry.playerId === id);
+    const hole = match.runCards?.[id]?.[index] ?? [];
+    const pool = [...hole, ...board];
+    const used = (result?.usedCardIds ?? []).map((cardId) => pool.find((card) => card.id === cardId)).filter((card): card is Card => !!card);
+    const label = !result ? undefined : result.displayName === "몰수패" ? { title: t("hand.forfeit") }
+      : detailedHandLabel(result.category, result.kickers, hole, result.usedCardIds, t, board);
+    const outcome = winners.length > 1 ? "split" : winners.includes(id) ? "win" : "loss";
+    return <div className={`cinema-run-detail-player is-${outcome}`} key={id}>
+      <header><b title={name(id)}>{name(id)}</b><span>{t(outcome === "win" ? "cinema.matchWin" : outcome === "loss" ? "cinema.matchLoss" : "cinema.matchSplit")}</span>{label && <strong>{label.title}</strong>}</header>
+      <div className="cinema-run-detail-cards">
+        <div className="cinema-run-detail-hole">{hole.map((card) => <CardView card={card} compact dimmed={!!result && !result.usedCardIds.includes(card.id)} key={card.id} />)}</div>
+        <i aria-hidden="true">›</i>
+        <div className="cinema-run-detail-used">{used.map((card) => <CardView card={card} compact glow={hole.some((own) => own.id === card.id)} key={card.id} />)}</div>
+      </div>
+    </div>;
+  })}</div>;
+}
+
+/** RUN score: R2 shows it once both RUNs end; R5 updates it after every RUN. */
 function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame: CinematicFrame; viewerId: string; name: (id: string) => string }) {
   const { t } = useTranslation();
-  if (match.round !== 2 || match.runoutCount !== 2) return null;
+  if (!match.runCards || match.runoutCount < 2 || match.round !== 2 && match.runoutCount !== 3) return null;
   const currentComplete = ["RUN_RESULT", "HIGH_CARD_NOTICE", "HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
   const runComplete = (index: number) => frame.boardIndex > index || frame.boardIndex === index && currentComplete;
-  const scoreVisible = runComplete(1);
+  const completed = Array.from({ length: match.runoutCount }, (_, index) => index).filter(runComplete).length;
+  const scoreVisible = match.round === 2 ? runComplete(1) : completed > 0;
   if (!scoreVisible) return null;
   const ids = showdownSeatOrder(match.participantIds, viewerId);
-  const scores = ids.map((id) => match.boardWinnerIds.slice(0, 2).filter((winners) => winners.length === 1 && winners[0] === id).length);
+  const scores = ids.map((id) => match.boardWinnerIds.slice(0, completed).filter((winners) => winners.length === 1 && winners[0] === id).length);
   return <aside className="cinema-run-scoreboard" aria-label={t("cinema.runScoreAria")}>
     <div className="cinema-run-score"><span>{name(ids[0]!)}</span><strong>{scores[0]} : {scores[1]}</strong><span>{name(ids[1]!)}</span></div>
   </aside>;
@@ -87,6 +116,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const motion = useCinematicMotion();
   const synced = elapsedMs !== undefined;
   const [localElapsed, setElapsed] = useState(0);
+  const [runDetail, setRunDetail] = useState<number | null>(null);
   const frames = match.disclosure?.frames ?? cinematicTimeline(match);
   const authorized = match.disclosure && frameAt(frames, match.disclosure.elapsedMs);
   const nextAuthorizedAt = authorized ? frames[frames.indexOf(authorized) + 1]?.at ?? Infinity : Infinity;
@@ -95,9 +125,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const abilityCues = activeAbilityCues(match, elapsed);
   const previousSoundFrame = useRef<{ scene: string; phase: string } | null>(null);
   const flags = revealFlags(frame.phase);
-  const final = match.round === 5;
+  const final = isFinalMatch(match);
   const finalBoard = final && match.boards.length > 0;
-  const stage = showdownStage(match.round);
+  const tripleRun = !!match.runCards && match.runoutCount === 3;
+  const stage = showdownStage(match.round, final);
+  // Six-round R5 RUNs (and their tiebreak) swap both hole cards between boards; R2 swaps only the secondary.
+  const swapsWholeHand = match.round === 5 && !final;
   const intro = frame.phase === "VS_INTRO";
   const arenaEnter = frame.phase === "ARENA_ENTER";
   const multi = match.participantIds.length > 2;
@@ -143,7 +176,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const focus = results.find((r) => winners.includes(r.playerId)) ?? results[0];
   const ids = showdownSeatOrder(match.participantIds, viewerId);
   const name = (id: string) => profiles.find((p) => p.playerId === id)?.name ?? id;
-  const title = match.round === 3 && match.matchday ? "OMAHA SWISS" : match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : final ? "FINAL SHOWDOWN" : multi ? match.group === "winner" ? "WINNER SHOWDOWN" : "SURVIVAL SHOWDOWN" : "SHOWDOWN";
+  const title = match.round === 3 && match.matchday ? "OMAHA SWISS" : match.gameNumber ? `OMAHA GAME ${match.gameNumber}` : final ? "FINAL SHOWDOWN"
+    : match.runCards && match.runoutCount === 3 ? "RUN IT THREE TIMES" : multi ? match.group === "winner" ? "WINNER SHOWDOWN" : "SURVIVAL SHOWDOWN" : "SHOWDOWN";
   // Mount the next run/decider during the current result beat, while every card is still closed.
   // This keeps RUN 1 on stage and lets RUN 2 reveal by flipping already-present slots.
   const queuedBoard = frame.phase === "RUN_RESULT" && frame.boardIndex + 1 < match.boards.length ? 1 : 0;
@@ -154,7 +188,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     : [frame.boardIndex];
 
   const cardSwitch = frame.phase === "CARD_SWITCH_OUT";
-  const runIndex = frame.phase === "CARD_SWITCH_OUT" ? 0 : frame.boardIndex;
+  // The outgoing RUN's hand stays on screen while it flips away.
+  const runIndex = cardSwitch ? Math.max(0, frame.boardIndex - 1) : frame.boardIndex;
   const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
   const labelFor = (id: string, result: RevealedHand, communityCards: readonly Card[] = []) => result.displayName === "몰수패" ? { title: t("hand.forfeit"), kicker: t("hand.forfeitDetails") }
     : detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds, t, communityCards);
@@ -166,7 +201,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const phaseMs = frame === frames.at(-1) && match.disclosure?.frameDurationMs !== undefined
     ? match.disclosure.frameDurationMs : (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
   const readStage = finalReadStage(frame.phase);
-  return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 && ids.length === 3 ? "cinema-r3-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
+  return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 && ids.length === 3 ? "cinema-r3-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${final && ids.length === 3 ? "cinema-final-threeway" : ""} ${tripleRun ? "cinema-run-three" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
     aria-label={title} data-round={match.round} data-phase={frame.phase} data-match-id={match.id}
     style={{ "--flip-duration": "420ms", "--river-duration": "600ms", "--suspense-duration": "250ms", "--final-beat": 1, "--phase-duration": `${phaseMs}ms` } as CSSProperties}>
     <GameViewportReset screenKey={`cinema:${match.id}`} />
@@ -221,9 +256,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       return <div key={id} className={cinemaSeatClass({ tone, placement: placementClass, made, leading })} data-seat-index={index} data-player-id={id}>
         {!final && ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}
         {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{t(survivalOutcome === "SURVIVED" ? "match.survived" : "results.eliminated")}</span>}
-        {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
         <div className={`cinema-profile ${!final ? "cinema-match-profile" : ""}`}>
           {!final && <div className="cinema-profile-identity"><b title={name(id)}>{name(id)}</b></div>}
+          {/* R3 Swiss record sits under the name, clear of the ability icon on the name row. */}
+          {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
           {final && <>{ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}<b>{name(id)}</b></>}
           {!final && match.round >= 2 && currentRank !== undefined && !showFinalPlace && <div className="cinema-standing-line"><span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span></div>}
           {final && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? t("cinema.finalSplitPlace") : placeText(result?.place)}</span>}
@@ -237,9 +273,12 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             return <ShowdownCardFlip card={card} open={visible} glow={flags.glow && used} dimmed={flags.holeDim && !used}
             className={`batch-${slot.batch} ${!visible && slot.batch === nextBatch ? "is-next" : ""}`} style={slotStyle} key={cardIndex} />;
           }
-          return <ShowdownCardFlip card={card} open={visible && !(cardSwitch && cardIndex === 1)} glow={flags.glow && used} dimmed={flags.holeDim && !used}
+          return <ShowdownCardFlip card={card} open={visible && !(cardSwitch && (swapsWholeHand || cardIndex === 1))} glow={flags.glow && used} dimmed={flags.holeDim && !used}
             className={intro ? "cinema-vs-reveal" : ""} style={intro ? { "--flip-delay": `${cardIndex * 200}ms` } as CSSProperties : undefined} key={cardIndex} />;
         })}</div>
+        {/* R6: the cards this finalist owns but does not play, public from the prep screen. */}
+        {final && !!match.blockCards?.[id]?.length && <div className="cinema-burn-cards"><small>BURN</small>
+          <div>{match.blockCards[id]!.map((card) => <CardView card={card} compact key={card.id} />)}</div></div>}
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
           <div className="cinema-final-read-copy">{read.tag && <small>{read.tag}</small>}<strong className={readStage.kind === "current" && interimHand ? `made-${madeTone(interimHand.displayName)}` : undefined}>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
         {!intro && !final && (flags.made ? label : streetLabel) && <div className={flags.made ? "cinema-made" : "cinema-street-made"}><strong className={!flags.made && streetResult ? `made-${madeTone(streetResult.displayName)}` : undefined}>{(flags.made ? label : streetLabel)!.title}</strong>{(flags.made ? label : streetLabel)!.kicker && <small>({(flags.made ? label : streetLabel)!.kicker})</small>}</div>}
@@ -252,7 +291,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {final && showRewardAmount && reward && match.pointAwards?.[id] !== undefined && <div className="cinema-reward"><strong>{results.filter(r => r.place === result?.place).length > 1 ? `${t("cinema.tied").trim()} ` : ""}{placeText(result?.place)} +{Number(match.pointAwards[id].toFixed(2))}P</strong>{Math.abs(reward.deltaPoints - match.pointAwards[id]) > 0.005 && <small className="final-extra-points">BONUS {reward.deltaPoints - match.pointAwards[id] > 0 ? "+" : ""}{Number((reward.deltaPoints - match.pointAwards[id]).toFixed(2))}P</small>}</div>}
       </div>;
     })}</div>
-    {!intro && (!final || finalBoard) && <div className={`cinema-board-stack ${finalBoard ? "final-community-board" : ""} ${match.runoutCount === 2 ? "run-it-twice" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
+    {!intro && (!final || finalBoard) && <div className={`cinema-board-stack ${finalBoard ? "final-community-board" : ""} ${match.runoutCount === 2 ? "run-it-twice" : ""} ${tripleRun ? "run-it-three-times" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
       const current = boardIndex === frame.boardIndex;
       const pending = boardIndex > frame.boardIndex;
       const shownBoard = match.boards[boardIndex] ?? [];
@@ -262,10 +301,24 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const completed = !pending && (!current || flags.glow);
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : t("cinema.communityBoard")
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
-      return <div className={`cinema-board ${pending ? "pending" : !current ? "complete" : "active"} ${match.runoutCount === 2 ? "cinema-run-board" : ""} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"}`} key={boardIndex}>
+      // R5: the seats above hold the live RUN's hands, so a finished RUN box only shows the viewer's
+      // outcome as its tint; hovering or tapping it opens that RUN's cards and result.
+      const runOutcome = tripleRun && boardIndex < match.runoutCount && completed
+        ? boardWinners.length > 1 ? "split" : boardWinners.includes(ids[0]!) ? "win" : "loss" : undefined;
+      const toggleDetail = () => setRunDetail((open) => open === boardIndex ? null : boardIndex);
+      // R5: once the match result is out, the last RUN settles to the finished RUN size too.
+      const settled = !current || tripleRun && flags.result;
+      return <div className={`cinema-board ${pending ? "pending" : settled ? "complete" : "active"} ${match.runoutCount === 2 || tripleRun ? "cinema-run-board" : ""} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"} ${runOutcome ? `is-run-${runOutcome} has-run-detail ${runDetail === boardIndex ? "is-detail-open" : ""}` : ""}`} key={boardIndex}
+        style={tripleRun ? { order: -boardIndex } : undefined}
+        {...runOutcome ? { role: "button", tabIndex: 0, "aria-expanded": runDetail === boardIndex, "aria-label": t("cinema.runDetailAria", { run: boardIndex + 1 }),
+          // Hover opens it on a mouse (CSS); a click or tap toggles it, and tapping elsewhere blurs it closed.
+          onClick: toggleDetail,
+          onBlur: () => setRunDetail((open) => open === boardIndex ? null : open),
+          onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleDetail(); } } } : {}}>
+        {runOutcome && <RunDetail match={match} index={boardIndex} ids={ids} name={name} />}
         <div className="cinema-board-label"><h3>{boardTitle}</h3>
         <div className="cinema-board-street" aria-live="polite">{current && (frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : "")}</div></div>
-        {match.runoutCount === 2 && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete={completed} name={name} />}
+        {match.runoutCount === 2 && boardIndex < match.runoutCount && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete={completed} name={name} />}
         <div className="cinema-board-cards">{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;
@@ -382,7 +435,7 @@ function SyncedCinematicGate({ matches, presentation, clock, profiles, viewerId,
     return <WaitingForTables preparing={elapsed < 0} />;
   }
   const matchElapsed = elapsed - entry.offsetMs;
-  if (match.round < 5 && entry.prepMs && matchElapsed < entry.prepMs) return <MatchPrepScreen key={`${match.id}:prep`} match={match}
+  if (!isFinalMatch(match) && entry.prepMs && matchElapsed < entry.prepMs) return <MatchPrepScreen key={`${match.id}:prep`} match={match}
     profiles={profiles} viewerId={viewerId} seconds={Math.ceil((entry.prepMs - matchElapsed) / 1000)} nav={nav} />;
   const next = progressive ? presentation.matches.find(item => item.offsetMs > entry.offsetMs) : undefined;
   return <ShowdownCinematic key={match.id} match={match} profiles={profiles} viewerId={viewerId} identityId={identityId} soundSessionId={soundSessionId} onComplete={() => {}} elapsedMs={matchElapsed - (entry.prepMs ?? 0)} catchUp={tick.jumped}
@@ -403,7 +456,7 @@ export function CinematicGate({ matches, profiles, viewerId, identityId, receive
   if (presentation && clock) return <SyncedCinematicGate matches={matches} presentation={presentation} clock={clock} profiles={profiles} viewerId={viewerId} identityId={identityId} receivedAt={receivedAt} soundSessionId={soundSessionId} nav={nav}>{children}</SyncedCinematicGate>;
   const current = matches.find((match) => !completed.includes(match.id));
   if (!current) return <>{children}</>;
-  if (current.round < 5 && matches[0]?.id !== current.id && !prepared.includes(current.id)) return <MatchPrepInterlude key={`${current.id}:prep`}
+  if (!isFinalMatch(current) && matches[0]?.id !== current.id && !prepared.includes(current.id)) return <MatchPrepInterlude key={`${current.id}:prep`}
     match={current} profiles={profiles} viewerId={viewerId} nav={nav} onComplete={() => setPrepared((ids) => [...ids, current.id])} />;
   return <ShowdownCinematic key={current.id} match={current} profiles={profiles} viewerId={viewerId} soundSessionId={soundSessionId} controls={controls} hasNextMatch={matches.some((match) => match.id !== current.id && !completed.includes(match.id))}
     onComplete={() => setCompleted((ids) => [...ids, current.id])} />;

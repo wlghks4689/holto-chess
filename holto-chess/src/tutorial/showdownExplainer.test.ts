@@ -9,8 +9,8 @@ const STREETS: Street[] = ["PRE_FLOP", "FLOP", "TURN", "RIVER"];
 const VISIBLE = { PRE_FLOP: 0, FLOP: 3, TURN: 4, RIVER: 5 } as const;
 
 /** A real R1 showdown: cards, boards and results all come from the engine. */
-function playedRound(round: 1 | 3 | 5): { state: PorenaGameState; matches: MatchView[] } {
-  let state = practiceState(2628, round);
+function playedRound(round: 1 | 3 | 5 | 6, seed = 2628): { state: PorenaGameState; matches: MatchView[] } {
+  let state = practiceState(seed, round);
   while (!state.roundResults.length) state = autoStep(state);
   const mine = state.roundResults.filter((match) => match.playerIds.includes("p1"));
   return { state, matches: mine.map((match) => createMatchView(state, match)) };
@@ -59,13 +59,29 @@ describe("showdown explanations", () => {
     }
   });
 
-  it("R5 explains five selected cards with the shared board", () => {
+  it("R5 explains each RUN with that RUN's two cards and its own board", () => {
     const { matches } = playedRound(5);
     const match = matches[0]!;
+    expect(match.boards).toHaveLength(3);
+    match.boards.forEach((board, run) => {
+      const hole = match.runCards!.p1![run]!;
+      expect(hole).toHaveLength(2);
+      const explanation = explainResult(match, "p1", run)!;
+      expect(explanation.headline.length).toBeGreaterThan(0);
+      const visible = [...hole, ...board].map(card => card.id);
+      expect(explanation.highlightCardIds.every(id => visible.includes(id))).toBe(true);
+    });
+  });
+
+  it("R6 explains the best five of my chosen five and the community board", () => {
+    // The tutorial seed keeps the practice seat alive into the R6 final.
+    const { matches } = playedRound(6, 2631);
+    const match = matches[0]!;
     expect(match.boards).toHaveLength(1);
+    expect(match.participantIds).toHaveLength(3);
     expect(match.revealedCards.p1).toHaveLength(5);
     const explanation = explainResult(match, "p1", 0)!;
-    expect(explanation.headline.length).toBeGreaterThan(0);
+    expect(explanation.highlightCardIds).toHaveLength(5);
     const visible = [...match.revealedCards.p1!, ...match.boards[0]!].map(card => card.id);
     expect(explanation.highlightCardIds.every(id => visible.includes(id))).toBe(true);
   });

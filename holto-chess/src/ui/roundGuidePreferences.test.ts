@@ -41,8 +41,8 @@ describe("round guide preferences", () => {
 
   it("ignores invalid stored rounds", () => {
     const storage = memoryStorage();
-    storage.setItem("porena.round-guide-seen", JSON.stringify([1, 6, "2", 3]));
-    expect(readSeenRoundGuides(storage)).toEqual([1, 3]);
+    storage.setItem("porena.round-guide-seen.v2", JSON.stringify([1, 7, "2", 3, 6]));
+    expect(readSeenRoundGuides(storage)).toEqual([1, 3, 6]);
   });
 
   it("automatically shows only enabled, unseen rounds", () => {

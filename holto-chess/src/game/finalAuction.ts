@@ -1,8 +1,13 @@
 import { combinations, compareHands, evaluateFive } from "../core/poker/evaluate";
 import { assertPoolIntegrity } from "./cardPool";
-import { cardPrice, FINAL_AUCTION_DURATION_MS, FINAL_AUCTION_HARD_CAP_MS, FINAL_AUCTION_SNIPE_WINDOW_MS, FINAL_AUCTION_MIN_RAISE_BB, FINAL_AUCTION_MAX_WINS, AUCTION_REVEAL_MS, FINAL_LOADOUT_SIZE, FINAL_LOADOUT_TIMEOUT_MS, FINAL_BOT_REACTION_MS } from "./config";
-import type { PorenaGameState } from "./types";
+import { cardPrice, FINAL_AUCTION_DURATION_MS, FINAL_AUCTION_HARD_CAP_MS, FINAL_AUCTION_SNIPE_WINDOW_MS, FINAL_AUCTION_MIN_RAISE_BB, FINAL_AUCTION_MAX_WINS, AUCTION_REVEAL_MS, FINAL_LOADOUT_SIZE, FINAL_LOADOUT_TIMEOUT_MS, FINAL_BOT_REACTION_MS, R3_AUCTION, isAuctionRound } from "./config";
+import type { FinalAuctionState, PorenaGameState } from "./types";
 import type { Card } from "../core/poker/cards";
+
+/** The most cards one seat may lead on, and win. */
+export const auctionMaxWins = (auction: Pick<FinalAuctionState, "maxWins">) => auction.maxWins ?? FINAL_AUCTION_MAX_WINS;
+/** Smallest raise over the current highest bid. */
+export const auctionMinRaise = (auction: Pick<FinalAuctionState, "minRaiseBB">) => auction.minRaiseBB ?? FINAL_AUCTION_MIN_RAISE_BB;
 
 export function auctionBudget(state: PorenaGameState, playerId: string) {
   const player = state.players.find(p => p.id === playerId)!;
@@ -30,6 +35,26 @@ export function beginFinalAuction(source: PorenaGameState, now: number): PorenaG
   assertPoolIntegrity(state); return state;
 }
 
+/**
+ * Six-round R3 auction over the given cards. A short rules intro comes first: every seat sees the
+ * cards, and bidding opens for everyone at the same server time.
+ */
+export function beginCardAuction(source: PorenaGameState, now: number, cardIds: string[]): PorenaGameState {
+  const state = structuredClone(source);
+  if (!isAuctionRound(state.round, state) || state.finalAuction) throw new Error("AUCTION_CLOSED");
+  for (const p of state.players) { p.shopCardIds = []; p.lockedShopCardIds = []; p.shopLocked = false; }
+  const alive = state.players.filter(p => !p.eliminated);
+  const opensAt = now + R3_AUCTION.introMs;
+  state.finalAuction = { cardIds, startedAt: opensAt, endsAt: opensAt + FINAL_AUCTION_DURATION_MS,
+    hardEndsAt: opensAt + FINAL_AUCTION_HARD_CAP_MS, bids: {}, bidSequence: 0, settledAt: null, results: null,
+    originalCardIds: Object.fromEntries(alive.map(p => [p.id, [...p.ownedCardIds]])),
+    botNextAt: Object.fromEntries(alive.map((p, i) => [p.id, opensAt + 2_000 + i * 2_700])), outbid: {}, raises: {},
+    maxWins: R3_AUCTION.maxWins, minRaiseBB: R3_AUCTION.minRaiseBB,
+    ...(cardIds.length !== R3_AUCTION.cardCount ? { poolWarning: `R3 pool: ${alive.length} players / ${cardIds.length} auction cards` } : {}) };
+  state.phase = "FINAL_AUCTION";
+  assertPoolIntegrity(state); return state;
+}
+
 export type AuctionBid = { cardId: string; expectedHighestAmount: number | null; amount?: number };
 export function bidFinalAuction(source: PorenaGameState, playerId: string, bid: AuctionBid, now: number): PorenaGameState {
   const a = source.finalAuction;
@@ -42,10 +67,10 @@ export function bidFinalAuction(source: PorenaGameState, playerId: string, bid: 
   if ((current?.amount ?? null) !== bid.expectedHighestAmount) throw new Error("STALE_PRICE");
   if (current?.playerId === playerId) throw new Error("ALREADY_LEADING");
   const budget = auctionBudget(source, playerId);
-  if (budget.leadingCount >= FINAL_AUCTION_MAX_WINS) throw new Error("MAX_LEADING_REACHED");
+  if (budget.leadingCount >= auctionMaxWins(a)) throw new Error("MAX_LEADING_REACHED");
   const amount = bid.amount ?? (current ? NaN : cardPrice(entry.card.rank));
   if (!Number.isSafeInteger(amount) || amount < 0 || (!current && amount !== cardPrice(entry.card.rank))) throw new Error("INVALID_AMOUNT");
-  if (current && amount < current.amount + FINAL_AUCTION_MIN_RAISE_BB) throw new Error("BELOW_MIN_RAISE");
+  if (current && amount < current.amount + auctionMinRaise(a)) throw new Error("BELOW_MIN_RAISE");
   if (amount > budget.availableBidBB) throw new Error("INSUFFICIENT_BB");
   const state = structuredClone(source), auction = state.finalAuction!;
   const sequence = ++auction.bidSequence;
@@ -76,7 +101,7 @@ export function settleFinalAuction(source: PorenaGameState, now: number): Porena
   // Validate all ledgers before performing any mutation.
   for (const p of source.players) {
     const b = auctionBudget(source, p.id);
-    if (b.reservedBB > p.stackBB || b.leadingCount > FINAL_AUCTION_MAX_WINS) throw new Error("INVALID_ESCROW");
+    if (b.reservedBB > p.stackBB || b.leadingCount > auctionMaxWins(a)) throw new Error("INVALID_ESCROW");
   }
   for (const id of Object.keys(a.bids)) if (source.ownershipCardPool.find(e => e.card.id === id)?.state !== "AVAILABLE") throw new Error("INVALID_AUCTION_POOL");
   const state = structuredClone(source), auction = state.finalAuction!;
@@ -89,6 +114,8 @@ export function settleFinalAuction(source: PorenaGameState, now: number): Porena
   }
   auction.settledAt = now;
   auction.loadoutStartsAt = now + (auction.results.length ? AUCTION_REVEAL_MS : 0);
+  // R3 has no loadout: the phase holds on the result reveal until the buyback (finishCardAuctionReveal).
+  if (isAuctionRound(state.round, state)) { assertPoolIntegrity(state); return state; }
   auction.loadoutEndsAt = auction.loadoutStartsAt + FINAL_LOADOUT_TIMEOUT_MS;
   for (const p of state.players.filter(p => !p.eliminated)) {
     const cards = p.ownedCardIds.map(id => state.ownershipCardPool.find(e => e.card.id === id)!.card);

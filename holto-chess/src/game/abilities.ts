@@ -1,5 +1,5 @@
 import type { HandValue } from "../core/poker/evaluate";
-import { BALANCE, cardPrice, regularShopSizeFor, rerollLimitFor } from "./config";
+import { BALANCE, cardPrice, isFinalRound, regularShopSizeFor, rerollLimitFor, type RuleContext } from "./config";
 import type { PlayerState, Round } from "./types";
 
 export const ABILITY_IDS = ["royal-blood", "target-sniper", "underdog", "first-class", "golden-hand", "trader", "predator", "architect", "capitalism", "zero-risk", "quad-core", "front-runner"] as const;
@@ -17,12 +17,12 @@ export function abilityPrice(player: Pick<PlayerState, "abilityId">, rank: numbe
   const price = cardPrice(rank);
   return player.abilityId === "royal-blood" && rank >= 10 ? Math.floor(price / 2) : price;
 }
-export function abilityShopSize(player: PlayerState, round: Round, rulesVersion = 2): number {
-  const base = rulesVersion === 2 ? regularShopSizeFor(round) : player.shopSize;
+export function abilityShopSize(player: PlayerState, round: Round, rules: RuleContext = { rulesVersion: 2 }): number {
+  const base = rules.rulesVersion === 2 ? regularShopSizeFor(round, rules) : player.shopSize;
   return base + (base > 0 && player.abilityId === "golden-hand" ? 1 : 0);
 }
-export function abilityRerollLimit(player: Pick<PlayerState, "abilityId">, round: Round, rulesVersion = 2): number {
-  return round === 2 ? 0 : rerollLimitFor(round, rulesVersion) + (player.abilityId === "trader" ? 1 : 0);
+export function abilityRerollLimit(player: Pick<PlayerState, "abilityId">, round: Round, rules: RuleContext = { rulesVersion: 2 }): number {
+  return round === 2 ? 0 : rerollLimitFor(round, rules) + (player.abilityId === "trader" ? 1 : 0);
 }
 export function abilityRerollCost(player: Pick<PlayerState, "abilityId">): number { return player.abilityId === "trader" ? 0 : BALANCE.rerollCostBB; }
 export function abilityLockCost(player: Pick<PlayerState, "abilityId">): number { return player.abilityId === "trader" ? 0 : BALANCE.cardLockCostBB; }
@@ -38,9 +38,9 @@ export const CAPITALISM_INTEREST_PERCENT = 20;
 /** Protector (`zero-risk`) payout tiers by the pre-board win chance, highest first. */
 export const PROTECTOR_TIERS = [{ minPercent: 80, bb: 50 }, { minPercent: 70, bb: 30 }, { minPercent: 60, bb: 20 }] as const;
 
-/** Only the player's already allocated R5 placement award is doubled. Any Quads qualifies. */
-export function quadCorePlacementBonus(player: Pick<PlayerState, "abilityId">, hand: HandValue, round: Round, placementPoints: number): number {
-  return player.abilityId === "quad-core" && round === 5 && hand.category === "QUADS" && placementPoints > 0 ? placementPoints : 0;
+/** Only the player's already allocated final-round placement award is doubled. Any Quads qualifies. */
+export function quadCorePlacementBonus(player: Pick<PlayerState, "abilityId">, hand: HandValue, round: Round, placementPoints: number, rules: RuleContext = {}): number {
+  return player.abilityId === "quad-core" && isFinalRound(round, rules) && hand.category === "QUADS" && placementPoints > 0 ? placementPoints : 0;
 }
 /** Target Sniper: an outright regular-match win whose BEST 5 holds the still-owned starting card. */
 export function targetSniperWinReward(player: Pick<PlayerState, "abilityId" | "firstCardId" | "ownedCardIds">, hand: HandValue): number {
@@ -51,9 +51,9 @@ export function targetSniperWinReward(player: Pick<PlayerState, "abilityId" | "f
 export const predatorStreakReward = (streak: number) => streak >= 2 ? PREDATOR_BB_PER_STREAK * streak : 0;
 /** Protector: BB for an outright loss, by the raw pre-board win chance. */
 export const protectorLossReward = (rawPercent: number) => PROTECTOR_TIERS.find(tier => rawPercent >= tier.minPercent)?.bb ?? 0;
-export function madeAbilityReward(player: Pick<PlayerState, "abilityId" | "firstCardId" | "ownedCardIds">, hand: HandValue, round: Round): { bb: number; points: number } {
+export function madeAbilityReward(player: Pick<PlayerState, "abilityId" | "firstCardId" | "ownedCardIds">, hand: HandValue, round: Round, rules: RuleContext = {}): { bb: number; points: number } {
   if (player.abilityId === "architect" && hand.category === "FULL_HOUSE") return { bb: 30, points: 0 };
   if (!STRAIGHT_OR_BETTER.has(hand.category)) return { bb: 0, points: 0 };
-  if (player.abilityId === "underdog" && round === 5 && hand.bestFive.some(card => card.rank === 2)) return { bb: 0, points: 20 };
+  if (player.abilityId === "underdog" && isFinalRound(round, rules) && hand.bestFive.some(card => card.rank === 2)) return { bb: 0, points: 20 };
   return { bb: 0, points: 0 };
 }

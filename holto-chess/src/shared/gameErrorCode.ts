@@ -9,6 +9,7 @@ export const GAME_ERROR_CODES = [
   "CANNOT_SELL", "SELL_BLOCKS_HAND", "REROLL_UNAVAILABLE", "REROLL_LIMIT", "ALL_SHOP_CARDS_LOCKED",
   "LOCK_UNAVAILABLE", "LOCK_INSUFFICIENT_BB", "CARD_SELECTION_INVALID", "LOADOUT_INVALID",
   "DRAFT_NOT_YOUR_TURN", "DRAFT_CARD_UNAVAILABLE", "DRAFT_POOL_EMPTY", "DRAFT_UNAVAILABLE",
+  "OPPONENT_NOT_CHOOSER", "OPPONENT_INVALID",
   "INVALID_REQUEST", "ACTION_REJECTED",
 ] as const;
 export type GameErrorCode = typeof GAME_ERROR_CODES[number];
@@ -54,6 +55,8 @@ const exact: Record<string, GameErrorCode> = {
   "허용되지 않은 필드입니다.": "INVALID_REQUEST", "잘못된 카드입니다.": "INVALID_REQUEST",
   "서로 다른 카드 3장이 필요합니다.": "LOADOUT_INVALID", "잘못된 출전 카드 선택입니다.": "CARD_SELECTION_INVALID",
   "서로 다른 보유 카드를 소켓에 배치하세요.": "LOADOUT_INVALID",
+  "1위 플레이어만 상대를 선택할 수 있습니다.": "OPPONENT_NOT_CHOOSER", "선택할 수 없는 상대입니다.": "OPPONENT_INVALID",
+  "잘못된 상대입니다.": "INVALID_REQUEST",
 };
 
 export function classifyGameError(message: string): StructuredGameError {
@@ -62,6 +65,7 @@ export function classifyGameError(message: string): StructuredGameError {
   if (code) return { code };
   if (/^보유 카드 \d+장을 선택하세요\.$/.test(message) || /^R\d+ 출전 카드를 올바르게 나누세요\.$/.test(message)) return { code: "CARD_SELECTION_INVALID" };
   if (/^(R\d+은 보유 카드 \d+장이 필요합니다|카드 \d+장이 필요합니다|R2 보유 카드 3장이 필요합니다)\.$/.test(message)) return { code: "HAND_LIMIT" };
+  if (/^보유한 서로 다른 카드 \d+장을 배치하세요\.$/.test(message)) return { code: "LOADOUT_INVALID" };
   if (/^(1차|2차) 쇼다운 단계가 아닙니다\.$/.test(message) || /^.+단계가 아닙니다\.$/.test(message)) return { code: "WRONG_PHASE" };
   return { code: "ACTION_REJECTED" };
 }

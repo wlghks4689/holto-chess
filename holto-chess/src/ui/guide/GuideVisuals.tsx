@@ -104,10 +104,22 @@ export function BracketScene({ labels }: { labels: Labels }) {
   </figure>;
 }
 
-export function FinalScene({ labels }: { labels: Labels }) {
+/** R5: six cards split into three two-card hands, each playing its own RUN. */
+export function TripleRunScene({ labels }: { labels: Labels }) {
+  const runs = [["As", "Ad"], ["Kh", "Qh"], ["9c", "8c"]];
+  return <figure className="pg-scene pg-run pg-triple-run" aria-label="A♠ A♦ → RUN 1, K♥ Q♥ → RUN 2, 9♣ 8♣ → RUN 3">
+    <GCards label={labels.hole} codes={runs.flat()} on={runs.flat()} />
+    <div className="pg-run-split">{runs.map((codes, index) => <div key={codes[0]}><GCards label={`${labels.run} ${index + 1}`} codes={codes} on={codes} /></div>)}</div>
+  </figure>;
+}
+
+/** R6: five of up to seven owned cards play (the other two are BURN), then BEST 5 with the board. */
+export function SevenCardScene({ labels }: { labels: Labels }) {
+  const played = ["9c", "9d", "4h", "4c", "Ks"]; const board = ["9s", "4d", "Jh", "3c", "8d"];
   const best = ["9c", "9d", "9s", "4h", "4c"];
-  return <figure className="pg-scene"><GCards label={labels.mine} codes={["9c", "9d", "4h", "Ks", "2d"]} on={best} off={["Ks", "2d"]} /><span className="pg-op">+</span><GCards label={labels.board} codes={["9s", "4c", "6h", "Jd", "Ac"]} on={best} off={["6h", "Jd", "Ac"]} /><span className="pg-op eq">→</span>
-    <GCards label={labels.best} codes={best} on={best} /></figure>;
+  return <figure className="pg-scene"><GCards label={labels.mine} codes={[...played, "2d", "7s"]} on={played} off={["2d", "7s"]} /><span className="pg-op eq">→</span>
+    <GCards label={labels.lineup} codes={played} on={best} /><span className="pg-op">+</span>
+    <GCards label={labels.board} codes={board} on={best} /></figure>;
 }
 
 export function SurvivalFlow() {

@@ -1,7 +1,7 @@
 import type { AbilityId } from "./abilityCatalog";
 import type { AbilityCue } from "../game/abilities";
 import type { MatchView } from "../shared/protocol";
-import { cinematicTimeline } from "../shared/presentationTimeline";
+import { cinematicTimeline, isFinalMatch } from "../shared/presentationTimeline";
 
 export const abilityUx = {
   "royal-blood": { mode: "PASSIVE", metric: "saved" }, "first-class": { mode: "PASSIVE", metric: "order" },
@@ -15,7 +15,7 @@ export const abilityUx = {
 export const ABILITY_CUE_MS = 1200;
 export function abilityCueStart(match: MatchView, cue: AbilityCue): number | undefined {
   const frames = match.disclosure?.frames ?? cinematicTimeline(match);
-  return frames.find(frame => match.round === 5 ? frame.phase === "FINAL_WINNER" :
+  return frames.find(frame => isFinalMatch(match) ? frame.phase === "FINAL_WINNER" :
     frame.boardIndex === (cue.run ? cue.run - 1 : 0) && ["RUN_RESULT", "RESULT"].includes(frame.phase))?.at;
 }
 export function activeAbilityCues(match: MatchView, elapsed: number) {

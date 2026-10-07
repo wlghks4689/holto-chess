@@ -1,4 +1,5 @@
 import type { GameLog, PorenaGameState } from "../game/types";
+import { lastRoundFor } from "../game/config";
 import type { TranslationKey, TranslationParams } from "../i18n";
 
 export type PlayerFeedEntry = { id: string; tone: GameLog["tone"]; message: string;
@@ -8,7 +9,7 @@ const EVENT_KEYS: Record<string, TranslationKey> = {
   CARD_PURCHASED: "log.CARD_PURCHASED", CARD_SOLD: "log.CARD_SOLD", SHOP_REROLLED: "log.SHOP_REROLLED",
   CARD_UNLOCKED: "log.CARD_UNLOCKED", CARD_LOCKED: "log.CARD_LOCKED", FINAL_SCORE_COMPLETE: "log.FINAL_SCORE_COMPLETE",
   PLAYER_ELIMINATED: "log.PLAYER_ELIMINATED", DRAFT_SKIPPED_INSUFFICIENT_BB: "log.DRAFT_SKIPPED_INSUFFICIENT_BB",
-  ROUND_SUMMARY: "log.ROUND_SUMMARY",
+  ROUND_SUMMARY: "log.ROUND_SUMMARY", CARD_AUTO_PURCHASED: "log.CARD_AUTO_PURCHASED", OPPONENT_CHOSEN: "log.OPPONENT_CHOSEN",
 };
 
 /** Old snapshots and unknown future events retain their persisted message. */
@@ -26,10 +27,11 @@ const RESULT_PHASES = new Set(["ROUND_RESULT", "NEXT_ROUND", "GAME_RESULT"]);
 /** Builds a compact, viewer-specific drawer instead of exposing the engine's full diagnostic log. */
 export function playerEventFeed(state: PorenaGameState, playerId: string): PlayerFeedEntry[] {
   const summaries: PlayerFeedEntry[] = [];
-  for (const round of [1, 2, 3, 4] as const) {
-    if (round > state.round || (round === state.round && !RESULT_PHASES.has(state.phase))) continue;
+  for (const round of [1, 2, 3, 4, 5] as const) {
+    // The final round has no summary line: its result is the final standings.
+    if (round >= lastRoundFor(state) || round > state.round || (round === state.round && !RESULT_PHASES.has(state.phase))) continue;
     const matches = state.matches.filter((match) => match.id.startsWith(`${round}-`) && match.playerIds.includes(playerId)
-      && !(round === 3 && match.tiebreakKind === "SURVIVAL_TIEBREAK"));
+      && !((round === 3 || round === 5) && match.tiebreakKind === "SURVIVAL_TIEBREAK"));
     if (!matches.length) continue;
     const outcomes = matches.flatMap((match) => match.runCards ? match.boardWinnerIds.slice(0, match.runoutCount) : [match.winnerIds]);
     const wins = outcomes.filter((ids) => ids.length === 1 && ids.includes(playerId)).length;

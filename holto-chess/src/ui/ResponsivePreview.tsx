@@ -57,7 +57,7 @@ cases.push({ id:"showdown-flush", screen:"showdown-flush", round:4, count:5 },
 
 function InteractiveShop() {
   const [state, setState] = useState(() => {
-    const game = createGame(303);
+    const game = createGame(303, "seeded", 2, false, false);
     game.players[0]!.abilityId = new URLSearchParams(location.search).get("ability") === "trader" ? "trader" : "first-class";
     return game;
   });

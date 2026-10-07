@@ -1,6 +1,7 @@
 import { assertPoolIntegrity } from "./cardPool";
-import { BALANCE } from "./config";
-import { beginSecondary, buyCard, createGame, createAbilityGame, openAbilitySelection, pickAbility, autoPickAbility, finishAbilitySelection, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
+import { BALANCE, FINAL_LOADOUT_SIZE, handLimitFor, isLineupFinal, minHandFor } from "./config";
+import { assistsShortHands, beginSecondary, buyCard, createGame, createAbilityGame, openAbilitySelection, pickAbility, autoPickAbility, finishAbilitySelection, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
+import { autoChooseOpponent, chooseOpponent, completeOpponentSelect, finishCardAuctionReveal, isOpponentRevealing } from "./engine";
 import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
 import { PRESENTATION_LEAD_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
@@ -38,8 +39,9 @@ export type RoomSnapshot = {
 
 // Re-exported so existing server and test imports keep working.
 export { BARRIER_TIMEOUT_MS, barrierTimeoutMs };
-export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2, abilities = false): RoomSnapshot {
-  const game = abilities ? createAbilityGame(seed, randomMode) : createGame(seed, randomMode, rulesVersion);
+/** New rooms play six rounds; `sixRounds = false` builds the five-round game rooms saved before it still play. */
+export function createRoom(roomId: string, seed: number, randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2, abilities = false, sixRounds = true): RoomSnapshot {
+  const game = abilities ? createAbilityGame(seed, randomMode, sixRounds) : createGame(seed, randomMode, rulesVersion, false, sixRounds);
   return { schema: 1, rulesRevision: 2, roomId, revision: 0, status: "LOBBY", game, sessions: [], readyIds: [], endedShopIds: [] };
 }
 
@@ -106,7 +108,7 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 }
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
-const BARRIER_PHASES = ["ABILITY_ORDER", "ABILITY_PICK", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
+const BARRIER_PHASES = ["ABILITY_ORDER", "ABILITY_PICK", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
 const AUTOMATIC_PRESENTATION_PHASES = ["ABILITY_ORDER", "DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
 const SPECTATOR_TIMER_PHASES = ["ABILITY_ORDER", "ABILITY_REVEAL", "DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
 
@@ -131,7 +133,11 @@ function finishForBots(room: RoomSnapshot, now: number): void {
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
     else if (room.game.phase === "OPEN_DRAFT") room.game = isDraftRevealing(room.game) ? completeDraft(room.game) : autoPickDraft(room.game, true);
     else if (room.game.phase === "ABILITY_PICK") room.game = autoPickAbility(room.game);
-    else if (room.game.phase === "FINAL_AUCTION") { room.game = settleFinalAuction(room.game, room.game.finalAuction!.endsAt); }
+    else if (room.game.phase === "FINAL_AUCTION") {
+      const auction = room.game.finalAuction!;
+      room.game = auction.settledAt === null ? settleFinalAuction(room.game, auction.endsAt) : finishCardAuctionReveal(room.game, auction.loadoutStartsAt ?? auction.settledAt);
+    }
+    else if (room.game.phase === "OPPONENT_SELECT") room.game = isOpponentRevealing(room.game) ? completeOpponentSelect(room.game) : autoChooseOpponent(room.game);
     else if (room.game.phase === "FINAL_LOADOUT") room.game = finishFinalLoadouts(room.game, room.game.finalAuction!.loadoutEndsAt!, []);
     else advanceReadyBarrier(room, now);
   }
@@ -139,9 +145,14 @@ function finishForBots(room: RoomSnapshot, now: number): void {
   if (room.presentation) room.presentation.endsAt = now;
 }
 
-/** The finished draft is held on screen for everyone; nobody acts, the server clock ends it. */
+/**
+ * Screens nobody acts on, ended by the server clock: the finished draft, the chosen R5 pairing,
+ * and a bot leader's opponent choice.
+ */
 function waitingForDraftReveal(room: RoomSnapshot): boolean {
-  return room.status === "PLAYING" && isDraftRevealing(room.game);
+  if (room.status !== "PLAYING") return false;
+  if (room.game.phase === "OPPONENT_SELECT") return isOpponentRevealing(room.game) || !activeHumans(room).includes(room.game.opponentSelect?.chooserId ?? "");
+  return isDraftRevealing(room.game);
 }
 
 /** Who the current barrier is still waiting on. Empty means nothing is blocked. */
@@ -156,8 +167,15 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
     const picker = room.game.abilityDraft?.order[room.game.abilityDraft.picks.length];
     return picker ? [picker] : [];
   }
+  if (room.game.phase === "OPPONENT_SELECT") {
+    const chooser = room.game.opponentSelect?.chooserId;
+    return chooser && !isOpponentRevealing(room.game) && waiting.includes(chooser) ? [chooser] : [];
+  }
   if (room.game.phase === "SURVIVAL_READY") return waiting.filter((id) => room.game.survival?.playerIds.includes(id) && !room.readyIds.includes(id));
   if (room.game.phase === "SHOP") return waiting.filter((id) => !room.endedShopIds.includes(id));
+  // R6 lineup: only a seat holding more than five cards has a choice to make.
+  if (room.game.phase === "RUN_LOADOUT" && isLineupFinal(room.game.round, room.game)) return waiting.filter((id) => !room.readyIds.includes(id)
+    && (room.game.players.find((p) => p.id === id)?.ownedCardIds.length ?? 0) > FINAL_LOADOUT_SIZE);
   return waiting.filter((id) => !room.readyIds.includes(id));
 }
 
@@ -165,7 +183,9 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
 function refreshBarrier(room: RoomSnapshot, now: number): void {
   const pending = pendingBarrierIds(room);
   const blocked = pending.length > 0 || waitingForSpectatorTimer(room) || waitingForDraftReveal(room);
-  const key = `${turnKey(room)}|${room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.picks.length : ""}|${blocked ? "waiting" : "done"}`;
+  const step = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.picks.length
+    : room.game.phase === "OPPONENT_SELECT" ? room.game.opponentSelect?.opponentId ?? "" : "";
+  const key = `${turnKey(room)}|${step}|${blocked ? "waiting" : "done"}`;
   if (room.barrierKey === key) return;
   room.barrierKey = key;
   room.barrierSince = blocked ? now : undefined;
@@ -177,16 +197,22 @@ function refreshBarrier(room: RoomSnapshot, now: number): void {
  */
 export function barrierDeadline(room: RoomSnapshot): number | undefined {
   const a = room.game.finalAuction;
+  // A settled six-round R3 auction holds its result reveal until loadoutStartsAt.
+  if (room.game.phase === "FINAL_AUCTION" && a?.settledAt != null) return a.loadoutStartsAt ?? a.settledAt;
   if (room.game.phase === "FINAL_AUCTION" && a) return Math.min(a.endsAt, ...room.game.players.filter(p => !p.eliminated && !controlledHumanIds(room).includes(p.id)).map(p => a.botNextAt[p.id] ?? a.endsAt));
   if (room.game.phase === "FINAL_LOADOUT" && a) return a.loadoutStartsAt! > (room.barrierSince ?? 0) ? a.loadoutStartsAt : a.loadoutEndsAt;
   if (room.barrierSince === undefined) return undefined;
   // The last human's elimination result gets a short look, then the game ends for the bots.
   if (room.game.phase === "ROUND_RESULT" && humansAllOut(room)) return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.ALL_OUT_RESULT;
+  if (room.game.phase === "OPPONENT_SELECT" && waitingForDraftReveal(room)) return room.barrierSince
+    + (isOpponentRevealing(room.game) ? BARRIER_TIMEOUT_MS.OPPONENT_REVEAL : BARRIER_TIMEOUT_MS.BOT_OPPONENT_SELECT);
   if (waitingForDraftReveal(room)) return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.DRAFT_REVEAL;
   const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId
     : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.order[room.game.abilityDraft.picks.length] : undefined;
   const botDraftTurn = !!draftPicker && !activeHumans(room).includes(draftPicker);
-  return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + (botDraftTurn ? BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : barrierTimeoutMs(room.game.phase));
+  const lineup = room.game.phase === "RUN_LOADOUT" && isLineupFinal(room.game.round, room.game);
+  return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0)
+    + (botDraftTurn ? BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : lineup ? BARRIER_TIMEOUT_MS.FINAL_LINEUP : barrierTimeoutMs(room.game.phase));
 }
 export function addSession(source: RoomSnapshot, tokenHash: string): { room: RoomSnapshot; playerId: string } {
   if (source.status !== "LOBBY" || source.sessions.length >= 8) throw new Error("입장할 수 없는 방입니다.");
@@ -324,7 +350,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const eligible = activeHumans(room);
     if (!eligible.includes(playerId)) throw new Error("관전자는 READY를 대신할 수 없습니다.");
     if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
-    if (["FINAL_AUCTION", "FINAL_LOADOUT", "ABILITY_PICK", "OPEN_DRAFT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
+    if (["FINAL_AUCTION", "FINAL_LOADOUT", "ABILITY_PICK", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
     if (AUTOMATIC_PRESENTATION_PHASES.includes(room.game.phase)) throw new Error("공통 연출이 끝나면 자동으로 진행됩니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     if (allReady(eligible)) advanceReadyBarrier(room, now);
@@ -335,6 +361,9 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
   } else if (action.type === "DRAFT_PICK") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
     room.game = pickDraftCard(room.game, playerId, action.cardId, true);
+  } else if (action.type === "CHOOSE_OPPONENT") {
+    if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
+    room.game = chooseOpponent(room.game, playerId, action.playerId);
   } else if (action.type === "ABILITY_PICK") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
     room.game = pickAbility(room.game, playerId, action.slot);
@@ -368,7 +397,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
         break;
       case "SELECT_LOADOUT": throw new Error("R3는 보유 4장을 모두 사용합니다. 분할 배치는 지원하지 않습니다.");
       case "END_SHOP_PHASE":
-        if (me.ownedCardIds.length !== BALANCE.handLimits[room.game.round]) throw new Error(`카드 ${BALANCE.handLimits[room.game.round]}장이 필요합니다.`);
+        if (me.ownedCardIds.length < minHandFor(room.game.round, room.game) || me.ownedCardIds.length > handLimitFor(room.game.round, room.game)) throw new Error(`카드 ${minHandFor(room.game.round, room.game)}장이 필요합니다.`);
         if (room.game.round === 2 && me.selectedCardIds.length !== 2) throw new Error("출전 카드 2장을 선택하세요.");
         room.endedShopIds.push(playerId);
         if (activeHumans(room).every((id) => room.endedShopIds.includes(id))) room.game = prepareShowdown(room.game, controlledHumanIds(room));
@@ -393,8 +422,8 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   if (deadline === undefined || now < deadline) return null;
   if (source.game.phase === "FINAL_AUCTION" || source.game.phase === "FINAL_LOADOUT") {
     const room = structuredClone(source);
-    if (room.game.phase === "FINAL_AUCTION") room.game = now >= room.game.finalAuction!.endsAt
-      ? settleFinalAuction(room.game, now) : tickAuctionBots(room.game, controlledHumanIds(room), now);
+    if (room.game.phase === "FINAL_AUCTION") room.game = room.game.finalAuction!.settledAt !== null ? finishCardAuctionReveal(room.game, now)
+      : now >= room.game.finalAuction!.endsAt ? settleFinalAuction(room.game, now) : tickAuctionBots(room.game, controlledHumanIds(room), now);
     settleBarrier(room, now); captureShopBalances(room); syncPresentation(room, now); refreshBarrier(room, now);
     // Reveal wake-up has occurred. The next alarm is the fixed loadout deadline.
     if (room.game.phase === "FINAL_LOADOUT") room.barrierSince = now;
@@ -409,11 +438,15 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
     room.game = autoPickAbility(room.game);
   } else if (room.game.phase === "OPEN_DRAFT") {
     room.game = draftReveal ? completeDraft(room.game) : autoPickDraft(room.game, true);
+  } else if (room.game.phase === "OPPONENT_SELECT") {
+    room.game = isOpponentRevealing(room.game) ? completeOpponentSelect(room.game) : autoChooseOpponent(room.game);
   } else if (room.game.phase === "SHOP") {
-    // Preserve complete human Omaha hands when the shop timer expires.
-    const loadoutOnly = room.game.round === 3 ? pending.filter((id) => room.game.players.find((p) => p.id === id)!.ownedCardIds.length === BALANCE.handLimits[3]) : [];
+    // Preserve complete human Omaha hands when the shop timer expires. Six-round R5/R6 keep every
+    // timed-out seat human: the engine only tops up a short hand from that seat's own shop.
+    const keep = assistsShortHands(room.game) ? pending
+      : room.game.round === 3 ? pending.filter((id) => room.game.players.find((p) => p.id === id)!.ownedCardIds.length === handLimitFor(3, room.game)) : [];
     // Excluding them from the human list hands their shop to the existing bot.
-    room.game = prepareShowdown(room.game, controlledHumanIds(room).filter((id) => !pending.includes(id) || loadoutOnly.includes(id)));
+    room.game = prepareShowdown(room.game, controlledHumanIds(room).filter((id) => !pending.includes(id) || keep.includes(id)));
     for (const id of pending) if (!room.endedShopIds.includes(id)) room.endedShopIds.push(id);
   } else {
     room.readyIds = [...new Set([...room.readyIds, ...pending])];

@@ -1,7 +1,7 @@
 import type { PorenaGameState, Round } from "../game/types";
 import type { TutorialCheckpoint } from "./tutorialPlayback";
 
-export type ChapterId = 1 | 2 | 3 | 4 | 5;
+export type ChapterId = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * EXPLAIN and REVIEW steps wait for the reader. ACT steps wait for something that really happened in

@@ -44,7 +44,7 @@ describe("showdown prep view", () => {
   });
 
   it("includes every seat in R4 three-way brackets but leaves R5 to the final cinematic", () => {
-    const room = addSession(createRoom("MULTIWAY", 20260924, "secure"), "player").room;
+    const room = addSession(createRoom("MULTIWAY", 20260924, "secure", 2, false, false), "player").room;
     room.status = "PLAYING";
     room.game.round = 4;
     room.game.phase = "SHOWDOWN_SECONDARY";

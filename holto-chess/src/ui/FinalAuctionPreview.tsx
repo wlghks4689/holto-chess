@@ -13,11 +13,11 @@ import type { GameAction } from "../shared/protocol";
 import type { PorenaGameState } from "../game/types";
 import { ABILITY_IDS } from "../game/abilities";
 
-/** Development-only playable preview; no server routes or production bypass. */
+/** Development-only playable preview of the five-round R5 auction that saved rooms still play; no server routes or production bypass. */
 export function FinalAuctionPreview() {
   const matchOnly = new URLSearchParams(location.search).get("screen") === "match";
   const [game, setGame] = useState(() => {
-    const initial = practiceState(TUTORIAL_SEED, 5);
+    const initial = practiceState(TUTORIAL_SEED, 5, false);
     initial.players.forEach((player, index) => { player.abilityId = ABILITY_IDS[index % ABILITY_IDS.length]; });
     if (new URLSearchParams(location.search).get("screen") === "bid") return bidFinalAuction(initial, initial.players.find(p => !p.eliminated && p.id !== "p1")!.id, { cardId: initial.finalAuction!.cardIds[0]!, expectedHighestAmount: null }, initial.finalAuction!.startedAt + 500);
     if (!matchOnly) return initial;
@@ -48,8 +48,8 @@ export function FinalAuctionPreview() {
   if (matchOnly) return <main className="game-arena"><div className="page-shell"><FinalRoundTransition matchup={view.showdownPrep} /></div></main>;
   if (game.phase === "GAME_RESULT" && !viewed) return <ShowdownCinematic match={createMatchView(game, game.roundResults[0]!)} profiles={view.players} viewerId="p1" onComplete={() => setViewed(true)} elapsedMs={Number.MAX_SAFE_INTEGER} catchUp />;
   return <main className="game-arena"><div className="page-shell"><p>DEVELOPMENT · R5 FINAL AUCTION · 실제 엔진 규칙</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-    <button className="secondary" onClick={() => { setGame(practiceState(TUTORIAL_SEED, 5)); setRunning(false); setViewed(false); }}>처음부터</button>
-    <button className="secondary" onClick={() => { setGame(practiceState(TUTORIAL_SEED, 5)); setRunning(true); setViewed(false); }}>40초 실시간 경매 시작</button>
+    <button className="secondary" onClick={() => { setGame(practiceState(TUTORIAL_SEED, 5, false)); setRunning(false); setViewed(false); }}>처음부터</button>
+    <button className="secondary" onClick={() => { setGame(practiceState(TUTORIAL_SEED, 5, false)); setRunning(true); setViewed(false); }}>40초 실시간 경매 시작</button>
     {game.phase === "FINAL_AUCTION" && <button className="secondary" onClick={() => act(s => settleFinalAuction(s, s.finalAuction!.endsAt))}>마감 미리보기</button>}
     {game.phase === "FINAL_LOADOUT" && <button className="secondary" onClick={() => act(s => finishFinalLoadouts(s, s.finalAuction!.loadoutEndsAt!))}>출전 자동 확정</button>}
     {game.phase === "SHOWDOWN_PRIMARY" && <button className="secondary" onClick={() => act(resolvePrimary)}>쇼다운 보기</button>}

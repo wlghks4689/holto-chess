@@ -5,7 +5,7 @@ import { FINAL_ROUND_PLACEMENT_POINTS } from "./config";
 import { createMatchView } from "./matchView";
 
 function finalFixture(hands: string[][]) {
-  const game = createGame(88); game.round = 5; game.phase = "SHOWDOWN_PRIMARY";
+  const game = createGame(88, "seeded", 2, false, false); game.round = 5; game.phase = "SHOWDOWN_PRIMARY";
   for (const entry of game.ownershipCardPool) { entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId; }
   game.players.forEach((player, index) => {
     player.eliminated = index >= 4; player.shopCardIds = []; player.selectedCardIds = [];

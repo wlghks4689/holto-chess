@@ -56,11 +56,11 @@ function hasFit(name: PolicyName, shop: readonly Priced[], owned: readonly Card[
   return true;
 }
 
-export type SeatContext = { ability: AbilityId | null; firstCardId?: string };
+export type SeatContext = { ability: AbilityId | null; firstCardId?: string; sixRounds?: boolean };
 
 export function makePolicy(name: PolicyName, seed: number, seat: SeatContext = { ability: null }): Policy {
   if (name === "ENGINE_BOT") return { name, shop: null, pickDraft: null, loadout: null };
-  if (name === "ABILITY_NEUTRAL" || name === "ABILITY_AWARE") return makeAbilityPolicy(name, seat.ability, seat.firstCardId);
+  if (name === "ABILITY_NEUTRAL" || name === "ABILITY_AWARE") return makeAbilityPolicy(name, seat.ability, seat.firstCardId, seat.sixRounds ?? true);
   const random = makeRandom(seed);
   const score = name === "RANDOM" ? () => 0 : scorer(name);
   const best = (options: readonly Priced[], owned: readonly Card[]) => name === "RANDOM"

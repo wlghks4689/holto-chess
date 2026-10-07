@@ -14,7 +14,7 @@ type Guide = {
   caution: TranslationKey;
 };
 
-const GUIDES: Record<Round, Guide> = {
+const GUIDES: Record<Exclude<Round, 6>, Guide> = {
   1: { kicker: "round.r1.kicker", title: "round.r1.title", summary: "round.r1.summary", steps: ["round.r1.step1", "round.r1.step2", "round.r1.step3"], scoring: "round.r1.scoring", caution: "round.r1.caution" },
   2: { kicker: "round.r2.kicker", title: "round.r2.title", summary: "round.r2.summary", steps: ["round.r2.step1", "round.r2.step2", "round.r2.step3"], scoring: "round.r2.scoring", caution: "round.r2.caution" },
   3: { kicker: "round.r3.kicker", title: "round.r3.title", summary: "round.r3.summary", steps: ["round.r3.step1", "round.r3.step2", "round.r3.step3"], scoring: "round.r3.scoring", caution: "round.r3.caution" },
@@ -26,6 +26,14 @@ const GUIDES: Record<Round, Guide> = {
   ], caution: "round.r4.caution" },
   5: { kicker: "round.r5.kicker", title: "round.r5.title", summary: "round.r5.summary", steps: ["round.r5.step1", "round.r5.step2", "round.r5.step3"], scoring: "round.r5.scoring", caution: "round.r5.caution" },
 };
+/** Six-round games: R3 opens with the card auction, R5 is RUN IT THREE TIMES, R6 is the final. */
+const SIX_ROUND_GUIDES: Partial<Record<Round, Guide>> = {
+  3: { kicker: "round.six.r3.kicker", title: "round.six.r3.title", summary: "round.six.r3.summary", steps: ["round.six.r3.step1", "round.six.r3.step2", "round.six.r3.step3"], scoring: "round.six.r3.scoring", caution: "round.six.r3.caution" },
+  5: { kicker: "round.six.r5.kicker", title: "round.six.r5.title", summary: "round.six.r5.summary", steps: ["round.six.r5.step1", "round.six.r5.step2", "round.six.r5.step3"], scoring: "round.six.r5.scoring", caution: "round.six.r5.caution" },
+  6: { kicker: "round.six.r6.kicker", title: "round.six.r6.title", summary: "round.six.r6.summary", steps: ["round.six.r6.step1", "round.six.r6.step2", "round.six.r6.step3"], scoring: "round.six.r6.scoring", caution: "round.six.r6.caution" },
+};
+const guideFor = (round: Round, lastRound: Round): Guide =>
+  (lastRound === 6 ? SIX_ROUND_GUIDES[round] : undefined) ?? GUIDES[round as Exclude<Round, 6>];
 
 function card(id: string): Card {
   const chars: Record<string, Rank> = { T: 10, J: 11, Q: 12, K: 13, A: 14 };
@@ -48,9 +56,10 @@ function OmahaExample() {
   </section>;
 }
 
-export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound, confirmLabel, timerNotice }: { round: Round; onClose: () => void; secondsLeft?: number | null; onPreviewRound?: (round: Round) => void; confirmLabel?: string; timerNotice?: string }) {
+/** `lastRound` picks the format: new games have six rounds, rooms saved before them five. */
+export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound, confirmLabel, timerNotice, lastRound = 6 }: { round: Round; onClose: () => void; secondsLeft?: number | null; onPreviewRound?: (round: Round) => void; confirmLabel?: string; timerNotice?: string; lastRound?: Round }) {
   const { t } = useTranslation();
-  const guide = GUIDES[round];
+  const guide = guideFor(round, lastRound);
   const dialogRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -69,7 +78,7 @@ export function RoundGuide({ round, onClose, secondsLeft, onPreviewRound, confir
   return <div className="round-guide-backdrop" role="presentation">
     <section ref={dialogRef} className="round-guide" role="dialog" aria-modal="true" aria-labelledby="round-guide-title" onKeyDown={handleDialogKeyDown}>
       <header><div><span>{t("round.guideTitle", { round: String(round).padStart(2, "0") })}</span><small>{t(guide.kicker)}</small></div><button type="button" aria-label={t("round.guideClose")} onClick={onClose}>×</button></header>
-      {onPreviewRound && <div className="start-guide-rounds" aria-label={t("round.previewLabel")}>{([1, 2, 3, 4, 5] as const).map((value) => <button key={value} type="button" aria-pressed={round === value} onClick={() => onPreviewRound(value)}>R{value}</button>)}</div>}
+      {onPreviewRound && <div className="start-guide-rounds" aria-label={t("round.previewLabel")}>{Array.from({ length: lastRound }, (_, index) => (index + 1) as Round).map((value) => <button key={value} type="button" aria-pressed={round === value} onClick={() => onPreviewRound(value)}>R{value}</button>)}</div>}
       <div className="round-guide-body"><span className="guide-index">0{round}</span><div className="guide-copy"><h2 id="round-guide-title">{t(guide.title)}</h2><p>{t(guide.summary)}</p></div>
         <ol>{guide.steps.map((step, index) => <li key={step}><i>0{index + 1}</i><span>{t(step)}</span></li>)}</ol>
         {round === 3 ? <OmahaExample /> : <div className="guide-special"><span>{t("round.ruleCheck")}</span><p>{t(guide.caution)}</p></div>}

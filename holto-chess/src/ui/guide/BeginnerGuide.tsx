@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { TranslationKey } from "../../i18n";
 import type { BeginnerRound, GuideCopy } from "./guideCopy";
 import { abilityThumb, GUIDE_ABILITIES, GUIDE_RULES, HAND_KEY, HAND_LADDER, handScore } from "./guideRules";
-import { BracketScene, FinalScene, HandLadder, HoldemScene, OmahaScene, PoolScene, RunScene, ShopScene, SurvivalFlow } from "./GuideVisuals";
+import { BracketScene, HandLadder, HoldemScene, OmahaScene, PoolScene, RunScene, SevenCardScene, ShopScene, SurvivalFlow, TripleRunScene } from "./GuideVisuals";
 
 function Section({ kicker, title, lead, children, takeaway }: { kicker: string; title: string; lead?: string; children?: ReactNode; takeaway?: string }) {
   return <section className="pg-section">
@@ -29,7 +29,7 @@ export function BeginnerGuide({ copy, t, onRules }: { copy: GuideCopy; t: (key: 
       <span className="pg-kicker">{b.identity.kicker}</span>
       <h3>{b.identity.title.split("\n").map((line, i) => <span key={line}>{i > 0 && <br />}{line}</span>)}</h3>
       <p>{b.identity.lead}</p>
-      <ul className="pg-pillars">{b.identity.pillars.map((pillar, i) => <li key={pillar.title}><i>{["8", "52", "⇄", "R5"][i]}</i><strong>{pillar.title}</strong><span>{pillar.body}</span></li>)}</ul>
+      <ul className="pg-pillars">{b.identity.pillars.map((pillar, i) => <li key={pillar.title}><i>{["8", "52", "⇄", "R6"][i]}</i><strong>{pillar.title}</strong><span>{pillar.body}</span></li>)}</ul>
     </section>
 
     <Section {...b.pool}><PoolScene copy={b.pool} /><p className="pg-takeaway">{b.pool.takeaway}</p></Section>
@@ -49,9 +49,10 @@ export function BeginnerGuide({ copy, t, onRules }: { copy: GuideCopy; t: (key: 
       <div className="pg-rounds">
         <RoundCard labels={labels} index={1} round={b.rounds.r1} cards={limits[1]} alive={alive[0]} scene={<HoldemScene labels={labels} />} />
         <RoundCard labels={labels} index={2} round={b.rounds.r2} cards={limits[2]} alive={alive[1]} badge={labels.draft} scene={<RunScene labels={labels} />} />
-        <RoundCard labels={labels} index={3} round={b.rounds.r3} cards={limits[3]} alive={alive[1]} scene={<OmahaScene labels={labels} />} />
+        <RoundCard labels={labels} index={3} round={b.rounds.r3} cards={limits[3]} alive={alive[1]} badge={labels.auction} scene={<OmahaScene labels={labels} />} />
         <RoundCard labels={labels} index={4} round={b.rounds.r4} cards={limits[4]} alive={alive[2]} badge={labels.draft} scene={<BracketScene labels={labels} />} />
-        <RoundCard labels={labels} index={5} round={b.rounds.r5} cards={limits[5]} alive={alive[3]} scene={<FinalScene labels={labels} />} />
+        <RoundCard labels={labels} index={5} round={b.rounds.r5} cards={limits[5]} alive={alive[3]} badge={labels.pick} scene={<TripleRunScene labels={labels} />} />
+        <RoundCard labels={labels} index={6} round={b.rounds.r6} cards={limits[6]} alive={alive[4]} scene={<SevenCardScene labels={labels} />} />
       </div>
     </Section>
 

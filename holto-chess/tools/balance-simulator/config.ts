@@ -16,7 +16,7 @@ function integer(name: string, value: string | undefined, fallback: number): num
 }
 
 export function parseCliArgs(args: string[]): CliOptions {
-  const flags = new Set(["verbose", "rows", "compare", "abilities"]);
+  const flags = new Set(["verbose", "rows", "compare", "abilities", "five-rounds"]);
   const known = new Set([...flags, "games", "seed", "policies", "assignment", "rerolls", "set", "out", "jobs"]);
   const values = new Map<string, string[]>();
   for (let i = 0; i < args.length; i += 1) {
@@ -47,7 +47,7 @@ export function parseCliArgs(args: string[]): CliOptions {
     compare, jobs: Math.max(1, integer("jobs", one("jobs"), 1)),
     config: {
       games: integer("games", one("games"), DEFAULT_CONFIG.games), seed: integer("seed", one("seed"), DEFAULT_CONFIG.seed),
-      policies, assignment, maxRerolls: integer("rerolls", one("rerolls"), DEFAULT_CONFIG.maxRerolls), abilities: values.has("abilities"), overrides,
+      policies, assignment, maxRerolls: integer("rerolls", one("rerolls"), DEFAULT_CONFIG.maxRerolls), abilities: values.has("abilities"), fiveRounds: values.has("five-rounds"), overrides,
       outputPath: resolve(one("out") ?? DEFAULT_CONFIG.outputPath), writeRows: values.has("rows"), verbose: values.has("verbose"),
     },
   };

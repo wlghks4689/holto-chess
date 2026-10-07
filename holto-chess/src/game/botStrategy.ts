@@ -1,9 +1,9 @@
 import { makeDeck, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha, type HandCategory, type HandValue } from "../core/poker/evaluate";
-import { BALANCE } from "./config";
+import { BALANCE, handLimitFor, rerollLimitFor, TRIPLE_RUN, type RuleContext } from "./config";
 import type { PlayerState, Round } from "./types";
-import { strategicCardValue, type PreflopStrength } from "./preflopStrength";
-import { scoreUnrestricted } from "./showdownEquity";
+import { omahaPreflopStrength, strategicCardValue, type PreflopStrength } from "./preflopStrength";
+import { scoreSeven, scoreUnrestricted } from "./showdownEquity";
 
 type PricedCard = { card: Card; price: number };
 export type BotPlanScore = {
@@ -20,6 +20,8 @@ export type BotPlanOptions = {
   fastUnrestricted?: boolean;
   /** Version 2 plays R2 as [anchor, run-1 secondary] and [anchor, run-2 secondary]. */
   rulesVersion?: 1 | 2;
+  /** Six rounds: R5 plays three two-card RUNs, R6 plays a chosen five on one community board. */
+  sixRounds?: boolean;
   /**
    * Common-random baseline. Every candidate in one comparison must draw its boards
    * and opponents from the SAME deck, or sampling noise buries the synergy edges
@@ -32,7 +34,21 @@ export type BotPlanOptions = {
 
 // Common-random sampling keeps seven bots responsive. Cheap rounds afford more
 // universes; R4 evaluates ten cards per player, so it stays lean.
-const SAMPLES: Record<Round, number> = { 1: 24, 2: 48, 3: 24, 4: 24, 5: 24 };
+const SAMPLES: Record<Round, number> = { 1: 24, 2: 48, 3: 24, 4: 24, 5: 24, 6: 24 };
+
+/**
+ * How a round's hand is played: by its own round number through R4, "triple" for the six-round
+ * R5 (three pairs, each on its own board), "lineup" for the six-round R6 (the strongest five of up
+ * to seven on one community board), "final" for the five-round boardless best five.
+ */
+type PlanMode = 1 | 2 | 3 | 4 | "triple" | "lineup" | "final";
+function planMode(round: Round, sixRounds = false): PlanMode {
+  if (round === 5) return sixRounds ? "triple" : "final";
+  if (round === 6) return "lineup";
+  return round;
+}
+/** R6 plays the five that already make the strongest hand; extra cards are burned. */
+const lineupFive = (cards: readonly Card[]): Card[] => cards.length <= 5 ? [...cards] : findBestFive(cards).bestFive;
 const UNRESTRICTED_CATEGORIES: HandCategory[] = ["HIGH_CARD", "PAIR", "TWO_PAIR", "TRIPS", "STRAIGHT", "FLUSH", "FULL_HOUSE", "QUADS", "STRAIGHT_FLUSH"];
 
 function hash(value: string): number {
@@ -152,9 +168,33 @@ function heuristicRunOrder(cards: readonly Card[]): Card[] {
     - (pairScore([left[0]!, left[1]!]) + pairScore([left[0]!, left[2]!])))[0]!;
 }
 
+/** Every way to split cards into unordered pairs; six cards give fifteen splits. */
+function pairings(cards: readonly Card[]): Card[][][] {
+  if (cards.length < 2) return [[]];
+  const [first, ...rest] = cards;
+  return rest.flatMap((partner, index) => pairings(rest.filter((_, other) => other !== index)).map((others) => [[first!, partner], ...others]));
+}
+
+/** Cheap in-sample R5 split: the pairs with the best summed pair score, strongest first. */
+function heuristicTripleSplit(cards: readonly Card[]): Card[][] {
+  if (cards.length !== TRIPLE_RUN.runs * 2) return Array.from({ length: TRIPLE_RUN.runs }, (_, run) => cards.slice(run * 2, run * 2 + 2));
+  let best: Card[][] = []; let bestScore = -Infinity;
+  for (const split of pairings(cards)) {
+    const score = split.reduce((sum, pair) => sum + pairScore(pair), 0);
+    if (score > bestScore) { best = split; bestScore = score; }
+  }
+  return [...best].sort((left, right) => pairScore(right) - pairScore(left));
+}
+
 /** Hole groups the round actually plays, and the board cards that join each one. */
-function potentialFor(round: Round, cards: readonly Card[], rulesVersion: 1 | 2, runOrder?: readonly Card[]): number {
-  if (round === 5) return 0; // No board: the made seven-card hand is already fully measured.
+function potentialFor(round: Round, cards: readonly Card[], rulesVersion: 1 | 2, runOrder?: readonly Card[], sixRounds = false): number {
+  const mode = planMode(round, sixRounds);
+  if (mode === "final") return 0; // No board: the made seven-card hand is already fully measured.
+  if (mode === "lineup") return drawPotential(lineupFive(cards), 5);
+  if (mode === "triple") {
+    if (cards.length !== TRIPLE_RUN.runs * 2) return drawPotential(cards, 5) / TRIPLE_RUN.runs;
+    return heuristicTripleSplit(cards).reduce((sum, pair) => sum + drawPotential(pair, 5), 0) / TRIPLE_RUN.runs;
+  }
   if (round === 3) {
     if (cards.length !== 4) return drawPotential(cards, 3);
     // Omaha plays exactly two hole cards with exactly three board cards.
@@ -182,7 +222,20 @@ function scoreHeadsUp(
   rulesVersion: 1 | 2,
   runOrder?: readonly Card[],
   fastUnrestricted = false,
+  sixRounds = false,
 ): { result: number; handScore: number } {
+  const mode = planMode(round, sixRounds);
+  if (mode === "triple") {
+    // Three RUNs on three boards, each pairing one hero pair with one opponent pair.
+    const hero = heuristicTripleSplit(heroCards); const opponent = heuristicTripleSplit(opponentCards);
+    let result = 0; let handScore = 0;
+    for (let run = 0; run < TRIPLE_RUN.runs; run += 1) {
+      const board = deck.slice(run * 5, run * 5 + 5);
+      const heroHand = findBestFive([...hero[run]!, ...board]);
+      result += compare(heroHand, findBestFive([...opponent[run]!, ...board])); handScore += BALANCE.handScores[heroHand.category];
+    }
+    return { result: result / TRIPLE_RUN.runs, handScore: handScore / TRIPLE_RUN.runs };
+  }
   if (round === 4 && fastUnrestricted) {
     const board = deck.slice(0, 5);
     const hero = scoreUnrestricted([...heroCards, ...board]);
@@ -190,8 +243,13 @@ function scoreHeadsUp(
     const category = hero >= 8 * 16 ** 5 + 14 * 16 ** 4 ? "ROYAL_FLUSH" : UNRESTRICTED_CATEGORIES[Math.floor(hero / 16 ** 5)]!;
     return { result: hero > opponent ? 1 : hero === opponent ? 0.5 : 0, handScore: BALANCE.handScores[category] };
   }
-  if (round === 5) {
+  if (mode === "final") {
     const hero = findBestFive(heroCards); const opponent = findBestFive(opponentCards);
+    return { result: compare(hero, opponent), handScore: BALANCE.handScores[hero.category] };
+  }
+  if (mode === "lineup") {
+    const board = deck.slice(0, 5);
+    const hero = findBestFive([...lineupFive(heroCards), ...board]); const opponent = findBestFive([...lineupFive(opponentCards), ...board]);
     return { result: compare(hero, opponent), handScore: BALANCE.handScores[hero.category] };
   }
   if (round === 2) {
@@ -239,9 +297,11 @@ function scoreHeadsUp(
 
 /** Hidden opponent cards are never inspected: the bot samples legal unknown universes instead. */
 export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: number, seedKey: string, options: BotPlanOptions = {}): BotPlanScore {
-  const limit = BALANCE.handLimits[round];
-  if (cards.length > limit) throw new Error("Bot plan exceeds the round hand limit");
   const rulesVersion = options.rulesVersion ?? 2;
+  const sixRounds = !!options.sixRounds;
+  const limit = handLimitFor(round, { rulesVersion, sixRounds });
+  if (cards.length > limit) throw new Error("Bot plan exceeds the round hand limit");
+  const final = ["final", "lineup"].includes(String(planMode(round, sixRounds)));
   // Deriving the deck from the shared baseline rather than from `cards` is what
   // makes candidates comparable: identical boards and opponents every sample, so
   // the score gap between two cards is the cards, never the shuffle.
@@ -254,17 +314,17 @@ export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: n
     const deck = shuffled(unseen, random); let cursor = 0;
     const completedHero = [...cards, ...deck.slice(cursor, cursor += limit - cards.length)];
     const opponent = deck.slice(cursor, cursor += limit);
-    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor), rulesVersion, cards.length === limit ? options.runOrder : undefined, options.fastUnrestricted);
+    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor), rulesVersion, cards.length === limit ? options.runOrder : undefined, options.fastUnrestricted, sixRounds);
     equity += outcome.result; expectedHandScore += outcome.handScore;
   }
   equity /= samples; expectedHandScore /= samples;
-  const potential = potentialFor(round, cards, rulesVersion, options.runOrder);
+  const potential = potentialFor(round, cards, rulesVersion, options.runOrder, sixRounds);
   const strategic = strategicCardValue(round, cards);
   const stackValue = Math.floor(Math.max(0, stackAfter) / BALANCE.stackScoreUnitBB);
   // Equity remains the primary signal (x100). Preflop and persistent-card value
   // are bounded tie-break features, deliberately not substitutes for simulation.
-  const utility = equity * 100 + expectedHandScore * (round === 5 ? 1.8 : 0.45) + potential * POTENTIAL_WEIGHT
-    + stackValue * (round === 5 ? 1.4 : 0.35)
+  const utility = equity * 100 + expectedHandScore * (final ? 1.8 : 0.45) + potential * POTENTIAL_WEIGHT
+    + stackValue * (final ? 1.4 : 0.35)
     + (strategic.currentRoundStrength?.score ?? 0) * 0.02
     + strategic.futureAssetValue * 0.015
     + strategic.poolDenialValue * 0.01;
@@ -309,10 +369,44 @@ export function bestRunLoadout(player: PlayerState, cards: readonly Card[]): str
   return ranked[0]!.order.map((card) => card.id);
 }
 
-export function shouldBotReroll(round: Round, player: PlayerState, best: { price: number; plan: BotPlanScore } | undefined, rerollCost: number): boolean {
-  if ((player.rerollsUsed ?? 0) >= BALANCE.rerollLimits[round] || player.stackBB < rerollCost + 5) return false;
+/**
+ * R5's six cards as RUN 1, RUN 1, RUN 2, RUN 2, RUN 3, RUN 3. Each candidate pair is sampled against
+ * random opponent pairs on random boards (common random numbers), then every split is scored by its
+ * expected RUN points including the 3:0 bonus. The strongest pair plays RUN 1, which a tiebreak uses first.
+ */
+export function bestTripleRunLoadout(player: Pick<PlayerState, "id">, cards: readonly Card[]): string[] {
+  if (cards.length !== TRIPLE_RUN.runs * 2) throw new Error("R5 RUN loadout needs exactly six cards");
+  const known = new Set(cards.map((card) => card.id));
+  const unseen = makeDeck().filter((card) => !known.has(card.id));
+  const candidates = cards.flatMap((card, index) => cards.slice(index + 1).map((other) => [card, other]));
+  const key = (pair: readonly Card[]) => pair.map((card) => card.id).sort().join(",");
+  const tally = new Map(candidates.map((pair) => [key(pair), { win: 0, split: 0 }]));
+  const samples = 120;
+  for (let sample = 0; sample < samples; sample += 1) {
+    const deck = shuffled(unseen, randomFrom(hash(`${player.id}:${[...known].sort().join(",")}:triple:${sample}`)));
+    const opponent = scoreSeven(deck.slice(0, 7));
+    const board = deck.slice(2, 7);
+    for (const pair of candidates) {
+      const hero = scoreSeven([...pair, ...board]);
+      const entry = tally.get(key(pair))!;
+      if (hero > opponent) entry.win += 1; else if (hero === opponent) entry.split += 1;
+    }
+  }
+  const odds = (pair: readonly Card[]) => { const entry = tally.get(key(pair))!; return { win: entry.win / samples, split: entry.split / samples }; };
+  let best: Card[][] = []; let bestValue = -Infinity;
+  for (const split of pairings(cards)) {
+    const chances = split.map(odds);
+    const value = chances.reduce((sum, chance) => sum + chance.win * TRIPLE_RUN.win + chance.split * TRIPLE_RUN.split, 0)
+      + chances.reduce((product, chance) => product * chance.win, 1) * TRIPLE_RUN.sweepBonus;
+    if (value > bestValue + 1e-9) { best = split; bestValue = value; }
+  }
+  return [...best].sort((left, right) => odds(right).win - odds(left).win || pairScore(right) - pairScore(left)).flat().map((card) => card.id);
+}
+
+export function shouldBotReroll(round: Round, player: PlayerState, best: { price: number; plan: BotPlanScore } | undefined, rerollCost: number, rules: RuleContext = { rulesVersion: 2 }): boolean {
+  if ((player.rerollsUsed ?? 0) >= rerollLimitFor(round, rules) || player.stackBB < rerollCost + 5) return false;
   if (!best) return true;
-  const targetEquity: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5 };
+  const targetEquity: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5, 6: 0.5 };
   const behind = player.points < 8 * (round - 1) || player.stackBB < 35;
   return best.plan.equity < targetEquity[round] - (behind ? 0.025 : 0) && best.price >= 10;
 }
@@ -321,4 +415,13 @@ export function bestBotSelection(round: Round, cards: readonly Card[]): string[]
   if (round === 2) return (cards.length < 2 ? cards : bestPair(cards)).map((card) => card.id);
   if (round === 3) return cards.map((card) => card.id);
   return [];
+}
+
+/**
+ * Six-round R3 buyback: the Omaha preflop strength each leftover card completes, less a bounded
+ * price term so a doubled ace is not taken over a nearly as strong cheap card.
+ */
+export function rankBuybackOptions(ownedCards: readonly Card[], options: readonly PricedCard[]): PricedCard[] {
+  const strength = (card: Card) => ownedCards.length === 3 ? omahaPreflopStrength([...ownedCards, card]).score : card.rank;
+  return [...options].sort((a, b) => strength(b.card) - b.price * 0.4 - (strength(a.card) - a.price * 0.4) || a.price - b.price || b.card.rank - a.card.rank);
 }

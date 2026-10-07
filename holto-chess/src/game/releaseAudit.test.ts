@@ -6,8 +6,8 @@ import type { GameAction } from "../shared/protocol";
 import { createGame, prepareShowdown, resolvePrimary } from "./engine";
 
 const startTime = 1_000_000;
-function started(count = 2, seed = 20260922) {
-  let room = createRoom("QAABCD", seed);
+function started(count = 2, seed = 20260922, sixRounds = true) {
+  let room = createRoom("QAABCD", seed, "seeded", 2, false, sixRounds);
   for (let i = 0; i < count; i++) room = addSession(room, `qa-${i}`).room;
   for (const session of room.sessions) room = act(room, session.playerId, { type: "READY" });
   return room;
@@ -16,12 +16,16 @@ function act(room: RoomSnapshot, id: string, action: GameAction, now = startTime
   return applyRoomAction(room, id, action, turnKey(room), now);
 }
 
-describe("release audit: real v2 room loop", () => {
-  it.each([2, 4, 8])("finishes R1–R5 with %i human sessions and timeout AI, preserving ledger and projections", (count) => {
-    let room = started(count);
+// Six rounds is the format new rooms play; five rounds is the format rooms saved before it finish with.
+describe.each([
+  { label: "six-round", sixRounds: true, allRounds: [1, 2, 3, 4, 5, 6], finalists: 3 },
+  { label: "five-round", sixRounds: false, allRounds: [1, 2, 3, 4, 5], finalists: 4 },
+])("release audit: real v2 room loop ($label)", ({ sixRounds, allRounds, finalists }) => {
+  it.each([2, 4, 8])("finishes every round with %i human sessions and timeout AI, preserving ledger and projections", (count) => {
+    let room = started(count, 20260922, sixRounds);
     const rounds = new Set<number>();
     const phases = new Set<string>();
-    for (let step = 0; step < 120 && room.game.phase !== "GAME_RESULT"; step++) {
+    for (let step = 0; step < 200 && room.game.phase !== "GAME_RESULT"; step++) {
       rounds.add(room.game.round); phases.add(room.game.phase);
       const deadline = barrierDeadline(room);
       expect(deadline, `${room.game.round}:${room.game.phase}`).toBeDefined();
@@ -40,12 +44,16 @@ describe("release audit: real v2 room loop", () => {
       }
     }
     expect(room.game.phase).toBe("GAME_RESULT");
-    // With every human out after R4, the bots' R5 is skipped straight to the final standings.
+    // With every human out, the bots' remaining rounds are skipped straight to the final standings.
     const humanAlive = room.sessions.some((s) => !room.game.players.find((p) => p.id === s.playerId)!.eliminated);
-    expect([...rounds]).toEqual(humanAlive ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]);
+    const lastPlayed = Math.max(...rounds);
+    expect([...rounds]).toEqual(allRounds.slice(0, lastPlayed));
+    if (humanAlive) expect(lastPlayed).toBe(allRounds.at(-1));
     expect(phases.has("OPEN_DRAFT")).toBe(true);
     expect(phases.has("RUN_LOADOUT")).toBe(true);
-    expect(room.game.players.filter((p) => !p.eliminated)).toHaveLength(4);
+    if (sixRounds && lastPlayed >= 3) expect(phases.has("FINAL_AUCTION")).toBe(true);
+    if (sixRounds && lastPlayed >= 5) expect(phases.has("OPPONENT_SELECT")).toBe(true);
+    expect(room.game.players.filter((p) => !p.eliminated)).toHaveLength(finalists);
     const final = createPlayerView(room, "p1").standings;
     for (const session of room.sessions) expect(createPlayerView(room, session.playerId).standings).toEqual(final);
   });
@@ -117,7 +125,7 @@ describe("release audit: deadline and stale-action regressions", () => {
 describe("release audit: approved timeout forfeit policy", () => {
   it("keeps an entirely bankrupt room moving through draft, survival, R4 groups and final", () => {
     let room = started();
-    for (let step = 0; step < 150 && room.game.phase !== "GAME_RESULT"; step++) {
+    for (let step = 0; step < 220 && room.game.phase !== "GAME_RESULT"; step++) {
       if (room.game.phase === "SHOP" || room.game.phase === "OPEN_DRAFT") {
         for (const player of room.game.players.filter((p) => !p.eliminated)) {
           if (room.game.phase === "SHOP") releasePlayerCards(room.game, player);
@@ -130,7 +138,7 @@ describe("release audit: approved timeout forfeit policy", () => {
       for (const session of room.sessions) expect(() => createPlayerView(room, session.playerId)).not.toThrow();
     }
     expect(room.game.phase).toBe("GAME_RESULT");
-    expect(room.game.players.filter((p) => !p.eliminated)).toHaveLength(4);
+    expect(room.game.players.filter((p) => !p.eliminated)).toHaveLength(3);
   });
   it("finishes the game after legal lock spending leaves an empty hand at timeout", () => {
     let room = started();
@@ -162,6 +170,6 @@ describe("release audit: approved timeout forfeit policy", () => {
       expect(() => createPlayerView(room, "p1")).not.toThrow();
     }
     expect(room.game.phase).toBe("GAME_RESULT");
-    expect(room.game.players.filter((player) => !player.eliminated)).toHaveLength(4);
+    expect(room.game.players.filter((player) => !player.eliminated)).toHaveLength(3);
   });
 });

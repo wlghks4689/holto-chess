@@ -16,7 +16,7 @@ const quads = findBestFive(deck.filter(card => quadsIds.includes(card.id)));
 const owner = { abilityId: "quad-core" as const, firstCardId: "Js", ownedCardIds: quadsIds };
 
 function fourQuadsFixture() {
-  const game = createGame(88);
+  const game = createGame(88, "seeded", 2, false, false);
   game.round = 5; game.phase = "SHOWDOWN_PRIMARY";
   const ranks = ["A", "K", "Q", "J"];
   const extras = deck.filter(card => card.rank < 11);
@@ -116,7 +116,7 @@ describe("expanded ability draft", () => {
     for (const slot of [-1, ABILITY_IDS.length, 1.5, NaN, Infinity]) expect(() => parseClientMessage(message(slot))).toThrow();
   });
   it("selects slot eleven, restores a public view and autopicks eight unique abilities", () => {
-    let game = openAbilitySelection(createAbilityGame(42));
+    let game = openAbilitySelection(createAbilityGame(42, "seeded", false));
     expect(game.abilityDraft!.deck).toHaveLength(ABILITY_IDS.length);
     game.abilityDraft!.deck = [...ABILITY_IDS];
     game.abilityDraft!.order = game.players.map(player => player.id);
@@ -127,7 +127,7 @@ describe("expanded ability draft", () => {
     expect(() => pickAbility(game, game.abilityDraft!.order[1]!, ABILITY_IDS.length)).toThrow();
     while (game.phase === "ABILITY_PICK") game = autoPickAbility(game);
     expect(new Set(game.players.map(player => player.abilityId)).size).toBe(8);
-    const room = { ...addSession(createRoom("QUAD", 42), "quad-session").room, status: "PLAYING" as const, game };
+    const room = { ...addSession(createRoom("QUAD", 42, "seeded", 2, false, false), "quad-session").room, status: "PLAYING" as const, game };
     const restored = JSON.parse(JSON.stringify(room)) as typeof room;
     const view = createPlayerView(restored, firstId);
     expect(view.abilityDraft).toMatchObject({ slotCount: ABILITY_IDS.length, pickedCount: 8, myPick: { slot: 10, abilityId: "quad-core" } });

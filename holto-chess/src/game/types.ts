@@ -2,9 +2,14 @@ import type { Card } from "../core/poker/cards";
 import type { HandValue } from "../core/poker/evaluate";
 import type { AbilityDraft, AbilityEvent, AbilityId, AbilityTotals } from "./abilities";
 
-export type Round = 1 | 2 | 3 | 4 | 5;
-export type Phase = "FINAL_AUCTION" | "FINAL_LOADOUT" | "ABILITY_ORDER" | "ABILITY_PICK" | "ABILITY_REVEAL" | "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
-export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: number; stackBB: number }[]; picks: { playerId: string; cardId: string | null; price: number }[] };
+/** Five-round games end at R5; six-round games add the R6 final. */
+export type Round = 1 | 2 | 3 | 4 | 5 | 6;
+export type Phase = "FINAL_AUCTION" | "FINAL_LOADOUT" | "OPPONENT_SELECT" | "ABILITY_ORDER" | "ABILITY_PICK" | "ABILITY_REVEAL" | "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
+export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: number; stackBB: number }[]; picks: { playerId: string; cardId: string | null; price: number }[];
+  /** Six-round R3 buyback: unsold auction cards at this multiple of the base price, never discounted. */
+  priceMultiplier?: number };
+/** Six-round R5: the standings leader picks an opponent; the other two seats play each other. */
+export type OpponentSelect = { order: string[]; chooserId: string; opponentId?: string };
 export type PoolCardState = "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED";
 
 export type PoolCard = {
@@ -87,7 +92,8 @@ export type MatchResult = {
   // Optional for persisted v1 games created before cinematic snapshots existed.
   rewards?: MatchReward[];
   group?: "winner" | "loser";
-  gameNumber?: 1 | 2;
+  /** R2/R5 RUN number, or a legacy Omaha game. */
+  gameNumber?: 1 | 2 | 3;
 };
 
 /** `message` stays for rooms persisted before localization and older clients. */
@@ -109,6 +115,9 @@ export type PorenaGameState = {
   r3Seeds?: string[];
   /** Missing in persisted pre-draft games: keep their original rules. */
   rulesVersion?: 1 | 2;
+  /** Six-round format (R3 auction, R5 RUN IT THREE TIMES, R6 final). Missing in five-round games. */
+  sixRounds?: true;
+  opponentSelect?: OpponentSelect;
   draft?: OpenDraft;
   survival?: { playerIds: string[]; eliminateCount: number };
   round: Round;
@@ -126,8 +135,14 @@ export type PorenaGameState = {
   logs: GameLog[];
 };
 
-/** Server-only. Projections must explicitly allowlist fields. */
+/**
+ * Server-only. Projections must explicitly allowlist fields. Five-round games run it as the R5 final
+ * auction. Six-round games run it in R3 with their own limits; bidding opens at startedAt, and
+ * loadoutStartsAt there marks the end of the result reveal.
+ */
 export type FinalAuctionState = {
+  /** Six-round R3 only; missing means the R5 constants. */
+  maxWins?: number; minRaiseBB?: number;
   cardIds: string[]; startedAt: number; endsAt: number; hardEndsAt: number;
   bids: Record<string, { amount: number; playerId: string; sequence: number }>;
   bidSequence: number; settledAt: number | null;

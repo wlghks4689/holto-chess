@@ -1,8 +1,8 @@
 import { shuffle, type Card } from "../core/poker/cards";
 import { evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
-import { BALANCE, cardPrice, FINAL_ROUND_PLACEMENT_POINTS, matchLossBB, purchaseLimitFor } from "./config";
-import { bestBotSelection, bestRunLoadout, rankBotPairs, rankBotPurchases, scoreBotPlan, shouldBotReroll } from "./botStrategy";
+import { BALANCE, cardPrice, FINAL_LOADOUT_SIZE, finalPlacementPoints, handLimitFor, isAuctionRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, matchLossBB, minHandFor, purchaseLimitFor, R3_AUCTION, TRIPLE_RUN } from "./config";
+import { bestBotSelection, bestRunLoadout, bestTripleRunLoadout, rankBotPairs, rankBotPurchases, rankBuybackOptions, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { calculateIcm } from "./icm";
 import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
@@ -11,7 +11,8 @@ import { ABILITY_IDS, abilityPrice, abilityShopSize, abilitySellRate, abilityRer
 import { rawShowdownEquity } from "./showdownEquity";
 import { recordAbilityBenefit, recordAbilitySaving, rewardAbilities, rewardAbilityInterest, rewardQuadCorePlacement, rewardRoundLeader } from "./abilityRewards";
 import type { GameLog, PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
-import { beginFinalAuction, bestFinalLoadout } from "./finalAuction";
+import { beginCardAuction, beginFinalAuction, bestFinalLoadout } from "./finalAuction";
+import { compareRoundStanding } from "./roundRanking";
 import { finalFourWayEquity } from "./showdownEquity";
 
 function nextRandom(state: PorenaGameState): number {
@@ -34,7 +35,7 @@ function drawAvailable(state: PorenaGameState) {
 }
 
 function reserveShopCards(state: PorenaGameState, player: PlayerState): void {
-  const targetSize = abilityShopSize(player, state.round, state.rulesVersion ?? 1);
+  const targetSize = abilityShopSize(player, state.round, state);
   while (player.shopCardIds.length < targetSize) {
     const entry = drawAvailable(state);
     if (!entry) break;
@@ -79,7 +80,8 @@ function transferReservedCardToOwned(state: PorenaGameState, player: PlayerState
   delete entry.reservedPlayerId;
 }
 
-export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2, abilityDraft = false): PorenaGameState {
+/** New games use the six-round format; `sixRounds = false` builds the five-round game that rooms saved before it still play. */
+export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = "seeded", rulesVersion: 1 | 2 = 2, abilityDraft = false, sixRounds = true): PorenaGameState {
   seed = (seed >>> 0) || 1;
   const playerNames = ["나", "리버 폭스", "블러프 캣", "스페이드 울프", "턴 샤크", "클럽 레이븐", "다이아 바이퍼", "올인 베어"];
   const players: PlayerState[] = Array.from({ length: BALANCE.playerCount }, (_, index) => ({
@@ -92,6 +94,8 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
     rulesVersion, round: 1, phase: "SHOP", players, ownershipCardPool: createOwnershipPool(), matches: [],
     winnerGroup: [], loserGroup: [], roundResults: [], encounterSequence: 0, seed, randomMode, logSequence: 0, logs: [],
   };
+  // The six-round format builds on the draft rules, so a version 1 game keeps five rounds.
+  if (sixRounds && rulesVersion === 2) state.sixRounds = true;
   if (abilityDraft) {
     // Defer card dealing until the server has recorded the eight unique picks.
     for (const entry of state.ownershipCardPool) { entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId; }
@@ -106,7 +110,7 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
   return state;
 }
 
-export function createAbilityGame(seed = Date.now(), randomMode: "seeded" | "secure" = "seeded"): PorenaGameState { return createGame(seed, randomMode, 2, true); }
+export function createAbilityGame(seed = Date.now(), randomMode: "seeded" | "secure" = "seeded", sixRounds = true): PorenaGameState { return createGame(seed, randomMode, 2, true, sixRounds); }
 
 export function openAbilitySelection(source: PorenaGameState): PorenaGameState {
   if (source.phase !== "ABILITY_ORDER" || !source.abilityDraft) throw new Error("어빌리티 순서 공개 단계가 아닙니다.");
@@ -154,8 +158,8 @@ export function buyCard(source: PorenaGameState, playerId: string, cardId: strin
   const state = structuredClone(source); const player = playerById(state, playerId);
   if (state.phase !== "SHOP" || player.eliminated) throw new Error("지금은 구매할 수 없습니다.");
   if (!player.shopCardIds.includes(cardId)) throw new Error("내 상점에 예약된 카드가 아닙니다.");
-  if (player.ownedCardIds.length >= BALANCE.handLimits[state.round]) throw new Error("이번 라운드 보유 한도에 도달했습니다.");
-  if (player.purchasesThisRound >= purchaseLimitFor(state.round, state.rulesVersion ?? 1)) throw new Error("이번 라운드 구매 횟수를 모두 사용했습니다.");
+  if (player.ownedCardIds.length >= handLimitFor(state.round, state)) throw new Error("이번 라운드 보유 한도에 도달했습니다.");
+  if (player.purchasesThisRound >= purchaseLimitFor(state.round, state)) throw new Error("이번 라운드 구매 횟수를 모두 사용했습니다.");
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
   const price = abilityPrice(player, entry.card.rank);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
@@ -170,7 +174,7 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
   const state = structuredClone(source); const player = playerById(state, playerId);
   if (state.phase !== "SHOP" || !player.ownedCardIds.includes(cardId)) throw new Error("판매할 수 없는 카드입니다.");
   if (!canSellWithoutBlocking({ ownedCount: player.ownedCardIds.length, purchases: player.purchasesThisRound,
-    purchaseLimit: purchaseLimitFor(state.round, state.rulesVersion ?? 1), handLimit: BALANCE.handLimits[state.round] })) {
+    purchaseLimit: purchaseLimitFor(state.round, state), handLimit: minHandFor(state.round, state) })) {
     throw new Error("남은 구매 횟수로 필수 보유 카드를 채울 수 없어 판매할 수 없습니다.");
   }
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
@@ -186,10 +190,10 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
 export function rerollShop(source: PorenaGameState, playerId: string): PorenaGameState {
   const state = structuredClone(source); const player = playerById(state, playerId);
   const cost = abilityRerollCost(player);
-  const targetSize = abilityShopSize(player, state.round, state.rulesVersion ?? 1);
+  const targetSize = abilityShopSize(player, state.round, state);
   const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
-  if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state.rulesVersion ?? 1)) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
+  if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state)) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
   if (targetSize > 0 && lockedCount >= targetSize) throw new Error("모든 상점 카드가 잠겨 있어 리롤할 수 없습니다.");
   assertPoolIntegrity(state);
   releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
@@ -239,8 +243,8 @@ export type BotShopPolicy = (input: BotShopInput) => BotShopAction;
 const POLICY_STEP_LIMIT = 24;
 
 function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"], policy?: BotShopPolicy): void {
-  const limit = BALANCE.handLimits[state.round];
-  const planContext = { rulesVersion: state.rulesVersion ?? 1 } as const;
+  const limit = handLimitFor(state.round, state);
+  const planContext = { rulesVersion: state.rulesVersion ?? 1, sixRounds: !!state.sixRounds } as const;
   for (const player of state.players.filter((item) => !item.eliminated && !humanIds.includes(item.id))) {
     const ownedCards = () => cardsFor(state, player.ownedCardIds);
     const buy = (cardId: string) => {
@@ -264,14 +268,14 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
       };
       for (let step = 0; step < POLICY_STEP_LIMIT; step += 1) {
-        const purchaseLimit = purchaseLimitFor(state.round, state.rulesVersion ?? 1);
+        const purchaseLimit = purchaseLimitFor(state.round, state);
         const rerollCost = abilityRerollCost(player);
         const shopCards = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!.card)
           .map((card) => ({ card, price: abilityPrice(player, card.rank) }));
         const action = policy({
           round: state.round, playerId: player.id, stackBB: player.stackBB, handLimit: limit,
           purchasesLeft: purchaseLimit - player.purchasesThisRound,
-          rerollsLeft: abilityRerollLimit(player, state.round, state.rulesVersion ?? 1) - (player.rerollsUsed ?? 0),
+          rerollsLeft: abilityRerollLimit(player, state.round, state) - (player.rerollsUsed ?? 0),
           rerollCost, ownedCards: ownedCards(), shopCards,
         });
         // An illegal request ends this bot's shopping instead of bending a rule for it.
@@ -289,8 +293,8 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         }
         if (action.type === "REROLL") {
           const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
-          const shopSize = abilityShopSize(player, state.round, state.rulesVersion ?? 1);
-          if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state.rulesVersion ?? 1) || player.stackBB < rerollCost) break;
+          const shopSize = abilityShopSize(player, state.round, state);
+          if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state) || player.stackBB < rerollCost) break;
           if (shopSize > 0 && lockedCount >= shopSize) break;
           reroll(); continue;
         }
@@ -300,26 +304,26 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       continue;
     }
     const hasRerollableSlot = () => {
-      const targetSize = abilityShopSize(player, state.round, state.rulesVersion ?? 1);
+      const targetSize = abilityShopSize(player, state.round, state);
       return player.shopCardIds.length < targetSize
         || player.shopCardIds.some((id) => !(player.lockedShopCardIds ?? []).includes(id));
     };
-    while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state.rulesVersion ?? 1)) {
+    while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state)) {
       const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!)
         .map((entry) => ({ card: entry.card, price: abilityPrice(player, entry.card.rank) })).filter((entry) => entry.price <= player.stackBB);
       const ranked = rankBotPurchases(state.round, player, ownedCards(), options, planContext); const best = ranked[0];
       const rerollCost = abilityRerollCost(player);
       const missing = limit - player.ownedCardIds.length;
-      const pair = missing >= 2 && purchaseLimitFor(state.round, state.rulesVersion ?? 1) - player.purchasesThisRound >= 2
+      const pair = missing >= 2 && purchaseLimitFor(state.round, state) - player.purchasesThisRound >= 2
         ? rankBotPairs(state.round, player, ownedCards(), options, planContext)[0] : undefined;
-      if (hasRerollableSlot() && player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, pair ?? best, rerollCost)) { reroll(); continue; }
+      if (hasRerollableSlot() && player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, pair ?? best, rerollCost, state)) { reroll(); continue; }
       if (pair) { buy(pair.cards[0].card.id); buy(pair.cards[1].card.id); continue; }
       if (!best) break;
       buy(best.card.id);
     }
 
     // Extra purchase capacity becomes a deliberate upgrade: compare every legal swap by expected match EV.
-    while (player.ownedCardIds.length === limit && player.purchasesThisRound < purchaseLimitFor(state.round, state.rulesVersion ?? 1)) {
+    while (player.ownedCardIds.length === limit && player.purchasesThisRound < purchaseLimitFor(state.round, state)) {
       const baseline = scoreBotPlan(state.round, ownedCards(), player.stackBB, `${player.id}:upgrade`, planContext);
       let bestSwap: { ownedId: string; shopId: string; utility: number } | null = null;
       for (const ownedId of player.ownedCardIds) for (const shopId of player.shopCardIds) {
@@ -340,11 +344,57 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId; buy(bestSwap.shopId); continue;
       }
       const rerollCost = abilityRerollCost(player);
-      if (hasRerollableSlot() && (player.rerollsUsed ?? 0) < abilityRerollLimit(player, state.round, state.rulesVersion ?? 1) && player.stackBB >= rerollCost + 20 && baseline.equity < 0.58) { reroll(); continue; }
+      if (hasRerollableSlot() && (player.rerollsUsed ?? 0) < abilityRerollLimit(player, state.round, state) && player.stackBB >= rerollCost + 20 && baseline.equity < 0.58) { reroll(); continue; }
       break;
     }
     player.selectedCardIds = bestBotSelection(state.round, ownedCards());
   }
+}
+
+/** Six-round R5 and R6 fill a short human hand from the shop instead of letting it forfeit. */
+export const assistsShortHands = (state: Pick<PorenaGameState, "sixRounds" | "round">) => !!state.sixRounds && (state.round === 5 || state.round === 6);
+
+/**
+ * Buys from this seat's own shop until it holds the round's minimum: the largest affordable set
+ * first, then the one the bot rates best. Rerolls only when the shop has nothing it can afford.
+ * A seat may still end short when its BB cannot cover any card; it then forfeits as usual.
+ */
+function fillShortHand(state: PorenaGameState, player: PlayerState): void {
+  const minimum = minHandFor(state.round, state);
+  const purchaseLimit = purchaseLimitFor(state.round, state);
+  const context = { rulesVersion: state.rulesVersion ?? 1, sixRounds: !!state.sixRounds } as const;
+  for (let guard = 0; guard < 8 && player.ownedCardIds.length < minimum && player.purchasesThisRound < purchaseLimit; guard += 1) {
+    const needed = Math.min(minimum - player.ownedCardIds.length, purchaseLimit - player.purchasesThisRound);
+    const offers = player.shopCardIds.map((id) => ({ card: getCard(state, id), price: abilityPrice(player, getCard(state, id).rank) }));
+    let best: { cards: typeof offers; utility: number } | null = null;
+    for (let size = Math.min(needed, offers.length); size > 0 && !best; size -= 1) {
+      for (const set of subsets(offers, size)) {
+        const price = set.reduce((sum, offer) => sum + offer.price, 0);
+        if (price > player.stackBB) continue;
+        const plan = scoreBotPlan(state.round, [...cardsFor(state, player.ownedCardIds), ...set.map((offer) => offer.card)], player.stackBB - price, `${player.id}:assist`, context);
+        if (!best || plan.utility > best.utility) best = { cards: set, utility: plan.utility };
+      }
+    }
+    if (best) {
+      for (const offer of best.cards) {
+        player.stackBB -= offer.price; player.purchasesThisRound += 1;
+        recordAbilitySaving(state, player, "purchase-discount", cardPrice(offer.card.rank) - offer.price, offer.card.id);
+        transferReservedCardToOwned(state, player, offer.card.id);
+        log(state, `${player.name} · 시간 종료 자동 구매 ${offer.card.id} −${offer.price}BB`, "economy", { event: "CARD_AUTO_PURCHASED", playerId: player.id, params: { player: player.name, card: offer.card.id, amount: offer.price } });
+      }
+      continue;
+    }
+    const cost = abilityRerollCost(player);
+    if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state) || player.stackBB < cost) return;
+    releaseShop(state, player); player.stackBB -= cost; reserveShopCards(state, player);
+    recordAbilitySaving(state, player, "free-reroll", BALANCE.rerollCostBB - cost);
+    player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
+  }
+}
+
+function subsets<T>(items: readonly T[], size: number): T[][] {
+  if (size === 0) return [[]];
+  return items.flatMap((item, index) => subsets(items.slice(index + 1), size - 1).map((rest) => [item, ...rest]));
 }
 
 /** `botPolicy` is for practice modes (the tutorial); leaving it out keeps the normal bot brain. */
@@ -352,10 +402,42 @@ export function prepareShowdown(source: PorenaGameState, humanIds: readonly stri
   if (source.phase !== "SHOP") throw new Error("상점 단계가 아닙니다.");
   const state = structuredClone(source); aiPrepare(state, humanIds, botPolicy);
   const humans = humanIds.map((id) => playerById(state, id)).filter((p) => !p.eliminated);
-  if (humans.some((p) => p.ownedCardIds.length < BALANCE.handLimits[state.round])) throw new Error(`R${state.round}은 보유 카드 ${BALANCE.handLimits[state.round]}장이 필요합니다.`);
+  const minimum = minHandFor(state.round, state);
+  if (assistsShortHands(state)) for (const human of humans.filter((p) => p.ownedCardIds.length < minimum)) fillShortHand(state, human);
+  else if (humans.some((p) => p.ownedCardIds.length < minimum)) throw new Error(`R${state.round}은 보유 카드 ${minimum}장이 필요합니다.`);
   const requiredSelection = state.round === 2 ? 2 : 0;
   if (requiredSelection && humans.some((p) => p.selectedCardIds.length !== requiredSelection)) { state.phase = "DECK_SELECT"; return state; }
+  if (isTripleRunRound(state.round, state)) {
+    // Pre-fill the recommended split so the placement screen shows exactly what Ready locks in.
+    for (const p of state.players.filter((p) => !p.eliminated)) p.selectedCardIds = p.ownedCardIds.length === TRIPLE_RUN.runs * 2
+      ? bestTripleRunLoadout(p, cardsFor(state, p.ownedCardIds)) : [...p.ownedCardIds];
+    state.phase = "RUN_LOADOUT"; assertPoolIntegrity(state); return state;
+  }
+  if (isLineupFinal(state.round, state)) {
+    // Every finalist starts on the strongest five (the rest are burned). Only a human holding more
+    // than five has anything to change, so the lineup step opens just for them.
+    const alive = state.players.filter((p) => !p.eliminated);
+    for (const p of alive) p.selectedCardIds = defaultLineup(state, p);
+    if (humans.some((p) => p.ownedCardIds.length > FINAL_LOADOUT_SIZE)) { state.phase = "RUN_LOADOUT"; assertPoolIntegrity(state); return state; }
+  }
   state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); assertPoolIntegrity(state); return state;
+}
+
+/** R6's pre-selected five: the strongest made hand among the owned cards; a hand of five or fewer plays as is. */
+function defaultLineup(state: PorenaGameState, player: PlayerState): string[] {
+  return player.ownedCardIds.length > FINAL_LOADOUT_SIZE ? bestFinalLoadout(cardsFor(state, player.ownedCardIds), []) : [...player.ownedCardIds];
+}
+
+/** A chosen R6 lineup: five distinct cards the player still owns. */
+const validLineup = (player: PlayerState) => player.selectedCardIds.length === FINAL_LOADOUT_SIZE
+  && new Set(player.selectedCardIds).size === FINAL_LOADOUT_SIZE && player.selectedCardIds.every((id) => player.ownedCardIds.includes(id));
+
+/** R6 cards a finalist owns but does not play. */
+export function burnCardIds(state: PorenaGameState, playerId: string): string[] {
+  const player = playerById(state, playerId);
+  if (!isLineupFinal(state.round, state) || player.eliminated) return [];
+  const played = playedCardIds(state, player);
+  return player.ownedCardIds.filter((id) => !played.includes(id));
 }
 
 export function confirmSelection(source: PorenaGameState): PorenaGameState {
@@ -373,27 +455,41 @@ function forfeitHand(): HandValue {
 
 function lacksRequiredCards(state: PorenaGameState, playerId: string): boolean {
   if (state.round === 5 && state.finalAuction) return playerById(state, playerId).finalLoadoutCardIds?.length !== 5;
-  return playerById(state, playerId).ownedCardIds.length < BALANCE.handLimits[state.round];
+  return playerById(state, playerId).ownedCardIds.length < minHandFor(state.round, state);
 }
 
-function shownCardIds(state: PorenaGameState, playerId: string, gameNumber?: 1 | 2): string[] {
-  const player = playerById(state, playerId);
+/** The hole cards a complete hand plays: R2 [anchor, run secondary], the R5 RUN's pair, the final loadout, or every owned card. */
+function playedCardIds(state: PorenaGameState, player: PlayerState, gameNumber?: 1 | 2 | 3): string[] {
   if (state.round === 5 && state.finalAuction) return [...(player.finalLoadoutCardIds ?? [])];
-  // An incomplete R2 hand cannot form two legal runs. Show what is actually owned.
-  if (state.round !== 2 || lacksRequiredCards(state, playerId)) return [...player.ownedCardIds];
-  return state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
-    : [...player.selectedCardIds];
+  if (isTripleRunRound(state.round, state)) {
+    // A complete placement is locked before every R5 showdown; owned order stands in only for a hand never placed.
+    const placed = player.selectedCardIds.length === TRIPLE_RUN.runs * 2 ? player.selectedCardIds : player.ownedCardIds;
+    const run = (gameNumber ?? 1) - 1; return placed.slice(run * 2, run * 2 + 2);
+  }
+  if (state.round === 2) return state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!] : [...player.selectedCardIds];
+  if (isLineupFinal(state.round, state) && player.ownedCardIds.length > FINAL_LOADOUT_SIZE) {
+    return validLineup(player) ? [...player.selectedCardIds] : bestFinalLoadout(cardsFor(state, player.ownedCardIds), []);
+  }
+  return [...player.ownedCardIds];
 }
 
-function handFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
+/** A final played without a community board: the legacy five-round shop final. */
+const boardlessFinal = (state: PorenaGameState) => isFinalRound(state.round, state) && !state.finalAuction && !isLineupFinal(state.round, state);
+
+function shownCardIds(state: PorenaGameState, playerId: string, gameNumber?: 1 | 2 | 3): string[] {
+  const player = playerById(state, playerId);
+  // An incomplete R2/R5 hand cannot form its runs. Show what is actually owned.
+  if ((state.round === 2 || isTripleRunRound(state.round, state)) && lacksRequiredCards(state, playerId)) return [...player.ownedCardIds];
+  return playedCardIds(state, player, gameNumber);
+}
+
+function handFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2 | 3): HandValue {
   if (lacksRequiredCards(state, playerId)) return forfeitHand();
   const player = playerById(state, playerId);
-  const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
-    : player.selectedCardIds;
-  const owned = cardsFor(state, state.round === 5 && state.finalAuction ? player.finalLoadoutCardIds ?? [] : state.round === 2 ? selected : player.ownedCardIds);
+  const owned = cardsFor(state, playedCardIds(state, player, gameNumber));
   const preferred = player.abilityId === "target-sniper" && player.ownedCardIds.includes(player.firstCardId ?? "") ? player.firstCardId : undefined;
   if (state.round === 3) return findBestOmaha(owned, board, preferred);
-  if (state.round === 5 && !state.finalAuction) return findBestFive(owned, preferred);
+  if (boardlessFinal(state)) return findBestFive(owned, preferred);
   return findBestFive([...owned, ...board], preferred);
 }
 
@@ -417,16 +513,17 @@ function resolveParticipants(
   requireSingleWinner = true,
   tiebreakKind?: MatchResult["tiebreakKind"],
   preserveRegulationTie = false,
-  gameNumber?: 1 | 2,
+  gameNumber?: 1 | 2 | 3,
   suppliedBoards?: Card[][],
 ): MatchResult {
   const forfeited = new Set(playerIds.filter((id) => lacksRequiredCards(state, id)));
   const equities: MatchResult["equities"] = {};
-  if (state.round < 5 && playerIds.length === 2 && !forfeited.size && playerIds.some(id => playerById(state, id).abilityId === "zero-risk")) {
+  if (!isFinalRound(state.round, state) && playerIds.length === 2 && !forfeited.size && playerIds.some(id => playerById(state, id).abilityId === "zero-risk")) {
     const shown = playerIds.map(id => cardsFor(state, shownCardIds(state, id, gameNumber)));
     const used = new Set(shown.flat().map(card => card.id));
     const dead = playerIds.flatMap(id => playerById(state, id).ownedCardIds).filter(id => !used.has(id)).map(id => state.ownershipCardPool.find(entry => entry.card.id === id)!.card);
-    const left = rawShowdownEquity(state.round, shown[0]!, shown[1]!, dead);
+    // An R5 RUN plays two hole cards on one board: the same estimate as R2.
+    const left = rawShowdownEquity(isTripleRunRound(state.round, state) ? 2 : state.round, shown[0]!, shown[1]!, dead);
     const right = left === null ? null : 100 - left;
     if (left !== null && right !== null) for (const [index, id] of playerIds.entries()) {
       const rawPercent = index === 0 ? left : right;
@@ -560,7 +657,7 @@ export function rewardFinalPlacements(state: PorenaGameState, match: MatchResult
     } else byPlace.set(result.place, [...(byPlace.get(result.place) ?? []), result]);
   }
   for (const [place, group] of [...byPlace].sort(([a], [b]) => a - b)) {
-    const prizes = Array.from({ length: group.length }, (_, index) => FINAL_ROUND_PLACEMENT_POINTS[place + index] ?? 0);
+    const prizes = Array.from({ length: group.length }, (_, index) => finalPlacementPoints(state)[place + index] ?? 0);
     if (group.length === 1) {
       awards[group[0]!.playerId] = prizes[0]!;
       details[group[0]!.playerId] = `${place}위 · +${prizes[0]}P`;
@@ -585,7 +682,7 @@ function pair(ids: string[]): string[][] { return Array.from({ length: Math.floo
 function captureRewards(before: PorenaGameState, after: PorenaGameState, matches: MatchResult[]): void {
   for (const match of matches) match.rewards = match.playerIds.map((playerId) => {
     const previous = playerById(before, playerId); const current = playerById(after, playerId);
-    const outcome = after.round === 5 ? "FINAL" : current.eliminated ? "ELIMINATED"
+    const outcome = isFinalRound(after.round, after) ? "FINAL" : current.eliminated ? "ELIMINATED"
       : match.stage === "primary" && (after.round === 2 || after.round === 4)
         ? match.winnerIds.includes(playerId) ? "WINNER_GROUP" : "LOSER_GROUP" : "SURVIVED";
     return { playerId, beforeBB: previous.stackBB, afterBB: current.stackBB, deltaBB: current.stackBB - previous.stackBB,
@@ -594,18 +691,15 @@ function captureRewards(before: PorenaGameState, after: PorenaGameState, matches
   });
 }
 
-function streetHandFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2): HandValue {
+function streetHandFor(state: PorenaGameState, playerId: string, board: Card[], gameNumber?: 1 | 2 | 3): HandValue {
   if (lacksRequiredCards(state, playerId)) return forfeitHand();
-  const player = playerById(state, playerId);
-  const selected = state.round === 2 && state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!]
-    : player.selectedCardIds;
-  const owned = cardsFor(state, state.round === 5 && state.finalAuction ? player.finalLoadoutCardIds ?? [] : state.round === 2 ? selected : player.ownedCardIds);
+  const owned = cardsFor(state, playedCardIds(state, playerById(state, playerId), gameNumber));
   if (state.round === 3) return board.length === 0 ? evaluateOmahaPreflop(owned) : findBestOmaha(owned, board);
   const candidates = [...owned, ...board];
   return candidates.length >= 5 ? findBestFive(candidates) : evaluatePartial(candidates);
 }
 
-function streetSnapshotsFor(state: PorenaGameState, playerIds: string[], board: Card[], gameNumber?: 1 | 2): StreetSnapshot[] {
+function streetSnapshotsFor(state: PorenaGameState, playerIds: string[], board: Card[], gameNumber?: 1 | 2 | 3): StreetSnapshot[] {
   const streets = [["PRE_FLOP", 0], ["FLOP", 3], ["TURN", 4], ["RIVER", 5]] as const;
   return streets.map(([street, count]) => {
     const visibleBoard = board.slice(0, count);
@@ -625,7 +719,16 @@ function freezePrimaryPairings(state: PorenaGameState): void {
   const order = shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
   state.primaryOrderIds = order;
   const seats = state.round === 3 ? state.r3Seeds ?? seedOmaha(state) : order;
-  state.primaryPairings = state.round === 5 ? [seats] : pair(seats);
+  state.primaryPairings = isFinalRound(state.round, state) ? [seats] : isTripleRunRound(state.round, state) ? opponentPairings(state) : pair(seats);
+}
+
+/** The leader and the chosen opponent, then the other two survivors. */
+function opponentPairings(state: PorenaGameState): string[][] {
+  const pick = state.opponentSelect;
+  if (!pick?.opponentId) return pair(state.players.filter((player) => !player.eliminated).map((player) => player.id));
+  const lead = [pick.chooserId, pick.opponentId];
+  const rest = pick.order.filter((id) => !lead.includes(id) && !playerById(state, id).eliminated);
+  return rest.length ? [lead, rest] : [lead];
 }
 
 export function resolvePrimary(source: PorenaGameState): PorenaGameState {
@@ -673,9 +776,11 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
     return state;
   }
   if (state.round === 2 && state.rulesVersion === 2) return resolveSplitRuns(state, state.primaryPairings ?? pair(alive));
-  const boardCount = state.round === 2 ? 2 : state.round === 5 ? 0 : 1;
-  const matches = state.round === 5
-    ? [resolveParticipants(state, alive, state.finalAuction ? 1 : 0, "final", false)]
+  if (isTripleRunRound(state.round, state)) return resolveTripleRuns(state, state.primaryPairings ?? opponentPairings(state));
+  const final = isFinalRound(state.round, state);
+  const boardCount = state.round === 2 ? 2 : final ? 0 : 1;
+  const matches = final
+    ? [resolveParticipants(state, alive, state.finalAuction || isLineupFinal(state.round, state) ? 1 : 0, "final", false)]
     : (state.primaryPairings ?? pair(alive)).map((ids) => resolveParticipants(state, ids, boardCount, "primary",
       state.round === 2 || state.round === 4,
       state.round === 4 ? "GROUP_DECIDER" : undefined,
@@ -693,7 +798,7 @@ export function resolvePrimary(source: PorenaGameState): PorenaGameState {
   });
   state.winnerGroup = matches.flatMap((match) => match.winnerIds);
   state.loserGroup = matches.flatMap((match) => match.playerIds.filter((id) => !match.winnerIds.includes(id)));
-  if (state.round === 5) {
+  if (final) {
     matches[0]!.standingsBefore = pointSnapshot(state);
     rewardFinalPlacements(state, matches[0]!);
     rewardQuadCorePlacement(state, matches[0]!);
@@ -725,7 +830,7 @@ function resolveSplitRuns(state: PorenaGameState, firstPairs: string[][]): Poren
   for (const day of [1, 2] as const) {
     // Match 2 never repeats a match-1 opponent and pairs similar match-1 results, as R1/R3 Swiss does.
     const pairs = day === 1 ? firstPairs : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
-    const matches = resolveRunMatches(state, pairs);
+    const matches = resolveRunMatches(state, pairs, { runs: 2, ...BALANCE.points.r2Run, sweepAfterForfeit: true });
     for (const match of matches) {
       match.matchday = day;
       for (const reward of match.rewards!) records[reward.playerId]!.score += reward.deltaPoints;
@@ -738,14 +843,44 @@ function resolveSplitRuns(state: PorenaGameState, firstPairs: string[][]): Poren
   log(state, "R2 매치 2회(RUN 4번) 종료 · 전원 생존", "win", { event: "R2_RUNS_COMPLETE" }); return state;
 }
 
-function resolveRunMatches(state: PorenaGameState, pairs: string[][]): MatchResult[] {
-  const { win, split, sweepBonus } = BALANCE.points.r2Run;
-  const decks = pairs.map((ids) => encounterBoards(state, ids, 2));
+/** R5: one match against the chosen pairing, played as RUN 1 + RUN 2 + RUN 3; then the lowest total leaves. */
+function resolveTripleRuns(state: PorenaGameState, pairs: string[][]): PorenaGameState {
+  const matches = resolveRunMatches(state, pairs, { ...TRIPLE_RUN, sweepAfterForfeit: false });
+  state.matches.push(...matches); state.roundResults = matches; state.phase = "ROUND_RESULT";
+  assignTripleRunElimination(state);
+  for (const match of matches) for (const reward of [...match.rewards ?? [], ...match.runRewards?.at(-1) ?? []]) {
+    if (playerById(state, reward.playerId).eliminated) reward.outcome = "ELIMINATED";
+  }
+  if (!state.survival) { rewardAbilityInterest(state); rewardRoundLeader(state); }
+  log(state, "R5 RUN IT THREE TIMES 종료 · 누적 승점 최하위 탈락", "win", { event: "R5_RUNS_COMPLETE" });
+  assertPoolIntegrity(state); return state;
+}
+
+/**
+ * The lowest total leaves; equal points fall back to BB. A tie on both goes to SURVIVAL_READY, where
+ * the tied seats replay their RUN 1, RUN 2 and RUN 3 hands on fresh boards, then draw a high card.
+ */
+function assignTripleRunElimination(state: PorenaGameState): void {
+  const alive = state.players.filter((p) => !p.eliminated).sort((a, b) => a.points - b.points || a.stackBB - b.stackBB);
+  const last = alive[0];
+  if (!last || alive.length < 2) return;
+  const tied = alive.filter((p) => p.points === last.points && p.stackBB === last.stackBB).map((p) => p.id);
+  if (tied.length === 1) eliminate(state, tied);
+  else state.survival = { playerIds: tied, eliminateCount: 1 };
+}
+
+type RunRules = { runs: number; win: number; split: number; sweepBonus: number;
+  /** R2 pays the sweep even when the opponent forfeited; R5 pays only the RUN points then. */
+  sweepAfterForfeit: boolean };
+
+function resolveRunMatches(state: PorenaGameState, pairs: string[][], rules: RunRules): MatchResult[] {
+  const { win, split, sweepBonus } = rules;
+  const decks = pairs.map((ids) => encounterBoards(state, ids, rules.runs));
   const before = pointSnapshot(state);
-  const runs: MatchResult[][] = [[], []]; const snapshots: Record<string, number>[] = [];
-  for (const run of [1, 2] as const) {
+  const runs: MatchResult[][] = Array.from({ length: rules.runs }, () => []); const snapshots: Record<string, number>[] = [];
+  for (let run = 1; run <= rules.runs; run += 1) {
     pairs.forEach((ids, i) => {
-      const match = resolveParticipants(state, ids, 1, "primary", false, undefined, false, run, [decks[i]![run - 1]!]);
+      const match = resolveParticipants(state, ids, 1, "primary", false, undefined, false, run as 1 | 2 | 3, [decks[i]![run - 1]!]);
       if (match.winnerIds.length > 1) {
         const previous = structuredClone(state);
         match.pointAwards = Object.fromEntries(ids.map((id) => [id, split]));
@@ -757,10 +892,13 @@ function resolveRunMatches(state: PorenaGameState, pairs: string[][]): MatchResu
         rewardMatchWithLedger(state, match, win);
         rewardAbilities(state, match); captureRewards(previous, state, [match]);
       }
-      const first = runs[0]![i];
-      const sweeper = run === 2 && first!.winnerIds.length === 1 && match.winnerIds.length === 1 && first!.winnerIds[0] === match.winnerIds[0] ? match.winnerIds[0]! : undefined;
+      const played = [...runs.slice(0, run - 1).map((matches) => matches[i]!), match];
+      const winner = match.winnerIds.length === 1 ? match.winnerIds[0]! : undefined;
+      const forfeitWin = played.some((item) => item.results.some((result) => result.playerId !== winner && result.hand.categoryRank === 0));
+      const sweeper = run === rules.runs && winner && played.every((item) => item.winnerIds.length === 1 && item.winnerIds[0] === winner)
+        && (rules.sweepAfterForfeit || !forfeitWin) ? winner : undefined;
       if (sweeper) {
-        // Both RUNs won outright: the bonus lands with RUN 2 so its reward beat and standings include it.
+        // Every RUN won outright: the bonus lands with the last RUN so its reward beat and standings include it.
         playerById(state, sweeper).points += sweepBonus;
         match.pointAwards![sweeper] = (match.pointAwards![sweeper] ?? 0) + sweepBonus;
         match.pointAwardDetails![sweeper] = `${match.pointAwardDetails![sweeper] ?? ""} · 완승 보너스 +${sweepBonus}P`;
@@ -772,17 +910,23 @@ function resolveRunMatches(state: PorenaGameState, pairs: string[][]): MatchResu
     snapshots.push(pointSnapshot(state));
   }
   return pairs.map((ids, i) => {
-    const a = runs[0]![i]!; const b = runs[1]![i]!;
-    // Persist RUN 2 events against the combined match, retaining their run number.
-    for (const event of state.abilityEvents ?? []) if (event.matchId === b.id) event.matchId = a.id;
-    return { ...a, gameNumber: undefined, winnerIds: b.winnerIds, boards: [...a.boards, ...b.boards],
-      boardResults: [...a.boardResults, ...b.boardResults], boardWinnerIds: [...a.boardWinnerIds, ...b.boardWinnerIds],
-      streetSnapshots: [...a.streetSnapshots!, ...b.streetSnapshots!], results: b.results, runoutCount: 2,
-      runCards: Object.fromEntries(ids.map((id) => [id, [a.revealedCardIds[id]!, b.revealedCardIds[id]!]])),
-      runRewards: [a.rewards!, b.rewards!], standingsBefore: before, standingsAfterRuns: snapshots,
-      pointAwards: Object.fromEntries(ids.map((id) => [id, a.pointAwards![id]! + b.pointAwards![id]!])),
-      rewards: a.rewards!.map((r) => { const end = b.rewards!.find((x) => x.playerId === r.playerId)!;
-        return { ...r, afterBB: end.afterBB, afterPoints: end.afterPoints, deltaBB: r.deltaBB + end.deltaBB, deltaPoints: r.deltaPoints + end.deltaPoints, detail: "RUN1 + RUN2 합계" }; }),
+    const played = runs.map((matches) => matches[i]!);
+    const a = played[0]!; const b = played.at(-1)!;
+    // Persist later RUN events against the combined match, retaining their run number.
+    const laterIds = new Set(played.slice(1).map((match) => match.id));
+    for (const event of state.abilityEvents ?? []) if (event.matchId && laterIds.has(event.matchId)) event.matchId = a.id;
+    return { ...a, gameNumber: undefined, winnerIds: b.winnerIds, boards: played.flatMap((match) => match.boards),
+      boardResults: played.flatMap((match) => match.boardResults), boardWinnerIds: played.flatMap((match) => match.boardWinnerIds),
+      streetSnapshots: played.flatMap((match) => match.streetSnapshots!), results: b.results, runoutCount: rules.runs,
+      runCards: Object.fromEntries(ids.map((id) => [id, played.map((match) => match.revealedCardIds[id]!)])),
+      runRewards: played.map((match) => match.rewards!), standingsBefore: before, standingsAfterRuns: snapshots,
+      pointAwards: Object.fromEntries(ids.map((id) => [id, played.reduce((sum, match) => sum + match.pointAwards![id]!, 0)])),
+      rewards: a.rewards!.map((r) => {
+        const end = b.rewards!.find((x) => x.playerId === r.playerId)!;
+        const total = (key: "deltaBB" | "deltaPoints") => played.reduce((sum, match) => sum + match.rewards!.find((x) => x.playerId === r.playerId)![key], 0);
+        return { ...r, afterBB: end.afterBB, afterPoints: end.afterPoints, deltaBB: total("deltaBB"), deltaPoints: total("deltaPoints"),
+          detail: `${played.map((_, index) => `RUN${index + 1}`).join(" + ")} 합계` };
+      }),
     } satisfies MatchResult;
   });
 }
@@ -798,7 +942,10 @@ function assignSurvivalBoundary(state: PorenaGameState): void {
   else state.survival = { playerIds: tied, eliminateCount: needed };
 }
 
-/** Resolve only the tied boundary; never award points/BB or use BB as a tie breaker. */
+/**
+ * Resolve only the tied boundary; never award points/BB. R3 never uses BB as a tie breaker; R5 reaches
+ * this only after points and BB both tie, and its tied seats play their RUN 1, RUN 2 and RUN 3 hands.
+ */
 export function resolveSurvival(source: PorenaGameState): PorenaGameState {
   if (source.phase !== "SURVIVAL_READY" || !source.survival) throw new Error("생존 타이브레이크 단계가 아닙니다.");
   const state = structuredClone(source); const boundary = state.survival!;
@@ -807,12 +954,17 @@ export function resolveSurvival(source: PorenaGameState): PorenaGameState {
   let tied = [...allIds]; let slots = allIds.length - boundary.eliminateCount;
   const survived: string[] = []; const eliminated: string[] = [];
   let combined: MatchResult | undefined;
+  const runHands = isTripleRunRound(state.round, state);
   for (let attempt = 0; slots > 0 && tied.length; attempt++) {
-    // The universe always excludes all original participants' four owned cards.
+    // The universe always excludes all original participants' owned cards.
     const board = encounterBoards(state, allIds, 1)[0]!;
-    const match = resolveParticipants(state, tied, 1, "secondary", false, "SURVIVAL_TIEBREAK", false, undefined, [board]);
-    if (!combined) combined = { ...match, group: "loser", tiebreakKind: "SURVIVAL_TIEBREAK", tiebreakStartIndex: 1 };
+    const run = runHands ? (attempt + 1) as 1 | 2 | 3 : undefined;
+    const match = resolveParticipants(state, tied, 1, "secondary", false, "SURVIVAL_TIEBREAK", false, run, [board]);
+    if (!combined) combined = { ...match, group: "loser", tiebreakKind: "SURVIVAL_TIEBREAK", tiebreakStartIndex: 1,
+      ...(runHands ? { runCards: Object.fromEntries(allIds.map((id) => [id, []])) } : {}) };
     else { combined.boards.push(...match.boards); combined.boardResults.push(...match.boardResults); combined.boardWinnerIds.push(...match.boardWinnerIds); combined.streetSnapshots!.push(...match.streetSnapshots!); combined.suddenDeathCount++; }
+    // Each tiebreak board shows the RUN hand it plays; seats already decided keep their last one.
+    if (combined.runCards) for (const id of allIds) combined.runCards[id]!.push(match.revealedCardIds[id] ?? combined.runCards[id]!.at(-1) ?? []);
     const groups = rankPlayers(match.results.map((r) => ({ playerId: r.playerId, hand: r.hand })));
     let unresolved: string[] = [];
     for (const group of groups) {
@@ -897,37 +1049,115 @@ export function leaveRoundResult(source: PorenaGameState): PorenaGameState {
 }
 
 export function startNextRound(source: PorenaGameState, now = Date.now()): PorenaGameState {
-  const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= 5) throw new Error("다음 라운드로 진행할 수 없습니다.");
+  const state = structuredClone(source); if (state.phase !== "NEXT_ROUND" || state.round >= lastRoundFor(state)) throw new Error("다음 라운드로 진행할 수 없습니다.");
   state.round = (state.round + 1) as Round; state.phase = "SHOP"; state.roundResults = []; state.winnerGroup = []; state.loserGroup = [];
-  delete state.draft; delete state.survival;
+  delete state.draft; delete state.survival; delete state.opponentSelect;
   if (state.round === 3) state.r3Seeds = seedOmaha(state);
   // Street snapshots exist only to drive the showdown cinematic for the round
   // being played. Final scoring reads roundResults and eliminationSnapshot, never
   // history, so past rounds drop the largest field in the persisted snapshot.
   for (const match of state.matches) delete match.streetSnapshots;
   for (const player of state.players.filter((item) => !item.eliminated)) {
-    if (state.round !== 5) player.stackBB += BALANCE.roundIncomeBB;
+    // Only the five-round final auction is played without new income.
+    if (state.sixRounds || state.round !== 5) player.stackBB += BALANCE.roundIncomeBB;
     player.purchasesThisRound = 0; player.rerollsUsed = 0; player.selectedCardIds = [];
     player.loseStreak = 0; // loss BB escalates within a round only
     if (state.rulesVersion === 2 && (state.round === 2 || state.round === 4)) player.lockedShopCardIds = [];
     releaseShop(state, player);
   }
-  if (state.round === 5) return beginFinalAuction(state, now);
+  if (state.round === 5 && !state.sixRounds) return beginFinalAuction(state, now);
+  if (isAuctionRound(state.round, state)) {
+    const available = state.ownershipCardPool.filter((entry) => entry.state === "AVAILABLE");
+    const cardIds = shuffle(available, () => nextRandom(state)).slice(0, R3_AUCTION.cardCount).map((entry) => entry.card.id);
+    return beginCardAuction(state, now, cardIds);
+  }
+  if (isTripleRunRound(state.round, state)) { beginOpponentSelect(state); assertPoolIntegrity(state); return state; }
   if (state.rulesVersion === 2 && (state.round === 2 || state.round === 4)) {
-    const alive = shuffle(state.players.filter((p) => !p.eliminated), () => nextRandom(state));
     const count = state.round === 2 ? 8 : 16;
     const available = state.ownershipCardPool.filter((entry) => entry.state === "AVAILABLE");
     if (available.length < count) throw new Error("공개 드래프트 카드 풀이 부족합니다.");
-    // Preserve the shuffled tie order when freezing the order without First Class.
-    const naturalOrder = [...alive].sort((a, b) => a.points - b.points || b.stackBB - a.stackBB);
-    const firstClass = naturalOrder.find(player => player.abilityId === "first-class");
-    if (firstClass) recordAbilityBenefit(state, firstClass, { reason: "draft-priority", bb: 0, points: 0, savedBB: 0, originalPosition: naturalOrder.indexOf(firstClass) + 1 });
-    state.draft = {
-      cardIds: shuffle(available, () => nextRandom(state)).slice(0, count).map((entry) => entry.card.id),
-      order: alive.sort((a, b) => Number(b.abilityId === "first-class") - Number(a.abilityId === "first-class") || a.points - b.points || b.stackBB - a.stackBB).map((p) => ({ playerId: p.id, points: p.points, stackBB: p.stackBB })), picks: [],
-    };
+    const order = draftOrder(state, state.players.filter((p) => !p.eliminated));
+    state.draft = { cardIds: shuffle(available, () => nextRandom(state)).slice(0, count).map((entry) => entry.card.id), order, picks: [] };
     state.phase = "DRAFT_ORDER";
   } else for (const player of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, player);
+  assertPoolIntegrity(state); return state;
+}
+
+/** Fewest points pick first, then most BB; ties keep a shuffled order. First Class always picks first. */
+function draftOrder(state: PorenaGameState, players: readonly PlayerState[]): { playerId: string; points: number; stackBB: number }[] {
+  const shuffled = shuffle(players, () => nextRandom(state));
+  // Preserve the shuffled tie order when freezing the order without First Class.
+  const naturalOrder = [...shuffled].sort((a, b) => a.points - b.points || b.stackBB - a.stackBB);
+  const firstClass = naturalOrder.find(player => player.abilityId === "first-class");
+  if (firstClass) recordAbilityBenefit(state, firstClass, { reason: "draft-priority", bb: 0, points: 0, savedBB: 0, originalPosition: naturalOrder.indexOf(firstClass) + 1 });
+  return shuffled.sort((a, b) => Number(b.abilityId === "first-class") - Number(a.abilityId === "first-class") || a.points - b.points || b.stackBB - a.stackBB)
+    .map((p) => ({ playerId: p.id, points: p.points, stackBB: p.stackBB }));
+}
+
+/**
+ * Six-round R3, after the auction result is shown: every seat that won nothing buys one unsold
+ * auction card at double the base price, in draft order. With no such seat the Omaha matches start.
+ */
+export function finishCardAuctionReveal(source: PorenaGameState, now: number): PorenaGameState {
+  const auction = source.finalAuction;
+  if (source.phase !== "FINAL_AUCTION" || !auction || auction.settledAt === null || !isAuctionRound(source.round, source)) throw new Error("AUCTION_NOT_ENDED");
+  if (now < (auction.loadoutStartsAt ?? auction.settledAt)) return source;
+  const state = structuredClone(source);
+  const winners = new Set(auction.results!.map((result) => result.playerId));
+  const unsold = auction.cardIds.filter((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)?.state === "AVAILABLE");
+  const buyers = state.players.filter((p) => !p.eliminated && !winners.has(p.id) && p.ownedCardIds.length < handLimitFor(state.round, state));
+  delete state.finalAuction;
+  if (!buyers.length || !unsold.length) { state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); assertPoolIntegrity(state); return state; }
+  state.draft = { cardIds: unsold, order: draftOrder(state, buyers), picks: [], priceMultiplier: R3_AUCTION.buybackMultiplier };
+  state.phase = "DRAFT_ORDER";
+  log(state, `낙찰 실패 ${buyers.length}명 · 남은 카드 2배 가격 구매`, "economy", { event: "AUCTION_BUYBACK_START", params: { players: buyers.length } });
+  assertPoolIntegrity(state); return state;
+}
+
+/** Draft price: the buyback's fixed multiple of the base price, otherwise the seat's own price. */
+export function draftPrice(state: PorenaGameState, playerId: string, cardId: string): number {
+  const multiplier = state.draft?.priceMultiplier;
+  return multiplier ? cardPrice(getCard(state, cardId).rank) * multiplier : getCardPrice(state, playerId, cardId);
+}
+
+/** Six-round R5 opens with the standings leader choosing an opponent from the other survivors. */
+function beginOpponentSelect(state: PorenaGameState): void {
+  const seats = new Map(state.players.map((player, index) => [player.id, index]));
+  const order = state.players.filter((p) => !p.eliminated)
+    .sort((a, b) => compareRoundStanding({ ...a, playerId: a.id }, { ...b, playerId: b.id }, seats)).map((p) => p.id);
+  state.opponentSelect = { order, chooserId: order[0]! };
+  state.phase = "OPPONENT_SELECT";
+  log(state, `R5 매칭 · ${playerById(state, order[0]!).name}이 상대를 선택`, "info", { event: "OPPONENT_SELECT_START", playerId: order[0], params: { player: playerById(state, order[0]!).name } });
+}
+
+/** True while the chosen pairing stays on screen before the shop opens. */
+export const isOpponentRevealing = (state: Pick<PorenaGameState, "phase" | "opponentSelect">) =>
+  state.phase === "OPPONENT_SELECT" && !!state.opponentSelect?.opponentId;
+
+export function chooseOpponent(source: PorenaGameState, playerId: string, opponentId: string): PorenaGameState {
+  const pick = source.opponentSelect;
+  if (source.phase !== "OPPONENT_SELECT" || !pick || pick.opponentId) throw new Error("상대 선택 단계가 아닙니다.");
+  if (pick.chooserId !== playerId) throw new Error("1위 플레이어만 상대를 선택할 수 있습니다.");
+  if (opponentId === playerId || !pick.order.includes(opponentId)) throw new Error("선택할 수 없는 상대입니다.");
+  const state = structuredClone(source);
+  state.opponentSelect!.opponentId = opponentId;
+  log(state, `${playerById(state, playerId).name} → ${playerById(state, opponentId).name} 매칭 선택`, "info", { event: "OPPONENT_CHOSEN", playerId, params: { player: playerById(state, playerId).name, opponent: playerById(state, opponentId).name } });
+  return state;
+}
+
+/** Timeout and bot choice: the lowest-ranked survivor. */
+export function autoChooseOpponent(source: PorenaGameState): PorenaGameState {
+  const pick = source.opponentSelect;
+  if (!pick) throw new Error("상대 선택 단계가 아닙니다.");
+  return chooseOpponent(source, pick.chooserId, pick.order.at(-1)!);
+}
+
+/** Ends the pairing reveal and opens the R5 shop. */
+export function completeOpponentSelect(source: PorenaGameState): PorenaGameState {
+  if (!isOpponentRevealing(source)) throw new Error("상대 선택이 끝나지 않았습니다.");
+  const state = structuredClone(source);
+  state.phase = "SHOP";
+  for (const player of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, player);
   assertPoolIntegrity(state); return state;
 }
 
@@ -948,10 +1178,10 @@ export function pickDraftCard(source: PorenaGameState, playerId: string, cardId:
   const player = playerById(state, playerId);
   const entry = state.ownershipCardPool.find((e) => e.card.id === cardId);
   if (!draft.cardIds.includes(cardId) || !entry || entry.state !== "AVAILABLE") throw new Error("선택할 수 없는 카드입니다.");
-  const price = abilityPrice(player, entry.card.rank);
+  const price = draftPrice(state, playerId, cardId);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
   // Previous-round forfeits may enter with fewer cards. Draft still grants only one paid card.
-  if (player.ownedCardIds.length >= BALANCE.handLimits[state.round]) throw new Error("드래프트 보유 장수가 올바르지 않습니다.");
+  if (player.ownedCardIds.length >= handLimitFor(state.round, state)) throw new Error("드래프트 보유 장수가 올바르지 않습니다.");
   player.stackBB -= price; player.ownedCardIds.push(cardId);
   recordAbilitySaving(state, player, "draft-discount", cardPrice(entry.card.rank) - price, cardId);
   entry.state = "OWNED"; entry.ownerPlayerId = playerId;
@@ -965,8 +1195,10 @@ export function autoPickDraft(source: PorenaGameState, holdReveal = false): Pore
   if (!id) throw new Error("드래프트 차례가 없습니다.");
   const p = playerById(source, id);
   const options = source.draft!.cardIds.filter((cardId) => source.ownershipCardPool.find((e) => e.card.id === cardId)?.state === "AVAILABLE")
-    .map((cardId) => ({ card: getCard(source, cardId), price: getCardPrice(source, id, cardId) })).filter((o) => o.price <= p.stackBB);
-  const best = rankBotPurchases(source.round, p, cardsFor(source, p.ownedCardIds), options, { rulesVersion: source.rulesVersion ?? 2 })[0];
+    .map((cardId) => ({ card: getCard(source, cardId), price: draftPrice(source, id, cardId) })).filter((o) => o.price <= p.stackBB);
+  // The R3 buyback offers up to fifteen cards at once; a sampled Omaha plan for each would stall the room.
+  const best = source.draft!.priceMultiplier ? rankBuybackOptions(cardsFor(source, p.ownedCardIds), options)[0]
+    : rankBotPurchases(source.round, p, cardsFor(source, p.ownedCardIds), options, { rulesVersion: source.rulesVersion ?? 2, sixRounds: !!source.sixRounds })[0];
   if (!best) {
     const state = structuredClone(source);
     state.draft!.picks.push({ playerId: id, cardId: null, price: 0 });
@@ -981,7 +1213,7 @@ export function autoPickDraft(source: PorenaGameState, holdReveal = false): Pore
 export const isDraftRevealing = (state: Pick<PorenaGameState, "phase" | "draft">) =>
   state.phase === "OPEN_DRAFT" && !!state.draft && state.draft.picks.length === state.draft.order.length;
 
-/** Ends a draft held with `holdReveal`: R2 goes to RUN placement, R4 to the shop. */
+/** Ends a draft held with `holdReveal`: R2 goes to RUN placement, the R3 buyback to the matches, R4 to the shop. */
 export function completeDraft(source: PorenaGameState): PorenaGameState {
   if (!isDraftRevealing(source)) throw new Error("드래프트 선택이 끝나지 않았습니다.");
   const state = structuredClone(source);
@@ -991,23 +1223,44 @@ export function completeDraft(source: PorenaGameState): PorenaGameState {
 
 function finishDraftIfComplete(state: PorenaGameState): void {
   if (state.draft!.picks.length !== state.draft!.order.length) return;
+  if (isAuctionRound(state.round, state)) { state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); return; }
   state.phase = state.round === 2 ? "RUN_LOADOUT" : "SHOP";
   // Pre-fill the recommended RUN order so the screen shows exactly what Ready locks in.
   if (state.round === 2) for (const p of state.players.filter((p) => !p.eliminated && p.ownedCardIds.length === 3)) p.selectedCardIds = bestRunLoadout(p, cardsFor(state, p.ownedCardIds));
   if (state.round === 4) for (const p of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, p);
 }
 
-/** Ordered identities: [anchor, run-one secondary, run-two secondary]. */
+/** Cards a placement orders: R2 three, R5 six, the R6 lineup five. */
+export const runLoadoutSize = (state: Pick<PorenaGameState, "round" | "sixRounds">) => isTripleRunRound(state.round, state) ? TRIPLE_RUN.runs * 2
+  : isLineupFinal(state.round, state) ? FINAL_LOADOUT_SIZE : 3;
+
+/** Ordered identities. R2: [anchor, run-one secondary, run-two secondary]. R5: RUN 1, RUN 1, RUN 2, RUN 2, RUN 3, RUN 3. */
 export function setRunLoadout(source: PorenaGameState, playerId: string, cardIds: string[]): PorenaGameState {
   if (source.phase !== "RUN_LOADOUT") throw new Error("RUN 구성은 시작 전에만 변경할 수 있습니다.");
   const state = structuredClone(source); const p = playerById(state, playerId);
-  if (p.eliminated || cardIds.length !== 3 || new Set(cardIds).size !== 3 || cardIds.some((id) => !p.ownedCardIds.includes(id))) throw new Error("보유한 서로 다른 카드 3장을 배치하세요.");
+  const size = runLoadoutSize(state);
+  if (p.eliminated || cardIds.length !== size || new Set(cardIds).size !== size || cardIds.some((id) => !p.ownedCardIds.includes(id))) throw new Error(`보유한 서로 다른 카드 ${size}장을 배치하세요.`);
   p.selectedCardIds = [...cardIds]; return state;
 }
 
 export function lockRunLoadouts(source: PorenaGameState, humanIds: readonly string[] = ["p1"]): PorenaGameState {
   if (source.phase !== "RUN_LOADOUT") throw new Error("RUN 배치 단계가 아닙니다.");
   const state = structuredClone(source);
+  if (isLineupFinal(state.round, state)) {
+    // A human keeps a valid lineup (the pre-selected five unless they changed it); bots play the default.
+    for (const p of state.players.filter((p) => !p.eliminated)) if (!humanIds.includes(p.id) || !validLineup(p)) p.selectedCardIds = defaultLineup(state, p);
+    state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); return state;
+  }
+  if (isTripleRunRound(state.round, state)) {
+    const size = runLoadoutSize(state);
+    for (const p of state.players.filter((p) => !p.eliminated)) {
+      // A short hand forfeits every RUN; nothing is fabricated for it.
+      if (p.ownedCardIds.length < size) { p.selectedCardIds = [...p.ownedCardIds]; continue; }
+      const complete = p.selectedCardIds.length === size && new Set(p.selectedCardIds).size === size && p.selectedCardIds.every((id) => p.ownedCardIds.includes(id));
+      if (!humanIds.includes(p.id) || !complete) p.selectedCardIds = bestTripleRunLoadout(p, cardsFor(state, p.ownedCardIds));
+    }
+    state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); return state;
+  }
   for (const p of state.players.filter((p) => !p.eliminated)) {
     if (p.ownedCardIds.length < 3) {
       p.selectedCardIds = [...p.ownedCardIds];
@@ -1033,24 +1286,27 @@ export function finalStandings(state: PorenaGameState) {
     const handScore = hand ? BALANCE.handScores[hand.category] : 0;
     const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
     const lastMatch = [...state.matches].reverse().find((match) => match.revealedCardIds[player.id]?.length);
-    const cardIds = player.ownedCardIds.length ? player.ownedCardIds : lastMatch?.revealedCardIds[player.id];
-    const cards = state.finalAuction && final ? hand?.bestFive ?? [] : cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
+    // A seat knocked out in R5 shows every RUN hand it played, not just RUN 1.
+    const cardIds = player.ownedCardIds.length ? player.ownedCardIds : (lastMatch?.runCards?.[player.id] ? [...new Set(lastMatch.runCards[player.id]!.flat())] : lastMatch?.revealedCardIds[player.id]);
+    const lineup = final && isLineupFinal(state.round, state) ? playedCardIds(state, player) : undefined;
+    const cards = lineup ? cardsFor(state, [...lineup, ...player.ownedCardIds.filter((id) => !lineup.includes(id))])
+      : state.finalAuction && final ? hand?.bestFive ?? [] : cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
     return { playerId: player.id, points, handScore, stackScore, total: points + handScore + stackScore, hand,
-      cards, usedCardIds: hand?.bestFive.map((card) => card.id) ?? [],
+      cards, usedCardIds: lineup ?? hand?.bestFive.map((card) => card.id) ?? [],
       finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
   }).sort((a, b) => {
     const aEliminated = a.eliminatedRound !== undefined;
     const bEliminated = b.eliminatedRound !== undefined;
-    // R5 finalists always occupy 1st-4th. Eliminated players are frozen into
-    // the band for the round in which they left: R4 -> 5th/6th, R3 -> 7th/8th.
+    // Finalists always occupy the top places. Eliminated players are frozen into the band for the
+    // round in which they left: five rounds R4 -> 5th/6th, R3 -> 7th/8th; six rounds R5 -> 4th.
     if (aEliminated !== bEliminated) return aEliminated ? 1 : -1;
     if (aEliminated && bEliminated) {
       return b.eliminatedRound! - a.eliminatedRound!
         || b.points - a.points
         || a.playerId.localeCompare(b.playerId);
     }
-    // A tied final score is decided by R5 placement, not by comparing cards again.
-    // Keep a stable display order if the R5 placements are tied as well.
+    // A tied final score is decided by final-round placement, not by comparing cards again.
+    // Keep a stable display order if those placements are tied as well.
     return b.total - a.total || a.finalPlace - b.finalPlace
       || a.playerId.localeCompare(b.playerId);
   });

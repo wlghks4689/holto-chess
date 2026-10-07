@@ -31,8 +31,8 @@ describe("round guide", () => {
     expect(html).not.toContain("라운드가 시작될 때");
   });
 
-  it("shows all four R3 Omaha hole cards and explains the exact 2+3 rule", () => {
-    const html = renderToStaticMarkup(createElement(RoundGuide, { round: 3, onClose: () => undefined }));
+  it("shows all four R3 Omaha hole cards and explains the exact 2+3 rule in five-round games", () => {
+    const html = renderToStaticMarkup(createElement(RoundGuide, { round: 3, lastRound: 5, onClose: () => undefined }));
 
     expect(html).toContain("홀카드 4장 · 정확히 2장 사용");
     expect(html).toContain("Match 1 상대는 누적 승점 순으로 정합니다.");
@@ -48,6 +48,20 @@ describe("round guide", () => {
     expect(html).toContain("A♥ · 2♦ · 3♠ · 4♣ · 5♠");
     expect(html).not.toContain("2 원페어");
     expect(html).not.toContain("스트레이트 불가");
+  });
+
+  it("explains the six-round R3 auction, R5 RUN IT THREE TIMES and R6 final", () => {
+    const r3 = renderToStaticMarkup(createElement(RoundGuide, { round: 3, onClose: () => undefined }));
+    expect(r3).toContain("16장 경매에서 1인당 1장만 낙찰받습니다");
+    expect(r3).toContain("남은 카드 1장을 2배 가격에 구매합니다");
+    expect(r3).toContain("홀카드 4장 · 정확히 2장 사용");
+    const r5 = renderToStaticMarkup(createElement(RoundGuide, { round: 5, onClose: () => undefined }));
+    expect(r5).toContain("RUN IT THREE TIMES");
+    expect(r5).toContain("RUN 승리 +5P · Split +2P · 3:0 승리 추가 +15P");
+    const r6 = renderToStaticMarkup(createElement(RoundGuide, { round: 6, onClose: () => undefined }));
+    expect(r6).toContain("결승 순위 1위 +30P · 2위 +10P · 3위 +0P");
+    const preview = renderToStaticMarkup(createElement(RoundGuide, { round: 1, onClose: () => undefined, onPreviewRound: () => undefined }));
+    expect(preview).toContain(">R6</button>");
   });
 
   it("summarizes only R4 match points and the winner/loser bracket outcomes", () => {

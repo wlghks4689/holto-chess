@@ -5,6 +5,7 @@ import type { GameAction, PlayerView } from "../shared/protocol";
 import { CardView } from "./CardView";
 import { useLocalCountdown } from "./useLocalCountdown";
 import "./open-draft.css";
+import "./six-round.css";
 import { R2DraftArena } from "./R2DraftArena";
 import { R4DraftArena } from "./R4DraftArena";
 import { PhaseTimer } from "./PhaseTimer";
@@ -22,8 +23,11 @@ export function OpenDraftPanel({ view, send, disabled, seconds }: {
   const name = (id: string) => view.players.find((p) => p.playerId === id)?.name ?? id;
   const ordering = view.phase === "DRAFT_ORDER";
   const myTurn = !ordering && draft.currentPlayerId === view.me.playerId;
-  return <section className="open-draft panel" aria-label={t("draft.roundAria", { round: view.round })}>
-    <header><small className="draft-kicker">ROUND {view.round} · DRAFT PHASE</small><div className="draft-title-row"><h2>{t(ordering ? "draft.title" : "draft.pickOne")}</h2><DraftRuleTooltip round={view.round} /></div>{(ordering || myTurn) && <PhaseTimer className="draft-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} />}</header>
+  // Six-round R3 buyback: seats that won no auction card buy a leftover at a fixed multiple of its base price.
+  const buyback = !!draft.priceMultiplier;
+  return <section className={`open-draft panel ${buyback ? "is-buyback" : ""}`} aria-label={t("draft.roundAria", { round: view.round })}>
+    <header><small className="draft-kicker">ROUND {view.round} · {buyback ? "AUCTION BUYBACK" : "DRAFT PHASE"}</small><div className="draft-title-row"><h2>{buyback ? t("draft.buybackTitle") : t(ordering ? "draft.title" : "draft.pickOne")}</h2>{!buyback && <DraftRuleTooltip round={view.round} />}</div>
+      {buyback && <p className="draft-buyback-help">{t("draft.buybackHelp")}</p>}{(ordering || myTurn) && <PhaseTimer className="draft-clock" seconds={seconds ?? (ordering ? 3 : 20)} ariaLabel={t(ordering ? "draft.dealTimer" : "draft.pickTimer", { seconds: seconds ?? (ordering ? 3 : 20) })} />}</header>
     <ol className="draft-order">{draft.order.map((entry, index) => <li key={entry.playerId} className={entry.playerId === draft.currentPlayerId ? "current" : ""}>
       <b>{String(index + 1).padStart(2, "0")}</b><span>{name(entry.playerId)}</span><small>{entry.points}P · {entry.stackBB}BB</small>
     </li>)}</ol>

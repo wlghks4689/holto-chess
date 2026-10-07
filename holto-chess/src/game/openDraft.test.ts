@@ -10,7 +10,7 @@ import { createMatchView } from "./matchView";
 import { cinematicTimeline } from "../shared/presentationTimeline";
 
 function r2(seed = 789) {
-  let g = resolvePrimary(prepareShowdown(createGame(seed), []));
+  let g = resolvePrimary(prepareShowdown(createGame(seed, "seeded", 2, false, false), []));
   g = startNextRound(leaveRoundResult(g)); return g;
 }
 function drafted(g = r2()) { g = openDraft(g); while (g.phase === "OPEN_DRAFT") g = autoPickDraft(g); return g; }
@@ -91,7 +91,7 @@ describe("open draft rules v2", () => {
   it("shows the recommended RUN order from the start and Ready locks exactly what was shown", () => {
     for (const seed of [789, 1, 2, 3, 4, 5, 6, 7]) {
       const g = drafted(r2(seed));
-      const room = { ...addSession(createRoom("LOADOUT", seed), "hash-0").room, status: "PLAYING" as const, game: g };
+      const room = { ...addSession(createRoom("LOADOUT", seed, "seeded", 2, false, false), "hash-0").room, status: "PLAYING" as const, game: g };
       const shown = createPlayerView(room, "p1").me.selectedCardIds;
       expect(shown).toHaveLength(3);
       expect(lockRunLoadouts(g).players[0]!.selectedCardIds).toEqual(shown);
@@ -201,14 +201,14 @@ describe("open draft rules v2", () => {
 });
 
 function roomAtDraft() {
-  let room = addSession(createRoom("ABCDEF",303),"one").room;
+  let room = addSession(createRoom("ABCDEF", 303, "seeded", 2, false, false),"one").room;
   room = addSession(room,"two").room; room.status="PLAYING"; room.game=r2();
   room.game = openDraft(room.game); room.barrierSince=1000;
   return room;
 }
 describe("draft authority, timeouts and privacy", () => {
   it("holds every client on the shared three-second deal-in before opening picks", () => {
-    let room = addSession(createRoom("DEALIN", 303), "one").room;
+    let room = addSession(createRoom("DEALIN", 303, "seeded", 2, false, false), "one").room;
     room = addSession(room, "two").room;
     room.status = "PLAYING";
     room.game = r2();

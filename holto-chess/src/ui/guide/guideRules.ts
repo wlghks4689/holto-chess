@@ -1,7 +1,13 @@
 import type { HandCategory } from "../../core/poker/evaluate";
 import { ABILITY_IDS, CAPITALISM_INTEREST_PERCENT, PREDATOR_BB_PER_STREAK, PROTECTOR_TIERS, TARGET_SNIPER_WIN_BB, type AbilityId } from "../../game/abilities";
 import type { TranslationKey } from "../../i18n";
-import { BALANCE, FINAL_ROUND_PLACEMENT_POINTS, FRONT_RUNNER_POINTS, ROUND_POINTS } from "../../game/config";
+import { BALANCE, FRONT_RUNNER_POINTS, handLimitFor, minHandFor, purchaseLimitFor, R3_AUCTION, regularShopSizeFor, rerollLimitFor, ROUND_POINTS, SIX_ROUND_FINAL_PLACEMENT_POINTS, TRIPLE_RUN } from "../../game/config";
+import type { Round } from "../../game/types";
+
+/** The guide describes the format new games are created with. */
+const SIX_ROUNDS = { rulesVersion: 2, sixRounds: true } as const;
+const ROUNDS = [1, 2, 3, 4, 5, 6] as const satisfies readonly Round[];
+const perRound = (value: (round: Round) => number) => Object.fromEntries(ROUNDS.map((round) => [round, value(round)])) as Record<Round, number>;
 
 /**
  * Every number the guide prints. Values come from the game's own constants so a balance change
@@ -16,14 +22,17 @@ export const GUIDE_RULES = {
   rerollCostBB: BALANCE.rerollCostBB,
   lockCostBB: BALANCE.cardLockCostBB,
   sellPercent: Math.round(BALANCE.sellRate * 100),
-  shopSize: BALANCE.baseShopSize,
-  r1ShopSize: BALANCE.r1ShopSize,
+  shopSizes: perRound((round) => regularShopSizeFor(round, SIX_ROUNDS)),
   stackScoreUnitBB: BALANCE.stackScoreUnitBB,
-  handLimits: BALANCE.handLimits,
-  purchaseLimits: BALANCE.purchaseLimits,
-  rerollLimits: BALANCE.rerollLimits,
+  rounds: ROUNDS,
+  handLimits: perRound((round) => handLimitFor(round, SIX_ROUNDS)),
+  minHands: perRound((round) => minHandFor(round, SIX_ROUNDS)),
+  purchaseLimits: perRound((round) => purchaseLimitFor(round, SIX_ROUNDS)),
+  rerollLimits: perRound((round) => rerollLimitFor(round, SIX_ROUNDS)),
   points: ROUND_POINTS,
-  finalPlacement: [1, 2, 3, 4].map((place) => FINAL_ROUND_PLACEMENT_POINTS[place] ?? 0),
+  tripleRun: TRIPLE_RUN,
+  auction: R3_AUCTION,
+  finalPlacement: [1, 2, 3].map((place) => SIX_ROUND_FINAL_PLACEMENT_POINTS[place] ?? 0),
   /** Mirrors `finalStandings` in engine.ts; shown beside the result, never added to the final score. */
   rankPoints: [8, 4, 2, 0, -1, -2, -4, -8],
   /** Mirrors `startNextRound`: cards revealed by each open draft. */
@@ -32,8 +41,9 @@ export const GUIDE_RULES = {
   matchBB: { r1: BALANCE.matchLossBB[1], r2: BALANCE.matchLossBB[2], r3: BALANCE.matchLossBB[3] },
   /** Mirrors `resolveSurvival` / R4 group deciders: extra boards before a random-rank draw. */
   maxSuddenDeathBoards: 2,
-  alive: [8, 8, 6, 4, 4],
-  timers: { shop: 60, draftPick: 20, runLoadout: 30 },
+  /** Players left after each round; the R6 final keeps its three. */
+  alive: [8, 8, 6, 4, 3, 3],
+  timers: { shop: 60, draftPick: 20, runLoadout: 30, auction: 40, auctionIntro: R3_AUCTION.introMs / 1000, opponentPick: 15 },
 } as const;
 
 export const CARD_PRICES = ([14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2] as const).map((rank) => ({ rank, price: BALANCE.rankPrices[rank] }));
@@ -59,7 +69,7 @@ export const ABILITY_NUMBERS: Record<AbilityId, Record<string, number>> = {
   // Protector tiers, lowest first: equity60/bb60, equity70/bb70, equity80/bb80.
   "zero-risk": Object.fromEntries([...PROTECTOR_TIERS].reverse().flatMap((tier) => [[`equity${tier.minPercent}`, tier.minPercent], [`bb${tier.minPercent}`, tier.bb]])),
   "quad-core": { multiplier: 2 },
-  "front-runner": Object.fromEntries(([1, 2, 3, 4, 5] as const).map((round) => [`r${round}`, FRONT_RUNNER_POINTS[round]])),
+  "front-runner": Object.fromEntries(ROUNDS.map((round) => [`r${round}`, FRONT_RUNNER_POINTS[round]])),
 };
 
 export const GUIDE_ABILITIES: readonly AbilityId[] = ABILITY_IDS;

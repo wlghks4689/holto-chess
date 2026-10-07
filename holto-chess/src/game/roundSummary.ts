@@ -15,7 +15,7 @@ export function createRoundSummary(state: PorenaGameState): RoundSummaryRow[] {
     const played = matches.filter((match) => match.playerIds.includes(player.id));
     if (!played.length) return [];
     const cardIds = [...new Set(played.flatMap((match) => match.runCards?.[player.id]?.flat() ?? match.revealedCardIds[player.id] ?? []))];
-    const outcomes = played.filter((m) => m.tiebreakKind !== "SURVIVAL_TIEBREAK" || state.round !== 3).flatMap((m) => m.runCards ? m.boardWinnerIds : [m.winnerIds]);
+    const outcomes = played.filter((m) => m.tiebreakKind !== "SURVIVAL_TIEBREAK" || state.round !== 3 && !(state.sixRounds && state.round === 5)).flatMap((m) => m.runCards ? m.boardWinnerIds : [m.winnerIds]);
     const wins = outcomes.filter((ids) => ids.length === 1 && ids.includes(player.id)).length;
     const draws = outcomes.filter((ids) => ids.length > 1 && ids.includes(player.id)).length;
     const roundBonus = (state.abilityEvents ?? []).filter(event => event.round === state.round && event.playerId === player.id && event.reason === "round-leader" && !event.matchId).reduce((sum, event) => sum + event.points, 0);
