@@ -125,7 +125,7 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
         </div>;
       })}
         {Array.from({ length: Math.max(0, cap - me.ownedCardIds.length) }, (_, i) => <div className="empty-card" key={i}><span>+</span><small>EMPTY</small></div>)}</div>
-      <OwnedHandLabel round={state.round} cards={me.ownedCardIds.map(id => getCard(state, id))} />
+      <OwnedHandLabel round={state.round} lastRound={lastRoundFor(state)} cards={me.ownedCardIds.map(id => getCard(state, id))} />
     </div>
     <div className="market panel">
       <header><div className="shop-heading"><h2>{t("shop.market")}</h2><strong className="shop-count">{me.shopCardIds.length} / {shopSize}</strong></div><span className="purchase-count">{t("shop.purchases", { used: me.purchasesThisRound, limit: purchaseLimit })}</span></header>
