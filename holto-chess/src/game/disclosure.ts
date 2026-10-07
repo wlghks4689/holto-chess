@@ -1,6 +1,6 @@
 import type { Card } from "../core/poker/cards";
 import type { MatchView, PresentationEntry } from "../shared/protocol";
-import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, INTER_MATCH_HOLD_MS } from "../shared/presentationTimeline";
+import { cinematicTimeline, displayedStreetIndex, frameAt, isFinalMatch, revealFlags, INTER_MATCH_HOLD_MS } from "../shared/presentationTimeline";
 import { createMatchView } from "./matchView";
 import type { RoomSnapshot } from "./room";
 
@@ -21,17 +21,19 @@ export function discloseMatch(view: MatchView, entry: PresentationEntry, startsA
   const frames = cinematicTimeline(view);
   const frame = frameAt(frames, elapsed);
   const flags = revealFlags(frame.phase);
-  const final = view.round === 5;
+  const final = isFinalMatch(view);
   const resultVisible = elapsed >= 0 && (flags.result || flags.runResult);
   const finalWinner = ["FINAL_WINNER", "REWARD", "COMPLETE"].includes(frame.phase);
   const boardKnown = (index: number) => elapsed >= 0 && (index < frame.boardIndex || index === frame.boardIndex && frame.revealed === 5);
   const boardResultVisible = (index: number) => boardKnown(index) && (index < frame.boardIndex || resultVisible);
   const safe = structuredClone(view);
+  const runHandOpen = (run: number) => !view.runCards || view.round === 2
+    || elapsed >= 0 && (run < frame.boardIndex || run === frame.boardIndex && !(run > 0 && frame.phase === "CARD_SWITCH_OUT"));
   safe.abilityCues = (view.abilityCues ?? []).filter(cue => elapsed >= 0 && (final ? finalWinner :
     cue.run ? boardResultVisible(cue.run - 1) : boardResultVisible(0)));
   safe.disclosure = { frames: frames.filter((item, index) => index === 0 || item.at <= elapsed), elapsedMs: elapsed,
     frameDurationMs: (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at };
-  const regulationBoards = view.round === 5 && !view.boards.length ? 0 : view.round === 2 ? 2 : 1;
+  const regulationBoards = final && !view.boards.length ? 0 : view.round === 2 ? 2 : view.runCards && view.runoutCount > 1 ? view.runoutCount : 1;
   // RUN_RESULT publicly announces the next closed board; never announce the total future count.
   const queued = frame.phase === "RUN_RESULT" && frame.boardIndex + 1 < view.boards.length ? 1 : 0;
   const visibleBoards = Math.max(regulationBoards, elapsed >= 0 ? frame.boardIndex + 1 + queued : 0);
@@ -42,13 +44,17 @@ export function discloseMatch(view: MatchView, entry: PresentationEntry, startsA
     || ["HIGH_CARD_NOTICE", "HIGH_CARD_DRAW"].includes(frame.phase));
   if (!deciderVisible) { delete safe.tiebreakKind; delete safe.tiebreakStartIndex; }
   safe.revealedCards = Object.fromEntries(Object.entries(view.revealedCards).map(([id, cards]) => [id, cards.map((card, i) => !final || view.boards.length > 0 || elapsed >= 0 && i < frame.finalCards ? card : concealedCard(`hand:${id}:${i}`))]));
+  // R2 shows both RUN hands up front. Every other RUN hand opens with its board, after its card switch.
+  if (view.runCards && view.round !== 2) safe.runCards = Object.fromEntries(Object.entries(view.runCards).map(([id, runs]) => [id, runs.map((cards, run) =>
+    runHandOpen(run) ? cards : cards.map((_, i) => concealedCard(`run:${id}:${run}:${i}`)))]));
   safe.winnerIds = final ? finalWinner ? view.winnerIds : [] : flags.result && elapsed >= 0 ? view.winnerIds : [];
   safe.boardWinnerIds = view.boardWinnerIds.slice(0, visibleBoards).map((ids, i) => boardKnown(i) ? ids : []);
   safe.boardResults = view.boardResults.slice(0, visibleBoards).map((rows, i) => boardKnown(i) ? rows.map(row => ({ ...row, place: boardResultVisible(i) ? row.place : 0 })) : []);
   safe.results = final ? (view.boards.length ? frame.revealed === 5 : frame.finalCards >= 7) ? view.results.map(row => ({ ...row,
     place: finalWinner || frame.phase === "FINAL_PLACE" && row.place >= (frame.finalPlace ?? Infinity) ? row.place : 0 })) : []
     : flags.result && elapsed >= 0 ? view.results : [];
-  safe.streetSnapshots = view.streetSnapshots?.slice(0, visibleBoards).map((snapshots, bi) => bi > frame.boardIndex || elapsed < 0 ? []
+  // Street reads name the hole cards they use, so a board's reads also wait for its RUN hand.
+  safe.streetSnapshots = view.streetSnapshots?.slice(0, visibleBoards).map((snapshots, bi) => bi > frame.boardIndex || elapsed < 0 || !runHandOpen(bi) ? []
     : snapshots.slice(0, bi < frame.boardIndex ? 4 : displayedStreetIndex(frame.phase) + 1));
   safe.rewards = (final ? finalWinner : flags.result) && elapsed >= 0 ? view.rewards : [];
   safe.runRewards = view.runRewards?.slice(0, visibleBoards).map((rows, i) => boardResultVisible(i) ? rows : []);

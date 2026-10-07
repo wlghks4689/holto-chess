@@ -1,6 +1,6 @@
 # PORENA Balance Simulator
 
-`src/game/engine.ts`의 공개 API로 **현재 규칙 그대로** 8인 게임(rulesVersion 2)을 끝까지 돌려 밸런스 지표를 모으는 UI 없는 도구입니다. 규칙을 다시 구현하지 않고, 서버(`room.ts`)와 같은 phase 순서로 엔진 함수를 호출합니다.
+`src/game/engine.ts`의 공개 API로 **현재 규칙 그대로** 8인 6라운드 게임(rulesVersion 2)을 끝까지 돌려 밸런스 지표를 모으는 UI 없는 도구입니다. 규칙을 다시 구현하지 않고, 서버(`room.ts`)와 같은 phase 순서로 엔진 함수를 호출합니다.
 
 ## 게임 진행 (driver.ts가 따르는 순서)
 
@@ -8,11 +8,12 @@
 | --- | --- |
 | R1 | `SHOP` → `SHOWDOWN_PRIMARY`(Swiss 3경기) → `ROUND_RESULT` |
 | R2 | `DRAFT_ORDER` → `OPEN_DRAFT`(8장 공개, 픽) → `RUN_LOADOUT` → `SHOWDOWN_PRIMARY`(RUN1·RUN2) → `ROUND_RESULT` |
-| R3 | `SHOP` → `SHOWDOWN_PRIMARY`(Omaha Swiss) → 필요 시 `SURVIVAL_READY` → `ROUND_RESULT` (8→6) |
+| R3 | `FINAL_AUCTION`(16장 경매, 1인 1장) → 낙찰 공개 → `DRAFT_ORDER` → `OPEN_DRAFT`(낙찰 실패자 2배 구매) → `SHOWDOWN_PRIMARY`(Omaha Swiss) → 필요 시 `SURVIVAL_READY` → `ROUND_RESULT` (8→6) |
 | R4 | `DRAFT_ORDER` → `OPEN_DRAFT`(16장) → `SHOP` → `SHOWDOWN_PRIMARY` → `GROUP_ASSIGNMENT` → `SHOWDOWN_SECONDARY` → `ROUND_RESULT` (6→4) |
-| R5 | `FINAL_AUCTION` → `FINAL_LOADOUT` → `SHOWDOWN_PRIMARY`(출전 5 + 공용 보드 5) → `GAME_RESULT` |
+| R5 | `OPPONENT_SELECT` → `SHOP` → `RUN_LOADOUT`(3핸드) → `SHOWDOWN_PRIMARY`(RUN 3번) → 필요 시 `SURVIVAL_READY` → `ROUND_RESULT` (4→3) |
+| R6 | `SHOP` → `SHOWDOWN_PRIMARY`(3인, 보드 없음 BEST 5) → `GAME_RESULT` |
 
-매 단계 뒤에 카드 원장(`assertPoolIntegrity`)과 라운드 종료 생존 인원(8·8·6·4·4)을 검사합니다. 위반하거나 엔진이 예외를 던지면 그 게임만 **실패**로 기록하고 어떤 지표에도 섞지 않습니다.
+매 단계 뒤에 카드 원장(`assertPoolIntegrity`)과 라운드 종료 생존 인원(8·8·6·4·3·3)을 검사합니다. `--five-rounds`는 6라운드 이전에 만들어진 방이 끝까지 쓰는 5라운드 규칙(R3 상점, R5 경매 결승, 생존 8·8·6·4·4)으로 돌립니다. 위반하거나 엔진이 예외를 던지면 그 게임만 **실패**로 기록하고 어떤 지표에도 섞지 않습니다.
 
 ## 실행
 
@@ -37,6 +38,7 @@ node tools/balance-simulator/run.mjs --games 200 --seed 12345 --jobs 4
 | `--rows` | 꺼짐 | 플레이어별 `players.jsonl`, 게임별 `games.jsonl` 원자료도 저장 |
 | `--out` | `tools/balance-simulator/output` | 출력 폴더 |
 | `--verbose` | 꺼짐 | 게임별 성공/실패 로그 |
+| `--five-rounds` | 꺼짐 | 5라운드 규칙으로 실행(전후 비교용) |
 
 예: rank 14·13 가격을 10BB로 내리는 실험 비교
 

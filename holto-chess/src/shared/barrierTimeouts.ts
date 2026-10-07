@@ -15,7 +15,13 @@ export const BARRIER_TIMEOUT_MS = {
   MATCH_SETUP: 3_500,
   GROUP_REVIEW: 10_000,
   RUN_LOADOUT: 30_000,
+  /** Six-round R6: the strongest five are pre-selected; a player only swaps cards in or out. */
+  FINAL_LINEUP: 10_000,
   BOT_DRAFT_PICK: 1_800,
+  /** Six-round R5: the leader's opponent choice, a bot leader's pause, then the pairing on screen. */
+  OPPONENT_SELECT: 15_000,
+  BOT_OPPONENT_SELECT: 5_000,
+  OPPONENT_REVEAL: 3_000,
   /** Result review after the last human is eliminated, before the bots' game is skipped to the end. */
   ALL_OUT_RESULT: 5_000,
 } as const;
@@ -26,6 +32,7 @@ export function barrierTimeoutMs(phase: string): number {
   if (phase === "ABILITY_PICK") return BARRIER_TIMEOUT_MS.ABILITY_PICK;
   if (phase === "ABILITY_REVEAL") return BARRIER_TIMEOUT_MS.ABILITY_REVEAL;
   if (phase === "RUN_LOADOUT") return BARRIER_TIMEOUT_MS.RUN_LOADOUT;
+  if (phase === "OPPONENT_SELECT") return BARRIER_TIMEOUT_MS.OPPONENT_SELECT;
   if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return BARRIER_TIMEOUT_MS.MATCH_SETUP;
   if (phase === "GROUP_ASSIGNMENT") return BARRIER_TIMEOUT_MS.GROUP_REVIEW;
   if (phase === "ROUND_RESULT") return BARRIER_TIMEOUT_MS.RESULTS;

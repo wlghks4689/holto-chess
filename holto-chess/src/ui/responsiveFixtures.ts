@@ -1,4 +1,4 @@
-/** Development-only presentation fixtures. Never imported by a game or server module. */
+/** Development-only presentation fixtures of the five-round screens. Never imported by a game or server module. */
 import { makeDeck } from "../core/poker/cards";
 import { BALANCE } from "../game/config";
 import { createGame } from "../game/engine";
@@ -10,7 +10,7 @@ import type { MatchView, RoundSummaryRow } from "../shared/protocol";
 export const QA_NAMES = ["가나다라마바사아", "LongNicknameWithoutSpaces", "나", "River Fox", "♠ 다이아 바이퍼", "탈락 플레이어", "재접속 대기", "AI 대체"];
 export const qaDeck = makeDeck();
 export function qaGame(round: Round, count: number, firstAbility?: AbilityId) {
-  const game = createGame(303);
+  const game = createGame(303, "seeded", 2, false, false);
   game.round = round; game.phase = "SHOP";
   game.players.forEach((player, i) => {
     player.name = QA_NAMES[i]!; player.stackBB = 123456.75; player.points = 98765;

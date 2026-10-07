@@ -3,7 +3,7 @@ import type { ChapterId } from "./tutorialTypes";
 const KEY = "porena-tutorial-v1";
 const SCHEMA = 1;
 /** Bumped by the game, not by this file: a saved run from different rules restarts its chapter. */
-const RULES_VERSION = 2;
+const RULES_VERSION = 3;
 
 export type TutorialSave = {
   schema: number;
@@ -27,8 +27,8 @@ export function loadTutorial(): TutorialSave {
     if (value.schema !== SCHEMA || value.rulesVersion !== RULES_VERSION) return { ...EMPTY };
     return {
       schema: SCHEMA, rulesVersion: RULES_VERSION,
-      completed: (value.completed ?? []).filter((id): id is ChapterId => [1, 2, 3, 4, 5].includes(id as number)),
-      resume: [1, 2, 3, 4, 5].includes(value.resume as number) ? value.resume : undefined,
+      completed: (value.completed ?? []).filter((id): id is ChapterId => [1, 2, 3, 4, 5, 6].includes(id as number)),
+      resume: [1, 2, 3, 4, 5, 6].includes(value.resume as number) ? value.resume : undefined,
       basicsDone: !!value.basicsDone,
     };
   } catch { return { ...EMPTY }; }

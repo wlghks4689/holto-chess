@@ -34,6 +34,11 @@ describe("final hand-score disclosure", () => {
     const html = renderToStaticMarkup(createElement(ShopPanel, { state: qaGame(round, BALANCE.handLimits[round]), act: () => undefined }));
     expect(html.includes("hand-score-trigger")).toBe(round === 5);
   });
+  it.each([5, 6] as const)("shows the six-round shop disclosure only in the R6 final (round %i)", round => {
+    const state = qaGame(round, round === 6 ? 6 : 5); state.sixRounds = true;
+    const html = renderToStaticMarkup(createElement(ShopPanel, { state, act: () => undefined }));
+    expect(html.includes("hand-score-trigger")).toBe(round === 6);
+  });
   it("keeps brief final matching free of the disclosure and any revealed cards", () => {
     const html = renderToStaticMarkup(createElement(FinalRoundTransition));
     expect(html).not.toContain("hand-score-trigger");

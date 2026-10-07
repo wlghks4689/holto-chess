@@ -2,13 +2,15 @@ import { autoStep } from "./practiceState";
 import { describe, expect, it } from "vitest";
 import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
 import { assertPoolIntegrity } from "../game/cardPool";
-import { BALANCE } from "../game/config";
+import { isLineupFinal, isTripleRunRound, minHandFor } from "../game/config";
 import {
-  beginSecondary, buyCard, confirmSelection, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
+  beginSecondary, buyCard, confirmSelection, draftPrice, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
   pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, setRunLoadout,
   startNextRound, toggleSelectedCard,
 } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
+import { settleFinalAuction } from "../game/finalAuction";
+import type { ChapterId } from "./tutorialTypes";
 import { TUTORIAL_CHAPTERS } from "./chapters";
 import { tutorialBotPolicy } from "./tutorialBots";
 import {
@@ -19,9 +21,11 @@ import {
 function play(game: PorenaGameState): PorenaGameState {
   const me = game.players[0]!;
   switch (game.phase) {
-    case "FINAL_AUCTION": case "FINAL_LOADOUT": return autoStep(game);
+    // The practice seat makes no bid, so the R3 chapter also walks the double-price buy.
+    case "FINAL_AUCTION": return game.finalAuction!.settledAt === null ? settleFinalAuction(game, game.finalAuction!.endsAt) : autoStep(game);
+    case "FINAL_LOADOUT": case "OPPONENT_SELECT": return autoStep(game);
     case "SHOP": {
-      if (me.ownedCardIds.length >= BALANCE.handLimits[game.round]) return prepareShowdown(game, ["p1"], tutorialBotPolicy);
+      if (me.ownedCardIds.length >= minHandFor(game.round, game)) return prepareShowdown(game, ["p1"], tutorialBotPolicy);
       const affordable = me.shopCardIds.find((id) => getCardPrice(game, "p1", id) <= me.stackBB);
       return affordable ? buyCard(game, "p1", affordable) : rerollShop(game, "p1");
     }
@@ -33,11 +37,12 @@ function play(game: PorenaGameState): PorenaGameState {
     case "OPEN_DRAFT": {
       const draft = game.draft!;
       const mine = draft.order[draft.picks.length]?.playerId === "p1";
-      const open = draft.cardIds.find((id) => !draft.picks.some((pick) => pick.cardId === id) && getCardPrice(game, "p1", id) <= me.stackBB);
+      const open = draft.cardIds.find((id) => !draft.picks.some((pick) => pick.cardId === id) && draftPrice(game, "p1", id) <= me.stackBB);
       if (!mine || !open) throw new Error("드래프트가 내 차례가 아닙니다.");
       return pickDraftCard(game, "p1", open);
     }
-    case "RUN_LOADOUT": return lockRunLoadouts(setRunLoadout(game, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(game, id)))));
+    // R5 arrives with the recommended split already placed.
+    case "RUN_LOADOUT": return lockRunLoadouts(isTripleRunRound(game.round, game) || isLineupFinal(game.round, game) ? game : setRunLoadout(game, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(game, id)))));
     case "ROUND_RESULT": return leaveRoundResult(game);
     case "GROUP_ASSIGNMENT": return beginSecondary(game);
     case "SHOWDOWN_PRIMARY": return resolvePrimary(game);
@@ -56,7 +61,7 @@ function resolveForHold(session: TutorialSession): TutorialSession {
   return applyGame(session, play(session.game));
 }
 
-function walk(chapterId: 1 | 2 | 3 | 4 | 5, visited: string[] = []): TutorialSession {
+function walk(chapterId: ChapterId, visited: string[] = []): TutorialSession {
   let session = startChapter(chapterId);
   const seen = new Set<string>();
   for (let guard = 0; guard < 120 && !chapterFinished(session); guard += 1) {
@@ -87,9 +92,9 @@ describe("every chapter can be finished", () => {
       const session = walk(chapter.id, visited);
       expect(chapterFinished(session)).toBe(true);
       expect(assertPoolIntegrity(session.game)).toBe(true);
-      if (chapter.id === 3) {
+      if (chapter.id === 3 || chapter.id === 5) {
         expect(session.game.survival).toBeUndefined();
-        expect(session.game.players.filter((player) => player.eliminated)).toHaveLength(2);
+        expect(session.game.players.filter((player) => player.eliminated)).toHaveLength(chapter.id === 3 ? 2 : 5);
       }
       // Every promised beat is reached; result steps must retain their visible result phase.
       for (const step of chapter.steps) expect(visited).toContain(step.id);

@@ -3,7 +3,7 @@ import type { TranslationKey } from "../../i18n";
 import type { GuideCopy, RoundSpec, Row } from "./guideCopy";
 import { abilityThumb, CARD_PRICES, GUIDE_ABILITIES, GUIDE_RULES, HAND_KEY, HAND_LADDER, handScore } from "./guideRules";
 
-const ROUNDS = [1, 2, 3, 4, 5] as const;
+const ROUNDS = GUIDE_RULES.rounds;
 const rankLabel = (rank: number) => ({ 14: "A", 13: "K", 12: "Q", 11: "J", 10: "T" } as Record<number, string>)[rank] ?? String(rank);
 
 function Rule({ index, title, children }: { index: number; title: string; children: ReactNode }) {
@@ -78,9 +78,10 @@ export function RuleBook({ copy, t, scroller, onBeginner }: { copy: GuideCopy; t
       <Pairs rows={r.basics.rows} />
       <h4>{r.basics.perRound.title}</h4>
       <Table head={[r.basics.perRound.round, ...ROUNDS.map((n) => `R${n}`)]} rows={[
-        [r.basics.perRound.hand, ...ROUNDS.map((n) => String(limits.handLimits[n]))],
-        [r.basics.perRound.buys, ...ROUNDS.map((n) => (n === 2 ? r.basics.perRound.noShop : String(limits.purchaseLimits[n])))],
-        [r.basics.perRound.rerolls, ...ROUNDS.map((n) => (n === 2 ? "—" : String(limits.rerollLimits[n])))],
+        // R6 holds five to seven cards; R2 and R3 have no shop (draft and auction).
+        [r.basics.perRound.hand, ...ROUNDS.map((n) => limits.minHands[n] === limits.handLimits[n] ? String(limits.handLimits[n]) : `${limits.minHands[n]}~${limits.handLimits[n]}`)],
+        [r.basics.perRound.buys, ...ROUNDS.map((n) => (limits.shopSizes[n] ? String(limits.purchaseLimits[n]) : r.basics.perRound.noShop))],
+        [r.basics.perRound.rerolls, ...ROUNDS.map((n) => (limits.shopSizes[n] ? String(limits.rerollLimits[n]) : "—"))],
       ]} />
       <h4>{r.basics.prices}</h4>
       <div className="pg-prices">{CARD_PRICES.map(({ rank, price }) => <span key={rank}><b>{rankLabel(rank)}</b>{price}</span>)}</div>

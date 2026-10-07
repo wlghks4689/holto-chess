@@ -15,7 +15,7 @@ import type { MatchResult } from "./types";
 import { makeDeck } from "../core/poker/cards";
 
 function fixture(round: Round, ability: AbilityId) {
-  const s = createGame(123); s.round = round; s.phase = "SHOWDOWN_PRIMARY";
+  const s = createGame(123, "seeded", 2, false, false); s.round = round; s.phase = "SHOWDOWN_PRIMARY";
   for (const e of s.ownershipCardPool) { e.state = "AVAILABLE"; delete e.ownerPlayerId; delete e.reservedPlayerId; }
   const count = round === 5 ? 4 : 8;
   s.players.forEach((p, i) => {
@@ -40,7 +40,7 @@ describe("actual economic benefits", () => {
     expect(createPlayerView(room, "p1").me.abilityStartingCard).toBeUndefined();
   });
   it("records exact purchase savings and sale premiums without paying them twice", () => {
-    let s = createGame(32); const p = s.players[0]!; p.abilityId = "royal-blood";
+    let s = createGame(32, "seeded", 2, false, false); const p = s.players[0]!; p.abilityId = "royal-blood";
     const card = s.ownershipCardPool.find(e => e.state === "AVAILABLE" && e.card.rank >= 10)!;
     const price = cardPrice(card.card.rank);
     card.state = "RESERVED_IN_SHOP"; card.reservedPlayerId = p.id; p.shopCardIds.push(card.card.id);
@@ -56,7 +56,7 @@ describe("actual economic benefits", () => {
     expect(s.abilityEvents!.at(-1)!.savedBB).toBe(price - Math.floor(price * BALANCE.sellRate));
   });
   it("counts actual free rerolls and only the first lock of a card in a shop round", () => {
-    let s = createGame(2); const p = s.players[0]!; p.abilityId = "trader";
+    let s = createGame(2, "seeded", 2, false, false); const p = s.players[0]!; p.abilityId = "trader";
     const id = p.shopCardIds[0]!; const bb = p.stackBB;
     s = toggleShopLock(s, p.id, id); s = toggleShopLock(s, p.id, id); s = toggleShopLock(s, p.id, id);
     expect(s.players[0]!.abilityTotals?.savedBB).toBe(3);
@@ -86,7 +86,7 @@ describe("actual economic benefits", () => {
 
 describe("settlement and disclosure", () => {
   it.each(["WIN", "LOSS", "SPLIT"])("Architect rewards are independent of %s, while Sniper and Protector follow their own rules", outcome => {
-    const state = createGame(12); const p = state.players[0]!;
+    const state = createGame(12, "seeded", 2, false, false); const p = state.players[0]!;
     const cards = makeDeck().slice(0, 5); p.ownedCardIds = cards.map(c => c.id); p.firstCardId = cards[0]!.id;
     const winners = outcome === "WIN" ? [p.id] : outcome === "LOSS" ? ["p2"] : [p.id, "p2"];
     const match = { id: "test", boardResults: [[{ playerId: p.id, hand: { category: "FULL_HOUSE", categoryRank: 6, bestFive: cards } }]],

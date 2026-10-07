@@ -1,10 +1,10 @@
-import { BALANCE } from "../game/config";
-import { autoPickDraft, leaveRoundResult, openDraft, resolveSurvival } from "../game/engine";
+import { handLimitFor } from "../game/config";
+import { autoChooseOpponent, autoPickDraft, leaveRoundResult, openDraft, resolveSurvival } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
 import type { TutorialChapter, TutorialStep } from "./tutorialTypes";
 
 const me = (game: PorenaGameState) => game.players[0]!;
-const handFull = (game: PorenaGameState) => me(game).ownedCardIds.length >= BALANCE.handLimits[game.round];
+const handFull = (game: PorenaGameState) => me(game).ownedCardIds.length >= handLimitFor(game.round, game);
 const ready = (game: PorenaGameState) => game.phase !== "SHOP";
 
 function draftUntilMyTurn(game: PorenaGameState): PorenaGameState {
@@ -68,7 +68,7 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
         id: "r1-round-result", kind: "REVIEW", focus: "round-results", next: "기본 체험 마치기",
         title: "승점은 순위, BB는 다음 준비",
         body: ["이 표는 세 매치의 합산 결과입니다. 승점은 순위 경쟁에, BB는 다음 카드 구매에 쓰입니다."],
-        more: ["체험에서는 첫 매치를 자세히 보고, 나머지 두 매치는 자동으로 정산합니다.", "실전은 R1~R5로 이어지며 카드 수와 승부 방식이 달라집니다. 어빌리티 선택은 실전에서 진행합니다."],
+        more: ["체험에서는 첫 매치를 자세히 보고, 나머지 두 매치는 자동으로 정산합니다.", "실전은 R1~R6로 이어지며 카드 수와 승부 방식이 달라집니다. 어빌리티 선택은 실전에서 진행합니다."],
       },
     ],
   },
@@ -80,7 +80,7 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
         title: "이번에는 함께 펼친 카드에서 골라요",
         body: ["내 차례까지 준비해 두었습니다. 남아 있는 카드 한 장을 선택하세요. 연습에는 제한 시간이 없습니다."],
         more: ["실전에서는 누적 승점이 낮은 플레이어부터 선택하고, 동점이면 BB가 많은 순서입니다. First Class 보유자는 우선권을 얻습니다."],
-        onEnter: draftUntilMyTurn, done: (game) => me(game).ownedCardIds.length >= BALANCE.handLimits[2],
+        onEnter: draftUntilMyTurn, done: (game) => me(game).ownedCardIds.length >= handLimitFor(2, game),
       },
       {
         id: "r2-anchor", kind: "ACT", focus: "run-loadout", goal: "대표 카드와 보조 카드를 정하고 준비 완료",
@@ -95,14 +95,27 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
     ],
   },
   {
-    id: 3, title: "내 카드 정확히 두 장", round: 3, summary: "오마하의 2+3 규칙 · 누적 승점과 생존",
+    id: 3, title: "경매와 오마하", round: 3, summary: "카드 옥션 · 2배 가격 구매 · 오마하 2+3 · 생존",
     steps: [
       {
-        id: "r3-shop", kind: "ACT", focus: "shop", goal: "내 카드 4장 채우기", title: "네 장을 모으되, 두 장만 사용해요",
-        body: ["내 카드 정확히 2장 + 보드 정확히 3장으로 족보를 만듭니다. 사용할 조합은 게임이 자동으로 고릅니다."],
-        more: ["보드에 같은 문양이 네 장 있어도, 내 카드에 그 문양이 한 장뿐이면 플러시가 아닙니다."], done: handFull,
+        id: "r3-auction", kind: "ACT", focus: "auction", goal: "입찰해 본 뒤 경매 마감 (입찰 없이도 진행 가능)", title: "상점 대신 카드 옥션",
+        body: ["R3에는 개인 상점이 없습니다. 16장 경매에서 한 사람당 1장만 낙찰받아 네 번째 카드를 얻습니다.", "카드를 한 번 눌러 고르고, 다시 누르면 기본가로 입찰합니다. 이미 입찰이 있는 카드는 현재가보다 3BB 이상 높게 입찰하세요."],
+        more: ["실전에서는 10초 안내 뒤 40초 동안 경매가 열리고, 마지막 3초의 입찰은 최대 55초까지 연장됩니다. 연습은 버튼으로 마감합니다.", "입찰은 취소할 수 없고, 낙찰한 카드만 BB를 냅니다."],
+        done: (game) => game.phase !== "FINAL_AUCTION",
       },
-      { id: "r3-commit", kind: "ACT", focus: "action-bar", goal: "준비 완료 누르기", title: "2+3 규칙으로 겨뤄보세요", body: ["세 매치 결과가 누적 승점에 반영됩니다. 첫 매치에서 어떤 두 장이 선택되는지 확인해 보세요."], done: ready },
+      {
+        id: "r3-buyback", kind: "ACT", focus: "draft", goal: "남은 카드 1장 구매 (낙찰받았다면 자동 진행)", title: "낙찰이 없으면 2배 가격",
+        body: (game) => me(game).ownedCardIds.length >= handLimitFor(3, game)
+          ? ["경매에서 카드를 얻었습니다. 낙찰받지 못한 플레이어는 남은 카드 1장을 2배 가격에 삽니다."]
+          : ["낙찰받지 못한 플레이어는 드래프트 순서대로 남은 카드 1장을 2배 가격에 삽니다. 한 장을 고르세요."],
+        more: ["순서는 누적 승점이 낮은 플레이어부터, 같으면 BB가 많은 플레이어부터입니다. 어빌리티 할인은 없고, 나중에 팔 때는 기본 가격으로 계산합니다."],
+        onEnter: draftUntilMyTurn, done: (game) => handFull(game) || !["DRAFT_ORDER", "OPEN_DRAFT"].includes(game.phase),
+      },
+      {
+        id: "r3-omaha", kind: "EXPLAIN", next: "승부 보기", title: "네 장을 모으되, 두 장만 사용해요",
+        body: ["내 카드 정확히 2장 + 보드 정확히 3장으로 족보를 만듭니다. 사용할 조합은 게임이 자동으로 고릅니다.", "세 매치 결과가 누적 승점에 반영됩니다. 첫 매치에서 어떤 두 장이 선택되는지 확인해 보세요."],
+        more: ["보드에 같은 문양이 네 장 있어도, 내 카드에 그 문양이 한 장뿐이면 플러시가 아닙니다."], onEnter: finishDraft,
+      },
       ...showdownSteps("r3-m1"),
       {
         id: "r3-survival", kind: "REVIEW", focus: "round-results", next: "연습 마치기",
@@ -115,27 +128,68 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
   {
     id: 4, title: "가장 강한 다섯 장", round: 4, summary: "자유로운 BEST 5 · 승자조와 생존조",
     steps: [
-      { id: "r4-draft", kind: "ACT", focus: "draft", goal: "공개 카드 1장 선택", title: "공개 카드로 내 패를 보강하세요", body: ["R2와 같은 공개 선택입니다. 이번에는 선택 뒤 상점도 열립니다."], onEnter: draftUntilMyTurn, done: (game) => game.phase === "SHOP" || me(game).ownedCardIds.length >= BALANCE.handLimits[4] },
+      { id: "r4-draft", kind: "ACT", focus: "draft", goal: "공개 카드 1장 선택", title: "공개 카드로 내 패를 보강하세요", body: ["R2와 같은 공개 선택입니다. 이번에는 선택 뒤 상점도 열립니다."], onEnter: draftUntilMyTurn, done: (game) => game.phase === "SHOP" || me(game).ownedCardIds.length >= handLimitFor(4, game) },
       { id: "r4-shop", kind: "EXPLAIN", focus: "shop", next: "이 패로 계속하기", title: "필요하면 상점에서 교체하세요", body: ["마음에 드는 패라면 그대로 진행해도 됩니다. 교체하고 싶으면 내 카드를 팔고 상점에서 구매하세요."], onEnter: finishDraft },
       { id: "r4-rule", kind: "ACT", focus: "action-bar", goal: "내 카드 5장을 준비하고 준비 완료", title: "이제 2+3 제한이 없어요", body: ["내 카드 5장과 보드 5장 중 가장 강한 5장을 자유롭게 사용합니다."], done: ready },
       ...showdownSteps("r4-m1"),
       { id: "r4-enter-secondary", kind: "ACT", focus: "action-bar", goal: "2차전 시작하기", title: "내 그룹을 확인하세요", body: ["승자조는 다음 라운드 진출을 확보한 채 추가 점수를 겨룹니다. 생존조는 남은 한 자리를 두고 겨룹니다."], done: (game) => game.phase !== "GROUP_ASSIGNMENT" },
       // The engine replaces the first-stage results with the group match.
-      { id: "r4-secondary", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "연습 마치기", title: "같은 패로 그룹전", body: ["그룹 안에서 다시 겨룬 결과입니다. 생존한 네 명이 마지막 라운드로 갑니다."] },
+      { id: "r4-secondary", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "연습 마치기", title: "같은 패로 그룹전", body: ["그룹 안에서 다시 겨룬 결과입니다. 생존한 네 명이 다음 라운드로 갑니다."] },
     ],
   },
   {
-    id: 5, title: "최종 경매와 공통 보드", round: 5, summary: "Final Auction · 출전 5장 · 4-WAY 공통 보드",
+    id: 5, title: "세 개의 핸드, 세 번의 RUN", round: 5, summary: "1위의 상대 선택 · 카드 6장 · RUN 3회 · 1명 탈락",
     steps: [
-      { id: "r5-rules", kind: "EXPLAIN", focus: "auction", next: "경매 연습", title: "모아 둔 BB로 마지막 경매", body: ["R5에는 +30BB 수입이 없습니다. 남은 카드 전부를 공개하고, 입찰자 정체는 낙찰 때 공개합니다.", "실전 경매는 40초, 마지막 3초의 유효 입찰은 최대 55초까지 연장합니다. 연습은 버튼으로 진행합니다."] },
-      { id: "r5-auction", kind: "ACT", focus: "auction", goal: "입찰 후 경매 연습 종료 (구매 없이 진행 가능)", title: "첫 입찰은 두 번 누르기", body: ["처음에는 카드 선택, 다시 누르면 기본가로 입찰합니다. 이미 입찰이 있으면 시트에서 +5BB 이상 정수를 입력합니다.", "최고 입찰은 최대 2장이고 합계는 보유 BB 이내입니다. 예약만 되며 낙찰 때 차감됩니다. 입찰은 취소할 수 없습니다.", "상대의 공개된 패로 의도를 추론하세요. 낙찰 후 카드·금액·낙찰자가 공개됩니다."], done: game => game.phase !== "FINAL_AUCTION" },
-      { id: "r5-loadout", kind: "ACT", focus: "auction", goal: "출전 5장 확정", title: "출전 카드와 BLOCK", body: ["보유 5~7장 중 출전 5장을 선택합니다. 5장이면 자동 확정합니다. 전원 확정 전에는 선택이 비공개입니다.", "선택하지 않은 카드도 OWNED를 유지하므로 공통 보드에 나오지 않습니다 (BLOCK)."], done: game => game.phase === "SHOWDOWN_PRIMARY" || game.phase === "GAME_RESULT" },
-      { id: "r5-best5", kind: "REVIEW", hold: { matchIndex: 0, at: "BEST5_GLOW" }, next: "승부 결과 보기", title: "내 5장 + 공통 보드 5장", body: ["네 명이 같은 보드 5장을 공유합니다. 내 출전 5장과 보드 5장에서 제한 없이 BEST5를 만듭니다. 보드만으로 만든 족보도 인정됩니다."] },
-      { id: "r5-result", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "총점 보기", title: "마지막 패의 순위", body: ["네 명의 족보를 비교해 순위와 배치 승점을 정합니다. 이제 전체 게임의 총점을 확인하세요."] },
-      { id: "r5-score", kind: "REVIEW", focus: "final-score", next: "연습 마치기", title: "마지막 승부와 종합 우승은 달라요", body: ["누적 승점 + 족보 점수 + BB 환산 점수가 최종 총점입니다."], more: ["BB는 10BB당 1점으로 환산하며 나머지는 버립니다. R5 배치 승점은 이미 누적 승점에 포함되어 다시 더하지 않습니다."] },
+      {
+        id: "r5-pick", kind: "ACT", focus: "opponent", goal: "매칭을 확인하고 상점 열기", title: "1위가 상대를 고릅니다",
+        body: (game) => game.opponentSelect?.chooserId === "p1"
+          ? ["지금 1위라서 대결할 상대를 직접 고릅니다. 남은 두 명은 서로 대결합니다."]
+          : ["누적 승점 1위가 대결할 상대를 고릅니다. 남은 두 명은 서로 대결합니다."],
+        more: ["이 화면에서는 남은 네 명의 카드가 모두 공개됩니다. 실전에서는 15초 안에 고르지 않으면 4위가 자동으로 선택됩니다."],
+        onEnter: (game) => game.phase === "OPPONENT_SELECT" && game.opponentSelect && game.opponentSelect.chooserId !== "p1" && !game.opponentSelect.opponentId ? autoChooseOpponent(game) : game,
+        done: (game) => game.phase !== "OPPONENT_SELECT",
+      },
+      {
+        id: "r5-shop", kind: "ACT", focus: "shop", goal: "내 카드 6장 채우기", title: "여섯 장을 모으세요",
+        body: ["상점에 카드 3장이 놓이고 최대 3장을 살 수 있습니다. 리롤은 2번입니다.", "R5에는 정확히 6장이 필요합니다. 실전에서 시간이 끝나면 부족한 장수를 내 상점에서 자동으로 삽니다."],
+        done: handFull,
+      },
+      { id: "r5-commit", kind: "ACT", focus: "action-bar", goal: "준비 완료 누르기", title: "이제 세 핸드로 나눕니다", body: ["준비 완료를 누르면 6장을 2장씩 RUN 1·2·3에 배치하는 단계로 넘어갑니다."], done: ready },
+      {
+        id: "r5-loadout", kind: "ACT", focus: "run-loadout", goal: "RUN 1·2·3 배치 확정", title: "어느 RUN에 어떤 두 장을 낼까요",
+        body: ["추천 배치가 미리 채워져 있습니다. 카드를 누른 뒤 바꿀 카드를 누르면 두 장의 자리가 바뀝니다.", "각 RUN의 카드는 그 RUN이 시작될 때 공개됩니다. 강한 핸드를 한곳에 모을지, 고르게 나눌지가 이 라운드의 전략입니다."],
+        more: ["RUN 승리 +5P, Split +2P입니다. Split 없이 세 RUN을 모두 이기면 +15P를 더 받습니다."],
+        done: (game) => game.phase === "SHOWDOWN_PRIMARY" || game.roundResults.length > 0,
+      },
+      { id: "r5-run1", kind: "REVIEW", hold: { matchIndex: 0, at: "RUN_RESULT" }, next: "다음 RUN 보기", title: "RUN마다 새 보드", body: ["RUN 1의 두 장과 새 보드 5장으로 겨뤘습니다. 다음 RUN에서는 두 장이 모두 바뀌고 보드도 새로 열립니다."] },
+      { id: "r5-runs", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "라운드 순위 보기", title: "세 RUN의 승점을 더해요", body: ["RUN 승리 +5P, Split +2P입니다. Split 없이 세 RUN을 모두 이기면 +15P를 더 받습니다."] },
+      {
+        id: "r5-elimination", kind: "REVIEW", focus: "round-results", next: "연습 마치기", title: "누적 승점 최하위 한 명이 탈락해요",
+        body: ["승점이 같으면 BB가 적은 쪽이 탈락합니다. BB까지 같으면 RUN 1→2→3 카드로 추가 승부를 하고, 끝까지 같으면 하이카드로 정합니다."],
+        onEnter: (game) => game.survival ? resolveSurvival(leaveRoundResult(game)) : game,
+      },
+    ],
+  },
+  {
+    id: 6, title: "마지막 3인 결승", round: 6, summary: "출전 5장 + 커뮤니티 보드 · BURN · 최종 점수",
+    steps: [
+      { id: "r6-shop", kind: "EXPLAIN", focus: "shop", next: "이 패로 계속하기", title: "5~7장을 모으고 5장을 출전시켜요",
+        body: ["R6에서는 보유한 5~7장 중 5장을 출전시키고, 커뮤니티 보드 5장과 합친 10장 중 가장 강한 5장으로 겨룹니다.", "상점에는 카드 4장이 놓이고 최대 5번 살 수 있습니다. 필요하면 판매하고 교체하세요."],
+        more: ["5장보다 적으면 몰수패입니다. 실전에서 시간이 끝나면 5장까지 자동으로 삽니다."] },
+      { id: "r6-commit", kind: "ACT", focus: "action-bar", goal: "준비 완료 누르기", title: "출전할 5장을 확인하러 가요", body: ["준비 완료를 누르면 출전 5장 확인 단계로 넘어갑니다. 정확히 5장이면 그대로 출전합니다."], done: ready },
+      {
+        id: "r6-lineup", kind: "ACT", focus: "run-loadout", goal: "출전 5장 확정", title: "출전 5장과 BURN",
+        body: ["가장 강한 5장이 출전 칸에 미리 놓여 있습니다. BURN 카드와 출전 카드를 차례로 누르면 서로 바뀝니다.", "실전에서는 10초 안에 정하고, 시간이 끝나면 놓인 그대로 출전합니다."],
+        more: ["출전하지 않는 BURN 카드는 준비 화면부터 모든 플레이어에게 공개됩니다. 출전 5장은 쇼다운에서 공개됩니다."],
+        done: (game) => game.phase === "SHOWDOWN_PRIMARY" || game.roundResults.length > 0,
+      },
+      { id: "r6-best5", kind: "REVIEW", hold: { matchIndex: 0, at: "BEST5_GLOW" }, next: "승부 결과 보기", title: "출전 5장과 보드 중 BEST 5", body: ["출전 5장과 커뮤니티 보드 5장, 모두 10장 중 가장 강한 5장이 족보입니다. 밝게 표시된 카드가 내 족보입니다."] },
+      { id: "r6-result", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "총점 보기", title: "마지막 패의 순위", body: ["세 명의 족보를 비교해 순위와 결승 승점을 정합니다. 이제 전체 게임의 총점을 확인하세요."] },
+      { id: "r6-score", kind: "REVIEW", focus: "final-score", next: "연습 마치기", title: "마지막 승부와 종합 우승은 달라요", body: ["누적 승점 + 족보 점수 + BB 환산 점수가 최종 총점입니다."], more: ["BB는 10BB당 1점으로 환산하며 나머지는 버립니다. 결승 승점은 이미 누적 승점에 포함되어 다시 더하지 않습니다."] },
     ],
   },
 ];
 
 /** A continued practice keeps the player's own cards. */
-export const TUTORIAL_SEED = 2629;
+// 2631: the practice seat survives every cut through the six-round R6 final.
+export const TUTORIAL_SEED = 2631;

@@ -27,9 +27,9 @@ export function scoreUnrestricted(cards: readonly Card[]): number {
   return suits.length > 1 ? Math.max(...suits.map(s => scoreSeven(cards.filter(c => c.suit === s)))) : scoreSeven(cards);
 }
 
-const REQUIRED_CARDS: Record<Round, number> = { 1: 2, 2: 2, 3: 4, 4: 5, 5: 7 };
+const REQUIRED_CARDS: Record<Round, number> = { 1: 2, 2: 2, 3: 4, 4: 5, 5: 7, 6: 7 };
 // Two-card rounds sample 10k boards (95% error about +-1%p); a board costs one 7-card evaluation per hand.
-const SAMPLES: Record<Round, number> = { 1: 10_000, 2: 10_000, 3: 600, 4: 240, 5: 1 };
+const SAMPLES: Record<Round, number> = { 1: 10_000, 2: 10_000, 3: 600, 4: 240, 5: 1, 6: 1 };
 /** Prep screens re-render every countdown tick; the result depends only on the cards, so reuse it. */
 const cache = new Map<string, number>();
 const CACHE_LIMIT = 64;
@@ -127,7 +127,8 @@ export function rawShowdownEquity(round: Round, left: readonly Card[], right: re
   const evaluate = (cards: readonly Card[], board: readonly Card[]) => round === 3
     ? findBestOmaha(cards, board)
     : findBestFive([...cards, ...board]);
-  if (round === 5) {
+  // Boardless finals compare the made hands directly. A six-round R5 RUN is scored as round 2.
+  if (round === 5 || round === 6) {
     const comparison = compareHands(evaluate(left, []), evaluate(right, []));
     return comparison === 0 ? 50 : comparison > 0 ? 100 : 0;
   }

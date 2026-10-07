@@ -12,3 +12,5 @@ import "./r2-draft-arena.css";
 import "./r4-draft-arena.css";
 import "./abilities.css";
 import "./abilitySelection.css";
+import "./final-auction.css";
+import "./six-round.css";

@@ -6,7 +6,7 @@ import { createMatchView } from "./matchView";
 import type { PorenaGameState, Round } from "./types";
 
 function fixture(round: Round, count: number, everyone = false): PorenaGameState {
-  const game = createGame(20260922);
+  const game = createGame(20260922, "seeded", 2, false, false);
   game.round = round; game.phase = "SHOP";
   const alive = round === 5 ? 4 : round === 4 ? 6 : 8;
   for (const player of game.players) releasePlayerCards(game, player);

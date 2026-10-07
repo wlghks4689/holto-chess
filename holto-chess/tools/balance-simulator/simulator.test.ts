@@ -15,16 +15,24 @@ describe("balance simulator", () => {
     for (let game = 0; game < 3; game += 1) {
       const outcome = playGame(cfg, game);
       expect(outcome.game.error).toBeUndefined();
-      expect(outcome.game.aliveAfter).toEqual([8, 8, 6, 4, 4]);
-      expect(outcome.game.matchStats.map((m) => m.round)).toEqual([1, 2, 3, 4, 5]);
+      expect(outcome.game.aliveAfter).toEqual([8, 8, 6, 4, 3, 3]);
+      expect(outcome.game.matchStats.map((m) => m.round)).toEqual([1, 2, 3, 4, 5, 6]);
       expect(outcome.players.map((p) => p.placement).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
       for (const p of outcome.players) {
         expect(p.total).toBe(p.points + p.handScore + p.stackScore);
         expect(p.rounds[0]!.entered && p.rounds[1]!.entered).toBe(true);
-        expect(p.rounds[4]!.entered).toBe(p.placement <= 4);
+        expect(p.rounds[5]!.entered).toBe(p.placement <= 3);
       }
     }
   });
+
+  it("still plays the five-round format that saved rooms finish with", () => {
+    const outcome = playGame(config({ policies: ["ENGINE_BOT", "HIGH_RANK"], fiveRounds: true }), 0);
+    expect(outcome.game.error).toBeUndefined();
+    expect(outcome.game.aliveAfter).toEqual([8, 8, 6, 4, 4]);
+    expect(outcome.players.every((p) => p.rounds.length === 5 && p.rounds[4]!.entered === p.placement <= 4)).toBe(true);
+    expect(parseCliArgs(["--five-rounds"]).config.fiveRounds).toBe(true);
+  }, 120_000);
 
   it("is reproducible for the same seed and config, and differs across seeds", () => {
     const cfg = config({ policies: ["HIGH_RANK", "PAIR_BUILDER", "RANDOM"] });
@@ -43,7 +51,7 @@ describe("balance simulator", () => {
     for (const policy of ["ENGINE_BOT", "ABILITY_NEUTRAL", "ABILITY_AWARE"] as const) {
       const outcome = playGame(config({ policies: [policy], abilities: true, maxRerolls: 9 }), 0);
       expect(outcome.game.error).toBeUndefined();
-      expect(outcome.game.aliveAfter).toEqual([8, 8, 6, 4, 4]);
+      expect(outcome.game.aliveAfter).toEqual([8, 8, 6, 4, 3, 3]);
       const abilities = outcome.players.map((p) => p.ability);
       expect(abilities.every(Boolean)).toBe(true);
       expect(new Set(abilities).size).toBe(8);

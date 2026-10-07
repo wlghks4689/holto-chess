@@ -2,7 +2,7 @@ import { makeDeck, type Card } from "../../src/core/poker/cards";
 import { findBestFive, findBestOmaha } from "../../src/core/poker/evaluate";
 import { CAPITALISM_INTEREST_PERCENT, type AbilityId } from "../../src/game/abilities";
 import { scoreBotPlan } from "../../src/game/botStrategy";
-import { BALANCE, cardPrice } from "../../src/game/config";
+import { BALANCE, cardPrice, handLimitFor, isFinalRound, isTripleRunRound, lastRoundFor, type RuleContext } from "../../src/game/config";
 import type { Round } from "../../src/game/types";
 import { makeRandom } from "./stats";
 import type { DraftInfo, Policy, ShopInput } from "./policies";
@@ -18,7 +18,9 @@ import type { DraftInfo, Policy, ShopInput } from "./policies";
 const UNITS_PER_POINT = 16;
 const UNITS_PER_BB = UNITS_PER_POINT / 10;
 /** Regulation boards per round in which a per-match ability can pay (R4: primary + a secondary for most seats). */
-const MATCHES: Record<Round, number> = { 1: 3, 2: 2, 3: 3, 4: 1.5, 5: 1 };
+const MATCHES: Record<Round, number> = { 1: 3, 2: 2, 3: 3, 4: 1.5, 5: 1, 6: 1 };
+/** The six-round R5 plays three RUNs. */
+const matchesIn = (round: Round, rules: RuleContext) => isTripleRunRound(round, rules) ? 3 : MATCHES[round];
 /** Chance a finalist-to-be actually reaches R5 (8 -> 6 -> 4 -> R5 needs two cuts). */
 const REACH_R5 = 0.5;
 const FUTURE_NEED = [1, 0.6, 0.3, 0.1, 0.02] as const;
@@ -39,15 +41,16 @@ function coverage(cards: readonly Card[], mustHold: (low: number) => boolean): n
 
 type Tailoring = { bonus(round: Round, cards: readonly Card[], stackAfter: number, price: number, seedKey: string): number };
 
-function completedCategories(round: Round, cards: readonly Card[], seedKey: string, firstCardId?: string) {
+function completedCategories(round: Round, cards: readonly Card[], seedKey: string, rules: RuleContext, firstCardId?: string) {
   const known = new Set(cards.map((c) => c.id));
   const unseen = makeDeck().filter((c) => !known.has(c.id));
   const random = makeRandom([...seedKey].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619), 2166136261) >>> 0 || 1);
-  const limit = BALANCE.handLimits[round];
+  const limit = handLimitFor(round, rules);
+  const final = isFinalRound(round, rules);
   let fullHouse = 0; let strong = 0; let strongWithFirst = 0;
   const fh = (hs: ReturnType<typeof hands>) => hs.filter((h) => h.category === "FULL_HOUSE").length;
   const st = (hs: ReturnType<typeof hands>) => hs.filter((h) => h.categoryRank >= 5).length;
-  const samples = round === 5 ? 1 : SAMPLES;
+  const samples = final ? 1 : SAMPLES;
   for (let s = 0; s < samples; s += 1) {
     const deck = [...unseen];
     for (let i = deck.length - 1; i > 0; i -= 1) { const j = Math.floor(random() * (i + 1)); [deck[i], deck[j]] = [deck[j]!, deck[i]!]; }
@@ -55,7 +58,9 @@ function completedCategories(round: Round, cards: readonly Card[], seedKey: stri
     const partial = cards.length < limit ? [...cards, ...deck.splice(0, limit - cards.length)] : cards;
     const usedCards = partial;
     const board = deck;
-    const list = (round === 5 ? [findBestFive(usedCards)]
+    const list = (final ? [findBestFive(usedCards)]
+      // Six-round R5: three pairs in held order, each on its own board.
+      : isTripleRunRound(round, rules) ? [0, 1, 2].map((run) => findBestFive([...usedCards.slice(run * 2, run * 2 + 2), ...board.slice(run * 5, run * 5 + 5)]))
       : round === 3 ? [findBestOmaha(usedCards, board.slice(0, 5))]
       : round === 2 && usedCards.length === 3 ? (() => {
         const opts = usedCards.map((anchor, i) => usedCards.filter((_, j) => j !== i).map((other) => findBestFive([anchor, other, ...board.slice(0, 5)])));
@@ -68,7 +73,7 @@ function completedCategories(round: Round, cards: readonly Card[], seedKey: stri
   return { fullHouse: fullHouse / samples, strong: strong / samples, strongWithFirst: strongWithFirst / samples };
 }
 
-function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined): Tailoring {
+function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined, rules: RuleContext): Tailoring {
   switch (ability) {
     case "target-sniper": return {
       bonus(round, cards, _stack, _price, key) {
@@ -76,8 +81,8 @@ function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined
         if (!first) return -40; // selling the first card would switch the ability off
         // Since 2026-10-01 it pays on an outright win with the first card in the BEST 5 (any hand), so hands
         // the first card makes strong are still the ones most likely to collect it.
-        const { strongWithFirst } = completedCategories(round, cards, `${key}:sn`, firstCardId);
-        return MATCHES[round] * strongWithFirst * 15 * UNITS_PER_BB;
+        const { strongWithFirst } = completedCategories(round, cards, `${key}:sn`, rules, firstCardId);
+        return matchesIn(round, rules) * strongWithFirst * 15 * UNITS_PER_BB;
       },
     };
     case "underdog": return {
@@ -85,7 +90,7 @@ function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined
         // Payout exists only in R5: a straight-or-better containing a 2. Built windows are A-2-3-4-5 and 2-3-4-5-6;
         // a 2-bearing flush or full house also pays, which this deliberately ignores (it only ever under-counts).
         const covered = coverage(cards, (low) => low === 1 || low === 2);
-        if (round === 5) return covered >= 5 ? 20 * UNITS_PER_POINT : 0;
+        if (isFinalRound(round, rules)) return covered >= 5 ? 20 * UNITS_PER_POINT : 0;
         const need = 5 - covered;
         // v1 priced the far future at full EV and dragged the seat into R3/R4 exits (R5 reach 39% vs ~50%). The chase is now a
         // tie-break before R4 and a real preference only once the final is two rounds away.
@@ -94,9 +99,9 @@ function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined
     };
     case "architect": return {
       bonus(round, cards, _stack, _price, key) {
-        const { fullHouse } = completedCategories(round, cards, `${key}:ar`);
-        const now = MATCHES[round] * fullHouse * 30 * UNITS_PER_BB;
-        if (round === 5) return now;
+        const { fullHouse } = completedCategories(round, cards, `${key}:ar`, rules);
+        const now = matchesIn(round, rules) * fullHouse * 30 * UNITS_PER_BB;
+        if (isFinalRound(round, rules)) return now;
         // Later rounds: trips or two pair now is the raw material of an R5 full house.
         const counts = new Map<number, number>(); for (const c of cards) counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
         const v = [...counts.values()]; const trips = v.filter((n) => n >= 3).length; const pairs = v.filter((n) => n === 2).length;
@@ -113,21 +118,22 @@ function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined
     case "capitalism": return {
       // Every BB left after a round earns CAPITALISM_INTEREST_PERCENT (15% since 2026-10-01) interest. v1 priced cash at 1.6 units/BB and hoarded (R5 reach 41% vs 55% for the
       // plain brain); the planner itself values a BB at 0.035, so this only leans that value up in proportion to interest rounds left.
-      bonus: (round, _cards, stackAfter) => stackAfter * 0.035 * (CAPITALISM_INTEREST_PERCENT / 100) * Math.max(0, 5 - round) * 4,
+      bonus: (round, _cards, stackAfter) => stackAfter * 0.035 * (CAPITALISM_INTEREST_PERCENT / 100) * Math.max(0, lastRoundFor(rules) - round) * 4,
     };
     default: return { bonus: () => 0 };
   }
 }
 
-const TARGET_EQUITY: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5 };
+const TARGET_EQUITY: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5, 6: 0.5 };
 
-export function makeAbilityPolicy(kind: "ABILITY_NEUTRAL" | "ABILITY_AWARE", ability: AbilityId | null, firstCardId: string | undefined): Policy {
+export function makeAbilityPolicy(kind: "ABILITY_NEUTRAL" | "ABILITY_AWARE", ability: AbilityId | null, firstCardId: string | undefined, sixRounds = true): Policy {
   const aware = kind === "ABILITY_AWARE";
-  const tailoring = aware ? tailoringFor(ability, firstCardId) : { bonus: () => 0 };
+  const rules: RuleContext = { rulesVersion: 2, sixRounds };
+  const tailoring = aware ? tailoringFor(ability, firstCardId, rules) : { bonus: () => 0 };
   let pendingBuy: string | null = null;
 
   const utility = (round: Round, cards: readonly Card[], stackAfter: number, price: number, key: string, shared: readonly Card[]) => {
-    const base = scoreBotPlan(round, cards, stackAfter, key, { rulesVersion: 2, sharedKnown: shared });
+    const base = scoreBotPlan(round, cards, stackAfter, key, { rulesVersion: 2, sixRounds, sharedKnown: shared });
     return { base, total: base.utility + tailoring.bonus(round, cards, stackAfter, price, key) };
   };
 

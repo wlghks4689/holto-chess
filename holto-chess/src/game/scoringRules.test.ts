@@ -55,7 +55,7 @@ describe("final scoring", () => {
     expect(BALANCE.handScores).toEqual({ HIGH_CARD: 0, PAIR: 1, TWO_PAIR: 2, TRIPS: 5, STRAIGHT: 8, FLUSH: 12, FULL_HOUSE: 15, QUADS: 20, STRAIGHT_FLUSH: 35, ROYAL_FLUSH: 50 });
   });
   it("22. totals round points + hand score + floor(BB / 10) with unrounded points", () => {
-    const game = createGame(7); game.round = 5; game.phase = "SHOWDOWN_PRIMARY";
+    const game = createGame(7, "seeded", 2, false, false); game.round = 5; game.phase = "SHOWDOWN_PRIMARY";
     for (const entry of game.ownershipCardPool) { entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId; }
     const hands = [
       ["As", "Ks", "Qs", "Js", "Ts", "2c", "3c"], ["Ah", "Kh", "Qh", "Jh", "9h", "4c", "5c"],

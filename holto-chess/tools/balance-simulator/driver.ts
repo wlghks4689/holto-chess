@@ -1,11 +1,11 @@
 import { assertPoolIntegrity } from "../../src/game/cardPool";
 import { ABILITY_IDS, abilityRerollCost, abilityRerollLimit, type AbilityId } from "../../src/game/abilities";
 import { bestRunLoadout } from "../../src/game/botStrategy";
-import { BALANCE, purchaseLimitFor } from "../../src/game/config";
+import { BALANCE, handLimitFor, minHandFor, purchaseLimitFor } from "../../src/game/config";
 import {
-  autoPickDraft, beginSecondary, buyCard, createAbilityGame, createGame, finalStandings, finishAbilitySelection, getCard, getCardPrice,
-  leaveRoundResult, lockRunLoadouts, openAbilitySelection, openDraft, pickAbility, pickDraftCard, prepareShowdown, rerollShop, resolvePrimary,
-  resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound,
+  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, completeOpponentSelect, createAbilityGame, createGame, draftPrice, finalStandings, finishAbilitySelection,
+  finishCardAuctionReveal, getCard, getCardPrice, isOpponentRevealing, leaveRoundResult, lockRunLoadouts, openAbilitySelection, openDraft, pickAbility, pickDraftCard,
+  prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound,
 } from "../../src/game/engine";
 import type { PorenaGameState } from "../../src/game/types";
 import { tickAuctionBots } from "../../src/game/finalAuctionBot";
@@ -15,7 +15,7 @@ import { findBestFive } from "../../src/core/poker/evaluate";
 import type { GameRow } from "./types";
 import { makePolicy, type Policy } from "./policies";
 import { makeRandom } from "./stats";
-import { EXPECTED_ALIVE_AFTER, type GameOutcome, type MatchRoundStats, type PlayerRow, type PolicyName, type RoundRow, type SimConfig } from "./types";
+import { EXPECTED_ALIVE_AFTER, FIVE_ROUND_ALIVE_AFTER, finalRoundOf, ROUNDS, type GameOutcome, type MatchRoundStats, type PlayerRow, type PolicyName, type RoundRow, type SimConfig } from "./types";
 
 const STEP_LIMIT = 600;
 
@@ -54,11 +54,13 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
   const started = performance.now();
   const names = dealPolicies(config, game, seed);
   const policies = new Map<string, Policy>();
-  let state: PorenaGameState = config.abilities ? dealAbilities(createAbilityGame(seed, "seeded"), seed) : createGame(seed, "seeded", 2);
-  state.players.forEach((p, i) => policies.set(p.id, makePolicy(names[i]!, seed + i, { ability: p.abilityId ?? null, firstCardId: p.firstCardId })));
+  const sixRounds = !config.fiveRounds;
+  const expectedAlive = sixRounds ? EXPECTED_ALIVE_AFTER : FIVE_ROUND_ALIVE_AFTER;
+  let state: PorenaGameState = config.abilities ? dealAbilities(createAbilityGame(seed, "seeded", sixRounds), seed) : createGame(seed, "seeded", 2, false, sixRounds);
+  state.players.forEach((p, i) => policies.set(p.id, makePolicy(names[i]!, seed + i, { ability: p.abilityId ?? null, firstCardId: p.firstCardId, sixRounds })));
   const rows = new Map<string, PlayerRow>(state.players.map((p, i) => [p.id, {
     game, seed, playerId: p.id, seat: i + 1, policy: names[i]!, r1: null, r1Rank: 0, draftOrder: { r2: null, r4: null },
-    rounds: [1, 2, 3, 4, 5].map(emptyRound), eliminatedRound: null, placement: 0, rankPoints: 0, points: 0, handScore: 0,
+    rounds: ROUNDS.filter((round) => round <= finalRoundOf(config)).map(emptyRound), eliminatedRound: null, placement: 0, rankPoints: 0, points: 0, handScore: 0,
     stackScore: 0, total: 0, finalHand: null, finalBB: 0, finalRanks: [],
     ability: p.abilityId ?? null, abilityActs: 0, abilityBB: 0, abilityPoints: 0,
   }]));
@@ -79,9 +81,9 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
       for (let step = 0; step < 24; step += 1) {
         const p = state.players.find((x) => x.id === id)!; const round = state.round;
         const action = policy.shop!({
-          round, playerId: id, stackBB: p.stackBB, handLimit: BALANCE.handLimits[round], points: p.points,
-          purchasesLeft: purchaseLimitFor(round) - p.purchasesThisRound,
-          rerollsLeft: Math.max(0, Math.min(abilityRerollLimit(p, round) - (p.rerollsUsed ?? 0), config.maxRerolls - used)),
+          round, playerId: id, stackBB: p.stackBB, handLimit: handLimitFor(round, state), points: p.points,
+          purchasesLeft: purchaseLimitFor(round, state) - p.purchasesThisRound,
+          rerollsLeft: Math.max(0, Math.min(abilityRerollLimit(p, round, state) - (p.rerollsUsed ?? 0), config.maxRerolls - used)),
           rerollCost: abilityRerollCost(p), ownedCards: p.ownedCardIds.map((c) => getCard(state, c)),
           shopCards: p.shopCardIds.map((c) => ({ card: getCard(state, c), price: getCardPrice(state, id, c) })),
         });
@@ -94,7 +96,7 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
       }
     }
     // Seats that finished a legal hand are locked in as "humans" so the engine's bot brain leaves them alone.
-    const settled = policySeats().filter((id) => state.players.find((p) => p.id === id)!.ownedCardIds.length >= BALANCE.handLimits[state.round]);
+    const settled = policySeats().filter((id) => state.players.find((p) => p.id === id)!.ownedCardIds.length >= minHandFor(state.round, state));
     state = prepareShowdown(state, settled);
     for (const p of alive()) {
       const b = before.get(p.id)!; const row = roundRow(p.id);
@@ -109,7 +111,7 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
     const policy = policies.get(id)!; const p = state.players.find((x) => x.id === id)!;
     if (policy.pickDraft) {
       const options = draft.cardIds.filter((c) => state.ownershipCardPool.find((e) => e.card.id === c)!.state === "AVAILABLE")
-        .map((c) => ({ card: getCard(state, c), price: getCardPrice(state, id, c) })).filter((o) => o.price <= p.stackBB);
+        .map((c) => ({ card: getCard(state, c), price: draftPrice(state, id, c) })).filter((o) => o.price <= p.stackBB);
       if (options.length) {
         const info = { round: state.round, playerId: id, stackBB: p.stackBB, points: p.points };
         state = pickDraftCard(state, id, policy.pickDraft(options, p.ownedCardIds.map((c) => getCard(state, c)), info)); return;
@@ -119,9 +121,10 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
   };
 
   const closeDraft = () => {
-    const draft = state.draft!; const key = state.round === 2 ? "r2" : "r4";
-    draft.order.forEach((o, i) => { rows.get(o.playerId)!.draftOrder[key] = i + 1; });
-    for (const pick of draft.picks) if (pick.cardId) roundRow(pick.playerId).buys.push({ rank: getCard(state, pick.cardId).rank, price: pick.price, via: "draft" });
+    const draft = state.draft!; const key = state.round === 2 ? "r2" : state.round === 4 ? "r4" : undefined;
+    // The six-round R3 buyback buys through the draft but is not an open-draft pick order.
+    if (key) draft.order.forEach((o, i) => { rows.get(o.playerId)!.draftOrder[key] = i + 1; });
+    for (const pick of draft.picks) if (pick.cardId) roundRow(pick.playerId).buys.push({ rank: getCard(state, pick.cardId).rank, price: pick.price, via: draft.priceMultiplier ? "buyback" : "draft" });
   };
 
   const closeRound = () => {
@@ -138,11 +141,19 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
       const phase = state.phase;
       switch (phase) {
         case "FINAL_AUCTION": {
-          const start = state.finalAuction!.startedAt;
-          for (let now = start; now < state.finalAuction!.endsAt; now += 500) state = tickAuctionBots(state, [], now);
+          const auction = state.finalAuction!;
+          if (auction.settledAt !== null) {
+            // Six-round R3: auction wins become buys; then the result reveal ends and the buyback opens.
+            for (const result of auction.results!) roundRow(result.playerId).buys.push({ rank: getCard(state, result.cardId).rank, price: result.amount, via: "auction" });
+            state = finishCardAuctionReveal(state, auction.loadoutStartsAt ?? auction.settledAt);
+            break;
+          }
+          // Late bids extend endsAt, so read it from the current state each tick.
+          for (let now = auction.startedAt; now < state.finalAuction!.endsAt; now += 500) state = tickAuctionBots(state, [], now);
           state = settleFinalAuction(state, state.finalAuction!.endsAt);
           break;
         }
+        case "OPPONENT_SELECT": state = isOpponentRevealing(state) ? completeOpponentSelect(state) : autoChooseOpponent(state); break;
         case "FINAL_LOADOUT": state = finishFinalLoadouts(state, state.finalAuction!.loadoutEndsAt!, []); break;
         case "SHOP": shopStep(); break;
         case "DRAFT_ORDER": state = openDraft(state); break;
@@ -167,8 +178,8 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
           closeRound(); assertPoolIntegrity(state);
           const survivors = alive().length;
           aliveAfter[state.round - 1] = survivors;
-          if (survivors !== EXPECTED_ALIVE_AFTER[state.round] && !state.survival) {
-            throw new Error(`R${state.round} left ${survivors} players, expected ${EXPECTED_ALIVE_AFTER[state.round]}`);
+          if (survivors !== expectedAlive[state.round] && !state.survival) {
+            throw new Error(`R${state.round} left ${survivors} players, expected ${expectedAlive[state.round]}`);
           }
           state = leaveRoundResult(state); break;
         }
@@ -177,9 +188,9 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
       }
       assertPoolIntegrity(state);
     }
-    for (const p of alive()) roundRow(p.id).endPoints = p.points; // R5 has no ROUND_RESULT step
+    for (const p of alive()) roundRow(p.id).endPoints = p.points; // the final round has no ROUND_RESULT step
     closeRound();
-    aliveAfter[4] = alive().length;
+    aliveAfter[finalRoundOf(config) - 1] = alive().length;
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
     failedAt = `R${state.round} ${state.phase}`;

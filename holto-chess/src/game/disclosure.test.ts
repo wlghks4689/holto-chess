@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
 import type { MatchView } from "../shared/protocol";
-import { PRESENTATION_VERSION, cinematicTimeline } from "../shared/presentationTimeline";
+import { PRESENTATION_VERSION, cinematicTimeline, isFinalMatch } from "../shared/presentationTimeline";
 import { discloseMatch, nextDisclosureAt } from "./disclosure";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, turnKey } from "./room";
 import { createPlayerView } from "./playerView";
@@ -108,18 +108,19 @@ describe("server-authorized disclosure", () => {
     expect(migrateRoomSnapshot(migrated)).toBe(migrated);
   });
 
-  it("does not include any unknown board value in any field at any frame of a real R1–R5 game", () => {
+  it("does not include any unknown board or RUN hand value in any field at any frame of a real six-round game", () => {
     let room = game();
-    for (let n = 0; n < 100; n++) {
+    for (let n = 0; n < 160; n++) {
       if (room.presentation) for (const result of room.game.roundResults) {
         const full = createMatchView(room.game, result);
         for (const frame of cinematicTimeline(full)) {
           const safe = discloseMatch(full, { ...entry, matchId: full.id }, 0, frame.at)!;
-          const known = new Set([...Object.values(safe.revealedCards).flat(), ...safe.boards.flat()].filter(card => !card.hidden).map(card => card.id));
+          const known = new Set([...Object.values(safe.revealedCards).flat(), ...safe.boards.flat(), ...Object.values(safe.runCards ?? {}).flat(2)].filter(card => !card.hidden).map(card => card.id));
           // A reset deck may repeat an already public card in a future run; that value is no longer secret.
-          const unknown = [...full.boards.flat(), ...Object.values(full.revealedCards).flat()].filter(card => !known.has(card.id));
+          // An R5 RUN hand is private until its own RUN starts.
+          const unknown = [...full.boards.flat(), ...Object.values(full.revealedCards).flat(), ...Object.values(full.runCards ?? {}).flat(2)].filter(card => !known.has(card.id));
           for (const card of unknown) expect(JSON.stringify(safe), `${full.id}/${frame.phase}/${card.id}`).not.toContain(`"${card.id}"`);
-          if (full.round === 5 && !["FINAL_WINNER", "REWARD", "COMPLETE"].includes(frame.phase)) {
+          if (isFinalMatch(full) && !["FINAL_WINNER", "REWARD", "COMPLETE"].includes(frame.phase)) {
             expect(safe.rewards).toEqual([]);
             expect(safe.pointAwards).toBeUndefined();
             expect(safe.standingsAfterRuns).toEqual([]);

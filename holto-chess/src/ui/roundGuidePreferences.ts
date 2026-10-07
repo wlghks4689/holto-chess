@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import type { Round } from "../game/types";
 
 const AUTO_KEY = "porena.round-guide-auto";
-const SEEN_KEY = "porena.round-guide-seen";
+// v2: the six-round format rewrote R3 and R5 and added R6, so every guide shows once more.
+const SEEN_KEY = "porena.round-guide-seen.v2";
 const CHANGE_EVENT = "porena:round-guide-preferences";
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -32,7 +33,7 @@ export function readSeenRoundGuides(storage = browserStorage()): Round[] {
     const value = storage?.getItem(SEEN_KEY);
     if (value === null || value === undefined) return [];
     const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? [...new Set(parsed.filter((round): round is Round => [1, 2, 3, 4, 5].includes(round)))].sort() : [];
+    return Array.isArray(parsed) ? [...new Set(parsed.filter((round): round is Round => [1, 2, 3, 4, 5, 6].includes(round)))].sort() : [];
   } catch { return [...fallbackSeen]; }
 }
 

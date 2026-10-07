@@ -3,9 +3,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
-import { BALANCE } from "../game/config";
+import { isLineupFinal, isTripleRunRound, minHandFor } from "../game/config";
 import {
-  beginSecondary, buyCard, confirmSelection, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
+  beginSecondary, buyCard, confirmSelection, draftPrice, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
   pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, setRunLoadout,
   startNextRound, toggleSelectedCard,
 } from "../game/engine";
@@ -22,9 +22,9 @@ import type { ChapterId } from "./tutorialTypes";
 function play(game: PorenaGameState): PorenaGameState {
   const me = game.players[0]!;
   switch (game.phase) {
-    case "FINAL_AUCTION": case "FINAL_LOADOUT": return autoStep(game);
+    case "FINAL_AUCTION": case "FINAL_LOADOUT": case "OPPONENT_SELECT": return autoStep(game);
     case "SHOP": {
-      if (me.ownedCardIds.length >= BALANCE.handLimits[game.round]) return prepareShowdown(game, ["p1"]);
+      if (me.ownedCardIds.length >= minHandFor(game.round, game)) return prepareShowdown(game, ["p1"]);
       const affordable = me.shopCardIds.find((id) => getCardPrice(game, "p1", id) <= me.stackBB);
       return affordable ? buyCard(game, "p1", affordable) : rerollShop(game, "p1");
     }
@@ -35,10 +35,10 @@ function play(game: PorenaGameState): PorenaGameState {
     }
     case "OPEN_DRAFT": {
       const draft = game.draft!;
-      const open = draft.cardIds.find((id) => !draft.picks.some((pick) => pick.cardId === id) && getCardPrice(game, "p1", id) <= me.stackBB);
+      const open = draft.cardIds.find((id) => !draft.picks.some((pick) => pick.cardId === id) && draftPrice(game, "p1", id) <= me.stackBB);
       return pickDraftCard(game, "p1", open!);
     }
-    case "RUN_LOADOUT": return lockRunLoadouts(setRunLoadout(game, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(game, id)))));
+    case "RUN_LOADOUT": return lockRunLoadouts(isTripleRunRound(game.round, game) || isLineupFinal(game.round, game) ? game : setRunLoadout(game, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(game, id)))));
     case "ROUND_RESULT": return leaveRoundResult(game);
     case "GROUP_ASSIGNMENT": return beginSecondary(game);
     case "SHOWDOWN_PRIMARY": return resolvePrimary(game);
@@ -114,14 +114,14 @@ describe("the guide's checkpoints land on frames that actually show the cards", 
     }
   });
 
-  it("reveals the shared final board in flop, turn and river order", () => {
-    const bestFive = beatsOf(5).find((beat) => beat.at === "BEST5_GLOW")!;
-    expect(bestFive).toBeDefined();
+  it("reveals the R5 RUN 1 board in flop, turn and river order with a two-card hand", () => {
+    const runResult = beatsOf(5).find((beat) => beat.at === "RUN_RESULT")!;
+    expect(runResult).toBeDefined();
     for (const [at, count] of [["FLOP_HAND", 3], ["TURN_HAND", 4], ["RIVER_SETTLE", 5]] as const) {
-      const beat = { ...bestFive, at, elapsed: checkpointMs(bestFive.match, at)! };
-      expect(beat.elapsed).toBeLessThan(bestFive.elapsed);
+      const beat = { ...runResult, at, elapsed: checkpointMs(runResult.match, at)! };
+      expect(beat.elapsed).toBeLessThan(runResult.elapsed);
       expect(openBoardCards(render(beat), beat)).toBe(count);
-      expect(beat.match.revealedCards.p1).toHaveLength(5);
+      expect(beat.match.revealedCards.p1).toHaveLength(2);
     }
   });
 });

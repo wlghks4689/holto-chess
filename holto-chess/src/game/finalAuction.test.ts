@@ -16,7 +16,7 @@ import { parseClientMessage } from "../shared/protocol";
 
 const NOW = 10_000;
 function fixture() {
-  const game = createGame(42);
+  const game = createGame(42, "seeded", 2, false, false);
   game.round = 4; game.phase = "NEXT_ROUND";
   game.ownershipCardPool.forEach(e => { e.state = "AVAILABLE"; delete e.ownerPlayerId; delete e.reservedPlayerId; });
   game.players.forEach((p, i) => {
@@ -85,7 +85,7 @@ describe("R5 final auction contracts", () => {
     expect(finishFinalLoadouts(settled, settled.finalAuction!.loadoutStartsAt!).phase).toBe("SHOWDOWN_PRIMARY");
   });
   it("keeps bidding identities and opponent reservations out of player and spectator snapshots", () => {
-    const room = createRoom("TEST", 1); room.status = "PLAYING"; room.game = first(fixture());
+    const room = createRoom("TEST", 1, "seeded", 2, false, false); room.status = "PLAYING"; room.game = first(fixture());
     room.sessions = ["p1", "p2", "p5"].map(playerId => ({ playerId, tokenHash: playerId, requests: [] }));
     for (const id of ["p1", "p2", "p5"]) {
       const view = createPlayerView(room, id, [], NOW), a = view.finalAuction!;
@@ -119,11 +119,11 @@ describe("R5 final auction contracts", () => {
     expect(safe.results).toEqual([]); expect(safe.boards[0]![4]!.hidden).toBe(true); expect(safe.abilityCues).toEqual([]);
   });
   it("keeps old R5 snapshots unchanged", () => {
-    const room = createRoom("LEGACY", 1); room.game.round = 5; room.game.phase = "SHOP"; room.status = "PLAYING";
+    const room = createRoom("LEGACY", 1, "seeded", 2, false, false); room.game.round = 5; room.game.phase = "SHOP"; room.status = "PLAYING";
     expect(migrateRoomSnapshot(room).game.finalAuction).toBeUndefined();
   });
   it("drives an online deadline without READY and rejects READY during auction", () => {
-    const room = createRoom("TEST", 1); room.status = "PLAYING"; room.game = fixture();
+    const room = createRoom("TEST", 1, "seeded", 2, false, false); room.status = "PLAYING"; room.game = fixture();
     room.sessions = room.game.players.slice(0, 4).map(p => ({ playerId: p.id, tokenHash: p.id, requests: [] }));
     expect(barrierDeadline(room)).toBe(NOW + 40_000);
     expect(forceBarrier(room, NOW + 39_999)).toBeNull();
@@ -167,7 +167,7 @@ describe("final auction edge cases", () => {
     expect(g.players.slice(0, 4).every(p => p.ownedCardIds.length === 7)).toBe(true);
     expect(g.ownershipCardPool.filter(e => e.state === "AVAILABLE")).toHaveLength(24);
     expect(g.abilityEvents?.length ?? 0).toBe(previous);
-    const room = createRoom("PRIVATE", 1); room.game = g; room.status = "PLAYING"; room.sessions = [{ playerId: "p2", tokenHash: "p2", requests: [] }];
+    const room = createRoom("PRIVATE", 1, "seeded", 2, false, false); room.game = g; room.status = "PLAYING"; room.sessions = [{ playerId: "p2", tokenHash: "p2", requests: [] }];
     const privateBefore = createPlayerView(room, "p2", [], g.finalAuction!.loadoutStartsAt!);
     g = setFinalLoadout(g, "p1", g.players[0]!.ownedCardIds.slice(2, 7), g.finalAuction!.loadoutStartsAt!);
     room.game = g;

@@ -10,7 +10,7 @@ import { addSession, createRoom } from "./room";
 import { emptySwissRecord, swissPairs } from "./swiss";
 
 function entry(seed = 100) {
-  const state = createGame(seed);
+  const state = createGame(seed, "seeded", 2, false, false);
   state.round = 2; state.phase = "NEXT_ROUND";
   for (const e of state.ownershipCardPool) { e.state = "AVAILABLE"; delete e.ownerPlayerId; delete e.reservedPlayerId; }
   state.players.forEach((p, i) => {
@@ -68,7 +68,7 @@ describe("R3 Omaha Swiss", () => {
     }
   });
   it("restores three authoritative matches on reconnect without exposing other tables or server seeds", () => {
-    let room = addSession(createRoom("ABCDEF", 100), "one").room;
+    let room = addSession(createRoom("ABCDEF", 100, "seeded", 2, false, false), "one").room;
     room = addSession(room, "two").room;
     room.status = "PLAYING"; room.game = prepared();
     const hidden = createPlayerView(room, "p1", [], 1000);

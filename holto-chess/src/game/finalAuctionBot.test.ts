@@ -5,7 +5,7 @@ import { auctionBudget, bidFinalAuction } from "./finalAuction";
 import { assertPoolIntegrity } from "./cardPool";
 
 it("processes repeated live auction ticks within an input responsiveness budget", () => {
-  let game = createGame(42);
+  let game = createGame(42, "seeded", 2, false, false);
   game.round = 4; game.phase = "NEXT_ROUND";
   game.ownershipCardPool.forEach(e => { e.state = "AVAILABLE"; delete e.ownerPlayerId; delete e.reservedPlayerId; });
   game.players.forEach((p, i) => {

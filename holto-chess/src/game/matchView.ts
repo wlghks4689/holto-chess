@@ -2,6 +2,8 @@ import type { MatchView, RevealedHand } from "../shared/protocol";
 import type { PorenaGameState, MatchResult, PlayerShowdown } from "./types";
 import { isRoundAbilityEvent } from "./abilities";
 import { abilityCue } from "./abilityVisibility";
+import { isFinalRound, isLineupFinal } from "./config";
+import { burnCardIds } from "./engine";
 
 export function revealedHand(result: PlayerShowdown): RevealedHand {
   return { playerId: result.playerId, place: result.place, category: result.hand.category,
@@ -15,6 +17,9 @@ export function createMatchView(game: PorenaGameState, match: MatchResult): Matc
       const p = game.players.find(p => p.id === id)!;
       return [id, p.ownedCardIds.filter(cardId => !p.finalLoadoutCardIds?.includes(cardId)).map(cardId => ({ ...game.ownershipCardPool.find(e => e.card.id === cardId)!.card }))];
     })) } : {}),
+    // R6 burn cards are public from the showdown prep onwards.
+    ...(match.stage === "final" && isLineupFinal(game.round, game) ? { blockCards: Object.fromEntries(match.playerIds.map(id =>
+      [id, burnCardIds(game, id).map(cardId => ({ ...game.ownershipCardPool.find(e => e.card.id === cardId)!.card }))])) } : {}),
     abilityCues: (game.abilityEvents ?? []).filter(event => event.matchId === match.id && !isRoundAbilityEvent(event)).flatMap(event => {
       const cue = abilityCue(event); return cue ? [cue] : [];
     }),
@@ -24,7 +29,7 @@ export function createMatchView(game: PorenaGameState, match: MatchResult): Matc
     standingsAfterRuns: match.standingsAfterRuns?.map((s) => ({ ...s })),
     matchday: match.matchday, swissBefore: match.swissBefore ? structuredClone(match.swissBefore) : undefined,
     swissAfter: match.swissAfter ? structuredClone(match.swissAfter) : undefined,
-    id: match.id, round: game.round, matchNumber: game.roundResults.findIndex((m) => m.id === match.id) + 1,
+    id: match.id, round: game.round, final: isFinalRound(game.round, game), matchNumber: game.roundResults.findIndex((m) => m.id === match.id) + 1,
     stage: match.stage, group: match.group, gameNumber: match.gameNumber, participantIds: [...match.playerIds], winnerIds: [...match.winnerIds],
     boards: match.boards.map((board) => board.map((card) => ({ ...card }))),
     boardWinnerIds: match.boardWinnerIds.map((ids) => [...ids]),

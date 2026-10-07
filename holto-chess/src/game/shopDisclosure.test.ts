@@ -3,7 +3,7 @@ import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier,
 import { createPlayerView } from "./playerView";
 
 it("keeps other seats at shop-entry BB through buy/sell/commit, but shows the owner immediately", () => {
-  let room = createRoom("ABCDEF", 303);
+  let room = createRoom("ABCDEF", 303, "seeded", 2, false, false);
   for (let i = 0; i < 8; i++) room = addSession(room, `hash-${i}`).room;
   for (const session of room.sessions) room = applyRoomAction(room, session.playerId, { type: "READY" }, turnKey(room), 1000);
   const before = createPlayerView(room, "p1", [], 1000);
@@ -37,7 +37,7 @@ it("keeps other seats at shop-entry BB through buy/sell/commit, but shows the ow
 });
 
 it("freezes spectator balances and captures old shop snapshots at migration time", () => {
-  let room = createRoom("ABCDEF", 303);
+  let room = createRoom("ABCDEF", 303, "seeded", 2, false, false);
   for (let i = 0; i < 8; i++) room = addSession(room, `hash-${i}`).room;
   for (const session of room.sessions) room = applyRoomAction(room, session.playerId, { type: "READY" }, turnKey(room), 1000);
   for (let step = 0; step < 60 && !(room.game.round === 3 && room.game.phase === "SHOP"); step++) {

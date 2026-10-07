@@ -54,13 +54,13 @@ describe("game guide content", () => {
 
   it("walks a beginner from the shared pool to the final score and links to the rule book", () => {
     const html = render("beginner");
-    for (const text of ["카드는 모두가 함께 사용합니다", "RUN IT TWICE", "반드시 내 카드 2장 + 보드 3장", "최종 점수 = 누적 승점 + R5 족보 점수 + ⌊남은 BB ÷ 10⌋", "전체 규칙서 보기"]) expect(html).toContain(text);
+    for (const text of ["카드는 모두가 함께 사용합니다", "RUN IT TWICE", "반드시 내 카드 2장 + 보드 3장", "최종 점수 = 누적 승점 + R6 족보 점수 + ⌊남은 BB ÷ 10⌋", "RUN IT THREE TIMES", "16장 카드 옥션", "전체 규칙서 보기"]) expect(html).toContain(text);
     for (const ability of ABILITY_IDS) expect(html).toContain(`/assets/abilities/guide/${ability}.webp`);
   });
 
   it("lists exact rule numbers without exposing implementation names", () => {
     const html = render("rules");
-    for (const text of ["승 +3P · Split +1P", "+20 / +12 / +5 / +3", "퍼스트 클래스 보유자", "R2는 8장, R4는 16장", "초보자 가이드 보기"]) expect(html).toContain(text);
+    for (const text of ["승 +3P · Split +1P", "+30 / +10 / +0", "RUN 승 +5P · Split +2P · 3:0 +15P", "퍼스트 클래스 보유자", "R2는 8장, R4는 16장", "초보자 가이드 보기"]) expect(html).toContain(text);
     for (const hidden of ["firstCardId", "server", "raw", "Monte Carlo", "abilityId", "insuranceEligible"]) expect(html).not.toContain(hidden);
   });
 

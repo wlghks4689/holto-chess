@@ -288,7 +288,7 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(redirect.status).toBe(301);
     expect(redirect.headers.get("Location")).toBe("https://porena.kr/play?room=ABC234");
   });
-  it.each([{ count: 2, ip: undefined }, { count: 4, ip: undefined }, { count: 8, ip: undefined }, { count: 8, ip: "198.51.100.208" }])("finishes R1-R5 over $count sockets (ticket/shared IP: $ip), reconnects and agrees on standings", async ({ count, ip }) => {
+  it.each([{ count: 2, ip: undefined }, { count: 4, ip: undefined }, { count: 8, ip: undefined }, { count: 8, ip: "198.51.100.208" }])("finishes all six rounds over $count sockets (ticket/shared IP: $ip), reconnects and agrees on standings", async ({ count, ip }) => {
     const a = await session(undefined, ip);
     const credentials = [a];
     for (let i = 1; i < count; i++) credentials.push(await session(a.roomId, ip));
@@ -303,8 +303,8 @@ describe("GameRoom in the Cloudflare runtime", () => {
     expect(readyReplies.every((reply) => reply.type === "ACK")).toBe(true);
     const reconnected = new Set<string>();
     // Automatic Deal-In and match-setup beats are real server phases now, so a
-    // complete five-round run needs more transitions than the old ready-only flow.
-    for (let step = 0; step < 120; step++) {
+    // complete six-round run needs more transitions than the old ready-only flow.
+    for (let step = 0; step < 200; step++) {
       const revision = Math.max(...clients.map((c) => c.view().revision));
       await Promise.all(clients.map((c) => c.wait((m) => m.type === "PLAYER_VIEW" && m.payload.revision >= revision)));
       if (clients[0].view().phase === "GAME_RESULT") break;
@@ -378,12 +378,14 @@ describe("GameRoom in the Cloudflare runtime", () => {
         }
         continue;
       }
-      if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "FINAL_AUCTION", "FINAL_LOADOUT"].includes(phase)) {
+      if (["DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY", "FINAL_AUCTION", "FINAL_LOADOUT", "OPPONENT_SELECT"].includes(phase)) {
         const stub = env.GAME_ROOM.getByName(`room:${a.roomId}`);
         await runInDurableObject(stub, async (_instance, state) => {
           const saved = (await state.storage.get<RoomSnapshot>("snapshot:v1"))!;
           saved.barrierSince = Date.now() - 120_000;
-          if (saved.game.phase === "FINAL_AUCTION") saved.game.finalAuction!.endsAt = Date.now() - 1;
+          // A settled R3 auction holds its result reveal until loadoutStartsAt.
+          if (saved.game.phase === "FINAL_AUCTION" && saved.game.finalAuction!.settledAt !== null) saved.game.finalAuction!.loadoutStartsAt = Date.now() - 1;
+          else if (saved.game.phase === "FINAL_AUCTION") saved.game.finalAuction!.endsAt = Date.now() - 1;
           if (saved.game.phase === "FINAL_LOADOUT") { saved.game.finalAuction!.loadoutStartsAt = Date.now() - 31_000; saved.game.finalAuction!.loadoutEndsAt = Date.now() - 1; }
           await state.storage.put("snapshot:v1", saved);
         });
@@ -397,12 +399,13 @@ describe("GameRoom in the Cloudflare runtime", () => {
         if (view.phase !== phase) break;
         if (!view.me.alive && clients.some((c) => c.view().me.alive)) continue;
         if (phase === "SHOP") {
-          while (client.view().me.ownedCards.length < client.view().me.handLimit) {
+          while (client.view().me.ownedCards.length < client.view().me.minHand) {
             expect(await client.send({ type: "BUY_CARD", cardId: client.view().me.shopCards[0].card.id })).toMatchObject({ type: "ACK" });
           }
           expect(await client.send({ type: "END_SHOP_PHASE" })).toMatchObject({ type: "ACK" });
         } else if (phase === "RUN_LOADOUT") {
-          expect(await client.send({ type: "RUN_LOADOUT", cardIds: view.me.ownedCards.map((c) => c.id) })).toMatchObject({ type: "ACK" });
+          // R6 plays the pre-selected five; R2/R5 place every owned card.
+          expect(await client.send({ type: "RUN_LOADOUT", cardIds: view.round === 6 ? view.me.selectedCardIds : view.me.ownedCards.map((c) => c.id) })).toMatchObject({ type: "ACK" });
           expect(await client.send({ type: "LOCK_RUN_LOADOUT" })).toMatchObject({ type: "ACK" });
         } else if (phase === "AUGMENT") {
           expect(await client.send({ type: "SELECT_AUGMENT", augmentId: view.me.augmentChoices[0].id })).toMatchObject({ type: "ACK" });

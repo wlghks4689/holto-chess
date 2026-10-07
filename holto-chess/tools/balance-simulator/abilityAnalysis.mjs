@@ -26,12 +26,13 @@ function gammaQ(a, x) {
 }
 function lgamma(z) { const g = 7, p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]; z -= 1; let x = p[0]; for (let i = 1; i < g + 2; i += 1) x += p[i] / (z + i); const t = z + g + 0.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x); }
 
-const WIN = 1 / 8, FINAL = 4 / 8;
+// The last round row is the final: R6 in six-round runs (3 finalists), R5 in five-round runs (4).
+const WIN = 1 / 8, FINAL = (rows[0]?.rounds.length === 6 ? 3 : 4) / 8;
 const byAbility = new Map();
 for (const r of rows) { if (!byAbility.has(r.ability)) byAbility.set(r.ability, []); byAbility.get(r.ability).push(r); }
 
 const stats = [...byAbility].map(([ability, list]) => {
-  const n = list.length, wins = list.filter((r) => r.placement === 1).length, fin = list.filter((r) => r.rounds[4].entered);
+  const n = list.length, wins = list.filter((r) => r.placement === 1).length, fin = list.filter((r) => r.rounds.at(-1).entered);
   const [lo, hi] = wilson(wins, n); const p = wins / n;
   const z = (p - WIN) / Math.sqrt(WIN * (1 - WIN) / n);
   const finWins = fin.filter((r) => r.placement === 1).length;
@@ -58,9 +59,9 @@ const bonferroniZ = (() => { let lo = 0, hi = 6; for (let i = 0; i < 60; i += 1)
 
 const lines = [];
 lines.push(`# 어빌리티별 승률 (게임 ${games}판, 플레이어 ${rows.length}명${process.env.POLICY ? `, 정책 ${process.env.POLICY}` : ""})`, "");
-lines.push(`- 승리 = 최종 1위. 어빌리티 효과가 없다면 좌석당 기대 승률은 12.5% (8명 중 1위), R5 진출률은 50%, 평균 순위는 4.5.`);
+lines.push(`- 승리 = 최종 1위. 어빌리티 효과가 없다면 좌석당 기대 승률은 12.5% (8명 중 1위), 결승 진출률은 ${(FINAL * 100).toFixed(1)}%, 평균 순위는 4.5.`);
 lines.push(`- 매 게임 ${stats.length}개 중 8개가 무작위로 배정되고 좌석도 무작위라 특정 어빌리티가 유리한 좌석·뽑기 순서를 갖지 않습니다.`, "");
-lines.push("| 어빌리티 | n | 승률 [95% CI] | z vs 12.5% | R5 진출 | R5 진출 시 승률 | 평균 순위 | R5 진출자 평균 점수 | 발동/판 | 어빌리티 BB | 어빌리티 P | 환산 P |");
+lines.push("| 어빌리티 | n | 승률 [95% CI] | z vs 12.5% | 결승 진출 | 결승 진출 시 승률 | 평균 순위 | 결승 진출자 평균 점수 | 발동/판 | 어빌리티 BB | 어빌리티 P | 환산 P |");
 lines.push("|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
 for (const s of stats) lines.push(`| ${s.ability} | ${s.n} | ${pct(s.win)} [${pct(s.winLo)}–${pct(s.winHi)}] | ${s.z.toFixed(2)} | ${pct(s.reachR5)} | ${pct(s.winGivenR5)} | ${s.place.toFixed(2)} ±${s.placeCi.toFixed(2)} | ${s.total.toFixed(1)} | ${s.acts.toFixed(2)} | ${s.bb.toFixed(1)} | ${s.pts.toFixed(2)} | ${s.payoutP.toFixed(2)} |`);
 lines.push("", "## 검정");

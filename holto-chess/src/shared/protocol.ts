@@ -11,6 +11,7 @@ export type GameAction =
   | { type: "ABILITY_PICK"; slot: number }
   | { type: "DRAFT_PICK"; cardId: string }
   | { type: "RUN_LOADOUT"; cardIds: string[] }
+  | { type: "CHOOSE_OPPONENT"; playerId: string }
   | { type: "LOCK_RUN_LOADOUT" }
   | { type: "READY" }
   | { type: "BUY_CARD"; cardId: string }
@@ -45,7 +46,9 @@ export type MatchView = {
   swissBefore?: Record<string, import("../game/swiss").SwissRecord>;
   swissAfter?: Record<string, import("../game/swiss").SwissRecord>;
   id: string; stage: string; participantIds: string[]; winnerIds: string[];
-  round: Round; matchNumber: number; group?: "winner" | "loser"; gameNumber?: 1 | 2;
+  round: Round; matchNumber: number; group?: "winner" | "loser"; gameNumber?: 1 | 2 | 3;
+  /** Played in the game's last round. Views always set it; read it through isFinalMatch. */
+  final?: boolean;
   rewards: MatchReward[];
   boards: Card[][]; boardWinnerIds: string[][]; boardResults: RevealedHand[][]; results: RevealedHand[];
   streetSnapshots?: StreetSnapshotView[][];
@@ -79,6 +82,8 @@ export type PrivatePlayerView = {
   selectedCardIds: string[];
   loadoutSlots?: (string | null)[];
   handLimit: number; shopSize: number; shopLocked: boolean; lockedShopCardIds: string[]; purchases: number;
+  /** Fewest cards this round needs; equals handLimit except in the six-round R6 (five of up to seven). */
+  minHand: number;
   purchaseLimit: number; rerollCost: number; sellPercent: number; committed: boolean;
   rerollsUsed: number; rerollLimit: number;
 };
@@ -91,11 +96,15 @@ export type SpectatorPlayerView = {
   historyIds?: string[];
   presentation?: PresentationView;
 };
-export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; blockCards?: Card[]; equity?: number; abilityId?: AbilityId; runCards?: [Card[], Card[]] };
+export type ShowdownPrepSeatView = { playerId: string; name: string; points: number; cards: Card[]; blockCards?: Card[]; equity?: number; abilityId?: AbilityId;
+  /** R2: the two RUN hands. R5: the viewer's own three RUN pairs. */
+  runCards?: Card[][] };
 export type ShowdownPrepView = { matchNumber: number; viewer: ShowdownPrepSeatView; opponent?: ShowdownPrepSeatView; opponents?: ShowdownPrepSeatView[] };
 export type FinalAuctionView = {
   cards: { card: Card; basePrice: number; highestAmount: number | null; hasBid: boolean; isMine: boolean; minNextBid: number }[];
+  /** Bidding opens at startedAt; a six-round R3 shows its rules intro before then. */
   startedAt: number; endsAt: number; hardEndsAt: number; serverNow: number;
+  maxWins: number; minRaiseBB: number;
   publicHands: Record<string, Card[]>;
   mine?: { stackBB: number; reservedBB: number; availableBidBB: number; leadingCount: number };
   outbid?: { cardId: string; amount: number; sequence: number };
@@ -108,7 +117,15 @@ export type PlayerView = {
   roundAbilityCues?: AbilityCue[];
   abilityDraft?: AbilityDraftView;
   survival?: { playerIds: string[]; eliminateCount: number };
-  draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]> };
+  draft?: { cards: { card: Card; price: number; claimedBy?: string }[]; order: { playerId: string; points: number; stackBB: number }[]; currentPlayerId?: string; publicHands?: Record<string, Card[]>;
+    /** Six-round R3 buyback: the fixed multiple of the base price every card costs. */
+    priceMultiplier?: number };
+  /** Six-round R5 pairing: the standings leader chooses an opponent. Every survivor's cards are public. */
+  opponentSelect?: { order: { playerId: string; points: number; stackBB: number; cards: Card[] }[]; chooserId: string; opponentId?: string };
+  /** Six-round R5 pairs once the leader has chosen: [leader, chosen], [other two]. */
+  pairings?: string[][];
+  /** R5 in five-round games, R6 in six-round games. */
+  lastRound: Round;
   gameId: string; roomId: string; revision: number; turnKey: string;
   /** Server epoch ms when this view was built; clients estimate their clock offset from it. */
   serverNow: number;
@@ -164,7 +181,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   const fields: Record<string, string[]> = {
     FINAL_AUCTION_BID: ["cardId", "expectedHighestAmount", "amount"], FINAL_LOADOUT: ["cardIds"], LOCK_FINAL_LOADOUT: [],
     ABILITY_PICK: ["slot"],
-    DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [],
+    DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [], CHOOSE_OPPONENT: ["playerId"],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
       SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], FINAL_RESULTS_VIEWED: [], LEAVE_ROOM: [],
       SELECT_LOADOUT: ["slots"],
@@ -179,7 +196,9 @@ export function parseClientMessage(raw: string): ClientMessage {
   }
   if (v.type === "FINAL_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 5 || new Set(v.cardIds).size !== 5 || v.cardIds.some(id => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("INVALID_LOADOUT");
   if (["BUY_CARD", "SELL_CARD", "LOCK_SHOP", "DRAFT_PICK"].includes(v.type) && !string("cardId", /^[2-9TJQKA][cdhs]$/)) throw new Error("잘못된 카드입니다.");
-  if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || v.cardIds.length !== 3 || new Set(v.cardIds).size !== 3 || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
+  // R2 places three cards, the six-round R5 six.
+  if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || ![3, 5, 6].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
+  if (v.type === "CHOOSE_OPPONENT" && !string("playerId", /^p[1-8]$/)) throw new Error("잘못된 상대입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");
   if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");
   if (v.type === "ABILITY_PICK" && (typeof v.slot !== "number" || !Number.isSafeInteger(v.slot) || v.slot < 0 || v.slot >= ABILITY_IDS.length)) throw new Error("잘못된 어빌리티 카드입니다.");

@@ -12,7 +12,7 @@ import { createPlayerView } from "./playerView";
 import type { Round } from "./types";
 
 function fixture(round: Round) {
-  const state = createGame(123);
+  const state = createGame(123, "seeded", 2, false, false);
   state.round = round; state.phase = "SHOWDOWN_PRIMARY";
   const count = round === 5 ? 4 : round === 4 ? 6 : 8;
   const size = BALANCE.handLimits[round];
@@ -158,14 +158,14 @@ describe("Front Runner round settlement", () => {
     expect(state.abilityEvents!.filter(event => event.reason === "round-interest")).toHaveLength(1);
   });
   it("accepts slot twelve and restores 12 slots / 8 unique picks / 4 unpicked", () => {
-    let game = openAbilitySelection(createAbilityGame(19));
+    let game = openAbilitySelection(createAbilityGame(19, "seeded", false));
     game.abilityDraft!.deck = [...ABILITY_IDS]; game.abilityDraft!.order = game.players.map(player => player.id);
     const action = parseClientMessage(JSON.stringify({ type:"ABILITY_PICK", slot:11, requestId:"leader-test", turnKey:"1:ABILITY_PICK:0:0" }));
     expect(action).toMatchObject({ slot:11 });
     game = pickAbility(game,"p1",11);
     expect(game.players[0]!.abilityId).toBe("front-runner");
     while(game.phase === "ABILITY_PICK") game = autoPickAbility(game);
-    const room = { ...addSession(createRoom("LEADER",19),"leader-session").room, game, status:"PLAYING" as const };
+    const room = { ...addSession(createRoom("LEADER", 19, "seeded", 2, false, false),"leader-session").room, game, status:"PLAYING" as const };
     const restored = JSON.parse(JSON.stringify(room)) as typeof room;
     const draft = createPlayerView(restored,"p1").abilityDraft!;
     expect(draft).toMatchObject({ slotCount:12, pickedCount:8, myPick:{ slot:11, abilityId:"front-runner" } });

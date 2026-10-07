@@ -10,6 +10,8 @@ export type SimConfig = {
   /** How policies are dealt to the 8 seats. `rotate` shifts the deal every game so no policy owns a seat. */
   assignment: "rotate" | "fixed" | "random";
   maxRerolls: number;
+  /** Plays the five-round format saved rooms still use; new games have six rounds. */
+  fiveRounds?: boolean;
   /** Runtime overrides of `BALANCE` / `FINAL_ROUND_PLACEMENT_POINTS`, applied only while the run executes. */
   overrides: Record<string, number>;
   outputPath: string;
@@ -17,9 +19,12 @@ export type SimConfig = {
   verbose: boolean;
 };
 
-export const ROUNDS = [1, 2, 3, 4, 5] as const;
+export const ROUNDS = [1, 2, 3, 4, 5, 6] as const;
 /** Survivors each round must leave; anything else is an engine/simulator disagreement. */
-export const EXPECTED_ALIVE_AFTER: Record<number, number> = { 1: 8, 2: 8, 3: 6, 4: 4, 5: 4 };
+export const EXPECTED_ALIVE_AFTER: Record<number, number> = { 1: 8, 2: 8, 3: 6, 4: 4, 5: 3, 6: 3 };
+export const FIVE_ROUND_ALIVE_AFTER: Record<number, number> = { 1: 8, 2: 8, 3: 6, 4: 4, 5: 4 };
+/** The round whose players are the finalists. */
+export const finalRoundOf = (config: Pick<SimConfig, "fiveRounds">) => config.fiveRounds ? 5 : 6;
 
 export type RoundRow = {
   round: number;
@@ -27,7 +32,7 @@ export type RoundRow = {
   /** Points / BB at round start (after income), just before the showdown, and after the round resolved. */
   startPoints: number; startBB: number; preShowdownBB: number; endPoints: number; endBB: number;
   ownedCount: number;
-  buys: { rank: number; price: number; via: "shop" | "draft" }[];
+  buys: { rank: number; price: number; via: "shop" | "draft" | "auction" | "buyback" }[];
   sells: { rank: number }[];
   rerolls: number;
 };

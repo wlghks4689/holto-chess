@@ -3,6 +3,7 @@ import type { PresentationEntry, PresentationView } from "../shared/protocol";
 import { createMatchView } from "./matchView";
 import type { RoomSnapshot } from "./room";
 import type { MatchResult } from "./types";
+import { isFinalRound } from "./config";
 
 /** Phases in which a seat can see its showdown matches (and so watches their cinematic). */
 export const MATCH_VISIBLE_PHASES: readonly string[] = ["GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "GAME_RESULT"];
@@ -28,7 +29,7 @@ export function visibleMatchesFor(room: RoomSnapshot, playerId: string): MatchRe
     const target = room.game.players.find((player) => !player.eliminated)?.id;
     return target ? room.game.roundResults.filter((match) => match.playerIds.includes(target)) : [];
   }
-  return room.game.roundResults.filter((match) => match.playerIds.includes(playerId) || room.game.round === 3 && match.tiebreakKind === "SURVIVAL_TIEBREAK");
+  return room.game.roundResults.filter((match) => match.playerIds.includes(playerId) || (room.game.round === 3 || room.game.sixRounds && room.game.round === 5) && match.tiebreakKind === "SURVIVAL_TIEBREAK");
 }
 
 /**
@@ -50,7 +51,7 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
   // Derive slots from the participants' actual match order, never spectator playback.
   const sequences = Object.fromEntries(room.game.players.map(({ id }) => [id, room.game.roundResults.filter((match) => match.playerIds.includes(id))]));
   const entryDuration = (match: MatchResult, index: number, last: boolean) =>
-    durationOf(match) + (room.game.round === 5 || index === 0 ? 0 : MATCH_PREP_MS) - (last ? 0 : MATCH_HOLD_MS);
+    durationOf(match) + (isFinalRound(room.game.round, room.game) || index === 0 ? 0 : MATCH_PREP_MS) - (last ? 0 : MATCH_HOLD_MS);
   // All seats share the same match-slot starts, even when one table has a longer decider.
   // A shorter table keeps its completed result visible until the last three seconds of the slot.
   const slotStarts = [0];
@@ -63,7 +64,7 @@ export function syncPresentation(room: RoomSnapshot, now: number): void {
   const byMatch = new Map<string, PresentationEntry>();
   for (const matches of Object.values(sequences)) {
     matches.forEach((match, index) => {
-      const prepMs = room.game.round === 5 || index === 0 ? 0 : MATCH_PREP_MS;
+      const prepMs = isFinalRound(room.game.round, room.game) || index === 0 ? 0 : MATCH_PREP_MS;
       const entry = { matchId: match.id, offsetMs: slotStarts[index]!, durationMs: entryDuration(match, index, index === matches.length - 1), ...(prepMs ? { prepMs } : {}) };
       const existing = byMatch.get(match.id);
       if (!existing || entry.offsetMs > existing.offsetMs) byMatch.set(match.id, entry);
