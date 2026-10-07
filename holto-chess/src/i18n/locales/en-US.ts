@@ -1,6 +1,12 @@
 import type { koKR } from "./ko-KR";
 
 export const enUS: Record<keyof typeof koKR, string> = {
+  "auth.account": "Account",
+  "auth.google": "Sign in with Google",
+  "auth.signedIn": "Signed in",
+  "auth.logout": "Sign out",
+  "auth.loading": "Checking sign-in…",
+  "auth.failed": "We couldn't process your sign-in request. Try again later. You can still play as a guest.",
   "gameError.AUCTION_CLOSED": "The auction is closed.",
   "gameError.NOT_AUCTION_PARTICIPANT": "You are not an auction participant.",
   "gameError.NOT_AUCTION_CARD": "This card is not in the auction.",

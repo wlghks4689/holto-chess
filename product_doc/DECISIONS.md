@@ -1,5 +1,13 @@
 # 승인 결정과 변경 이력
 
+## AUTH-GOOGLE-001 — Google OIDC 계정 기반 (2026-10-07)
+
+- 사용자 승인 범위: 계정 전용 D1 `porena-account` 생성·local/remote 초기 migration, Google OIDC·자체 session·시작 화면 UI·자동 테스트. commit/push/운영 Worker 배포 금지.
+- Google `sub`는 provider mapping으로만 사용하며 PORENA 식별자는 독립 UUID. 이메일·Google token 장기 저장 없음. FEEDBACK_DB와 계정 migration을 분리한다.
+- 기존 게스트·싱글·멀티·Discord·관리자는 유지한다. GameRoom 계정 연결, 랭킹, 닉네임, Kakao는 이번 범위 밖이다.
+- 구현 초기값: session 30일(고정 만료), OAuth flow 10분. 사용자 제품 정책으로 이미 확정된 값이 아니라 명세에서 허용한 초기값이며 공개 전 재확인한다.
+- 실제 Google 자격증명/실브라우저 E2E, 개인정보·약관 계정 관련 개정은 공개 전 Gate로 남긴다. [구현·검증·사용자 설정](../holto-chess/CLOUDFLARE_IMPLEMENTATION.md#auth-google-001--계정-기반-추가-2026-10-07-미배포).
+
 ## DIST-REMOVE-001 — CrazyGames 작업 제거 (2026-10-06)
 
 - 사용자 승인: GitHub의 CrazyGames 관련 내용만 삭제하고 기존 게임 로직을 유지한다.
