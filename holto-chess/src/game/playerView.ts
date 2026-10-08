@@ -77,11 +77,9 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
     const player = game.players.find((candidate) => candidate.id === playerId)!;
     const cards = player.ownedCardIds.map((id) => getCard(game, id));
     const selected = player.selectedCardIds;
-    // R5 opens each RUN's cards only when that RUN plays: the viewer sees their own split, an opponent only card backs.
+    // Locked R5 RUN pairs are public to both seats in the match loading screen.
     if (tripleRun) return { playerId, name: player.name, points: player.points, abilityId: player.abilityId,
-      ...(playerId === viewerPlayerId
-        ? { cards, runCards: Array.from({ length: Math.floor(selected.length / 2) }, (_, run) => selected.slice(run * 2, run * 2 + 2).map((id) => getCard(game, id))) }
-        : { cards: cards.map((_, index): Card => concealedCard(`prep:${playerId}:${index}`)) }) };
+      cards, runCards: Array.from({ length: Math.floor(selected.length / 2) }, (_, run) => selected.slice(run * 2, run * 2 + 2).map((id) => getCard(game, id))) };
     const runIds = game.round !== 2 ? undefined : game.rulesVersion === 2 && selected.length === 3
       ? [[selected[0]!, selected[1]!], [selected[0]!, selected[2]!]] as [string[], string[]]
       : selected.length === 2 ? [selected, selected] as [string[], string[]] : undefined;

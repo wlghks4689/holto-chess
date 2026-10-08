@@ -1,6 +1,12 @@
 import type { koKR } from "./ko-KR";
 
 export const enUS: Record<keyof typeof koKR, string> = {
+  "auth.account": "Account",
+  "auth.google": "Sign in with Google",
+  "auth.signedIn": "Signed in",
+  "auth.logout": "Sign out",
+  "auth.loading": "Checking sign-in…",
+  "auth.failed": "We couldn't process your sign-in request. Try again later. You can still play as a guest.",
   "gameError.AUCTION_CLOSED": "The auction is closed.",
   "gameError.NOT_AUCTION_PARTICIPANT": "You are not an auction participant.",
   "gameError.NOT_AUCTION_CARD": "This card is not in the auction.",
@@ -803,7 +809,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "triple.heading": "Split your six cards into three two-card hands for RUN 1, 2 and 3",
   "triple.run": "RUN {run}",
   "triple.hint": "⇄ swaps whole RUNs; tap a card, then another, to swap just those two.",
-  "triple.reveal": "Each RUN's cards are revealed when that RUN starts.",
+  "triple.reveal": "Both players' RUN cards are revealed on the match loading screen after placement is locked.",
   "triple.points": "RUN win +5P · Split +2P · 3:0 win +15P",
   "triple.slotAria": "RUN {run} card {slot}",
   "triple.forfeitNotice": "You don't have six cards, so every RUN in R5 is a forfeit.",

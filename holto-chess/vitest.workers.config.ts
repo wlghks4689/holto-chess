@@ -12,6 +12,10 @@ export default defineConfig(async () => ({
     miniflare: {
       bindings: {
         TEST_MIGRATIONS: await readD1Migrations("./migrations"),
+        TEST_ACCOUNT_MIGRATIONS: await readD1Migrations("./account-migrations"),
+        AUTH_ORIGIN: "https://porena.kr",
+        GOOGLE_CLIENT_ID: "test-google-client",
+        GOOGLE_CLIENT_SECRET: "test-google-secret",
         TEST_ADMIN_PASSWORD,
         ADMIN_USERNAME: TEST_ADMIN_USERNAME,
         ADMIN_PASSWORD_HASH: await hashAdminPassword(TEST_ADMIN_PASSWORD, 1000),

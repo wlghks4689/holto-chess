@@ -1,5 +1,19 @@
 # PORENA 운영 기록 — 2026-09-19
 
+## 2026-10-08 Google 실제 로그인 로컬 검증 — 운영 미배포
+
+- Google Console `PORENA Web` 생성 및 로컬 자격증명 설정 후 실제 계정으로 로그인, 새로고침 유지, 로그아웃 후 새로고침, 동일 계정 재로그인 확인. 로컬 D1 users/oauth_accounts/sessions 각 1건으로 계정 중복 없음.
+- code 교환의 `redirect: "error"`가 workerd에서 TypeError를 일으킨 원인 확인. `manual`로 변경하고 기존 비-2xx 거부를 유지해 외부 redirect를 따라가지 않도록 수정. 회귀 테스트에서 수정 전 실패 확인, 임시 진단 출력은 빌드로 제거.
+- 운영 Secret 등록·Worker 배포·commit/push는 하지 않음. 공개 전 정책 정리와 운영 callback query 가림 검증은 계속 필요.
+- 검증 상세 및 현재 경고: [계정 구현 기록](CLOUDFLARE_IMPLEMENTATION.md#2026-10-08-실제-google-로컬-검증).
+
+## 2026-10-07 계정 전용 D1 초기화 — Worker 미배포
+
+- AUTH-GOOGLE-001 명시 승인에 따라 `porena-account` 생성(APAC), ID `e4eedbce-2157-4823-b840-eec1017d4f60`.
+- 별도 `account-migrations/0001_accounts.sql` local 적용·D1/인증 테스트 후 remote 적용 성공. users/oauth_accounts/sessions/oauth_flows 생성. remote read-only 검증: users 0명, foreign_key_check 오류 없음.
+- ACCOUNT_DB binding은 소스에 추가. 기존 FEEDBACK_DB는 변경하지 않음. 운영 Worker 버전·Google Secret·계정 데이터는 생성/변경하지 않았다. commit/push/deploy도 하지 않았다.
+- 실제 Google 로그인은 자격증명 Gate 대기. [설정·검증 기록](CLOUDFLARE_IMPLEMENTATION.md#auth-google-001--계정-기반-추가-2026-10-07-미배포).
+
 ## 2026-10-03 메이드 효과·상대 어빌리티 플립 운영 배포
 
 - 사용자 승인: 메이드 효과/스트리트 색상 및 상대 카드 플립 수정 사항을 커밋·push·배포.

@@ -1,5 +1,128 @@
 # Cloudflare 멀티플레이 기반 구현 보고서
 
+## AUTH-GOOGLE-001 — 계정 기반 추가 (2026-10-07, 미배포)
+
+이 절은 현재 추가한 계정 구현 기록이다. **이후 2026-09-16 본문은 당시 멀티플레이 구현 기록**이며, 그 안의 “계정/OAuth/D1 계정 DB 없음”은 이 변경 전 상태다. GameRoom의 게스트 좌석과 계정은 아직 연결하지 않는다.
+
+### 기준과 범위
+
+- 작업 시작 `main`: `38e78364417011876fab4fc46c700bd97ce426b9` → fetch 후 최신 `019615db4e7bcc16130b59a292919188f13c80c5`로 fast-forward. 명세에 적힌 이전 SHA로 되돌리지 않았다.
+- 기존 미추적 `.wrangler-config/`, `product_doc/IA.md`, 과거 QA handoff, `varco-export/`는 보존했다.
+- 승인된 외부 변경: 새 `porena-account` D1 생성 및 초기 schema 적용만 수행. commit / push / 운영 Worker 배포 / Google 자격증명 등록은 하지 않았다.
+- 계정 UUID만 구축. 랭킹, 프로필, 닉네임, Kakao, 계정 연결, GameRoom ↔ userId는 미구현이다. 로그인은 플레이 조건이 아니다.
+
+### DB / 설정
+
+| 항목 | 내용 |
+| --- | --- |
+| Worker / Cloudflare account | `porena` / `0a1102b704cf75e79300017e1904fe7e` |
+| 새 DB / 지역 힌트 | `porena-account` / APAC |
+| DB ID / binding | `e4eedbce-2157-4823-b840-eec1017d4f60` / `ACCOUNT_DB` |
+| migration | `account-migrations/0001_accounts.sql` — 기존 feedback migration과 별도 |
+| `users` | 독립 UUID, nullable display_name, 생성/마지막 로그인 시각, status |
+| `oauth_accounts` | `(provider, provider_subject)` PK, user FK + CASCADE, user index |
+| `sessions` | 256-bit random token의 SHA-256 digest만 저장, user FK + CASCADE, user/expiry index |
+| `oauth_flows` | state digest, browser binding digest, nonce, 임시 PKCE verifier, 고정 callback URI, 생성/만료, expiry index |
+| 공개 config | `AUTH_ORIGIN=https://porena.kr`, `GOOGLE_CLIENT_ID`는 아직 빈 값 |
+| 비밀 config | `GOOGLE_CLIENT_SECRET` Worker Secret; 로컬 `.dev.vars`는 기존 ignore 적용. 별도 session 서명 secret은 불필요 |
+
+local migration 적용 후 테스트를 통과하고 remote migration을 적용했다. 원격 read-only 확인: 네 테이블 존재, 사용자 0명, foreign_key_check 오류 0건. 기존 `FEEDBACK_DB`와 운영 데이터는 수정하지 않았다. `ACCOUNT_DB`는 소스·dry-run에 연결됐으며 **운영 Worker에는 아직 배포되지 않았다**.
+
+### 인증과 보안
+
+| API | 동작 |
+| --- | --- |
+| GET `/api/auth/google/start` | random state/nonce/browser cookie + S256 PKCE 생성, 10분 flow 저장 후 Google로 302 |
+| GET `/api/auth/google/callback` | browser-bound state를 `DELETE RETURNING`으로 1회 소비 → 서버 code 교환 → ID token 검증 → 계정/세션 저장 → `/` |
+| GET `/api/auth/me` | 익명 `{authenticated:false}`, 로그인 `{authenticated:true,user:{id,displayName}}`만 반환 |
+| POST `/api/auth/logout` | same-Origin 필수, DB 세션 삭제와 쿠키 만료. 반복 호출도 성공 |
+
+- `jose@6.2.12`로 Google JWKS RS256 서명, issuer(두 공식 값), audience, exp, 필수 iat/sub/nonce와 nonce 일치 검증. multi-audience의 azp도 검증한다. JWT decode만으로 신뢰하지 않는다.
+- Google scope `openid profile`; 저장하는 외부 식별자는 Google `sub`뿐. 이메일, 이름, 사진, access/refresh/ID token은 저장하지 않는다. display_name은 신규 계정에서 null이다.
+- Google callback URI는 신뢰한 `AUTH_ORIGIN`에서만 결정한다. 클라이언트의 redirect_uri/returnTo는 사용하지 않는다. 요청 origin도 설정값과 같아야 한다.
+- callback만 외부 top-level redirect를 허용한다. 다른 auth API는 외부 Origin / cross-site를 거절한다. 기존 Discord·관리자·게임 Origin 정책은 유지한다.
+- 유효하게 매칭한 flow는 성공·실패에 관계없이 소비한다. 잘못된 state 또는 다른 브라우저는 정당한 flow를 소비할 수 없다. 미사용 flow는 10분 뒤 무효이며 이후 시작 요청/일일 Cron에서 삭제한다.
+- 첫 로그인 `users` 조건부 INSERT + provider mapping INSERT를 D1 batch transaction으로 묶어 동시 로그인 시 중복·고아 계정을 방지한다. 재로그인은 기존 UUID와 last_login_at만 갱신한다.
+- 공통 `readPorenaSession`은 해시 조회, 만료, active status를 검증하고 내부 provider 정보를 반환하지 않는다. 재로그인은 해당 브라우저의 이전 세션을 교체한다.
+- 초기 세션 TTL **30일(고정 만료, sliding 갱신 없음)**, flow TTL **10분**. `worker/auth.ts`의 상수 한 곳에서 관리한다. 별도 제품 승인이 확정된 영구 정책으로 간주하지 않는다.
+- 쿠키: HTTPS `__Host-porena_session` / `__Host-porena_oauth`, HttpOnly, Secure, SameSite=Lax, Path=/, Domain 없음. 명시한 localhost HTTP에서는 Secure·__Host- 접두사만 생략한다.
+- auth 응답은 no-store / no-referrer. 실패 callback은 `/?auth=failed`만 반환하고 UI는 일반 오류 안내 후 query를 제거한다. token/code/exception/Google 응답 전문을 console에 기록하지 않는다.
+- `observability.redact_query_string=true`: 자동 요청 로그·trace에도 callback code/state 쿼리를 남기지 않도록 설정. 최종 운영 로그 가림 여부는 배포 후 확인할 것.
+- start/callback 전용 `AUTH_LIMITER` 10회/60초/IP. 게임·관리자 제한 예산과 분리했다.
+- 기존 일일 Cron에 만료 sessions/flows 정리를 추가했다. users/oauth_accounts는 자동 삭제하지 않는다. 계정 탈퇴·보존 정책은 공개 전 사용자 결정이 필요하다.
+
+### UI / 개발 실행
+
+시작 화면 상단에 Google 로그인 / 로그인됨 / 로그아웃을 추가했다. 기존 시작하기·싱글·멀티·길라잡이를 유지하며 계정 조회 실패로 게임을 막지 않는다. Discord 및 iframe에서는 계정 UI를 표시하지 않고 기존 게스트 흐름을 유지한다.
+
+브라우저 확인에 사용한 실제 로컬 환경은 **http://localhost:8787**이다. 루트 저장소가 아닌 `holto-chess/`에서 실행한다:
+
+```powershell
+npm run build
+npx wrangler d1 migrations apply porena-account --local
+npx wrangler dev --persist-to .wrangler/state --port 8787 --local-upstream localhost:8787 --upstream-protocol http --var AUTH_ORIGIN:http://localhost:8787
+```
+
+`--local-upstream` / `--upstream-protocol`은 Wrangler가 로컬 요청 URL을 운영 route로 치환하는 것을 방지한다. `--persist-to .wrangler/state`는 migration과 같은 로컬 DB를 사용하고 빌드 출력 폴더 내부에 DB를 만들지 않게 한다. 포트나 `localhost`/`127.0.0.1`을 섞으면 Origin·callback·쿠키가 맞지 않으므로 위 URL을 일관되게 사용한다. 일반 Vite `npm run dev`를 사용할 경우 실제 포트에 맞춰 AUTH_ORIGIN과 Google redirect를 함께 변경한다. frontend-only `dev:local`은 인증 API 검증용이 아니다.
+
+### 사용자 Google Console Gate
+
+1. Google Cloud Console → Google Auth Platform에서 앱의 Branding / Audience / Data Access를 설정한다. 외부 앱 테스트 모드이면 본인 계정을 테스트 사용자로 등록한다. 웹사이트·개인정보처리방침·약관 주소는 실제 서비스 주소를 사용한다.
+2. OAuth Client를 **Web application**으로 생성한다. Authorized redirect URIs 두 개를 정확히 등록한다:
+   - `https://porena.kr/api/auth/google/callback`
+   - `http://localhost:8787/api/auth/google/callback`
+3. `GOOGLE_CLIENT_ID`는 공개값이므로 운영 `wrangler.jsonc` vars에 설정할 수 있다. 로컬은 `holto-chess/.dev.vars`에 아래 이름으로 직접 입력한다. **실제 Secret을 채팅·문서·Git에 넣지 않는다.** 기존 .dev.vars가 있으면 다른 설정을 보존하며 항목만 추가한다.
+
+```dotenv
+AUTH_ORIGIN=http://localhost:8787
+GOOGLE_CLIENT_ID=<Console에서 받은 Client ID>
+GOOGLE_CLIENT_SECRET=<Console에서 받은 Secret — 본인이 로컬에 직접 입력>
+```
+
+4. 서버를 재시작하고 Google 계정 선택 → callback → 로그인 표시 → 새로고침 유지 → logout → 같은 계정 재로그인을 확인한다. `/api/auth/me` true/false와 D1 users 1개 유지도 확인한다.
+5. 운영 Secret은 별도 배포 승인 뒤 `npx wrangler secret put GOOGLE_CLIENT_SECRET`로 직접 입력한다. **이 명령은 새 Worker 버전을 즉시 배포하므로 지금 실행하지 않는다.** 미배포 버전에만 넣어야 한다면 승인된 릴리스 절차에서 `wrangler versions secret put`을 사용한다.
+
+### 검증 기록 / 남은 확인
+
+#### 2026-10-08 실제 Google 로컬 검증
+
+- 아래 2026-10-07 자격증명 대기 기록의 후속 확인: Google Cloud 프로젝트 `wide-origin-510106-m4`에 `PORENA Web` 생성. 지원 이메일 1778 계정, 개발자 연락처 4689 계정으로 저장. 사용자가 직접 ignored `.dev.vars`에 자격증명을 설정했다. 운영 vars/Secret에는 아직 미등록.
+- `http://localhost:8787` 실제 Google 계정 로그인 성공, 새로고침 로그인 유지, 로그아웃 및 새로고침 익명 유지, 재로그인 성공. 로컬 DB users/oauth_accounts/sessions 각 1건. 성공 화면 `artifacts/auth-google/google-login-success.jpg`(ignored).
+- 실패 원인: workerd fetch는 `redirect: "error"`를 지원하지 않음. `manual`로 변경하고 비-2xx 거부를 유지. 모의 fetch에 runtime 제약 및 token endpoint 302 거부 회귀를 추가했다. 수정 전 정상 로그인 관련 6개 테스트 실패를 확인했다. 보안 state/nonce/PKCE/JWT 검증은 변경하지 않았다.
+- build(frontend/Worker 타입 검사 포함) 통과. 전체 Worker 최초 실행 74/74 통과하나 종료 시 기존 RPC teardown 경고. 기본 병렬 전체 UI 실행 758 통과/기존 openDraft 30초 timeout 1건으로 제한 병렬 재검증. lint는 이번에 수정하지 않은 `src/ui/ShowdownPrepPanel.test.ts:18`의 `no-useless-escape` 1건으로 실패; 통과로 간주하지 않는다.
+- 운영 로그인, 실제 모바일 브라우저, 정책·탈퇴·보존, 운영 로그 query 가림은 미검증. 테스트 풀 Wrangler는 `redact_query_string` 미지원 경고를 출력하므로 운영 가림은 설정만으로 완료라고 간주하지 않는다. commit/push/deploy 미수행.
+- 최종 제한 병렬 전체 재실행: 게임/UI 107 files / 759 tests, Worker 8 files / 75 tests 통과(302 거부 회귀 포함). 변경 인증 코드·테스트 대상 eslint와 `git diff --check` 통과. 전체 lint의 위 기존 오류는 그대로 남김.
+
+- 신규 Worker 테스트: `tests/worker/auth.test.ts` 31개. 실제 D1 migration/PK/FK/CASCADE, OAuth 시작/고정 redirect/PKCE, 외부 Google endpoint 모의 응답에 실제 RSA 서명 검증, 잘못된 state/cookie/TTL/replay/서명/issuer/audience/nonce/exp/azp/필수 claim, 신규·재로그인·동시 최초 로그인, 세션 해시/쿠키/만료/비활성 계정/logout/Origin/rate limit/Cron.
+- UI 회귀: 계정 상태 로딩 중에도 게스트 시작·길라잡이 버튼 유지.
+- 전체 게임/UI: `npm test -- --maxWorkers=2` **107 files / 757 tests 통과**. 최초 기본 병렬 실행은 기존 `openDraft.test.ts`의 8-seed 시뮬레이션 한 건이 30초 timeout(755 pass/1 fail); 병렬 수만 낮춘 전체 재실행에서 통과했다. 테스트 제한 시간이나 게임 로직은 변경하지 않았다.
+- 전체 Worker: `npm run test:workers -- --maxWorkers=2` **8 files / 74 tests 통과**(신규 31개 포함). 기본 병렬 실행에서는 기존 GameRoom `webSocketClose(1006)` 런타임 경고가 보였고, 제한 병렬 최종 실행에서는 테스트 실패 없이 완료됐다. 해당 GameRoom 코드는 이번에 변경하지 않았다.
+- `npm run lint`, `npm run build`(생성 Env + frontend/Worker TypeScript 검사 포함), `npx wrangler deploy --dry-run`, `git diff --check` 통과. 빌드 QA 중 열린 로컬 Worker가 dist 내부 DB를 잠가 한 차례 EPERM이 발생했고 서버 종료 및 별도 persist 경로로 해결 후 build/dry-run 재통과.
+- 테스트 풀 내부 Wrangler 4.124.0은 새 `redact_query_string` 옵션에 경고한다. 실제 프로젝트 Wrangler 4.132.0과 Vite 최종 build/dry-run은 해당 옵션을 인식하며 `dist/porena/wrangler.json`에 true가 보존됨을 확인했다. 실제 자격증명 누락 경고는 예상 상태이며 테스트는 가짜 자격증명과 Google 모의 응답을 사용한다.
+- 로컬 브라우저: `http://localhost:8787`에서 Google 로그인 링크, 익명 `/api/auth/me` 200, 게스트 싱글의 R1 안내/Ability Draft 진입 확인. 실패 안내는 안전한 문구로 표시되고 query가 제거됨을 확인했다. 마지막 오류 안내 상태 수정 후 UI 테스트와 lint도 재통과했다. 스크린샷은 로컬 ignored `artifacts/auth-google/start-screen.jpg`. 실제 Google 로그인·로그아웃 UI 상태 전환과 실기기 검증은 아래 Gate에 남는다.
+- 실제 Google 자격증명 미설정: Google 계정 선택·실제 token 교환·새로고침 세션 유지·재로그인 중복 여부의 **실브라우저 E2E는 미검증**이다. 모의 테스트를 실제 Google 검증으로 간주하지 않는다.
+- 공개 전 gate: 기존 `/privacy`, `/terms`의 “계정 없음” 문구 개정, 계정 데이터 보존·탈퇴 처리·Google 제공 정보 설명 및 시행일 결정. 법적 정책을 임의 확정하지 않고 현재 공개 문구는 보존했다.
+- 설치 시 audit 요약은 high 7건이며, 별도 `npm audit --omit=dev`에는 기존 `source-map-js@1.2.1` high advisory 1건이 남아 있다(원래 HEAD에도 동일 버전). 이번에 추가한 jose는 해당 경고 대상이 아니다. 범위 밖 강제 업데이트는 하지 않았다.
+
+### 공식 근거
+
+- [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect), [실제 discovery와 S256 지원](https://accounts.google.com/.well-known/openid-configuration)
+- [jose](https://github.com/panva/jose), [D1 batch transaction](https://developers.cloudflare.com/d1/worker-api/d1-database/)
+- [Cloudflare Secrets — 즉시 배포와 versions 차이](https://developers.cloudflare.com/workers/configuration/secrets/), [로그·trace query redaction](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/settings/methods/get/)
+
+### 변경 파일
+
+| 구분 | 파일(앱 폴더 기준, product_doc은 저장소 루트) |
+| --- | --- |
+| 계정 DB·설정 | `account-migrations/0001_accounts.sql`, `wrangler.jsonc` |
+| 서버 | `worker/auth.ts`, `worker/index.ts` |
+| UI·번역 | `src/ui/AccountLogin.tsx`, `src/ui/StartScreen.tsx`, `src/ui/start-screen.css`, `src/i18n/locales/ko-KR.ts`, `src/i18n/locales/en-US.ts` |
+| 테스트 | `tests/worker/auth.test.ts`, `tests/worker/applyMigrations.ts`, `vitest.workers.config.ts`, `src/ui/AccountLogin.test.ts` |
+| 의존성 | `package.json`, `package-lock.json` — jose 추가, 기존 패키지 버전 변경 없음 |
+| 기록 | `CLOUDFLARE_IMPLEMENTATION.md`, `OPERATIONS.md`, `product_doc/DECISIONS.md`, `product_doc/TODO.md` |
+
+---
+
 검증일: 2026-09-16. 기존 기준 커밋: `70b357a`. 실제 배포 및 Git commit/push는 수행하지 않았다.
 
 ## 1. 기존 구조 분석

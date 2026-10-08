@@ -4,6 +4,11 @@
 
 ## 운영 후속 확인
 
+### Google 로그인 — 공개 전 Gate
+
+- [ ] AUTH-GOOGLE-001-LEGAL | 담당 사용자·Codex | 상태 TODO | 운영 공개 전 개인정보처리방침·이용약관의 계정 미지원 문구 개정, 계정 보존·탈퇴 정책과 시행일 결정. 초기 session 30일을 제품 정책으로 확정할지 확인.
+- [ ] AUTH-GOOGLE-001-RELEASE | 담당 사용자·Codex | 상태 BLOCKED | 위 Gate 및 별도 commit/push/deploy 승인 후 운영 Secret·ACCOUNT_DB binding 배포, 로그인/기존 게스트·Discord·관리자 smoke QA, 자동 로그의 callback query 가림 확인. 신규 D1 생성·remote 초기 migration은 2026-10-07 완료, 운영 Worker는 미배포.
+
 ### 개인정보 보존
 
 #### Cron 첫 실행 확인
