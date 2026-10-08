@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMatchView } from "../game/matchView";
 import { autoStep, practiceState } from "./practiceState";
+import { TUTORIAL_SEED } from "./chapters";
 import { decisiveComparison, explainResult, explainStreet, type Street } from "./showdownExplainer";
 import type { MatchView, RevealedHand } from "../shared/protocol";
 import type { PorenaGameState } from "../game/types";
@@ -60,7 +61,7 @@ describe("showdown explanations", () => {
   });
 
   it("R5 explains each RUN with that RUN's two cards and its own board", () => {
-    const { matches } = playedRound(5);
+    const { matches } = playedRound(5, TUTORIAL_SEED);
     const match = matches[0]!;
     expect(match.boards).toHaveLength(3);
     match.boards.forEach((board, run) => {
@@ -75,7 +76,7 @@ describe("showdown explanations", () => {
 
   it("R6 explains the best five of my chosen five and the community board", () => {
     // The tutorial seed keeps the practice seat alive into the R6 final.
-    const { matches } = playedRound(6, 2631);
+    const { matches } = playedRound(6, TUTORIAL_SEED);
     const match = matches[0]!;
     expect(match.boards).toHaveLength(1);
     expect(match.participantIds).toHaveLength(3);

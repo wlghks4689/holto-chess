@@ -19,7 +19,7 @@ function AuctionIntro({ seconds, maxWins, minRaise, onClose, ko }: { seconds: nu
     copy(`카드 16장 중 1인당 ${maxWins}장만 낙찰받을 수 있습니다.`, `Win at most ${maxWins} of the 16 cards.`),
     copy("첫 입찰은 카드를 한 번 눌러 선택한 뒤, 다시 눌러 확정합니다.", "Tap a card to select it, then tap again to place an opening bid."),
     copy(`입찰이 있는 카드는 현재 최고가보다 최소 ${minRaise}BB 높게 입찰합니다.`, `To bid on a card that has a bid, beat the highest bid by at least ${minRaise}BB.`),
-    copy("확정한 입찰은 취소할 수 없고, 낙찰 시에만 BB가 차감됩니다.", "Bids can't be cancelled; BB is only spent on cards you win."),
+    copy("다른 카드에 입찰하면 기존 입찰은 취소되고 그 카드는 입찰 없는 상태로 돌아갑니다. 낙찰 시에만 BB가 차감됩니다.", "Bidding on another card cancels your current bid; that card goes back to no bid. BB is only spent on cards you win."),
     copy("낙찰받지 못하면 남은 카드 1장을 2배 가격에 구매합니다.", "Win nothing and you buy one leftover card at double price."),
   ];
   return <div className="auction-intro-backdrop" role="presentation" onClick={onClose}>
@@ -61,9 +61,14 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
   const seconds = Math.max(0, Math.ceil(((view.phase === "FINAL_AUCTION" ? a.endsAt : a.loadout?.endsAt ?? now) - Math.max(now, a.startedAt)) / 1000));
   const openingSeconds = Math.max(0, Math.ceil((a.startedAt - now) / 1000));
   const mine = a.mine;
+  // Six-round R3: a seat at its limit can still bid; the bid moves and its reservation is freed.
+  const leadingOffer = a.cards.find(o => o.isMine);
+  const moving = cardAuction && (mine?.leadingCount ?? 0) >= a.maxWins;
+  const availableBB = (mine?.availableBidBB ?? 0) + (moving ? leadingOffer?.highestAmount ?? 0 : 0);
   const reason = (offer: Offer) => !view.me.alive ? copy("관전 중", "Spectating") : offer.isMine ? copy("내 입찰 중", "Your bid")
-    : (mine?.leadingCount ?? 0) >= a.maxWins ? copy(`최대 ${a.maxWins}장의 카드에 최고 입찰 중입니다.`, a.maxWins === 1 ? "Already leading on a card." : `Already leading on ${a.maxWins} cards.`)
-    : offer.minNextBid > (mine?.availableBidBB ?? 0) ? copy("입찰 가능한 BB가 부족합니다.", "Not enough available BB.") : "";
+    : !moving && (mine?.leadingCount ?? 0) >= a.maxWins ? copy(`최대 ${a.maxWins}장의 카드에 최고 입찰 중입니다.`, a.maxWins === 1 ? "Already leading on a card." : `Already leading on ${a.maxWins} cards.`)
+    : offer.minNextBid > availableBB ? copy("입찰 가능한 BB가 부족합니다.", "Not enough available BB.") : "";
+  const moveNotice = moving && leadingOffer ? copy(`입찰하면 ${cardLabel(leadingOffer.card)} 입찰(${leadingOffer.highestAmount}BB)이 취소됩니다.`, `Bidding here cancels your ${cardLabel(leadingOffer.card)} bid (${leadingOffer.highestAmount}BB).`) : "";
   const bid = (offer: Offer) => {
     if (!active || disabled || gesture.current.moved || pendingCard.current?.id === offer.card.id && pendingCard.current.until > now) return;
     if (offer.isMine) return;
@@ -82,7 +87,7 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
     copy(`카드 16장 중 1인당 ${a.maxWins}장만 낙찰받을 수 있습니다.`, `Win at most ${a.maxWins} of the 16 cards.`),
     copy("첫 입찰은 카드를 한 번 눌러 선택한 뒤, 다시 눌러 확정합니다.", "Tap a card to select it, then tap again to confirm an opening bid."),
     copy(`경쟁 입찰은 현재 최고가보다 최소 ${a.minRaiseBB}BB 높아야 합니다.`, `A competing bid must exceed the current highest bid by at least ${a.minRaiseBB}BB.`),
-    copy("확정한 입찰은 취소할 수 없습니다.", "Confirmed bids cannot be cancelled."),
+    copy("다른 카드에 입찰하면 기존 입찰은 취소되고 그 카드는 입찰 없는 상태로 돌아갑니다.", "Bidding on another card cancels your current bid; that card goes back to no bid."),
     copy("낙찰받지 못하면 남은 카드 1장을 2배 가격에 구매합니다.", "Win nothing and you buy one leftover card at double price."),
   ] : [
     copy("R5에서는 추가 BB 수입이 없습니다.", "There is no extra BB income in R5."),
@@ -106,6 +111,7 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
     </header>
     {bidding ? <>
       {opening && <p className="auction-opening" role="status">{copy(`${openingSeconds}초 후 입찰이 시작됩니다. 카드를 미리 확인하세요.`, `Bidding opens in ${openingSeconds}s. Look over the cards.`)}</p>}
+      {moveNotice && selected && !a.cards.find(o => o.card.id === selected)?.hasBid && <p className="auction-move-notice" role="status">{moveNotice}</p>}
       {a.outbid && <p className="auction-outbid" role="status" key={a.outbid.sequence}>{cardLabel(a.cards.find(c => c.card.id === a.outbid!.cardId)!.card)} · {copy("최고 입찰에서 밀렸습니다", "You were outbid")} · {a.outbid.amount}BB {copy("예약 해제", "released")}</p>}
       <div className="auction-grid" onPointerDown={e => { gesture.current = { x: e.clientX, y: e.clientY, moved: false }; }} onPointerMove={e => { if (Math.hypot(e.clientX - gesture.current.x, e.clientY - gesture.current.y) > 10) gesture.current.moved = true; }} onPointerCancel={() => { gesture.current.moved = true; }}>
         {a.cards.map(offer => <article key={offer.card.id} className={`auction-tile ${selected === offer.card.id && !offer.hasBid ? "is-selected" : ""} ${offer.isMine ? "is-mine" : offer.hasBid ? "has-bid" : ""}`} onClick={e => e.stopPropagation()}>
@@ -119,11 +125,12 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
       </article>)}</div>
       {sheet && sheetOffer && <aside className="auction-bid-sheet" role="dialog" aria-label={copy("경쟁 입찰", "Raise bid")} onClick={e => e.stopPropagation()}>
         <header><b>{cardLabel(sheetOffer.card)} · {copy("경쟁 입찰", "Raise bid")}</b><button className="secondary" onClick={() => setSheet(null)} aria-label={copy("닫기", "Close")}>×</button></header>
-        <p>{copy("현재 최고가", "Highest")} {sheetOffer.highestAmount}BB · {copy("최소", "Minimum")} {sheetOffer.minNextBid}BB · {copy("최대", "Maximum")} {mine?.availableBidBB ?? 0}BB</p>
+        <p>{copy("현재 최고가", "Highest")} {sheetOffer.highestAmount}BB · {copy("최소", "Minimum")} {sheetOffer.minNextBid}BB · {copy("최대", "Maximum")} {availableBB}BB</p>
+        {moveNotice && <p className="auction-move-notice" role="status">{moveNotice}</p>}
         {sheet.expected !== sheetOffer.highestAmount && <p role="status">{copy("가격이 변경되었습니다. 금액을 다시 확인하세요.", "Price changed. Review your bid.")}</p>}
         <div className="auction-input"><button className="secondary" onClick={() => setSheet({ ...sheet, expected: sheetOffer.highestAmount!, input: String(Math.max(sheetOffer.minNextBid, Number(sheet.input) - a.minRaiseBB)) })}>−</button><input aria-label={copy("입찰 금액", "Bid amount")} inputMode="numeric" type="number" step="1" value={sheet.input} onChange={e => setSheet({ ...sheet, expected: sheetOffer.highestAmount!, input: e.target.value })} /><button className="secondary" onClick={() => setSheet({ ...sheet, expected: sheetOffer.highestAmount!, input: String(Number(sheet.input) + a.minRaiseBB) })}>+</button></div>
-        <div className="auction-shortcuts">{[[copy("최소", "Min"), sheetOffer.minNextBid], ["+10", Number(sheet.input) + 10], [copy("최대", "Max"), mine?.availableBidBB ?? 0]].map(([label, amount]) => <button key={label} onClick={() => setSheet({ ...sheet, expected: sheetOffer.highestAmount!, input: String(amount) })}>{label}</button>)}</div>
-        <button className="primary" disabled={disabled || !!reason(sheetOffer) || !Number.isSafeInteger(Number(sheet.input)) || Number(sheet.input) < sheetOffer.minNextBid || Number(sheet.input) > (mine?.availableBidBB ?? 0)} onClick={() => send({ type: "FINAL_AUCTION_BID", cardId: sheet.id, expectedHighestAmount: sheet.expected, amount: Number(sheet.input) })}>{copy("입찰 확정", "Confirm bid")}</button>
+        <div className="auction-shortcuts">{[[copy("최소", "Min"), sheetOffer.minNextBid], ["+10", Number(sheet.input) + 10], [copy("최대", "Max"), availableBB]].map(([label, amount]) => <button key={label} onClick={() => setSheet({ ...sheet, expected: sheetOffer.highestAmount!, input: String(amount) })}>{label}</button>)}</div>
+        <button className="primary" disabled={disabled || !!reason(sheetOffer) || !Number.isSafeInteger(Number(sheet.input)) || Number(sheet.input) < sheetOffer.minNextBid || Number(sheet.input) > availableBB} onClick={() => send({ type: "FINAL_AUCTION_BID", cardId: sheet.id, expectedHighestAmount: sheet.expected, amount: Number(sheet.input) })}>{copy("입찰 확정", "Confirm bid")}</button>
         {reason(sheetOffer) && <p role="status">{reason(sheetOffer)}</p>}
       </aside>}
     </> : a.settlement && cardAuction && !a.settlement.results.length ? <p className="auction-opening" role="status">{copy("낙찰된 카드가 없습니다.", "No card was won.")}</p>

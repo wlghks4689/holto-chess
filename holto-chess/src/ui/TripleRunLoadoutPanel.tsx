@@ -43,13 +43,14 @@ export function TripleRunLoadoutPanel({ view, send, disabled, seconds }: {
     </header>
   </section>;
   return <section className="panel triple-loadout">
-    <header className="six-round-header">
+    <header className="six-round-header is-compact">
       <div><small className="draft-kicker">ROUND 05 · RUN IT THREE TIMES</small><h2>{t("triple.heading")}</h2><p>{t("triple.points")}</p></div>
-      {seconds !== null && <PhaseTimer seconds={seconds} ariaLabel={t("triple.timerAria", { seconds })} />}
     </header>
     <R5OpponentBanner view={view} />
     <ShopAbilityPanel ability={view.me.abilityId} benefit={view.me.abilityBenefit} startingCard={view.me.abilityStartingCard} compact />
-    {complete ? <div className="triple-runs">{Array.from({ length: RUNS }, (_, run) => <Fragment key={run}>
+    {complete ? <div className="triple-runs">
+      {/* The clock sits above the RUN 3 box, in the free corner beside the ability panel, so the header stays short. */}
+      {seconds !== null && <PhaseTimer className="triple-run-timer" seconds={seconds} ariaLabel={t("triple.timerAria", { seconds })} />}{Array.from({ length: RUNS }, (_, run) => <Fragment key={run}>
       {run > 0 && <button type="button" className="triple-run-swap" disabled={locked} onClick={() => swapWhole(run - 1)}
         aria-label={t("triple.swapRuns", { left: run, right: run + 1 })} title={t("triple.swapRuns", { left: run, right: run + 1 })}>⇄</button>}
       <div className="triple-run">

@@ -196,3 +196,12 @@
 }
 /* The tutorial stacks its coach card above the cinema, so the final keeps its natural height there. */
 .tutorial-screen>.cinema.cinema-final.cinema-final-threeway:has(.final-community-board){min-height:0;grid-template-rows:auto 0 auto auto minmax(76px,auto) 0}
+
+/* R3 auction: a seat leading a card sees that bidding elsewhere moves its bid. */
+.auction-move-notice{margin:6px 0;padding:8px 12px;border:1px solid #8a6a3d;border-radius:9px;background:#2a2112;color:#ffe0a3;font-size:12px;line-height:1.45;text-align:center}
+
+/* R5 placement: the clock sits above the RUN 3 box (top-right corner) and the header loses its timer row. */
+.panel .six-round-header.is-compact{gap:4px;margin-bottom:10px;padding-bottom:10px}
+.six-round-header.is-compact h2{margin:2px 0 4px}
+.triple-loadout .triple-runs{position:relative}
+.triple-loadout .triple-run-timer.phase-timer{position:absolute;right:0;bottom:calc(100% + 8px);z-index:2}

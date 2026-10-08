@@ -238,7 +238,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const currentPoints = rankPoints[id];
       const currentRank = currentPoints === undefined ? undefined : 1 + Object.values(rankPoints).filter((points) => points > currentPoints).length;
       const tiedOnPoints = currentPoints === undefined ? false : Object.values(rankPoints).filter((points) => points === currentPoints).length > 1;
-      const read = !final ? undefined : finalBoard ? { stage: flags.made ? "final" : "current", tag: undefined, title: (flags.made ? label : streetLabel)?.title ?? "—", detail: (flags.made ? label : streetLabel)?.kicker } : readStage.kind === "final" && label
+      // A board final colours each street's hand name by its own rank from the flop on, like the other rounds.
+      const read = !final ? undefined : finalBoard ? { stage: flags.made ? "final" : "current", tag: undefined, title: (flags.made ? label : streetLabel)?.title ?? "—", detail: (flags.made ? label : streetLabel)?.kicker,
+        tone: (flags.made ? result : streetResult)?.displayName } : readStage.kind === "final" && label
         ? { stage: "final", tag: undefined, title: label.title, detail: label.kicker }
         : interimLabel
           ? { stage: `current-${readCards}`, tag: t(readCards === 3 ? "cinema.currentReadThree" : "cinema.currentBestFive"), title: interimLabel.title, detail: interimLabel.kicker }
@@ -279,7 +281,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {final && !!match.blockCards?.[id]?.length && <div className="cinema-burn-cards"><small>BURN</small>
           <div>{match.blockCards[id]!.map((card) => <CardView card={card} compact key={card.id} />)}</div></div>}
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
-          <div className="cinema-final-read-copy">{read.tag && <small>{read.tag}</small>}<strong className={readStage.kind === "current" && interimHand ? `made-${madeTone(interimHand.displayName)}` : undefined}>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
+          <div className="cinema-final-read-copy">{read.tag && <small>{read.tag}</small>}<strong className={"tone" in read && read.tone ? `made-${madeTone(read.tone)}` : readStage.kind === "current" && interimHand ? `made-${madeTone(interimHand.displayName)}` : undefined}>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
         {!intro && !final && (flags.made ? label : streetLabel) && <div className={flags.made ? "cinema-made" : "cinema-street-made"}><strong className={!flags.made && streetResult ? `made-${madeTone(streetResult.displayName)}` : undefined}>{(flags.made ? label : streetLabel)!.title}</strong>{(flags.made ? label : streetLabel)!.kicker && <small>({(flags.made ? label : streetLabel)!.kicker})</small>}</div>}
         {!final && (showMatchOutcome || showRewardAmount) && <div className="cinema-result-footer">
           <div className="cinema-profile-outcome">{showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}</div>

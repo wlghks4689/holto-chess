@@ -7,6 +7,10 @@ import { PlatformNotice } from "./ui/PlatformNotice";
 import "./ui/styles.css";
 import "./ui/online.css";
 import "./ui/responsive.css";
+// The auction/board-final and six-round screens override shared cinema and responsive rules at equal
+// specificity (they used to arrive with their lazy screens), so they load last, in this order.
+import "./ui/final-auction.css";
+import "./ui/six-round.css";
 
 // A tab opened before a deploy still points at the previous build's chunk names, which no longer exist.
 // Reload once onto the new build instead of leaving a blank screen; the timestamp guard prevents a reload loop.

@@ -96,7 +96,8 @@ describe("open draft rules v2", () => {
       expect(shown).toHaveLength(3);
       expect(lockRunLoadouts(g).players[0]!.selectedCardIds).toEqual(shown);
     }
-  });
+  // A full game to R2 under the bot brain; slow when the whole suite runs in parallel.
+  }, 60_000);
   it("resolves each RUN with the manually placed representative and matching secondary", () => {
     const g = drafted();
     const [a, b, c] = g.players[0]!.ownedCardIds;

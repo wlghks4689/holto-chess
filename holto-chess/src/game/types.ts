@@ -154,4 +154,6 @@ export type FinalAuctionState = {
   outbid: Record<string, { cardId: string; amount: number; sequence: number }>;
   raises: Record<string, number>;
   poolWarning?: string;
+  /** Six-round R3: each seat's 1-20 combination score per auction card, set when the auction opens. */
+  cardValues?: Record<string, Record<string, number>>;
 };
