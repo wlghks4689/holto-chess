@@ -1,7 +1,9 @@
 import { AbilityBadge } from "./AbilityVisibility";
 import { GameViewportReset } from "./GameViewportReset";
 import { activeAbilityCues } from "./abilityPresentation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { EquityMeter } from "./EquityMeter";
+import { equityBoardCount, matchStreetEquity } from "./streetEquity";
 import type { CSSProperties, KeyboardEvent } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, isFinalMatch, revealFlags, type CinematicFrame } from "./cinematicTimeline";
@@ -117,6 +119,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const synced = elapsedMs !== undefined;
   const [localElapsed, setElapsed] = useState(0);
   const [runDetail, setRunDetail] = useState<number | null>(null);
+  const [equityReady, setEquityReady] = useState<Record<string, number>>({});
   const frames = match.disclosure?.frames ?? cinematicTimeline(match);
   const authorized = match.disclosure && frameAt(frames, match.disclosure.elapsedMs);
   const nextAuthorizedAt = authorized ? frames[frames.indexOf(authorized) + 1]?.at ?? Infinity : Infinity;
@@ -190,6 +193,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const cardSwitch = frame.phase === "CARD_SWITCH_OUT";
   // The outgoing RUN's hand stays on screen while it flips away.
   const runIndex = cardSwitch ? Math.max(0, frame.boardIndex - 1) : frame.boardIndex;
+  const equityKey = `${match.id}:${runIndex}`;
+  const equityCount = Math.min(equityBoardCount(frames, runIndex, elapsed), equityReady[equityKey] ?? 0);
+  const equity = useMemo(() => matchStreetEquity(match, runIndex, equityCount), [match, runIndex, equityCount]);
   const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
   const labelFor = (id: string, result: RevealedHand, communityCards: readonly Card[] = []) => result.displayName === "몰수패" ? { title: t("hand.forfeit"), kicker: t("hand.forfeitDetails") }
     : detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds, t, communityCards);
@@ -202,7 +208,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     ? match.disclosure.frameDurationMs : (frames[frames.indexOf(frame) + 1]?.at ?? frame.at) - frame.at;
   const readStage = finalReadStage(frame.phase);
   return <section className={`cinema ${motion.enabled ? "cinema-motion-enabled" : ""} ${intro ? "cinema-intro" : "cinema-table"} ${multi ? "cinema-multi" : "cinema-headsup"} ${match.round === 4 && ids.length === 3 ? "cinema-r4-threeway" : ""} ${match.round === 3 && ids.length === 3 ? "cinema-r3-threeway" : ""} ${match.round === 3 || match.round === 4 ? "cinema-card-size-original" : ""} ${final ? "cinema-final" : ""} ${final && ids.length === 3 ? "cinema-final-threeway" : ""} ${finalBoard ? "cinema-board-final" : ""} ${tripleRun ? "cinema-run-three" : ""} ${stage ? `cinema-staged stage-r${stage.level}` : ""} ${arenaEnter ? "cinema-arena-enter" : ""} ${catchUp ? "cinema-catchup" : ""}`}
-    aria-label={title} data-round={match.round} data-phase={frame.phase} data-match-id={match.id}
+    aria-label={title} data-round={match.round} data-phase={frame.phase} data-match-id={match.id} data-equity-street={equityCount}
     style={{ "--flip-duration": "420ms", "--river-duration": "600ms", "--suspense-duration": "250ms", "--final-beat": 1, "--phase-duration": `${phaseMs}ms` } as CSSProperties}>
     <GameViewportReset screenKey={`cinema:${match.id}`} />
     <header className={`cinema-heading ${final ? "cinema-final-heading" : ""}`}><div className={final ? "cinema-heading-copy" : undefined}>{!final && <span className="eyebrow">ROUND {match.round} · MATCH {match.matchday ? `${match.matchday}/${match.round === 2 ? 2 : 3}` : displayedMatchNumber(match)}</span>}<h2>{final ? finalHeadingTitle : title}</h2></div>
@@ -256,16 +262,17 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         ? t("cinema.runOutcome", { run: frame.boardIndex + 1, outcome })
         : outcome;
       const podiumPlace = finalBoard && showFinalPlace && result ? result.place : undefined;
-      return <div key={id} className={`${cinemaSeatClass({ tone, placement: placementClass, made, leading })} ${podiumPlace ? `final-place-${Math.min(podiumPlace, 3)}` : ""}`} data-seat-index={index} data-player-id={id}>
+      return <div key={id} className={`${cinemaSeatClass({ tone, placement: placementClass, made, leading })} ${match.boards.length ? "cinema-meter-layout" : ""} ${podiumPlace ? `final-place-${Math.min(podiumPlace, 3)}` : ""}`} data-seat-index={index} data-player-id={id}>
         {/* R6 podium: a ribbon on the seat's top edge replaces the place stamp, clear of the ability icon. */}
         {podiumPlace && <FinalPlaceBanner place={podiumPlace} label={placeText(podiumPlace)} split={podiumPlace === 1 && match.winnerIds.length > 1 ? "SPLIT" : undefined} />}
-        {!final && ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}
+        {(!final || finalBoard) && ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}
+        {match.boards.length > 0 && !podiumPlace && !survivalOutcome && frame.phase !== "CARD_SWITCH_OUT" && frame.phase !== "CARD_SWITCH_IN" && <EquityMeter key={equityKey} percent={equity?.[match.participantIds.indexOf(id)] ?? null} name={name(id)} viewer={id === viewerId} />}
         {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{t(survivalOutcome === "SURVIVED" ? "match.survived" : "results.eliminated")}</span>}
         <div className={`cinema-profile ${!final ? "cinema-match-profile" : ""}`}>
           {!final && <div className="cinema-profile-identity"><b title={name(id)}>{name(id)}</b></div>}
           {/* R3 Swiss record sits under the name, clear of the ability icon on the name row. */}
           {swiss && <p className="swiss-record">{swiss.wins}W {swiss.draws}D {swiss.losses}L</p>}
-          {final && <>{ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}<b>{name(id)}</b></>}
+          {final && <>{!finalBoard && ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}<b>{name(id)}</b></>}
           {!final && match.round >= 2 && currentRank !== undefined && !showFinalPlace && <div className="cinema-standing-line"><span className="cinema-rank-badge" data-rank={currentRank} aria-label={t("cinema.currentRankAria", { tied: tiedOnPoints ? t("cinema.tied") : "", rank: currentRank })}><small>{t("cinema.current")}</small>{tiedOnPoints && <i>{t("cinema.tied")}</i>}<b>{t("cinema.place", { rank: currentRank })}</b></span></div>}
           {final && !finalBoard && showFinalPlace && <span className={`cinema-victory place-${result?.place ?? 0}`}>{result?.place === 1 && match.winnerIds.length > 1 ? t("cinema.finalSplitPlace") : placeText(result?.place)}</span>}
         </div>
@@ -329,6 +336,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           const visible = !pending && (!current || index < frame.revealed);
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;
           return <ShowdownCardFlip card={card} open={visible} glow={completed && used} dimmed={completed && !used}
+            onEquityReady={index >= 2 && current ? () => setEquityReady(previous => {
+              const key = `${match.id}:${boardIndex}`;
+              return (previous[key] ?? 0) >= index + 1 ? previous : { ...previous, [key]: index + 1 };
+            }) : undefined}
             className={`${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`}
             key={`${boardIndex}-${index}`} />;
         })}</div>

@@ -27,6 +27,7 @@ import { GameEndActions } from "./GameEndActions";
 
 type Case = { id: string; screen: string; round: Round; count: number };
 const cases: Case[] = [];
+cases.push({ id:"showdown-equity-live", screen:"showdown-equity-live", round:2, count:3 });
 cases.push({ id: "shop-reroll-interaction", screen: "shop", round: 1, count: 1 });
 cases.push({ id: "shop-r1-golden-hand", screen: "shop", round: 1, count: 0 });
 for (const round of [1,2,3,4,5] as const) {
@@ -113,7 +114,7 @@ function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
     const frames = cinematicTimeline(match);
     const switchPhase = screen === "showdown-switch-out" ? "CARD_SWITCH_OUT" : screen === "showdown-switch-in" ? "CARD_SWITCH_IN" : undefined;
     const elapsed = switchPhase ? frames.find(f=>f.phase === switchPhase)!.at + 100 : benefitQa ? frames.find(f=>f.phase === (round === 5 ? "FINAL_WINNER" : round === 2 ? "RUN_RESULT" : "RESULT"))!.at + 250 : screen === "showdown-run1-result" ? frames.find(f=>f.phase === "RUN_RESULT")!.at : screen === "showdown-run2-river" ? frames.find(f=>f.phase === "RIVER_SETTLE" && f.boardIndex === 1)!.at : Number.MAX_SAFE_INTEGER;
-    return <ShowdownCinematic match={match} profiles={profiles} viewerId="p1" onComplete={() => {}} elapsedMs={elapsed} nextMatchSeconds={screen === "showdown" || screen === "showdown-tiebreak" ? 3 : undefined} catchUp />;
+    return <ShowdownCinematic match={match} profiles={profiles} viewerId="p1" onComplete={() => {}} elapsedMs={screen === "showdown-equity-live" ? undefined : elapsed} nextMatchSeconds={screen === "showdown" || screen === "showdown-tiebreak" ? 3 : undefined} catchUp={screen !== "showdown-equity-live"} />;
   }
   if (screen.startsWith("match")) {
     const seats = match.participantIds.map((playerId, i) => ({ playerId, name:QA_NAMES[i]!, points:12345, abilityId:ABILITY_IDS[i], cards:match.revealedCards[playerId]!, ...(round === 2 ? { runCards:[match.revealedCards[playerId]!.slice(0,2),match.revealedCards[playerId]!.slice(-2)] as [typeof qaDeck,typeof qaDeck] } : {}) }));
