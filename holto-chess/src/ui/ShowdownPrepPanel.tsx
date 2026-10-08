@@ -110,15 +110,11 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
   </section>;
 }
 
-/** Six-round R5: both seats' locked RUN pairs and independent board odds are public. */
+/** Six-round R5: the viewer sees their own three RUN pairs; the opponent's cards stay face down until each RUN. */
 function TripleRunPrepPanel({ playerName, matchup }: { playerName: string; matchup?: ShowdownPrepView }) {
   const { t } = useTranslation();
   const viewer = matchup?.viewer;
   const opponent = matchup?.opponent ?? matchup?.opponents?.[0];
-  const equities = useMemo(() => [0, 1, 2].map(run => {
-    const left = viewer?.runCards?.[run] ?? [], right = opponent?.runCards?.[run] ?? [];
-    return showdownEquity(2, left, right, [...(viewer?.cards ?? []), ...(opponent?.cards ?? [])]);
-  }), [viewer, opponent]);
   const seats = [viewer, opponent] as const;
   const names = [viewer?.name ?? playerName, opponent?.name ?? t("showdown.findingOpponent")] as const;
   return <section className="showdown-prep match-loading r2-match-prep r5-match-prep" aria-label={t("showdown.matchLoadingAria")}>
@@ -132,14 +128,14 @@ function TripleRunPrepPanel({ playerName, matchup }: { playerName: string; match
             return <section className="r2-run-preview" key={run} aria-label={`RUN ${run + 1}`}>
               <h2>RUN {run + 1}</h2>
               <div className="r2-run-preview-body"><div className="r2-run-cards">{cards ? cards.map((card) => <CardView key={card.id} card={card} compact />)
-                : [0, 1].map((slot) => <CardBack key={slot} compact />)}</div><div className="r2-run-equity"><small>{t("showdown.equityLabel")}</small><strong>{equities[run]?.[index] === undefined ? "--" : `${equities[run]![index]}%`}</strong></div></div>
+                : [0, 1].map((slot) => <CardBack key={slot} compact />)}</div></div>
             </section>;
           })}</div>
         </article>
         {index === 0 && <strong className="r2-match-vs" aria-label={t("showdown.versus")}>VS</strong>}
       </Fragment>)}
     </div>
-    <footer className="showdown-prep-footer r2-match-footer"><strong>SHOWDOWN</strong><small>{t("showdown.runEquityNote")}</small></footer>
+    <footer className="showdown-prep-footer r2-match-footer"><strong>SHOWDOWN</strong><small>{t("triple.reveal")}</small></footer>
   </section>;
 }
 
