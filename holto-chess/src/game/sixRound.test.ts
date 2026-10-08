@@ -135,7 +135,7 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     expect(state.players[0]!.ownedCardIds).toContain(card);
     expect(finishCardAuctionReveal(state, state.finalAuction!.loadoutStartsAt! - 1)).toBe(state);
     state = finishCardAuctionReveal(state, state.finalAuction!.loadoutStartsAt!);
-    expect(state.phase).toBe("DRAFT_ORDER");
+    expect(state.phase).toBe("OPEN_DRAFT");
     expect(state.finalAuction).toBeUndefined();
     expect(state.draft!.priceMultiplier).toBe(2);
     expect(state.draft!.order.map((entry) => entry.playerId)).not.toContain("p1");
@@ -143,7 +143,6 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     const points = state.draft!.order.map((entry) => entry.points);
     expect(points).toEqual([...points].sort((a, b) => a - b));
     expect(state.draft!.cardIds).not.toContain(card);
-    state = openDraft(state);
     const buyer = state.draft!.order[0]!.playerId; const pick = state.draft!.cardIds[0]!;
     const before = state.players.find((p) => p.id === buyer)!.stackBB;
     state = pickDraftCard(state, buyer, pick, true);

@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 
 /** Ribbon colours per podium place; anything below third reuses bronze. */
 const TIERS = {
@@ -7,13 +7,13 @@ const TIERS = {
   3: { ribbon: ["#6e3a1c", "#2c1408"], tail: "#241005", metal: ["#ffe0c2", "#df9d62", "#9b5524"] },
 } as const;
 
-/** R6 podium: a ribbon carrying the place, set on the top edge of the finalist's seat. */
-export function FinalPlaceBanner({ place, label, split }: { place: number; label: string; split?: string }) {
+/** R6 podium: a ribbon carrying the place, set on the top edge of the finalist's seat (in the seat's grid column). */
+export function FinalPlaceBanner({ place, label, split, column }: { place: number; label: string; split?: string; column?: number }) {
   const id = useId().replace(/:/g, "");
   const tier = (place >= 1 && place <= 3 ? place : 3) as 1 | 2 | 3;
   const look = TIERS[tier];
   const metal = `url(#${id}-metal)`;
-  return <div className={`cinema-place-banner place-${tier}`} role="img" aria-label={split ? `${split} ${label}` : label}>
+  return <div className={`cinema-place-banner place-${tier}`} role="img" aria-label={split ? `${split} ${label}` : label} style={column ? { gridColumn: column } as CSSProperties : undefined}>
     <svg viewBox="0 0 200 40" aria-hidden="true">
       <defs>
         <linearGradient id={`${id}-metal`} x1="0" y1="0" x2="0" y2="1">

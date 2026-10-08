@@ -325,7 +325,9 @@ main.game-arena:has(.cinema-final)::before{background-image:none}
   .cinema-r4-threeway.cinema-multi:not(.cinema-final) .cinema-seats{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
   .cinema-r4-threeway .cinema-heading{margin-bottom:10px}
   .cinema-r4-threeway .cinema-seat{padding:23px 3px 8px}
-  .cinema-r4-threeway .cinema-seat>.cinema-status-stamp{top:4px;right:4px;padding:0 3px;font-size:7px}
+  /* Narrow 3-WAY seats: the icon sits centred above the name, so the stamp takes the free top-right
+     corner inside the seat (the seat keeps clipping its made-hand FX to its own box). */
+  .cinema-r4-threeway .cinema-seat>.cinema-status-stamp{top:4px;right:4px;padding:0 4px;font-size:8px}
   .cinema-r4-threeway .cinema-match-profile{grid-template-rows:20px 21px 18px;gap:2px;min-height:63px;margin-bottom:5px;font-size:10px}
   .cinema-r4-threeway .cinema-profile-identity{gap:3px}
   .cinema-r4-threeway .cinema-profile .player-avatar{width:19px;height:19px;font-size:10px}

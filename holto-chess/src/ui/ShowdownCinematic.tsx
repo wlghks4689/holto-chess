@@ -263,8 +263,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         : outcome;
       const podiumPlace = finalBoard && showFinalPlace && result ? result.place : undefined;
       return <div key={id} className={`${cinemaSeatClass({ tone, placement: placementClass, made, leading })} ${match.boards.length ? "cinema-meter-layout" : ""} ${podiumPlace ? `final-place-${Math.min(podiumPlace, 3)}` : ""}`} data-seat-index={index} data-player-id={id}>
-        {/* R6 podium: a ribbon on the seat's top edge replaces the place stamp, clear of the ability icon. */}
-        {podiumPlace && <FinalPlaceBanner place={podiumPlace} label={placeText(podiumPlace)} split={podiumPlace === 1 && match.winnerIds.length > 1 ? "SPLIT" : undefined} />}
         {(!final || finalBoard) && ability && <AbilityBadge ability={ability} cue={activation?.cue} age={activation?.age} catchUp={catchUp} />}
         {match.boards.length > 0 && !podiumPlace && !survivalOutcome && frame.phase !== "CARD_SWITCH_OUT" && frame.phase !== "CARD_SWITCH_IN" && <EquityMeter key={equityKey} percent={equity?.[match.participantIds.indexOf(id)] ?? null} name={name(id)} viewer={id === viewerId} />}
         {survivalOutcome && <span className={`cinema-status-stamp ${survivalOutcome === "SURVIVED" ? "is-survived" : "is-eliminated"}`}>{t(survivalOutcome === "SURVIVED" ? "match.survived" : "results.eliminated")}</span>}
@@ -303,7 +301,14 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         </div>}
         {final && showRewardAmount && reward && match.pointAwards?.[id] !== undefined && <div className="cinema-reward"><strong>{results.filter(r => r.place === result?.place).length > 1 ? `${t("cinema.tied").trim()} ` : ""}{placeText(result?.place)} +{Number(match.pointAwards[id].toFixed(2))}P</strong>{Math.abs(reward.deltaPoints - match.pointAwards[id]) > 0.005 && <small className="final-extra-points">BONUS {reward.deltaPoints - match.pointAwards[id] > 0 ? "+" : ""}{Number((reward.deltaPoints - match.pointAwards[id]).toFixed(2))}P</small>}</div>}
       </div>;
-    })}</div>
+    })}
+      {/* R6 podium: a ribbon on each seat's top edge replaces the place stamp. It is a sibling of the seat, not a
+          child, so the seat keeps clipping its made-hand FX to its own box. */}
+      {finalBoard && ids.map((id, index) => {
+        const result = results.find((r) => r.playerId === id);
+        const place = result && (finalWinnerStage || frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && result.place >= frame.finalPlace) ? result.place : undefined;
+        return place ? <FinalPlaceBanner key={`podium-${id}`} column={index + 1} place={place} label={placeText(place)} split={place === 1 && match.winnerIds.length > 1 ? "SPLIT" : undefined} /> : null;
+      })}</div>
     {!intro && (!final || finalBoard) && <div className={`cinema-board-stack ${finalBoard ? "final-community-board" : ""} ${match.runoutCount === 2 ? "run-it-twice" : ""} ${tripleRun ? "run-it-three-times" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
       const current = boardIndex === frame.boardIndex;
       const pending = boardIndex > frame.boardIndex;
@@ -315,9 +320,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : t("cinema.communityBoard")
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
       // R5: the seats above hold the live RUN's hands, so a finished RUN box only shows the viewer's
-      // outcome as its tint; hovering or tapping it opens that RUN's cards and result.
+      // outcome as its tint; hovering or tapping it opens that RUN's cards and result. A spectator has no
+      // side, so a decided RUN gets a neutral tint rather than the first seat's win or loss.
       const runOutcome = tripleRun && boardIndex < match.runoutCount && completed
-        ? boardWinners.length > 1 ? "split" : boardWinners.includes(ids[0]!) ? "win" : "loss" : undefined;
+        ? boardWinners.length > 1 ? "split" : !ids.includes(viewerId) ? "decided" : boardWinners.includes(viewerId) ? "win" : "loss" : undefined;
       const toggleDetail = () => setRunDetail((open) => open === boardIndex ? null : boardIndex);
       // R5: once the match result is out, the last RUN settles to the finished RUN size too.
       const settled = !current || tripleRun && flags.result;
