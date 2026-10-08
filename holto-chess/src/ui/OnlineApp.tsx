@@ -55,6 +55,7 @@ import { OpponentSelectPanel, R5OpponentBanner } from "./OpponentSelectPanel";
 import { TripleRunLoadoutPanel } from "./TripleRunLoadoutPanel";
 import { FinalLineupPanel } from "./FinalLineupPanel";
 import { roundTitle } from "./roundTitles";
+import { useAccount } from "./useAccount";
 
 /** How long a sent action may stay in flight before the UI unlocks itself. */
 const ACTION_TIMEOUT_MS = 10_000;
@@ -64,6 +65,8 @@ const clientErrorKeys: Record<string, TranslationKey> = {
   "client.invalidNickname": "error.invalidNickname", "client.seatCheckFailed": "connection.seatCheckFailed", "client.rateLimited": "error.tryAgain",
   "client.roomNotFound": "error.roomNotFound", "client.roomUnavailable": "online.roomUnavailable", "client.joinFailed": "online.joinFailed",
   "client.roomExpired": "online.roomExpired", "client.noResponse": "connection.noResponse", "client.sendFailed": "connection.sendFailed",
+  "client.accountExpired": "profile.accountExpired", "client.accountChanged": "profile.accountExpired",
+  "client.accountUnavailable": "profile.accountUnavailable", "client.profileRequired": "profile.required", "client.accountAlreadySeated": "profile.alreadySeated",
 };
 const storedNickname = () => [...(localStorage.getItem("porena-nickname") ?? (getLocale() === "ko-KR" ? "플레이어" : "Player"))].slice(0, 8).join("");
 
@@ -102,6 +105,9 @@ function Selection({ view, send, disabled }: { view: PlayerView; send: (a: GameA
 }
 export function OnlineApp({ onHome }: { onHome: () => void }) {
   const { locale, t } = useTranslation();
+  const account = useAccount();
+  const joinNickname = useRef(account.user?.displayName ?? storedNickname());
+  useEffect(() => { joinNickname.current = account.user?.displayName ?? storedNickname(); }, [account.user?.displayName]);
   const [credential, setCredential] = useState<SessionCredential | null>(null);
   const [resumable, setResumable] = useState<SessionCredential[]>(storedSessions);
   const [rawView, setView] = useState<PlayerView | null>(null);
@@ -169,7 +175,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     const transport = createRoomConnection({
       protocols: signal => connectionProtocols(credential, fetch, signal),
       open: protocols => new WebSocket(roomSocketUrl(credential.roomId), protocols),
-      join: () => JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: storedNickname() }),
+      join: () => JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: joinNickname.current }),
       needsClock: () => clockNeededRef.current,
       visible: () => !document.hidden,
       onStatus: value => { setStatus(value); if (value !== "Connected") clearPending(); },
@@ -217,8 +223,6 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   }, [credential, connectionKey, serverClock]);
 
   const join = async (create: boolean) => {
-    if (!/^[\p{L}\p{N} _-]{1,8}$/u.test(nickname.trim())) { setError("client.invalidNickname"); return; }
-    localStorage.setItem("porena-nickname", nickname.trim());
     setBusy(true); setError("");
     try {
       if (!create) {
@@ -230,8 +234,20 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
           else throw new Error("client.seatCheckFailed");
         }
       }
-      const response = await fetch(create ? endpoints.createRoom() : endpoints.joinRoom(roomCode.trim().toUpperCase()), { method: "POST" });
-      if (!response.ok) throw new Error(response.status === 429 ? "client.rateLimited" : response.status === 404 ? "client.roomNotFound" : "client.roomUnavailable");
+      // Existing room tokens above keep their reconnect semantics even if account login expires.
+      // A new seat must match the explicit account/guest choice; an auth failure is never a guest fallback.
+      const identity = await account.verifyNewRoom();
+      if (identity.kind === "guest") {
+        if (!/^[\p{L}\p{N} _-]{1,8}$/u.test(nickname.trim())) throw new Error("client.invalidNickname");
+        localStorage.setItem("porena-nickname", nickname.trim());
+        joinNickname.current = nickname.trim();
+      } else joinNickname.current = identity.user.displayName!;
+      const response = await fetch(create ? endpoints.createRoom() : endpoints.joinRoom(roomCode.trim().toUpperCase()), { method: "POST", credentials: "same-origin", headers: { "X-Porena-Identity": identity.kind } });
+      if (!response.ok) {
+        const failure = await response.json().catch(() => ({})) as { error?: string };
+        const identityErrors: Record<string, string> = { ACCOUNT_REQUIRED: "client.accountExpired", ACCOUNT_CHANGED: "client.accountChanged", PROFILE_REQUIRED: "client.profileRequired", ACCOUNT_ALREADY_SEATED: "client.accountAlreadySeated", ACCOUNT_UNAVAILABLE: "client.accountUnavailable" };
+        throw new Error(identityErrors[failure.error ?? ""] ?? (response.status === 429 ? "client.rateLimited" : response.status === 404 ? "client.roomNotFound" : "client.roomUnavailable"));
+      }
       const session = await response.json() as SessionCredential;
       rememberSession(session);
       setView(null); setPendingSale(null); setCredential(session); setResumable(storedSessions().filter((s) => s.roomId !== session.roomId));
@@ -311,7 +327,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const lockedShopCardCount = displayView?.me.shopCards.filter(({ card }) => displayView.me.lockedShopCardIds?.includes(card.id)).length ?? 0;
   const allShopCardsLocked = !!displayView?.me.shopSize && lockedShopCardCount >= displayView.me.shopSize;
   const screen = onlineScreen(credential, view);
-  if (screen === "lobby") return <MultiplayerLobby nickname={nickname} onNickname={setNickname} roomCode={roomCode} onRoomCode={setRoomCode} busy={busy} error={visibleError} sessions={resumable} onJoin={(create) => void join(create)} onResume={resume} onHome={onHome} />;
+  if (screen === "lobby") return <MultiplayerLobby nickname={account.user?.displayName ?? nickname} nicknameReadOnly={account.status === "authenticated"} onNickname={setNickname} roomCode={roomCode} onRoomCode={setRoomCode} busy={busy} error={visibleError} sessions={resumable} onJoin={(create) => void join(create)} onResume={resume} onHome={() => { void account.refresh(); onHome(); }} />;
   if (screen === "connecting" || screen === "departed") return <OnlineEntryFrame title={t(screen === "departed" ? "online.departedRoom" : "online.connectingRoom")} eyebrow="PRIVATE ARENA"><p className="entry-description">{credential?.roomId} · {statusLabel}</p>{error && <p className="room-error" role="alert">{visibleError}</p>}<div className="entry-recovery">{screen === "connecting" && <button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>{t("connection.retry")}</button>}<button className="secondary" onClick={() => { if (screen === "departed" && credential) forgetSession(credential.roomId); returnToLobby(); }}>{t("online.returnLobby")}</button></div></OnlineEntryFrame>;
   if (!view) return null;
   if (screen === "waiting") return <RoomWaitingRoom view={view} status={statusLabel} connected={status === "Connected"} pending={!!pending} error={visibleError} onReady={() => send({ type: "READY" })} onLeave={leaveRoom} onRetry={() => setConnectionKey((n) => n + 1)} onReturn={returnToLobby} />;

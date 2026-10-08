@@ -175,6 +175,9 @@ describe("Google OIDC", () => {
     expect(result.headers.getSetCookie().join(";")).toContain("Max-Age=2592000; Secure");
     expect(result.headers.getSetCookie().find((c) => c.startsWith("__Host-porena_session="))).toContain("Path=/; HttpOnly; SameSite=Lax;");
     expect(await (await call("/api/auth/me", { headers: { Cookie: cookie } })).json()).toEqual({ authenticated: true, user: { id: user!.id, displayName: null } });
+    const profile = await call("/api/profile", { method: "PATCH", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ displayName: "포레나" }) });
+    expect(profile.status).toBe(200);
+    expect(await profile.json()).toEqual({ user: { id: user!.id, displayName: "포레나" } });
     expect((await finish(flow)).headers.get("Location")).toBe("/?auth=failed");
     await env.ACCOUNT_DB.prepare("UPDATE users SET last_login_at = 1").run();
     const again = await begin();
@@ -184,6 +187,7 @@ describe("Google OIDC", () => {
     expect(await count("oauth_accounts")).toBe(1);
     expect(await count("sessions")).toBe(1);
     expect(await env.ACCOUNT_DB.prepare("SELECT last_login_at FROM users").first<number>("last_login_at")).toBeGreaterThan(1);
+    expect(await (await call("/api/auth/me", { headers: { Cookie: sessionCookie(relogin) } })).json()).toEqual({ authenticated: true, user: { id: user!.id, displayName: "포레나" } });
     expect(await readPorenaSession(request("/", { headers: { Cookie: cookie } }), env)).toBeNull();
     expect(JSON.stringify(await env.ACCOUNT_DB.prepare("SELECT * FROM oauth_accounts").all())).not.toContain("must-not-be-stored");
   });

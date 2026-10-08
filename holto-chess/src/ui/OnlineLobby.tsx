@@ -7,8 +7,9 @@ import { useTranslation } from "../i18n";
 import { currentPlatform, PUBLIC_WEB_ORIGIN, shareOrigin } from "../platform/runtime";
 export { OnlineEntryFrame } from "./OnlineEntryFrame";
 
-export function MultiplayerLobby({ nickname, onNickname, roomCode, onRoomCode, busy, error, sessions, onJoin, onResume, onHome }: {
+export function MultiplayerLobby({ nickname, nicknameReadOnly = false, onNickname, roomCode, onRoomCode, busy, error, sessions, onJoin, onResume, onHome }: {
   nickname: string; onNickname: (value: string) => void; roomCode: string; onRoomCode: (value: string) => void;
+  nicknameReadOnly?: boolean;
   busy: boolean; error: string; sessions: SessionCredential[]; onJoin: (create: boolean) => void;
   onResume: (session: SessionCredential) => void; onHome: () => void;
 }) {
@@ -25,7 +26,7 @@ export function MultiplayerLobby({ nickname, onNickname, roomCode, onRoomCode, b
     {panel && <form id="room-entry-form" className="entry-form" onSubmit={(event) => { event.preventDefault(); if (!busy) onJoin(panel === "create"); }}>
       <h2>{panel === "create" ? t("online.createArena") : t("online.joinRoom")}</h2>
       {panel === "join" && <label>{t("online.roomCodeLabel")}<input autoFocus aria-label={t("online.roomCodeLabel")} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="ABCDEF" maxLength={6} pattern="[A-Z2-9]{6}" required value={roomCode} disabled={busy} onChange={(e) => onRoomCode(e.target.value.toUpperCase())} /><small>{t("online.roomCodeHelp")}</small></label>}
-      <label>{t("online.nickname")}<input autoFocus={panel === "create"} aria-label={t("online.nickname")} autoComplete="nickname" maxLength={8} required placeholder={t("online.playerPlaceholder")} value={nickname} disabled={busy} onChange={(e) => onNickname(e.target.value)} /></label>
+      <label>{t("online.nickname")}<input autoFocus={panel === "create"} aria-label={t("online.nickname")} autoComplete="nickname" maxLength={nicknameReadOnly ? undefined : 8} required placeholder={t("online.playerPlaceholder")} value={nickname} readOnly={nicknameReadOnly} disabled={busy} onChange={(e) => onNickname(e.target.value)} />{nicknameReadOnly && <small>{t("profile.lobbyHint")}</small>}</label>
       <div className="entry-form-actions"><button className="primary" type="submit" disabled={busy || (panel === "join" && !/^[A-Z2-9]{6}$/.test(roomCode.trim()))}>{busy ? t("online.joining") : panel === "create" ? t("online.createRoom") : t("online.join")}</button><button className="secondary" type="button" disabled={busy} onClick={() => setPanel(null)}>{t("common.cancel")}</button></div>
     </form>}
     {error && <p className="room-error" role="alert">{error}</p>}

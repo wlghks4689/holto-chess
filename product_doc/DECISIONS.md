@@ -524,3 +524,24 @@ Claude가 구현 중 정한 세부(사용자 확인 필요 시 별도 보고):
 - 신규 방 데이터에 `sixRounds: true`를 저장해 기존 방과 구분한다. 연출 프로토콜 버전 17. 튜토리얼 진행 기록과 라운드 안내 노출 기록은 규칙 변경으로 초기화된다. 튜토리얼 연습 시드는 2631(연습 좌석이 R6까지 생존).
 
 구현·검증 보고: [SIX_ROUND_FORMAT.md](SIX_ROUND_FORMAT.md).
+
+## IDENTITY-002 — 공개 닉네임과 계정·방 좌석 연결 (2026-10-08)
+
+근거: `PORENA_PROFILE_IDENTITY_002_CODEX.md` 및 로그인 선택을 첫 화면에 배치하라는 사용자 지시. 기존 Google Auth 브랜치를 최신 6라운드 main에 통합해 이어서 구현했다.
+
+| ID | 결정 |
+|---|---|
+| 002-a | 첫 화면에서 Google 로그인 또는 게스트 로그인을 선택한다. 게임 시작·설명·설정 등 메뉴는 선택 후 표시한다. 유효한 계정 세션 또는 현재 탭의 게스트 선택은 유지한다. |
+| 002-b | Google 이름·이메일을 공개 이름으로 채택하지 않는다. 로그인 계정의 공개 이름은 기존 D1 `users.display_name`이며, null이면 최초 닉네임 설정을 먼저 완료한다. |
+| 002-c | `PATCH /api/profile`은 인증된 본인만 수정한다. 앞뒤 공백을 제거하고 유니코드 문자·숫자·공백·밑줄·하이픈 1~8자를 허용한다. 제어문자와 HTML은 거부하고 전역 중복은 허용한다. |
+| 002-d | 로그인 계정의 새 방 생성·참가는 D1 공개 닉네임을 사용한다. 로비 입력은 읽기 전용이며 홈에서 변경한다. Guest는 기존 `porena-nickname`과 입력 방식을 유지한다. |
+| 002-e | 영구 계정 UUID, 방 좌석 p1~p8, 방 재접속 token을 분리한다. Room session에 optional `accountUserId`만 추가하며 공개 이름은 기존 game player.name에 저장한다. 기존 snapshot schema는 유지한다. |
+| 002-f | Worker가 HttpOnly 계정 세션을 검증한 뒤 내부 헤더로 DO에 전달한다. 외부 내부용 헤더는 삭제하고 검증 값으로 덮어쓴다. 계정 cookie/Authorization은 DO에 전달하지 않는다. 계정 좌석의 JOIN_ROOM nickname은 무시한다. |
+| 002-g | 계정 ID는 공개 PlayerView·MatchView·WebSocket payload·방 응답·로그·URL·브라우저 저장소에 넣지 않는다. `/api/auth/me`의 본인 ID는 React 메모리에서만 관리한다. |
+| 002-h | 방 입장 당시 공개 닉네임을 해당 방에서 유지한다. 프로필 변경은 다음 신규 방 입장부터 적용한다. Room token 재접속과 rematch는 저장된 계정 연결 및 이름을 보존하며 계정 cookie가 없어도 작동한다. |
+| 002-i | 동일 계정의 같은 방 두 번째 신규 좌석은 409로 거부한다. departed 좌석도 포함한다. 기존 좌석 복구는 방 token으로 진행하며 신규 좌석 생성과 구분한다. |
+| 002-j | 신규 입장 직전 계정 상태를 확인한다. 계정 만료·확인 장애는 조용히 Guest로 전환하지 않는다. Guest 선택 이후 유효한 계정 cookie가 생기면 409로 다시 선택하도록 한다. 임베디드 Guest는 기존 방 보안 검사를 유지하면서 첫 파티 Google API 조회를 생략한다. |
+| 002-k | 기존 `users.display_name`을 재사용하므로 DB migration은 추가하지 않는다. 이번 작업은 운영 배포·원격 DB 변경을 하지 않는다. |
+| 002-l | R1~R6 게임, 경제·어빌리티·타이머·공개 시점 규칙은 유지한다. 내부 `accountUserIdForPlayer` helper로 향후 최종 순위와 계정 매핑이 가능하다. Rank·Leaderboard·시즌·계정 간 방 복구는 아직 미구현이다. |
+
+검증 기록: [IDENTITY-002 QA](qa/2026-10-08-profile-identity-002.md). 실제 Google 브라우저 로그인은 로컬 자격증명 없이 자동화 테스트와 화면 검증을 진행하라는 사용자 답변에 따라 제외했다.

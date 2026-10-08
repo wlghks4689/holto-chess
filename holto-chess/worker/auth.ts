@@ -1,10 +1,11 @@
 import { base64url, createRemoteJWKSet, jwtVerify } from "jose";
 import { sameText } from "./adminAuth";
+import { normalizeNickname } from "../src/shared/nickname";
 
 export const AUTH_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const OAUTH_FLOW_TTL_MS = 10 * 60 * 1000;
 const googleKeys = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
-type AccountUser = { id: string; displayName: string | null };
+export type AccountUser = { id: string; displayName: string | null };
 type Flow = { nonce: string; pkce_verifier: string; redirect_uri: string; expires_at: number };
 const randomToken = () => base64url.encode(crypto.getRandomValues(new Uint8Array(32)));
 const digest = async (text: string) => base64url.encode(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))));
@@ -30,7 +31,7 @@ function response(body: unknown, status = 200, extra?: HeadersInit): Response {
   headers.set("Cross-Origin-Resource-Policy", "same-origin");
   return body === null ? new Response(null, { status, headers }) : Response.json(body, { status, headers });
 }
-function configuredOrigin(env: Env): string {
+export function configuredOrigin(env: Env): string {
   const url = new URL(env.AUTH_ORIGIN);
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
   if (url.origin !== env.AUTH_ORIGIN || (url.protocol !== "https:" && !(local && url.protocol === "http:"))) throw new Error("Invalid auth origin");
@@ -135,6 +136,26 @@ export async function handleAuth(request: Request, env: Env, url: URL): Promise<
     if (url.pathname === "/api/auth/me" && request.method === "GET") {
       const user = await readPorenaSession(request, env);
       return response(user ? { authenticated: true, user } : { authenticated: false });
+    }
+    if (url.pathname === "/api/profile" && request.method === "PATCH") {
+      const user = await readPorenaSession(request, env);
+      if (!user) return response({ error: "Unauthenticated" }, 401);
+      const { success } = await env.AUTH_LIMITER.limit({ key: request.headers.get("CF-Connecting-IP") ?? "local" });
+      if (!success) return response({ error: "Try again later" }, 429, { "Retry-After": "60" });
+      if (request.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase() !== "application/json") return response({ error: "INVALID_REQUEST" }, 400);
+      const text = await request.text();
+      if (new TextEncoder().encode(text).length > 1024) return response({ error: "INVALID_REQUEST" }, 400);
+      let body: unknown;
+      try { body = JSON.parse(text); } catch { return response({ error: "INVALID_REQUEST" }, 400); }
+      if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(key => key !== "displayName")) return response({ error: "INVALID_REQUEST" }, 400);
+      const displayName = normalizeNickname((body as { displayName?: unknown }).displayName);
+      if (!displayName) return response({ error: "INVALID_DISPLAY_NAME" }, 400);
+      // Check session validity again in the write itself, including concurrent logout/deactivation.
+      const updated = await env.ACCOUNT_DB.prepare(`UPDATE users SET display_name = ? WHERE id = ? AND status = 'active'
+        AND EXISTS (SELECT 1 FROM sessions WHERE user_id = users.id AND token_hash = ? AND expires_at > ?)
+        RETURNING id, display_name AS displayName`)
+        .bind(displayName, user.id, await digest(readCookie(request, "session")!), Date.now()).first<AccountUser>();
+      return updated ? response({ user: updated }) : response({ error: "Unauthenticated" }, 401);
     }
     if (url.pathname === "/api/auth/logout" && request.method === "POST") {
       const token = readCookie(request, "session");

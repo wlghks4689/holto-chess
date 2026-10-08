@@ -20,7 +20,7 @@ export type RoomSnapshot = {
   /** Distinguishes rematches without invalidating persisted pre-audit snapshots. */
   gameGeneration?: number;
   game: PorenaGameState;
-  sessions: { playerId: string; tokenHash: string; requests: string[]; departed?: boolean }[];
+  sessions: { playerId: string; tokenHash: string; requests: string[]; departed?: boolean; accountUserId?: string }[];
   readyIds: string[]; endedShopIds: string[];
   loadoutDrafts?: Record<string, (string | null)[]>;
   /** Epoch ms the current barrier began waiting; drives the auto-ready alarm. */
@@ -214,11 +214,18 @@ export function barrierDeadline(room: RoomSnapshot): number | undefined {
   return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0)
     + (botDraftTurn ? BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : lineup ? BARRIER_TIMEOUT_MS.FINAL_LINEUP : barrierTimeoutMs(room.game.phase));
 }
-export function addSession(source: RoomSnapshot, tokenHash: string): { room: RoomSnapshot; playerId: string } {
+export type RoomAccountIdentity = { accountUserId: string; displayName: string };
+/** Internal only: never include this mapping in player views, responses or diagnostics. */
+export function accountUserIdForPlayer(room: RoomSnapshot, playerId: string): string | undefined {
+  return room.sessions.find(session => session.playerId === playerId)?.accountUserId;
+}
+export function addSession(source: RoomSnapshot, tokenHash: string, identity?: RoomAccountIdentity): { room: RoomSnapshot; playerId: string } {
   if (source.status !== "LOBBY" || source.sessions.length >= 8) throw new Error("입장할 수 없는 방입니다.");
+  if (identity && source.sessions.some(session => session.accountUserId === identity.accountUserId)) throw new Error("ACCOUNT_ALREADY_SEATED");
   const room = structuredClone(source);
   const playerId = `p${room.sessions.length + 1}`;
-  room.sessions.push({ playerId, tokenHash, requests: [] });
+  room.sessions.push({ playerId, tokenHash, requests: [], ...(identity ? { accountUserId: identity.accountUserId } : {}) });
+  if (identity) room.game.players.find(player => player.id === playerId)!.name = identity.displayName;
   room.readyIds = []; // Membership changed: consent must apply to the current lobby.
   room.revision++;
   return { room, playerId };

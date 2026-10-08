@@ -5,17 +5,22 @@ import { useMadeSoundPreferences, writeMadeSoundPreferences } from "./madeSound"
 import { useTranslation } from "../i18n";
 import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
 import "./start-screen.css";
-import { AccountLogin } from "./AccountLogin";
+import { AccountLogin, ProfileForm } from "./AccountLogin";
+import { useAccount } from "./useAccount";
+import { shouldPlayEntry, useEntryIntent } from "./entryIntent";
+import { EntranceLayer } from "./EntranceLayer";
 
 // The guide carries its own copy, examples and styles, so it loads only when opened.
 const GameOverviewGuide = lazy(() => import("./GameOverviewGuide").then((module) => ({ default: module.GameOverviewGuide })));
 const FeedbackDialog = lazy(() => import("./FeedbackDialog").then((module) => ({ default: module.FeedbackDialog })));
 
 export type StartMode = "single" | "multi" | "tutorial";
-type MenuOverlay = "mode" | "guide" | "settings" | "feedback" | null;
+type MenuOverlay = "mode" | "guide" | "settings" | "feedback" | "profile" | null;
 
-export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void }) {
+export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMode) => void; entryPreview?: { failure?: boolean; reduced?: boolean } }) {
   const { locale, setLocale, t } = useTranslation();
+  const account = useAccount();
+  const entering = shouldPlayEntry(account.canEnter, useEntryIntent());
   const motion = useCinematicMotion();
   const roundGuides = useRoundGuidePreferences();
   const sounds = useMadeSoundPreferences();
@@ -47,18 +52,18 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
     };
   }, [overlay]);
 
-  return <main className="start-screen">
-    <div className="start-content" inert={overlay !== null}>
-      <AccountLogin />
+  return <main className={`start-screen${account.canEnter ? "" : " start-auth-screen"}${entering ? " is-entering" : ""}`} aria-busy={entering}>
+    <div className="start-content" inert={overlay !== null || entering}>
+      {account.canEnter && <AccountLogin onProfile={() => setOverlay("profile")} />}
       <div className="start-main">
         <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p></header>
-        <div className="start-menu" aria-label={t("home.menu")}>
+        {account.canEnter ? <div className="start-menu" aria-label={t("home.menu")}>
           <button type="button" className="start-menu-primary" onClick={() => setOverlay("mode")}><span>{t("home.start")}</span></button>
           <button type="button" onClick={() => onStart("tutorial")}><span>{t("home.tutorial")}</span></button>
           <button type="button" onClick={() => setOverlay("guide")}><span>{t("home.guide")}</span></button>
           <button type="button" onClick={() => setOverlay("settings")}><span>{t("home.settings")}</span></button>
           <button type="button" onClick={() => setOverlay("feedback")}><span>{t("home.feedback")}</span></button>
-        </div>
+        </div> : <AccountLogin />}
       </div>
       <footer className="start-footer">
         <nav aria-label={t("legal.nav")}>
@@ -69,7 +74,8 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
         {import.meta.env.DEV ? <small>DEVELOPMENT PREVIEW</small> : null}
       </footer>
     </div>
-    {overlay && <div ref={modal} className="start-overlay">
+    {(!account.canEnter || entering) && <EntranceLayer key={entering ? "playing" : "preload"} active={entering} preload={!account.canEnter} forceFailure={entryPreview?.failure} forceReducedMotion={entryPreview?.reduced} />}
+    {overlay && account.canEnter && <div ref={modal} className="start-overlay">
       {overlay === "mode" ? <div className="start-mode-backdrop"><section className="start-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="start-mode-title">
         <header><div><small>SELECT PLAY MODE</small><h2 id="start-mode-title">{t("home.selectMode")}</h2></div><button type="button" aria-label={`${t("home.selectMode")} · ${t("common.close")}`} onClick={() => setOverlay(null)}>×</button></header>
         <div className="start-mode-options">
@@ -78,6 +84,7 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
         </div>
       </section></div> : overlay === "guide" ? <Suspense fallback={<div className="game-guide-backdrop" role="presentation" />}><GameOverviewGuide onClose={() => setOverlay(null)} /></Suspense> :
         overlay === "feedback" ? <Suspense fallback={<div className="start-settings-backdrop" role="presentation" />}><FeedbackDialog onClose={() => setOverlay(null)} /></Suspense> :
+        overlay === "profile" ? <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title"><header><h2 id="profile-edit-title">{t("profile.edit")}</h2><button type="button" aria-label={t("common.close")} onClick={() => setOverlay(null)}>×</button></header><ProfileForm onSaved={() => setOverlay(null)} onCancel={() => setOverlay(null)} /></section></div> :
         <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="start-settings-title">
           <header><div><small>PREFERENCES</small><h2 id="start-settings-title">{t("settings.title")}</h2></div><button type="button" aria-label={`${t("settings.title")} · ${t("common.close")}`} onClick={() => setOverlay(null)}>×</button></header>
           <label className="locale-setting"><span>{t("language.label")}</span><select aria-label={t("language.label")} value={locale} onChange={(event) => setLocale(event.target.value as typeof locale)}><option value="ko-KR">한국어</option><option value="en-US">English</option></select></label>

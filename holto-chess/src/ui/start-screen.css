@@ -1,14 +1,46 @@
-.start-screen { min-height:100svh; position:relative; isolation:isolate; overflow:hidden; background:#050c17 url('/assets/start/battlefield.webp') center center / cover no-repeat; color:#e7f6ff; }
-/* Portrait phones and tablets crop ~74% of the 16:9 backdrop's width, so they get the portrait
-   artwork instead. Both are covered height-first, so the title (29%) and menu (70%) still land on
-   the sky and on the table. */
-@media (orientation:portrait) and (max-width:820px) { .start-screen { background-image:url('/assets/start/battlefield-portrait.webp'); } }
+.start-screen { min-height:100svh; position:relative; isolation:isolate; overflow:hidden; background:#050c17 url('/assets/start/arena-desktop.webp') center center / cover no-repeat; color:#e7f6ff; }
+.start-auth-screen { background-image:url('/assets/start/gate-desktop.webp'); }
+/* Match the existing portrait breakpoint for stills and entrance video. */
+@media (orientation:portrait) and (max-width:820px) { .start-screen { background-image:url('/assets/start/arena-mobile.webp'); } .start-auth-screen { background-image:url('/assets/start/gate-mobile.webp'); } }
+.start-content { transition:opacity .2s ease; }
+.is-entering .start-content { opacity:0; pointer-events:none; }
+.entrance-layer { position:fixed; inset:0; z-index:20; background:#050c17 url('/assets/start/gate-desktop.webp') center / cover no-repeat; pointer-events:none; opacity:1; transition:opacity .22s ease; }
+.entrance-layer.is-preloading { visibility:hidden; }
+.entrance-layer video { display:block; width:100%; height:100%; object-fit:cover; object-position:center; opacity:0; transition:opacity .15s ease; }
+.entrance-layer.phase-playing video,.entrance-layer.phase-exit video { opacity:1; }
+.entrance-layer.phase-exit { opacity:0; }
+@media (orientation:portrait) and (max-width:820px) { .entrance-layer { background-image:url('/assets/start/gate-mobile.webp'); } }
 .start-screen::before { position:absolute; inset:0; opacity:1; mask-image:none; background:linear-gradient(180deg,rgba(2,8,16,.38),transparent 25%,transparent 67%,rgba(2,8,16,.56)),radial-gradient(ellipse 34% 38% at 50% 39%,rgba(2,8,16,.64),rgba(2,8,16,.18) 58%,transparent 100%); z-index:-1; }
 .start-content { min-height:100svh; padding:24px; display:flex; flex-direction:column; align-items:center; }
 .start-account { position:relative; z-index:2; align-self:flex-end; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px; max-width:100%; font-size:12px; }
 .start-account a,.start-account button { min-height:40px; display:inline-flex; align-items:center; padding:8px 14px; border:1px solid #78949f; border-radius:6px; background:#0b1c29; color:#e7f6ff; font:inherit; text-decoration:none; cursor:pointer; }
 .start-account a:focus-visible,.start-account button:focus-visible { outline:2px solid #6ce4eb; outline-offset:3px; }
 .start-account small { flex-basis:100%; max-width:320px; text-align:right; color:#ffc7b8; line-height:1.5; }
+.start-account-name { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#a9eff0; }
+.start-auth-screen .start-main { position:relative; inset:auto; transform:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(28px,6svh,64px); flex:1; width:min(100%,580px); padding:36px 0; }
+.start-auth-screen .start-title { position:static; transform:none; width:100%; }
+.start-login-panel { width:min(100%,380px); padding:28px; border:1px solid #57808e; border-radius:14px; background:linear-gradient(155deg,#0c2432ed,#071421f5); box-shadow:0 18px 60px #0008,inset 0 1px #d2faff16; text-align:center; }
+.start-login-panel .account-eyebrow { color:#87dbe3; font:500 9px 'DM Mono',monospace; letter-spacing:.18em; margin:0 0 10px; }
+.start-login-panel h2 { margin:0 0 24px; font-size:23px; line-height:1.4; }
+.account-login-options { display:grid; gap:12px; }
+.start-login-choices { width:min(100%,324px); text-align:center; }
+.account-login-options>a,.account-login-options>button,.account-profile-actions>button { display:flex; justify-content:center; align-items:center; gap:12px; width:100%; min-height:54px; padding:12px 16px; border:1px solid #557c8a; border-radius:7px; background:#102a39; color:#eefaff; font:700 16px/1.4 Manrope,'Noto Sans KR',sans-serif; text-decoration:none; cursor:pointer; }
+.account-login-options>.account-primary,.account-profile-actions>.account-primary { border-color:#b5eef2; background:#e9f6fa; color:#123040; box-shadow:0 6px 20px #0003; }
+.account-google-mark { font:700 22px/1 Arial,sans-serif; color:#4285f4; }
+.account-login-options :is(a,button):focus-visible,.account-profile-form :is(input,button):focus-visible { outline:2px solid #80edf1; outline-offset:3px; }
+.account-login-options button:disabled,.account-profile-actions button:disabled { opacity:.55; cursor:default; }
+.start-login-panel .account-intro,.start-login-choices .account-intro,.account-profile-form p,.account-embedded-note { color:#b3cbd4; font-size:12px; line-height:1.7; }
+.start-login-panel .account-intro { margin:16px 0 0; }
+.start-login-panel .account-intro+.account-profile-form { margin-top:20px; }
+.account-error,.start-settings .account-error { color:#ffc5b3; font-size:12px; line-height:1.6; }
+.account-back { margin-top:18px; padding:6px 12px; border:0; background:transparent; color:#bed9e1; font:inherit; font-size:12px; text-decoration:underline; text-underline-offset:4px; cursor:pointer; }
+.account-profile-form { display:grid; gap:10px; text-align:left; }
+.account-profile-form label,.start-settings .account-profile-form label { display:block; padding:0; color:#dbeff5; font-size:13px; }
+.account-profile-form input { box-sizing:border-box; min-width:0; width:100%; min-height:48px; padding:10px 12px; border:1px solid #52798c; border-radius:6px; background:#04101e; color:#f0fbff; font-size:16px; }
+.account-profile-form small { color:#9ab9c7; font-size:11px; line-height:1.6; }
+.account-profile-actions { display:flex; gap:8px; margin-top:12px; }
+.account-profile-actions>button { min-width:0; flex:1; min-height:46px; font-size:14px; }
+@media(max-width:600px) { .start-auth-screen .start-main { padding:36px 0; gap:36px; } .start-login-panel { padding:24px 20px; } .start-login-panel h2 { font-size:22px; } .start-account { gap:6px; } .start-account-name { max-width:120px; } }
 /* The 1672x941 backdrop is covered height-first at every aspect up to 16:9, so a
    vertical percentage lands on the same part of the artwork across viewports.
    Title sits over the sky; the table spans 55-85%, so the menu centres on 70%. */

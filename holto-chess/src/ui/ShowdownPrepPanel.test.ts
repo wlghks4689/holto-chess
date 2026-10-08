@@ -15,7 +15,7 @@ describe("showdown preparation presentation", () => {
     const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round: 5, final: false, playerName: "PLAYER 0", seconds: 3,
       matchup: { matchNumber: 1, viewer: seats[0]!, opponent: seats[1]! } }));
     expect(html.match(/aria-label="RUN [123]"/g)).toHaveLength(6);
-    expect(html.match(/class="playing-card[^\"]* compact/g)).toHaveLength(12);
+    expect(html.match(/class="playing-card[^"]* compact/g)).toHaveLength(12);
     expect(html).not.toContain("card-back");
     expect(html.match(/class="r2-run-equity"><small>예상 승률<\/small><strong>\d+%<\/strong>/g)).toHaveLength(6);
     expect(html).toContain("각 RUN 승률은 개별 보드 기준 예상치입니다.");
