@@ -606,6 +606,7 @@ export const koKR = {
   "cinema.runDetailAria": "RUN {run}에 사용한 카드와 결과 보기",
   "cinema.pointTotal": "승점 {points}",
   "cinema.finalPlace": "{place}위",
+  "cinema.noBurn": "없음",
   "cinema.finalSplitPlace": "Split · 1위",
   "cinema.placeReward": "{place} 순위 보상",
   "cinema.rewardPoints": "{points}승점",

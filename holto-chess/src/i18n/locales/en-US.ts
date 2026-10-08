@@ -608,6 +608,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "cinema.runDetailAria": "Show the cards and result of RUN {run}",
   "cinema.pointTotal": "POINTS {points}",
   "cinema.finalPlace": "#{place}",
+  "cinema.noBurn": "NONE",
   "cinema.finalSplitPlace": "SPLIT · 1ST",
   "cinema.placeReward": "{place} PLACE REWARD",
   "cinema.rewardPoints": "{points} POINTS",
