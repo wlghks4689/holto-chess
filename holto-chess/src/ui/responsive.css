@@ -179,7 +179,7 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
 .game-arena .prep-round-header.is-centered-phase-header h1{margin:0;color:#eaf7ff;font:700 clamp(34px,6vw,58px)/1 Georgia,'Times New Roman',serif;letter-spacing:-.035em}
 .game-arena .prep-round-header.is-centered-phase-header .prep-rule-popover{left:50%;transform:translate(-50%,-5px);text-align:left}
 .game-arena .prep-round-header.is-centered-phase-header .prep-title-row:is(:hover,:focus-within,.is-open) .prep-rule-popover{transform:translateX(-50%)}
-@media(max-width:340px){.game-arena .run-loadout-timer .phase-timer{width:48px;min-width:48px;padding-inline:3px}}
+@media(max-width:340px){.game-arena .run-loadout-timer.phase-timer{width:48px;min-width:48px;padding-inline:3px}}
 
 /* One-screen gameplay density: space is budgeted from the viewport, not by growing the page. */
 @media(max-width:768px){

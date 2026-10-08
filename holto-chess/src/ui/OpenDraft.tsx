@@ -60,8 +60,10 @@ export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = tru
     <h2 className="run-loadout-heading">{t("loadout.headingFirst")}<br className="run-loadout-mobile-break" /> {t("loadout.headingSecond")}</h2>
     <ShopAbilityPanel ability={view.me.abilityId} benefit={view.me.abilityBenefit} startingCard={view.me.abilityStartingCard} compact />
     <div className="run-loadout-content">
-      {showTimer && <div className="run-loadout-timer"><PhaseTimer seconds={seconds ?? 30} ariaLabel={t("loadout.timerAria", { seconds: seconds ?? 30 })} /></div>}
-      <div className="run-loadout-slots">{[t("loadout.representative"), t("loadout.run1"), t("loadout.run2")].map((label, index) => <label key={index}>
+      <div className="run-loadout-slots">
+        {/* The clock sits above the RUN 2 slot, in the free corner beside the ability panel (as in R5). */}
+        {showTimer && <PhaseTimer className="run-loadout-timer" seconds={seconds ?? 30} ariaLabel={t("loadout.timerAria", { seconds: seconds ?? 30 })} />}
+        {[t("loadout.representative"), t("loadout.run1"), t("loadout.run2")].map((label, index) => <label key={index}>
         <span className="run-loadout-slot-title" role="heading" aria-level={3}>{label}</span>
         {owned.find((c) => c.id === ids[index]) && <CardView card={owned.find((c) => c.id === ids[index])!} />}
         <select aria-label={label} disabled={disabled || ready} value={ids[index]} onChange={(e) => change(index, e.target.value)}>{owned.map((c) => <option value={c.id} key={c.id}>{cardLabel(c)}</option>)}</select>
