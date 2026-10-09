@@ -49,6 +49,28 @@ async function setup(overrides: Partial<Parameters<typeof createRoomConnection>[
 }
 
 describe("room transport recovery", () => {
+  it.each([401, 404, 410])("keeps ticket HTTP %i terminal without retrying on resume", async status => {
+    const protocols = vi.fn(async () => { throw new Error("Connection ticket unavailable", { cause: status }); });
+    const h = await setup({ protocols });
+    h.connection.resume();
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(protocols).toHaveBeenCalledTimes(1);
+    expect(h.sockets).toHaveLength(0);
+    expect(h.options.onStatus).toHaveBeenLastCalledWith("Disconnected");
+    if (status === 401) {
+      expect(h.options.onExpired).not.toHaveBeenCalled();
+      expect(h.options.onError).toHaveBeenLastCalledWith("client.reconnectFailed");
+    } else expect(h.options.onExpired).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([429, 503])("retries transient ticket HTTP %i", async status => {
+    const protocols = vi.fn(async () => { throw new Error("Connection ticket unavailable", { cause: status }); });
+    const h = await setup({ protocols });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(protocols).toHaveBeenCalledTimes(2);
+    expect(h.options.onStatus).toHaveBeenLastCalledWith("Reconnecting");
+    expect(h.options.onExpired).not.toHaveBeenCalled();
+  });
   it("replaces an OPEN blackholed socket and resumes with an authorized same-revision reveal", async () => {
     const h = await setup(); h.authenticate();
     const old = h.sockets[0]!;

@@ -1,4 +1,10 @@
 export const koKR = {
+  "auth.account": "계정",
+  "auth.google": "Google로 로그인",
+  "auth.signedIn": "로그인됨",
+  "auth.logout": "로그아웃",
+  "auth.loading": "로그인 상태 확인 중…",
+  "auth.failed": "로그인 요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요. 로그인 없이도 플레이할 수 있습니다.",
   "gameError.AUCTION_CLOSED": "경매가 마감되었습니다.",
   "gameError.NOT_AUCTION_PARTICIPANT": "경매 참가자가 아닙니다.",
   "gameError.NOT_AUCTION_CARD": "경매 대상 카드가 아닙니다.",

@@ -11,6 +11,21 @@ async function createRoomStub(ip: string) {
 }
 const events = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.map(([line]) => JSON.parse(String(line)) as Record<string, unknown>);
 
+it.each([1005, 1006, 1015])("handles reported close %i without sending a reserved code", async code => {
+  const { stub } = await createRoomStub(`192.0.2.${code - 1000 + 180}`);
+  await runInDurableObject(stub, instance => {
+    const [client, server] = Object.values(new WebSocketPair());
+    client.accept(); server.accept();
+    const closed = vi.spyOn(server, "close");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      expect(() => instance.webSocketClose(server, code)).not.toThrow();
+      expect(closed).toHaveBeenCalledWith();
+      expect(events(log)).toContainEqual(expect.objectContaining({ event: "broadcast" }));
+    } finally { closed.mockRestore(); log.mockRestore(); client.close(); }
+  });
+});
+
 it("logs why the alarm was armed", async () => {
   const { credential, stub } = await createRoomStub("192.0.2.230");
   const logged = await runInDurableObject(stub, async (instance, state) => {

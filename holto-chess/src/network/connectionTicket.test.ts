@@ -15,3 +15,8 @@ it("does not fall back to unauthenticated upgrade on a missing or malformed proo
   await expect(connectionProtocols(session, async () => new Response(null, { status: 401 }))).rejects.toThrow("unavailable");
   await expect(connectionProtocols(session, async () => Response.json({ ticket: "bad" }))).rejects.toThrow("Invalid");
 });
+
+it.each([401, 404, 410, 429, 503])("preserves HTTP %i for connection recovery", async status => {
+  const session = { roomId: "ABCDEF", playerId: "p1", token: "a".repeat(64) };
+  await expect(connectionProtocols(session, async () => new Response(null, { status }))).rejects.toMatchObject({ cause: status });
+});

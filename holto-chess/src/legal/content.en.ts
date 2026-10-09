@@ -22,7 +22,7 @@ export const privacyEn: LegalDocument = {
   title: "Privacy Policy",
   intro: [
     "PORENA (the \"Service\") processes only the personal information it needs and describes here what it processes and how. This policy is based on what the Service actually does today.",
-    "PORENA has no sign-up or login. We do not ask for your name, phone number, date of birth, address or payment details.",
+    "PORENA offers optional Google sign-in. You can play without signing in. We do not store your Google account name, email or photo, or ask for your phone number, date of birth, address or payment details.",
   ],
   sections: [
     { id: "operator", title: "1. Operator and contact", body: [{ list: [
@@ -56,6 +56,13 @@ export const privacyEn: LegalDocument = {
         "Security and rate-limiting information",
       ] },
       "IP addresses are used briefly for rate limiting against excessive requests and are not stored in the Service's databases. Service logs (Cloudflare Workers Logs) may record request information and are deleted after Cloudflare's retention period (currently 3 days on the free plan).",
+      "**2-4. Optional Google sign-in**",
+      { list: [
+        "A separate account database stores the Google account identifier (sub), sign-in provider, PORENA account identifier, account creation and last sign-in times, and account status.",
+        "Google's signed ID token is used only to verify sign-in. We do not store the original ID, access or refresh tokens.",
+        "We store the sign-in session hash, creation and expiry times, and temporary authentication data that prevents forged or replayed sign-in requests.",
+        "The Google account identifier is used only to recognise the same account at sign-in. Accounts are currently not linked to multiplayer seats or match history.",
+      ] },
     ] },
     { id: "browser", title: "3. Information stored only in your browser", body: [
       "The following is not a user profile on PORENA's servers. It is kept in your browser's storage (localStorage and sessionStorage), and the operator cannot see it. Of these, your nickname and session token are sent to the server when you join or reconnect to a multiplayer room (2-2).",
@@ -108,13 +115,14 @@ export const privacyEn: LegalDocument = {
       { list: [
         "To provide the game",
         "To create and join multiplayer rooms, reconnect and keep game state in sync",
+        "To provide optional Google sign-in, recognise accounts and maintain sign-in sessions",
         "To remember settings such as language, sound and motion",
         "To fix bugs, keep the Service stable and respond to outages",
         "To read and answer feedback and questions",
         "To analyze how the Service is used",
         "To prevent abuse and for security and rate limiting",
       ] },
-      "PORENA does not use this information to identify or track who you are or to profile your individual behavior.",
+      "Sign-in identifiers recognise the same account; they are not used to verify your real-world name or profile your individual behavior.",
     ] },
     { id: "retention", title: "7. How long we keep it", body: [
       { table: { head: ["Information", "Retention"], rows: [
@@ -126,29 +134,33 @@ export const privacyEn: LegalDocument = {
         ["Google Analytics", "User-level and event-level data: 14 months"],
         ["Cloudflare service logs", "Cloudflare's retention period (currently 3 days)"],
         ["Browser-stored information", "Until you or your browser clear it"],
+        ["Google account link and PORENA account", "While the account is maintained; deleted together after an account deletion request and identity verification"],
+        ["Sign-in sessions", "Up to 30 days. Signing out deletes that session immediately; expired server sessions are purged daily"],
+        ["Temporary sign-in authentication data", "Valid for up to 10 minutes. Consumed once when processing a callback; expired data is purged when sign-in starts or by the daily job"],
       ] } },
       "When a room's retention period ends, its room state, game results and session hashes stored on the server (Cloudflare Durable Objects) are deleted.",
-      "Deleted feedback records may remain in the database's disaster-recovery history (Cloudflare D1 Time Travel) for up to 30 days (currently 7 days on the free plan) and then disappear automatically. The operator uses this only to recover from failures.",
+      "Deleted feedback and account records may remain in the database's disaster-recovery history (Cloudflare D1 Time Travel) for up to 30 days (currently 7 days on the free plan) and then disappear automatically. The operator uses this only to recover from failures.",
     ] },
     { id: "providers", title: "8. Service providers and processing outside Korea", body: [
       "PORENA does not sell personal information and does not provide it to third parties except where required by law. We use the following providers to run the Service, so information may be processed outside the Republic of Korea. It is transferred over the network when you use the Service.",
       { table: { head: ["Provider (country)", "Purpose", "Information"], rows: [
-        ["Cloudflare, Inc. (USA, global data centers)", "Hosting the website and game servers, storing feedback, security and rate limiting", "Information in section 2 and connection data such as IP address · [Privacy Policy](https://www.cloudflare.com/privacypolicy/)"],
-        ["Google LLC (USA)", "Google Analytics usage statistics; Google Fonts", "Information in section 4; IP address and browser information when fonts are requested · [Privacy Policy](https://policies.google.com/privacy)"],
+        ["Cloudflare, Inc. (USA, global data centers)", "Hosting the website and game servers, storing feedback and accounts, security and rate limiting", "Information in section 2 and connection data such as IP address · [Privacy Policy](https://www.cloudflare.com/privacypolicy/)"],
+        ["Google LLC (USA)", "Optional Google sign-in; Google Analytics usage statistics; Google Fonts", "Sign-in requests and account identifier (2-4); information in section 4; IP address and browser information when fonts are requested · [Privacy Policy](https://policies.google.com/privacy)"],
         ["Discord Inc. (USA)", "Connection and delivery when running inside the Discord app", "Information in section 5 and connection data · [Privacy Policy](https://discord.com/privacy)"],
       ] } },
     ] },
     { id: "children", title: "9. Children under 14", body: [
-      `PORENA is intended for users aged ${MINIMUM_AGE} and over. PORENA has no parental consent process, so users under ${MINIMUM_AGE} should not enter an email or other personal information in the feedback form.`,
+      `PORENA is intended for users aged ${MINIMUM_AGE} and over. PORENA has no parental consent process, so users under ${MINIMUM_AGE} should not use Google sign-in or enter an email or other personal information in the feedback form.`,
       `If we learn that personal information of a child under ${MINIMUM_AGE} was collected without a legal guardian's consent, we will delete it without delay. If you become aware of this, please tell us at ${mail}.`,
     ] },
     { id: "rights", title: "10. Your rights", body: [
       `You can ask to access, correct or delete your personal information, or to stop its processing. Email ${mail} and we will act on it without delay.`,
-      "PORENA has no accounts, so there is little to link a feedback record to you. Telling us the date you sent it, its type, part of the message and the email you left helps us find it; we use these details only for that.",
+      "You can request account deletion through the contact above. After identity verification, the operator deletes the account, Google account link and all its sign-in sessions. Signing out or clearing browser data does not delete the server account.",
+      "Feedback records are not linked to sign-in accounts. Telling us the date you sent it, its type, part of the message and the email you left helps us find it; we use these details only for that.",
       "You can clear information stored in your browser yourself by clearing the site's data.",
     ] },
     { id: "cookies", title: "11. Cookies and similar technologies", body: [
-      "The PORENA game itself does not use cookies to identify you; it uses the browser storage described in section 3. Google Analytics uses the cookies listed in section 4.",
+      "Google sign-in uses a session cookie (up to 30 days) and a sign-in flow cookie (up to 10 minutes). Both are sent only over HTTPS and cannot be read by scripts. Signing out clears the session cookie. Game settings and reconnection use the browser storage in section 3; Google Analytics uses the cookies in section 4.",
       "You can block or delete cookies and site data in your browser settings. The game still works with cookies blocked, but if browser storage is also blocked, settings and reconnection data may not be saved.",
     ] },
     { id: "security", title: "12. Security measures", body: [{ list: [
@@ -196,7 +208,7 @@ export const termsEn: LegalDocument = {
       `PORENA is intended for users aged ${MINIMUM_AGE} and over. When you use it on a third-party platform such as Discord whose minimum age is higher, that platform's minimum age also applies.`,
     ] },
     { id: "account", title: "4. Accounts", body: [
-      "PORENA currently has no sign-up or permanent accounts. Settings, progress and match history are stored in your browser.",
+      "Google sign-in is optional; you can play without it. Sign-in recognises the same account and maintains its session. Accounts are currently not linked to multiplayer seats or match history. Settings, progress and match history remain in your browser. You can request account deletion through the contact in the Privacy Policy.",
     ] },
     { id: "nickname", title: "5. Nicknames", body: [
       "Your nickname is shown to other players in the same room. You may not use a nickname that impersonates another person or the operator, contains hateful, discriminatory, sexual or violent content, is unlawful or infringes others' rights. The operator may restrict such nicknames.",

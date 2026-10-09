@@ -1,4 +1,5 @@
 import { adminRoute, handleAdmin } from "./admin";
+import { handleAuth, purgeExpiredAuth } from "./auth";
 import { submitFeedback } from "./feedback";
 import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
@@ -34,12 +35,13 @@ export default {
     const admin = adminRoute(url);
     if (admin === "admin") return handleAdmin(request, env, url);
     if (admin === "hidden") return new Response("Not found", { status: 404 });
+    if (url.pathname.startsWith("/api/auth/")) return handleAuth(request, env, url);
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
     if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return serveApp(request, env, url);
     // Same-origin browser credentials. No token in a query string, cookie or routing header.
     // The only other caller is our own Discord Activity origin, matched exactly (worker/origin.ts).
     if (!isAllowedOrigin(request.headers.get("Origin"), url.origin, env.DISCORD_ACTIVITY_CLIENT_IDS)) return new Response("Origin rejected", { status: 403 });
-    // No accounts exist yet: use the Cloudflare-provided IP as a coarse abuse
+    // Game rooms still use guest seats: use the Cloudflare-provided IP as a coarse abuse
     // guard, with a generous shared-network connection budget. Never log it.
     const limiter = url.pathname === "/api/feedback" ? env.FEEDBACK_LIMITER : url.pathname === "/api/rooms" ? env.ROOM_CREATE_LIMITER : env.ROOM_CONNECT_LIMITER;
     const { success } = await limiter.limit({ key: request.headers.get("CF-Connecting-IP") ?? "local" });
@@ -71,6 +73,6 @@ export default {
   },
   // Daily Cron Trigger (wrangler.jsonc): feedback retention from the privacy policy.
   async scheduled(_controller, env): Promise<void> {
-    await runRetention(env);
+    await Promise.all([runRetention(env), purgeExpiredAuth(env.ACCOUNT_DB)]);
   },
 } satisfies ExportedHandler<Env>;

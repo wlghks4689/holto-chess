@@ -5,6 +5,7 @@ import { useMadeSoundPreferences, writeMadeSoundPreferences } from "./madeSound"
 import { useTranslation } from "../i18n";
 import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
 import "./start-screen.css";
+import { AccountLogin } from "./AccountLogin";
 
 // The guide carries its own copy, examples and styles, so it loads only when opened.
 const GameOverviewGuide = lazy(() => import("./GameOverviewGuide").then((module) => ({ default: module.GameOverviewGuide })));
@@ -48,6 +49,7 @@ export function StartScreen({ onStart }: { onStart: (mode: StartMode) => void })
 
   return <main className="start-screen">
     <div className="start-content" inert={overlay !== null}>
+      <AccountLogin />
       <div className="start-main">
         <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p></header>
         <div className="start-menu" aria-label={t("home.menu")}>
