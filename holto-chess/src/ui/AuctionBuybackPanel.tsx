@@ -1,7 +1,6 @@
 import type { GameAction, PlayerView } from "../shared/protocol";
 import { cardLabel } from "../core/poker/cards";
 import { CardView } from "./CardView";
-import { abilityIconUrl } from "./abilityArtworkLoader";
 import { useTranslation } from "../i18n";
 
 /**
@@ -42,7 +41,7 @@ export function AuctionBuybackPanel({ view, send, disabled, seconds }: {
       const status = !buyers.has(p.playerId) ? copy("낙찰", "Won") : card ? cardLabel(card)
         : p.playerId === current ? copy("구매 중", "Buying") : copy("대기", "Waiting");
       return <article key={p.playerId} className={p.playerId === current ? "is-buying" : !buyers.has(p.playerId) ? "is-settled" : ""}>
-        <header>{p.abilityId && <img src={abilityIconUrl(p.abilityId)} alt="" />}<b>{p.name}</b><span>{status}</span></header>
+        <header><b>{p.name}</b><span>{status}</span></header>
         <div>{(draft.publicHands?.[p.playerId] ?? []).map((owned) => <CardView key={owned.id} card={owned} compact />)}</div>
       </article>;
     })}</div>

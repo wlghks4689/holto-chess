@@ -4,7 +4,6 @@ import type { ServerClock } from "./serverClock";
 import { cardLabel } from "../core/poker/cards";
 import { CardView } from "./CardView";
 import { HandScoreDisclosure } from "./HandScoreDisclosure";
-import { abilityIconUrl } from "./abilityArtworkLoader";
 import { useTranslation } from "../i18n";
 
 type Offer = FinalAuctionView["cards"][number];
@@ -80,7 +79,6 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
   };
   const sheetOffer = active && sheet ? a.cards.find(o => o.card.id === sheet.id && !o.isMine) : undefined;
   const reveal = a.settlement && now < a.settlement.loadoutStartsAt;
-  const ability = (id: string) => view.players.find(p => p.playerId === id)?.abilityId;
   const names = (id: string) => view.players.find(p => p.playerId === id)?.name ?? id;
   const loadoutIds = draft && draft.epoch === a.loadout?.startsAt ? draft.ids : a.loadout?.cardIds ?? [];
   const rules = cardAuction ? [
@@ -120,7 +118,7 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
         </article>)}
       </div>
       <div className="auction-opponents">{view.players.filter(p => p.alive).map(p => <article key={p.playerId}>
-        <header>{p.abilityId && <img src={abilityIconUrl(p.abilityId)} alt="" />}<b>{p.name}</b><span>{p.stackBB}BB · {p.points}P</span></header>
+        <header><b>{p.name}</b><span>{p.stackBB}BB · {p.points}P</span></header>
         <div>{(a.publicHands[p.playerId] ?? []).map(card => <CardView key={card.id} card={card} compact />)}</div>
       </article>)}</div>
       {sheet && sheetOffer && <aside className="auction-bid-sheet" role="dialog" aria-label={copy("경쟁 입찰", "Raise bid")} onClick={e => e.stopPropagation()}>
@@ -135,7 +133,7 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
       </aside>}
     </> : a.settlement && cardAuction && !a.settlement.results.length ? <p className="auction-opening" role="status">{copy("낙찰된 카드가 없습니다.", "No card was won.")}</p>
     : a.settlement && (reveal || cardAuction) ? <div className="auction-reveal">{[...a.settlement!.results].sort((x, y) => view.players.findIndex(p => p.playerId === x.playerId) - view.players.findIndex(p => p.playerId === y.playerId)).map(r => <article key={r.cardId}>
-      <CardView card={a.publicHands[r.playerId]!.find(c => c.id === r.cardId)!} /><strong>{r.amount}BB</strong><span className="auction-winner">{ability(r.playerId) && <img src={abilityIconUrl(ability(r.playerId)!)} alt="" />}{names(r.playerId)}</span>
+      <CardView card={a.publicHands[r.playerId]!.find(c => c.id === r.cardId)!} /><strong>{r.amount}BB</strong><span className="auction-winner">{names(r.playerId)}</span>
     </article>)}</div> : <div className="final-loadout">
       <p>{copy("보유 카드 중 출전할 5장을 선택하세요. 전원 확정 후 동시에 공개됩니다.", "Choose five cards. All loadouts are revealed together after everyone locks.")}</p>
       <HandScoreDisclosure />
