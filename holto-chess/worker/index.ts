@@ -1,5 +1,8 @@
 import { adminRoute, handleAdmin } from "./admin";
-import { handleAuth, purgeExpiredAuth } from "./auth";
+import { configuredOrigin, handleAuth, purgeExpiredAuth, readPorenaSession } from "./auth";
+import { roomForwardHeaders } from "./roomIdentity";
+import { normalizeNickname } from "../src/shared/nickname";
+import type { RoomAccountIdentity } from "../src/game/room";
 import { submitFeedback } from "./feedback";
 import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
@@ -35,13 +38,13 @@ export default {
     const admin = adminRoute(url);
     if (admin === "admin") return handleAdmin(request, env, url);
     if (admin === "hidden") return new Response("Not found", { status: 404 });
-    if (url.pathname.startsWith("/api/auth/")) return handleAuth(request, env, url);
+    if (url.pathname.startsWith("/api/auth/") || url.pathname === "/api/profile") return handleAuth(request, env, url);
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
     if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return serveApp(request, env, url);
     // Same-origin browser credentials. No token in a query string, cookie or routing header.
     // The only other caller is our own Discord Activity origin, matched exactly (worker/origin.ts).
     if (!isAllowedOrigin(request.headers.get("Origin"), url.origin, env.DISCORD_ACTIVITY_CLIENT_IDS)) return new Response("Origin rejected", { status: 403 });
-    // Game rooms still use guest seats: use the Cloudflare-provided IP as a coarse abuse
+    // All room seats use the Cloudflare-provided IP as a coarse abuse
     // guard, with a generous shared-network connection budget. Never log it.
     const limiter = url.pathname === "/api/feedback" ? env.FEEDBACK_LIMITER : url.pathname === "/api/rooms" ? env.ROOM_CREATE_LIMITER : env.ROOM_CONNECT_LIMITER;
     const { success } = await limiter.limit({ key: request.headers.get("CF-Connecting-IP") ?? "local" });
@@ -49,9 +52,25 @@ export default {
       status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" },
     });
     if (url.pathname === "/api/feedback" && request.method === "POST") return submitFeedback(request, env);
+    let identity: RoomAccountIdentity | undefined;
+    const isNewSeat = request.method === "POST" && (url.pathname === "/api/rooms" || /^\/api\/rooms\/[A-Z2-9]{6}\/join$/.test(url.pathname));
+    if (isNewSeat) {
+      const fail = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store", "Vary": "Cookie" } });
+      try {
+        const user = await readPorenaSession(request, env);
+        if (!user && request.headers.get("X-Porena-Identity") === "account") return fail("ACCOUNT_REQUIRED", 401);
+        if (user) {
+          if (url.origin !== configuredOrigin(env) || request.headers.get("Origin") !== url.origin || request.headers.get("Sec-Fetch-Site") === "cross-site") return fail("Origin rejected", 403);
+          if (request.headers.get("X-Porena-Identity") === "guest") return fail("ACCOUNT_CHANGED", 409);
+          const displayName = normalizeNickname(user.displayName);
+          if (!displayName || displayName !== user.displayName) return fail("PROFILE_REQUIRED", 403);
+          identity = { accountUserId: user.id, displayName };
+        }
+      } catch { return fail("ACCOUNT_UNAVAILABLE", 503); }
+    }
     const forward = (roomId: string, path: string) => {
       const target = new URL(request.url); target.pathname = path; target.search = "";
-      const headers = new Headers(request.headers); headers.set("X-Room-Id", roomId);
+      const headers = roomForwardHeaders(request.headers, identity); headers.set("X-Room-Id", roomId);
       return env.GAME_ROOM.getByName(`room:${roomId}`).fetch(new Request(target, { method: request.method, headers }));
     };
     if (url.pathname === "/api/rooms" && request.method === "POST") {

@@ -5,6 +5,7 @@ import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 import { classifyGameError } from "../src/shared/gameErrorCode";
 import { nextDisclosureAt } from "../src/game/disclosure";
 import { FINISHED_ROOM_LIFETIME_MS, LOBBY_IDLE_LIFETIME_MS, ROOM_LIFETIME_MS } from "../src/shared/retention";
+import { roomAccountIdentity } from "./roomIdentity";
 
 type Attachment = { roomId: string; playerId: string | null; verifiedPlayerId?: string; joinedAt: number; windowAt?: number; messages?: number };
 const SNAPSHOT_KEY = "snapshot:v1";
@@ -160,7 +161,7 @@ export class GameRoom extends DurableObject<Env> {
       return this.ctx.blockConcurrencyWhile(async () => {
         if (this.room) return new Response("Room exists", { status: 409 });
         const secret = token();
-        const { room, playerId } = addSession(createRoom(roomId, randomSeed(), "secure", 2, true), await hash(secret));
+        const { room, playerId } = addSession(createRoom(roomId, randomSeed(), "secure", 2, true), await hash(secret), roomAccountIdentity(request.headers));
         await this.commit(room); // A new room is a lobby: commit() arms the 30-minute idle expiry.
         await this.rescheduleAlarm();
         return Response.json({ roomId, playerId, token: secret }, { status: 201, headers: { "Cache-Control": "no-store" } });
@@ -196,8 +197,10 @@ export class GameRoom extends DurableObject<Env> {
     if (url.pathname === "/internal/join" && request.method === "POST") {
       return this.ctx.blockConcurrencyWhile(async () => {
         if (this.room!.status !== "LOBBY" || this.room!.sessions.length >= 8) return new Response("Room unavailable", { status: 409 });
+        const identity = roomAccountIdentity(request.headers);
+        if (identity && this.room!.sessions.some(session => session.accountUserId === identity.accountUserId)) return Response.json({ error: "ACCOUNT_ALREADY_SEATED" }, { status: 409, headers: { "Cache-Control": "no-store" } });
         const secret = token();
-        const { room, playerId } = addSession(this.room!, await hash(secret));
+        const { room, playerId } = addSession(this.room!, await hash(secret), identity);
         await this.commit(room); this.broadcast();
         return Response.json({ roomId, playerId, token: secret }, { status: 201, headers: { "Cache-Control": "no-store" } });
       });
@@ -263,7 +266,7 @@ export class GameRoom extends DurableObject<Env> {
           const digest = await hash(message.token);
           const session = this.room.sessions.find((s) => s.tokenHash === digest);
           if (!session || attachment.verifiedPlayerId && attachment.verifiedPlayerId !== session.playerId) { this.send(ws, { type: "ERROR", code: "SESSION_INVALID", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
-          if (message.nickname && this.room.status === "LOBBY") {
+          if (message.nickname && !session.accountUserId && this.room.status === "LOBBY") {
             const next = structuredClone(this.room);
             next.game.players.find((p) => p.id === session.playerId)!.name = message.nickname;
             next.revision++;

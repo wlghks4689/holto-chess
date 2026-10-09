@@ -41,7 +41,7 @@ export const privacyEn: LegalDocument = {
       ] },
       "**2-2. Multiplayer**",
       { list: [
-        "Your nickname (1–8 letters or digits), shown to the other players in the same room",
+        "Your nickname (1–8 letters, digits, spaces, underscores or hyphens), shown to the other players in the same room",
         "The room code and the player identifier used inside the room",
         "Game state and results: cards, points, BB, rankings, dealt abilities and so on",
         "Reconnection session data: the session token itself is stored only in your browser; the server keeps only its SHA-256 hash.",
@@ -58,16 +58,18 @@ export const privacyEn: LegalDocument = {
       "IP addresses are used briefly for rate limiting against excessive requests and are not stored in the Service's databases. Service logs (Cloudflare Workers Logs) may record request information and are deleted after Cloudflare's retention period (currently 3 days on the free plan).",
       "**2-4. Optional Google sign-in**",
       { list: [
-        "A separate account database stores the Google account identifier (sub), sign-in provider, PORENA account identifier, account creation and last sign-in times, and account status.",
+        "A separate account database stores the Google account identifier (sub), sign-in provider, PORENA account identifier, the public nickname you choose, account creation and last sign-in times, and account status.",
         "Google's signed ID token is used only to verify sign-in. We do not store the original ID, access or refresh tokens.",
         "We store the sign-in session hash, creation and expiry times, and temporary authentication data that prevents forged or replayed sign-in requests.",
-        "The Google account identifier is used only to recognise the same account at sign-in. Accounts are currently not linked to multiplayer seats or match history.",
+        "The Google account identifier is used only to recognise the same account at sign-in. When you join a room while signed in, the room server stores your PORENA account identifier and public nickname at entry to link your account to the seat. Other players do not receive your account identifier, and we do not store permanent account-level match history. Deleting your account does not remove existing room seat information before the room retention period ends.",
       ] },
     ] },
     { id: "browser", title: "3. Information stored only in your browser", body: [
       "The following is not a user profile on PORENA's servers. It is kept in your browser's storage (localStorage and sessionStorage), and the operator cannot see it. Of these, your nickname and session token are sent to the server when you join or reconnect to a multiplayer room (2-2).",
       { table: { head: ["Item", "What it holds"], rows: [
-        ["Nickname", "Used as the default next time you join a room"],
+        ["Guest nickname", "Used as the default next time you join a room"],
+        ["Guest sign-in choice", "Keeps guest entry in the current tab (sessionStorage)"],
+        ["Entrance animation request", "Used to play the entrance video after sign-in; valid for up to 15 minutes (sessionStorage)"],
         ["Recent room sessions", `Room codes and reconnection tokens for up to ${MAX_REMEMBERED} recent rooms`],
         ["Room in this tab", "The room code this tab is playing (sessionStorage, cleared when the tab closes)"],
         ["Language", "Korean or English"],
@@ -208,7 +210,7 @@ export const termsEn: LegalDocument = {
       `PORENA is intended for users aged ${MINIMUM_AGE} and over. When you use it on a third-party platform such as Discord whose minimum age is higher, that platform's minimum age also applies.`,
     ] },
     { id: "account", title: "4. Accounts", body: [
-      "Google sign-in is optional; you can play without it. Sign-in recognises the same account and maintains its session. Accounts are currently not linked to multiplayer seats or match history. Settings, progress and match history remain in your browser. You can request account deletion through the contact in the Privacy Policy.",
+      "Google sign-in is optional; you can also play as a guest. A signed-in account stores the public nickname you choose and is linked to your seat when you join a new room. Profile nickname changes apply to future room entries. We do not store permanent account-level match history; settings, progress and recent match history remain in your browser. You can request account deletion through the contact in the Privacy Policy.",
     ] },
     { id: "nickname", title: "5. Nicknames", body: [
       "Your nickname is shown to other players in the same room. You may not use a nickname that impersonates another person or the operator, contains hateful, discriminatory, sexual or violent content, is unlawful or infringes others' rights. The operator may restrict such nicknames.",

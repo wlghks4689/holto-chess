@@ -1,5 +1,12 @@
 # Cloudflare 멀티플레이 기반 구현 보고서
 
+## 2026-10-09 IDENTITY-002 main 통합
+
+- 사용자 요청으로 `codex/profile-identity-002`의 최초 로그인 화면·닉네임 설정·입장 영상을 최신 main에 통합한다. 문서 충돌은 양쪽 기록을 보존해 해결했고 최신 게임 규칙·연결 오류 수정·인증 로그 쿼리 가림 설정을 유지했다.
+- 계정의 공개 닉네임 저장과 방 좌석 연결에 맞춰 한·영 정책을 갱신했다. 아래 AUTH-GOOGLE-001 및 통합 검토 기록의 "계정과 좌석 분리"는 프로필 통합 이전 상태다. 계정별 영구 전적은 추가하지 않는다.
+- 기존 nullable `users.display_name`을 사용하므로 신규 DB migration은 없다. main 푸시가 Cloudflare 자동 배포를 시작하며 실제 운영 로그인·닉네임 저장·입장 영상 확인은 배포 완료 후 수행해야 한다.
+- 병합 결과 검증: 전체 앱 111개 파일 / 793개 테스트, Worker 10개 파일 / 108개 테스트, lint·앱/Worker 타입 검사·빌드 및 diff 공백 검사 통과.
+
 ## 2026-10-09 통합 검토 수정 — 운영 미배포
 
 - `codex/auth-google-no-deploy`에 원격 main `a2924f6`을 병합했다. 아래 과거 기록의 미커밋·Client ID 빈 값 상태는 당시 기준이다.
@@ -13,9 +20,22 @@
 - 통합 게임·포커·네트워크·정책 54개 파일 / 470개 테스트 통과(`--maxWorkers=2`) — 5·6라운드 × 사람 2/4/8명 시간 초과 완주, R5 공개 데이터, 카드·미래 보드 공개 경계와 새 연결 오류 회귀 포함.
 - 운영 공개 전: Google Console의 운영 callback URI 확인 → Secret 등록을 포함한 승인된 배포 → 로그인·새로고침 유지·로그아웃·동일 계정 재로그인 → 운영 callback 로그·trace에 code/state 쿼리가 남지 않는지 확인. 운영 배포·Secret 등록을 수행하지 않았다.
 
+## IDENTITY-002 — 계정 프로필·GameRoom 연결 (2026-10-08, 미배포)
+
+- 최신 `origin/main` `83273da`에 기존 `codex/auth-google-no-deploy` `5201e83`을 통합한 `codex/profile-identity-002`에서 구현했다. Auth 자체는 기존 구현을 재사용한다.
+- `PATCH /api/profile`은 HttpOnly 계정 세션, same-origin, 제한된 JSON body, 유니코드 닉네임 1~8자 및 제어문자 거부를 검증하고 본인의 `users.display_name`만 수정한다. 기존 nullable 컬럼을 사용하므로 신규 migration은 없다.
+- 신규 방 생성·참가에서만 계정 세션을 조회한다. Worker는 외부 내부용 identity 헤더를 제거하고 검증된 UUID와 percent-encoded 공개 닉네임을 DO에 전달한다. Cookie와 Authorization은 내부 요청에서 제거한다.
+- Room session의 optional `accountUserId`와 game player.name을 저장한다. 계정 좌석의 클라이언트 JOIN nickname은 무시하며, 같은 계정의 두 번째 신규 좌석은 409로 차단한다.
+- 공개 게임 payload에 계정 ID를 넣지 않는다. 방 token 재접속·connection ticket·rematch는 계정 세션과 독립적으로 유지한다. 이름은 방 입장 당시 값을 보존하고 프로필 변경은 다음 신규 입장에 반영한다.
+- 첫 화면은 Google/Guest 선택 후 메뉴를 노출한다. 계정 닉네임이 없으면 설정을 먼저 요구하며, 로그인 로비 닉네임은 읽기 전용이다. Guest 닉네임 저장 및 임베디드 Guest 입장은 유지한다.
+- 최신 6라운드 규칙은 변경하지 않는다. Rank 점수·영구 전적·Leaderboard는 미구현이다.
+- 이번 작업에서 원격 DB 변경이나 운영 배포는 하지 않았다. 실제 Google 브라우저 로그인 대신 mocked OIDC/D1/DO 자동화와 개발용 UI fixture를 검증한다.
+
+상세 결정과 검증: [DECISIONS](../product_doc/DECISIONS.md), [IDENTITY-002 QA](../product_doc/qa/2026-10-08-profile-identity-002.md).
+
 ## AUTH-GOOGLE-001 — 계정 기반 추가 (2026-10-07, 미배포)
 
-이 절은 현재 추가한 계정 구현 기록이다. **이후 2026-09-16 본문은 당시 멀티플레이 구현 기록**이며, 그 안의 “계정/OAuth/D1 계정 DB 없음”은 이 변경 전 상태다. GameRoom의 게스트 좌석과 계정은 아직 연결하지 않는다.
+이 절은 AUTH-GOOGLE-001 당시 계정 구현 기록이다. 프로필과 GameRoom 연결은 위 IDENTITY-002 절이 현재 상태다. **이후 2026-09-16 본문은 당시 멀티플레이 구현 기록**이며, 그 안의 “계정/OAuth/D1 계정 DB 없음”은 이 변경 전 상태다.
 
 ### 기준과 범위
 
