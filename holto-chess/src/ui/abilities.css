@@ -4,7 +4,8 @@
   width: 100%;
   aspect-ratio: 2 / 3;
   flex: none;
-  background: #080a0d;
+  /* The frame image carries its own dark panel and a transparent outer glow. */
+  background: transparent;
   color: #f3f2ee;
   font-family: 'Batang', 'Noto Serif KR', 'AppleMyungjo', Georgia, serif;
   text-align: center;
