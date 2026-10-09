@@ -315,7 +315,8 @@ export class GameRoom extends DurableObject<Env> {
   }
   webSocketClose(ws: WebSocket, code: number): void {
     diag("ws.close", { ...roomFields(this.room), playerId: (ws.deserializeAttachment() as Attachment | null)?.playerId ?? null, code });
-    ws.close(code === 1005 ? 1000 : code); this.broadcast();
+    // Peer reports can contain reserved codes such as 1006 that cannot be sent back.
+    ws.close(); this.broadcast();
   }
   webSocketError(ws: WebSocket, error: unknown): void {
     diag("ws.error", { ...roomFields(this.room), playerId: (ws.deserializeAttachment() as Attachment | null)?.playerId ?? null,

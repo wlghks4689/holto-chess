@@ -18,7 +18,7 @@ export type LegalChrome = {
   language: string;
 };
 
-export const LEGAL_EFFECTIVE_DATE = "2026-10-02";
+export const LEGAL_EFFECTIVE_DATE = "2026-10-09";
 export const OPERATOR_NAME = "김지환";
 export const CONTACT_EMAIL = "wlghks4689@gmail.com";
 export const SITE_URL = "https://porena.kr";

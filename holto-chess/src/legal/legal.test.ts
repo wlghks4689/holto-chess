@@ -30,7 +30,7 @@ describe("legal pages", () => {
     const html = renderToStaticMarkup(createElement(LegalView, { kind: "privacy", locale: "ko-KR", onLocale: () => undefined }));
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain("<h1>개인정보처리방침</h1>");
-    expect(html).toContain("2026-10-02");
+    expect(html).toContain("2026-10-09");
     expect(html).toContain('aria-pressed="true">한국어');
     expect(html).toContain('href="mailto:wlghks4689@gmail.com"');
     expect(html).toContain('href="/terms"');

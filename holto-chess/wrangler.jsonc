@@ -30,7 +30,7 @@
     // call /api/* and /ws/* (exact match, worker/origin.ts). Empty = porena.kr only. Public ids, not secrets.
     "DISCORD_ACTIVITY_CLIENT_IDS": "1555427351829942353",
     "AUTH_ORIGIN": "https://porena.kr",
-    "GOOGLE_CLIENT_ID": ""
+    "GOOGLE_CLIENT_ID": "906938978252-89ndfurt1plgpnd1eqdkgoo0l2bhbt7f.apps.googleusercontent.com"
   },
   // Set with tools/admin/setup-admin.mjs. Never commit their values.
   "secrets": { "required": ["ADMIN_USERNAME", "ADMIN_PASSWORD_HASH", "ADMIN_SESSION_SECRET", "GOOGLE_CLIENT_SECRET"] },

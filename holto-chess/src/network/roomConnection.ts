@@ -137,8 +137,15 @@ export function createRoomConnection(options: Options) {
         retry("socket-close");
       };
       socket.onerror = () => { if (active()) retry("socket-error"); };
-    } catch {
-      if (!disposed && current === generation) retry("connection-ticket");
+    } catch (error) {
+      if (disposed || current !== generation) return;
+      if (error instanceof Error && (error.cause === 401 || error.cause === 404 || error.cause === 410)) {
+        terminal = true; retire(); options.onStatus("Disconnected");
+        if (error.cause === 404 || error.cause === 410) options.onExpired();
+        else options.onError("client.reconnectFailed");
+        return;
+      }
+      retry("connection-ticket");
     }
   };
   const resume = () => {
