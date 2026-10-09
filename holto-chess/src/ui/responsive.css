@@ -99,7 +99,6 @@
 .game-arena .r2-draft .draft-private-timer{position:static;align-self:center}
 .game-arena .r2-draft .r2-current{flex-wrap:wrap}
 .cinema .cinema-profile b{white-space:normal;overflow-wrap:anywhere}
-.game-arena .ability-order-list span{min-width:0;overflow-wrap:anywhere}
 .game-arena .ability-selection-instruction{word-break:keep-all;overflow-wrap:anywhere}
 .game-arena .ability-card-thumbnail b{overflow-wrap:anywhere}
 .game-arena .loadout .loadout-games{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
@@ -439,7 +438,6 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
   .game-arena .ability-back-grid{max-width:440px;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   .game-arena .ability-card-thumbnail b{font-size:clamp(9px,9cqw,12px)}
   .game-arena .ability-card-thumbnail small{font-size:clamp(9px,2.5vw,11px)}
-  .game-arena .ability-order-list li{min-height:40px;padding:5px}
   .game-arena .ability-reveal-countdown{margin:10px 0 0;font-size:11px}
   .game-arena .run-loadout{padding:8px}
   .game-arena .loadout .loadout-games{grid-template-columns:repeat(2,minmax(0,1fr))}

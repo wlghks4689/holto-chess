@@ -1,17 +1,20 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { createAbilityGame, openAbilitySelection, pickAbility } from "../game/engine";
+import { createAbilityGame, finishAbilityDeal } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { addSession, createRoom } from "../game/room";
 import { AbilitySelectionPanel } from "./AbilitySelectionPanel";
 import { setCinematicMotion } from "./useCinematicMotion";
 
-describe("ability draft presentation", () => {
-  it("uses the shared game motion preference for public ability reveals", () => {
-    const game = openAbilitySelection(createAbilityGame(303));
-    const room = { ...addSession(createRoom("UI", 303), "test-session").room, game, status: "PLAYING" as const };
-    const view = createPlayerView(room, "p1");
+function viewOf(game: ReturnType<typeof createAbilityGame>) {
+  const room = { ...addSession(createRoom("UI", 303), "test-session").room, game, status: "PLAYING" as const };
+  return createPlayerView(room, "p1");
+}
+
+describe("ability deal presentation", () => {
+  it("uses the shared game motion preference for the deal and the reveal", () => {
+    const view = viewOf(createAbilityGame(303));
     const render = () => renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {} }));
     try {
       setCinematicMotion(true);
@@ -20,15 +23,23 @@ describe("ability draft presentation", () => {
       expect(render()).not.toContain("ability-motion-enabled");
     } finally { setCinematicMotion(true); }
   });
-  it("shows the confirmed heading and concise inspection hint without the reveal kicker", () => {
-    let game = openAbilitySelection(createAbilityGame(303));
-    game.abilityDraft!.order = game.players.map(player => player.id);
-    const selectedSlots = [0, 2, 3, 5, 7, 8, 10, 11];
-    for (let pick = 0; pick < game.players.length; pick++) {
-      game = pickAbility(game, game.players[pick]!.id, selectedSlots[pick]!);
-    }
-    const room = { ...addSession(createRoom("UI", 303), "test-session").room, game, status: "PLAYING" as const };
-    const view = createPlayerView(room, "p1");
+
+  it("deals only the viewer's own card, large and readable, with the time left and no ready button", () => {
+    const game = createAbilityGame(303);
+    const view = viewOf(game);
+    expect(view.phase).toBe("ABILITY_DEAL");
+    const html = renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {}, seconds: 5 }));
+    expect(html).toContain("나의 어빌리티");
+    expect(html.match(/ability-card-description/g)).toHaveLength(1);
+    expect(html).toContain(`data-ability="${game.players[0]!.abilityId}"`);
+    for (const other of game.players.slice(1)) expect(html).not.toContain(`data-ability="${other.abilityId}"`);
+    expect(html).not.toContain("ability-back-grid");
+    expect(html).not.toContain("READY · 준비 완료");
+    expect(html).toContain(">5<");
+  });
+
+  it("shows the confirmed heading, eight inspectable cards and the ready button in the reveal", () => {
+    const view = viewOf(finishAbilityDeal(createAbilityGame(303)));
     expect(view.phase).toBe("ABILITY_REVEAL");
     const html = renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {}, seconds: 30 }));
     expect(html).toContain("어빌리티 카드 확정");
@@ -37,32 +48,12 @@ describe("ability draft presentation", () => {
     expect(html).not.toContain("ability-selection-kicker");
     expect(html.match(/ability-card-thumbnail/g)).toHaveLength(8);
     expect(html.match(/<button[^>]*class="ability-card-back/g)).toHaveLength(8);
+    expect(html).toContain("ability-card-thumbnail is-viewer");
     expect(html).toContain('style="--ability-columns:4"');
     expect(html).toContain("READY · 준비 완료");
-    expect(html).toContain("30초");
     view.players.find(player => player.playerId === view.me.playerId)!.ready = true;
     const confirmed = renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {}, seconds: 20 }));
     expect(confirmed).toContain('class="primary" disabled=""');
     expect(confirmed).toContain("✓ 준비 완료");
-  });
-
-  it("keeps twelve selectable slots, no inert mobile backs and inspectable thumbnails", () => {
-    let game = openAbilitySelection(createAbilityGame(303));
-    game.abilityDraft!.order = game.players.map(player => player.id);
-    game = pickAbility(game, "p1", 0);
-    game = pickAbility(game, "p2", 1);
-    const room = { ...addSession(createRoom("UI", 303), "test-session").room, game, status: "PLAYING" as const };
-    const view = createPlayerView(room, "p1");
-    const html = renderToStaticMarkup(createElement(AbilitySelectionPanel, { view, send: () => {}, seconds: 12 }));
-    expect(html.match(/<button[^>]*class="ability-card-back/g)).toHaveLength(12);
-    expect(html).not.toContain("ability-card-placeholder");
-    expect(html.match(/ability-card-thumbnail/g)).toHaveLength(2);
-    expect(html).toContain("ability-card-thumbnail is-viewer");
-    expect(html).not.toContain("ability-picked-preview");
-    expect(html).not.toContain("ability-card-description");
-    expect(html).not.toContain("READY · 준비 완료");
-    expect(html).toContain("카드 확대");
-    expect(html.match(/ability-artwork" aria-hidden="true" data-ready="false"/g)).toHaveLength(2);
-    expect(html.match(/ability-artwork-frame/g)).toHaveLength(2);
   });
 });

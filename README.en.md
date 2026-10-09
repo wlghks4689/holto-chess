@@ -23,7 +23,7 @@ The in-game **How to Play** has two paths: the *Beginner guide* if you are new t
 
 ## New here? — the 5-minute version
 
-1. **Pick an ability.** Before the game starts, choose one of 12 face-down cards to get your own special power.
+1. **Get an ability.** When the game starts you are dealt one of 12 at random: your own special power.
 2. **Collect cards.** Buy cards from your shop with BB, or take one from the open draft. A card someone owns cannot be owned by anyone else.
 3. **Fight under each round's rules.** Matches are decided by the poker hand of your best five cards (BEST 5).
 4. **Earn points and BB.** In R3 and R4, the two lowest players are eliminated.
@@ -141,7 +141,7 @@ Final Score = cumulative points + R5 hand score + floor(remaining BB / 10)
 
 ### 8. Abilities
 
-Before the game, players take turns picking one of 12 face-down cards, so all eight hold different abilities. If time runs out, one of the remaining cards is picked automatically. Match-reward abilities trigger only in **regular matches**; tiebreak boards never pay ability rewards.
+When the game starts each player is dealt one of 12 abilities at random, and no two of the eight share one. For the first 5 seconds you see only your own; then everyone's abilities are revealed. Match-reward abilities trigger only in **regular matches**; tiebreak boards never pay ability rewards.
 
 | Ability | Effect | Timing · notes |
 | --- | --- | --- |
@@ -172,8 +172,7 @@ These are the maximum waits the server enforces. Some phases move on early once 
 
 | Phase | Limit | Behaviour |
 | --- | ---: | --- |
-| Ability pick order reveal | 3s | A die sets the pick order and every seat sees it |
-| Ability pick | 12s per player | A remaining card is picked automatically on timeout |
+| Ability deal | 5s | Each player sees only their own ability (advances automatically) |
 | Ability reveal | 30s | Moves to the shop as soon as everyone is ready |
 | Shop | 60s | Unfinished seats are readied automatically when time runs out |
 | Draft Order · Deal-In | 3s | Every seat watches the same card deal before picks begin |
@@ -192,7 +191,7 @@ R4 runs as `Draft Order 3s → sequential draft (20s each, AI 1.8s) → draft re
 
 ## Screenshots
 
-**Ability Draft** — Before the game, pick one of 12 face-down cards. Tap the card to flip it and read the detailed rules.
+**Ability Deal** — When the game starts you are dealt one random ability. Tap the card to flip it and read the detailed rules.
 
 ![Ability Draft](holto-chess/docs/screenshots/en/ability-card.webp)
 
@@ -315,7 +314,7 @@ See [tools/balance-simulator/README.md](holto-chess/tools/balance-simulator/READ
 - [x] Showdown cinematics · server-synchronized presentation
 - [x] Final Table Showdown
 - [x] Spectating after elimination · rematches
-- [x] 12 abilities · pre-game ability draft
+- [x] 12 abilities · dealt at random when the game starts
 - [x] How to Play split into a beginner guide and a rule book
 - [x] Tutorial (5 chapters, practice per round)
 - [x] Korean · English

@@ -5,7 +5,7 @@ import { findBestFive } from "../core/poker/evaluate";
 import { ABILITY_IDS, quadCorePlacementBonus } from "./abilities";
 import { rewardQuadCorePlacement } from "./abilityRewards";
 import { assertPoolIntegrity } from "./cardPool";
-import { autoPickAbility, createAbilityGame, createGame, finalStandings, finishAbilitySelection, openAbilitySelection, pickAbility, resolvePrimary, rewardFinalPlacements } from "./engine";
+import { createAbilityGame, createGame, finalStandings, finishAbilityDeal, finishAbilitySelection, resolvePrimary, rewardFinalPlacements } from "./engine";
 import { createPlayerView } from "./playerView";
 import { addSession, createRoom } from "./room";
 import type { Round } from "./types";
@@ -109,29 +109,25 @@ describe("QUAD CORE settlement", () => {
   });
 });
 
-describe("expanded ability draft", () => {
-  it("accepts the eleventh wire slot and rejects out-of-range inputs", () => {
+describe("expanded ability deal", () => {
+  it("rejects the retired ability pick on the wire", () => {
     const message = (slot: number) => JSON.stringify({ type: "ABILITY_PICK", slot, requestId: "quad-test", turnKey: "1:ABILITY_PICK:0:0" });
-    expect(parseClientMessage(message(10))).toMatchObject({ slot: 10 });
-    for (const slot of [-1, ABILITY_IDS.length, 1.5, NaN, Infinity]) expect(() => parseClientMessage(message(slot))).toThrow();
+    for (const slot of [0, 10, ABILITY_IDS.length]) expect(() => parseClientMessage(message(slot))).toThrow("지원하지 않는 명령");
   });
-  it("selects slot eleven, restores a public view and autopicks eight unique abilities", () => {
-    let game = openAbilitySelection(createAbilityGame(42, "seeded", false));
+  it("deals from the full twelve-ability deck, restores a public reveal view and keeps quad-core without a starting card", () => {
+    let game = createAbilityGame(42, "seeded", false);
     expect(game.abilityDraft!.deck).toHaveLength(ABILITY_IDS.length);
-    game.abilityDraft!.deck = [...ABILITY_IDS];
-    game.abilityDraft!.order = game.players.map(player => player.id);
-    const firstId = game.abilityDraft!.order[0]!;
-    game = pickAbility(game, firstId, 10);
-    expect(game.players.find(player => player.id === firstId)!.abilityId).toBe("quad-core");
-    expect(() => pickAbility(game, game.abilityDraft!.order[1]!, 10)).toThrow();
-    expect(() => pickAbility(game, game.abilityDraft!.order[1]!, ABILITY_IDS.length)).toThrow();
-    while (game.phase === "ABILITY_PICK") game = autoPickAbility(game);
+    const firstId = game.players[0]!.id;
+    const holder = game.players.find(player => player.abilityId === "quad-core");
+    if (holder) holder.abilityId = game.players[0]!.abilityId;
+    game.players[0]!.abilityId = "quad-core";
     expect(new Set(game.players.map(player => player.abilityId)).size).toBe(8);
+    game = finishAbilityDeal(game);
     const room = { ...addSession(createRoom("QUAD", 42, "seeded", 2, false, false), "quad-session").room, status: "PLAYING" as const, game };
     const restored = JSON.parse(JSON.stringify(room)) as typeof room;
     const view = createPlayerView(restored, firstId);
-    expect(view.abilityDraft).toMatchObject({ slotCount: ABILITY_IDS.length, pickedCount: 8, myPick: { slot: 10, abilityId: "quad-core" } });
-    expect(view.abilityDraft!.availableSlots).toHaveLength(ABILITY_IDS.length - 8);
+    expect(view.abilityDraft).toMatchObject({ mine: "quad-core" });
+    expect(view.abilityDraft!.abilities).toHaveLength(8);
     expect(view.abilityDraft).not.toHaveProperty("deck");
     const dealt = finishAbilitySelection(game);
     // Only Royal Blood and Target Sniper are dealt a starting card; Quad Core buys both R1 cards.

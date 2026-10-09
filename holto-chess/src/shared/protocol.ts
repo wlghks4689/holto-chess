@@ -1,14 +1,13 @@
 import type { Card } from "../core/poker/cards";
 import type { HandCategory } from "../core/poker/evaluate";
 import type { HighCardDraw, MatchReward, Phase, Round, TiebreakKind } from "../game/types";
-import { ABILITY_IDS, type AbilityDraftView, type AbilityId } from "../game/abilities";
+import type { AbilityDraftView, AbilityId } from "../game/abilities";
 import type { AbilityBenefitView, AbilityCue } from "../game/abilities";
 
 export type GameAction =
   | { type: "FINAL_AUCTION_BID"; cardId: string; expectedHighestAmount: number | null; amount?: number }
   | { type: "FINAL_LOADOUT"; cardIds: string[] }
   | { type: "LOCK_FINAL_LOADOUT" }
-  | { type: "ABILITY_PICK"; slot: number }
   | { type: "DRAFT_PICK"; cardId: string }
   | { type: "RUN_LOADOUT"; cardIds: string[] }
   | { type: "CHOOSE_OPPONENT"; playerId: string }
@@ -180,7 +179,6 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (!string("requestId", /^[a-zA-Z0-9_-]{8,64}$/) || !string("turnKey", /^(?:[a-f0-9]{64}|[0-9]+:[A-Z_]+(?::[0-9]+:[0-9]+)?)$/)) throw new Error("명령 식별자가 필요합니다.");
   const fields: Record<string, string[]> = {
     FINAL_AUCTION_BID: ["cardId", "expectedHighestAmount", "amount"], FINAL_LOADOUT: ["cardIds"], LOCK_FINAL_LOADOUT: [],
-    ABILITY_PICK: ["slot"],
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [], CHOOSE_OPPONENT: ["playerId"],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
       SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], FINAL_RESULTS_VIEWED: [], LEAVE_ROOM: [],
@@ -201,6 +199,5 @@ export function parseClientMessage(raw: string): ClientMessage {
   if (v.type === "CHOOSE_OPPONENT" && !string("playerId", /^p[1-8]$/)) throw new Error("잘못된 상대입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");
   if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");
-  if (v.type === "ABILITY_PICK" && (typeof v.slot !== "number" || !Number.isSafeInteger(v.slot) || v.slot < 0 || v.slot >= ABILITY_IDS.length)) throw new Error("잘못된 어빌리티 카드입니다.");
   return v as ClientMessage;
 }

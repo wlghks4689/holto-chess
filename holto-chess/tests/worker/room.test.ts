@@ -1,4 +1,5 @@
 import { beginFinalAuction } from "../../src/game/finalAuction";
+import { ABILITY_IDS } from "../../src/game/abilities";
 import { env, exports } from "cloudflare:workers";
 import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
@@ -56,24 +57,17 @@ async function connect(s: SessionCredential, ip?: string) {
 }
 async function advanceAbilities(roomId: string, clients: Awaited<ReturnType<typeof connect>>[]) {
   const stub = env.GAME_ROOM.getByName(`room:${roomId}`);
+  // The server deals at random. Keep the seats this suite always played: p1-p4 hold abilities that
+  // grant no extra cards or shop changes, every other seat one of the rest.
+  await runInDurableObject(stub, async instance => {
+    const room = (instance as unknown as { room: RoomSnapshot }).room;
+    if (room.game.phase !== "ABILITY_DEAL") return;
+    const safe = ["target-sniper", "underdog", "architect", "zero-risk"] as const;
+    const rest = ABILITY_IDS.filter(id => !(safe as readonly string[]).includes(id));
+    room.game.players.forEach((player, i) => { player.abilityId = i < safe.length ? safe[i] : rest[i - safe.length]; });
+  });
   for (let step = 0; step < 20; step += 1) {
-    const view = clients[0]!.view();
-    if (view.phase === "SHOP") return;
-    if (view.phase === "ABILITY_PICK" && view.abilityDraft?.currentPlayerId) {
-      const picker = clients.find(client => client.view().me.playerId === view.abilityDraft!.currentPlayerId);
-      if (picker) {
-        const snapshot = await runInDurableObject(stub, (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1"));
-        const available = picker.view().abilityDraft!.availableSlots;
-        const selected = new Set(snapshot!.game.abilityDraft!.picks.map(pick => snapshot!.game.abilityDraft!.deck[pick.slot]!));
-        const safe = ["target-sniper", "underdog", "architect", "zero-risk"];
-        const preference = safe[Number(picker.view().me.playerId.slice(1)) - 1];
-        const candidates = snapshot!.game.abilityDraft!.deck.flatMap((ability, slot) => available.includes(slot) && (picker.view().me.playerId.startsWith("p1") || !safe.includes(ability)) ? [slot] : []);
-        const preferredSlot = preference ? snapshot!.game.abilityDraft!.deck.findIndex((ability, slot) => ability === preference && available.includes(slot) && !selected.has(ability)) : -1;
-        const slot = preferredSlot >= 0 ? preferredSlot : candidates[0] ?? available[0]!;
-        await picker.send({ type: "ABILITY_PICK", slot });
-        continue;
-      }
-    }
+    if (clients[0]!.view().phase === "SHOP") return;
     const revision = Math.max(...clients.map(client => client.view().revision));
     await runInDurableObject(stub, async instance => {
       const room = (instance as unknown as { room: RoomSnapshot }).room;
@@ -83,7 +77,7 @@ async function advanceAbilities(roomId: string, clients: Awaited<ReturnType<type
     });
     await Promise.all(clients.map(client => client.wait(message => message.type === "PLAYER_VIEW" && message.payload.revision > revision)));
   }
-  throw new Error("Ability selection did not finish");
+  throw new Error("Ability deal did not finish");
 }
 async function startGame(roomId: string, clients: Awaited<ReturnType<typeof connect>>[]) {
   await Promise.all(clients.map(client => client.send({ type: "READY" })));

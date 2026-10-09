@@ -2,9 +2,9 @@ import { expect, it } from "vitest";
 import { createPlayerView } from "./playerView";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 
-/** An eight-human room advanced by timeouts to the end of the R3 cinematic, two seats eliminated. */
+/** An eight-human room advanced by timeouts to the end of the R3 cinematic, two seats eliminated (a seed without an R3 survival tiebreak). */
 function afterR3(): { room: RoomSnapshot; ids: string[]; at: number } {
-  let room = createRoom("PAYLOD", 7, "seeded", 2, true);
+  let room = createRoom("PAYLOD", 8, "seeded", 2, true);
   for (let i = 0; i < 8; i++) room = addSession(room, `h-${i}`).room;
   for (const s of room.sessions) room = applyRoomAction(room, s.playerId, { type: "READY" }, turnKey(room), 1000);
   let now = 1000;

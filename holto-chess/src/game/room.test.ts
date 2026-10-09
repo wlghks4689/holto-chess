@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addSession, applyRoomAction, barrierDeadline, createRoom as createRoomCurrent, forceBarrier, turnKey, type RoomSnapshot } from "./room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom as createRoomCurrent, forceBarrier, migrateRoomSnapshot, resumeSession, turnKey, type RoomSnapshot } from "./room";
+import { ABILITY_IDS } from "./abilities";
 import { createPlayerView } from "./playerView";
 import { parseClientMessage, type GameAction } from "../shared/protocol";
 import { assertPoolIntegrity } from "./cardPool";
@@ -60,10 +61,10 @@ describe("server room authority and projections", () => {
     expect(r.game.phase).toBe("GAME_RESULT");
     expect(r.readyIds).toEqual(["p1"]);
     r = act(r, "p2", { type: "REMATCH_READY" });
-    expect(r.game.phase).toBe("ABILITY_ORDER");
+    expect(r.game.phase).toBe("ABILITY_DEAL");
     expect(r.game.round).toBe(1);
     expect(r.readyIds).toEqual([]);
-    expect(r.game.abilityDraft?.order).toHaveLength(8);
+    expect(new Set(r.game.players.map((player) => player.abilityId)).size).toBe(8);
     expect(r.game.players.slice(0, 2).map((player) => player.name)).toEqual(["첫 번째", "두 번째"]);
     expect(r.game.players.every((player) => !player.eliminated)).toBe(true);
   });
@@ -80,45 +81,46 @@ describe("server room authority and projections", () => {
     view.me.shopCards[0].card.rank = 2;
     expect(r).not.toHaveProperty("me");
   });
-  it("publishes picked abilities and slots immediately while concealing unpicked cards", () => {
+  it("sends only the viewer's own dealt ability until the reveal, to players and spectators alike", () => {
     let r = createRoomCurrent("ABCDEF", 303, "seeded", 2, true);
     r = addSession(r, "hash-0").room;
     r = addSession(r, "hash-1").room;
+    const ability = (id: string) => r.game.players.find(player => player.id === id)!.abilityId!;
+    const othersIn = (json: string, viewer: string) => r.game.players.filter(player => player.id !== viewer).filter(player => json.includes(`"${player.abilityId}"`));
+    // Dealt with the game but hidden in the lobby, even from the owner.
+    expect(JSON.stringify(createPlayerView(r, "p1"))).not.toContain("abilityId");
     r.status = "PLAYING";
-    const draft = r.game.abilityDraft!;
-    draft.order = r.game.players.map(player => player.id);
-    draft.picks = [{ playerId: "p1", slot: 0 }];
-    r.game.players[0]!.abilityId = draft.deck[0]!;
-    r.game.phase = "ABILITY_PICK";
+    expect(r.game.phase).toBe("ABILITY_DEAL");
+    const own = createPlayerView(r, "p1");
+    expect(own.abilityDraft).toEqual({ mine: ability("p1"), abilities: [] });
+    expect(own.me.abilityId).toBe(ability("p1"));
+    expect(othersIn(JSON.stringify(own), "p1")).toEqual([]);
+    expect(othersIn(JSON.stringify(createPlayerView(r, "p2")), "p2")).toEqual([]);
+    // An eliminated viewer follows live seats; their dealt abilities stay hidden too.
+    r.game.players[1]!.eliminated = true;
+    const spectator = createPlayerView(r, "p2");
+    expect(spectator.spectatorViews?.length).toBeGreaterThan(0);
+    expect(othersIn(JSON.stringify(spectator), "p2")).toEqual([]);
+    r.game.players[1]!.eliminated = false;
 
-    expect(createPlayerView(r, "p1").abilityDraft).toMatchObject({ myPick: { slot: 0, abilityId: draft.deck[0] } });
-    expect(createPlayerView(r, "p1").abilityDraft?.abilities).toEqual([{ playerId: "p1", slot: 0, abilityId: draft.deck[0] }]);
-    expect(createPlayerView(r, "p2").abilityDraft).not.toHaveProperty("myPick");
-    expect(createPlayerView(r, "p2").abilityDraft?.abilities).toEqual([{ playerId: "p1", slot: 0, abilityId: draft.deck[0] }]);
-    expect(createPlayerView(r, "p2").abilityDraft).not.toHaveProperty("deck");
-
-    draft.picks = draft.order.map((playerId, slot) => {
-      r.game.players.find(player => player.id === playerId)!.abilityId = draft.deck[slot]!;
-      return { playerId, slot };
-    });
     r.game.phase = "ABILITY_REVEAL";
-    expect(createPlayerView(r, "p1").abilityDraft?.abilities).toHaveLength(8);
-    expect(createPlayerView(r, "p1").abilityDraft?.myPick?.slot).toBe(0);
+    const reveal = createPlayerView(r, "p2");
+    expect(reveal.abilityDraft?.abilities).toHaveLength(8);
+    expect(reveal.players.map(player => player.abilityId)).toEqual(r.game.players.map(player => player.abilityId));
+    expect(reveal.abilityDraft).not.toHaveProperty("deck");
   });
   it("keeps the 30 second reveal deadline, or advances once every human is ready", () => {
     let r = createRoomCurrent("DRAFT", 303, "seeded", 2, true);
     for (let i = 0; i < 8; i++) r = addSession(r, `draft-${i}`).room;
     for (const session of r.sessions) r = applyRoomAction(r, session.playerId, { type: "READY" }, turnKey(r), 1000);
-    r = forceBarrier(r, barrierDeadline(r)!)!;
-    expect(() => applyRoomAction(r, "p1", { type: "READY" }, turnKey(r), barrierDeadline(r)! - 1)).toThrow();
-    let now = barrierDeadline(r)! - 1000;
-    for (let slot = 0; slot < 8; slot++) {
-      const playerId = r.game.abilityDraft!.order[slot]!;
-      r = applyRoomAction(r, playerId, { type: "ABILITY_PICK", slot }, turnKey(r), now);
-      expect(barrierDeadline(r)).toBe(now + (slot === 7 ? 30_000 : 12_000));
-      now += 1000;
-    }
+    // The deal is server-timed: nobody readies it, and it ends five seconds after the game starts.
+    expect(r.game.phase).toBe("ABILITY_DEAL");
+    expect(barrierDeadline(r)).toBe(6_000);
+    expect(() => applyRoomAction(r, "p1", { type: "READY" }, turnKey(r), 2_000)).toThrow();
+    expect(forceBarrier(r, 5_999)).toBeNull();
+    r = forceBarrier(r, 6_000)!;
     expect(r.game.phase).toBe("ABILITY_REVEAL");
+    expect(barrierDeadline(r)).toBe(36_000);
     const deadline = barrierDeadline(r)!;
     expect(forceBarrier(r, deadline - 1)).toBeNull();
     expect(forceBarrier(r, deadline)!.game.phase).toBe("SHOP");
@@ -131,6 +133,59 @@ describe("server room authority and projections", () => {
     for (const session of r.sessions.slice(1)) r = applyRoomAction(r, session.playerId, { type: "READY" }, turnKey(r), deadline - 8_000);
     expect(r.game.phase).toBe("SHOP");
     expect(r.readyIds).toEqual([]);
+  });
+  it("never stalls the deal: 1, 2 or 8 humans, everyone gone, and a reconnect mid-deal", () => {
+    const started = (humans: number) => {
+      let r = createRoomCurrent("DEALS", 303, "seeded", 2, true);
+      for (let i = 0; i < Math.max(humans, 2); i++) r = addSession(r, `deal-${i}`).room;
+      for (const session of r.sessions) r = applyRoomAction(r, session.playerId, { type: "READY" }, turnKey(r), 1000);
+      return r;
+    };
+    for (const humans of [2, 8]) {
+      const r = forceBarrier(started(humans), 6_000)!;
+      expect(r.game.phase).toBe("ABILITY_REVEAL");
+    }
+    // One human left at the table: the other seat departed.
+    let one = applyRoomAction(started(2), "p2", { type: "LEAVE_ROOM" }, turnKey(started(2)), 2_000);
+    expect(one.game.phase).toBe("ABILITY_DEAL");
+    one = forceBarrier(one, barrierDeadline(one)!)!;
+    expect(one.game.phase).toBe("ABILITY_REVEAL");
+    // Every human gone: bots carry the game on without waiting for a timer.
+    let empty = started(2);
+    empty = applyRoomAction(empty, "p1", { type: "LEAVE_ROOM" }, turnKey(empty), 2_000);
+    empty = applyRoomAction(empty, "p2", { type: "LEAVE_ROOM" }, turnKey(empty), 2_000);
+    expect(["ABILITY_DEAL", "ABILITY_REVEAL"]).not.toContain(empty.game.phase);
+    // Leaving and coming back during the deal keeps the original deadline.
+    let back = applyRoomAction(started(2), "p2", { type: "LEAVE_ROOM" }, turnKey(started(2)), 2_000);
+    back = resumeSession(back, "p2", 3_000)!;
+    expect(back.game.phase).toBe("ABILITY_DEAL");
+    expect(forceBarrier(back, barrierDeadline(back)!)!.game.phase).toBe("ABILITY_REVEAL");
+  });
+  it("finishes a deal saved under the retired pick flow, keeping abilities already picked", () => {
+    const legacy = (status: "LOBBY" | "PLAYING", phase: string, picks: { playerId: string; slot: number }[]) => {
+      let r = createRoomCurrent("OLDPK", 303, "seeded", 2, true);
+      r = addSession(addSession(r, "old-0").room, "old-1").room;
+      r.status = status;
+      const game = r.game as unknown as { phase: string; abilityDraft: { order: string[]; deck: string[]; picks: typeof picks }; players: { id: string; abilityId?: string }[] };
+      game.phase = phase;
+      game.abilityDraft = { order: game.players.map(player => player.id).reverse(), deck: [...ABILITY_IDS], picks };
+      for (const player of game.players) delete player.abilityId;
+      for (const pick of picks) game.players.find(player => player.id === pick.playerId)!.abilityId = ABILITY_IDS[pick.slot];
+      return JSON.parse(JSON.stringify(r)) as RoomSnapshot;
+    };
+    const playing = migrateRoomSnapshot(legacy("PLAYING", "ABILITY_PICK", [{ playerId: "p8", slot: 0 }, { playerId: "p3", slot: 11 }]));
+    expect(playing.game.phase).toBe("ABILITY_REVEAL");
+    expect(playing.game.players.find(player => player.id === "p8")!.abilityId).toBe(ABILITY_IDS[0]);
+    expect(playing.game.players.find(player => player.id === "p3")!.abilityId).toBe(ABILITY_IDS[11]);
+    expect(new Set(playing.game.players.map(player => player.abilityId)).size).toBe(8);
+    expect(barrierDeadline(playing)).toBeGreaterThanOrEqual(Date.now() + 29_000);
+    expect(forceBarrier(playing, barrierDeadline(playing)!)!.game.phase).toBe("SHOP");
+    const ordering = migrateRoomSnapshot(legacy("PLAYING", "ABILITY_ORDER", []));
+    expect(ordering.game.phase).toBe("ABILITY_REVEAL");
+    expect(new Set(ordering.game.players.map(player => player.abilityId)).size).toBe(8);
+    const waiting = migrateRoomSnapshot(legacy("LOBBY", "ABILITY_ORDER", []));
+    expect(waiting.game.phase).toBe("ABILITY_DEAL");
+    expect(new Set(waiting.game.players.map(player => player.abilityId)).size).toBe(8);
   });
   it("exposes read-only live player perspectives only after the viewer is eliminated", () => {
     const r = start();

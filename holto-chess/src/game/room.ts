@@ -1,6 +1,6 @@
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE, FINAL_LOADOUT_SIZE, handLimitFor, isLineupFinal, minHandFor } from "./config";
-import { assistsShortHands, beginSecondary, buyCard, createGame, createAbilityGame, openAbilitySelection, pickAbility, autoPickAbility, finishAbilitySelection, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
+import { assistsShortHands, beginSecondary, buyCard, createGame, createAbilityGame, finishAbilityDeal, finishAbilitySelection, completeLegacyAbilityDraft, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, sellCard, startNextRound, toggleShopLock } from "./engine";
 import { autoChooseOpponent, chooseOpponent, completeOpponentSelect, finishCardAuctionReveal, isOpponentRevealing } from "./engine";
 import { syncPresentation, type PresentationSchedule } from "./presentation";
 import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts";
@@ -48,6 +48,15 @@ export function createRoom(roomId: string, seed: number, randomMode: "seeded" | 
 /** Remove retired rule data from a persisted room without changing earned points, BB or cards. */
 export function migrateRoomSnapshot(source: RoomSnapshot): RoomSnapshot {
   if (source.schema !== 1) throw new Error("Unsupported room snapshot version");
+  // ABILITY-DEAL-001 removed the pick order and the pick itself. A room saved in either finishes the deal.
+  if (["ABILITY_ORDER", "ABILITY_PICK"].includes(source.game.phase as string) && source.game.abilityDraft) {
+    const room = structuredClone(source);
+    room.game = completeLegacyAbilityDraft(room.game, room.status !== "LOBBY");
+    room.readyIds = []; room.barrierKey = undefined;
+    // The reveal gets its full viewing time from the moment the room comes back.
+    refreshBarrier(room, Date.now());
+    return migrateRoomSnapshot(room);
+  }
   const outdatedPresentation = source.presentation && source.presentation.version !== PRESENTATION_VERSION;
   if (source.status === "PLAYING" && source.game.phase === "SHOP" && source.shopPublicBB?.round !== source.game.round) {
     const room = structuredClone(source);
@@ -108,9 +117,9 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 }
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
-const BARRIER_PHASES = ["ABILITY_ORDER", "ABILITY_PICK", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
-const AUTOMATIC_PRESENTATION_PHASES = ["ABILITY_ORDER", "DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
-const SPECTATOR_TIMER_PHASES = ["ABILITY_ORDER", "ABILITY_REVEAL", "DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
+const BARRIER_PHASES = ["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
+const AUTOMATIC_PRESENTATION_PHASES = ["ABILITY_DEAL", "DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
+const SPECTATOR_TIMER_PHASES = ["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
 
 /** No human vote exists here; the server clock preserves viewing time and advances the game. */
 function waitingForSpectatorTimer(room: RoomSnapshot): boolean {
@@ -132,7 +141,6 @@ function finishForBots(room: RoomSnapshot, now: number): void {
   for (let guard = 0; guard < 400 && room.game.phase !== "GAME_RESULT"; guard += 1) {
     if (room.game.phase === "SHOP") room.game = prepareShowdown(room.game, controlledHumanIds(room));
     else if (room.game.phase === "OPEN_DRAFT") room.game = isDraftRevealing(room.game) ? completeDraft(room.game) : autoPickDraft(room.game, true);
-    else if (room.game.phase === "ABILITY_PICK") room.game = autoPickAbility(room.game);
     else if (room.game.phase === "FINAL_AUCTION") {
       const auction = room.game.finalAuction!;
       room.game = auction.settledAt === null ? settleFinalAuction(room.game, auction.endsAt) : finishCardAuctionReveal(room.game, auction.loadoutStartsAt ?? auction.settledAt);
@@ -163,10 +171,6 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
     const picker = room.game.draft?.order[room.game.draft.picks.length]?.playerId;
     return picker ? [picker] : [];
   }
-  if (room.game.phase === "ABILITY_PICK") {
-    const picker = room.game.abilityDraft?.order[room.game.abilityDraft.picks.length];
-    return picker ? [picker] : [];
-  }
   if (room.game.phase === "OPPONENT_SELECT") {
     const chooser = room.game.opponentSelect?.chooserId;
     return chooser && !isOpponentRevealing(room.game) && waiting.includes(chooser) ? [chooser] : [];
@@ -183,7 +187,7 @@ export function pendingBarrierIds(room: RoomSnapshot): string[] {
 function refreshBarrier(room: RoomSnapshot, now: number): void {
   const pending = pendingBarrierIds(room);
   const blocked = pending.length > 0 || waitingForSpectatorTimer(room) || waitingForDraftReveal(room);
-  const step = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.picks.length
+  const step = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.picks.length
     : room.game.phase === "OPPONENT_SELECT" ? room.game.opponentSelect?.opponentId ?? "" : "";
   const key = `${turnKey(room)}|${step}|${blocked ? "waiting" : "done"}`;
   if (room.barrierKey === key) return;
@@ -207,8 +211,7 @@ export function barrierDeadline(room: RoomSnapshot): number | undefined {
   if (room.game.phase === "OPPONENT_SELECT" && waitingForDraftReveal(room)) return room.barrierSince
     + (isOpponentRevealing(room.game) ? BARRIER_TIMEOUT_MS.OPPONENT_REVEAL : BARRIER_TIMEOUT_MS.BOT_OPPONENT_SELECT);
   if (waitingForDraftReveal(room)) return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0) + BARRIER_TIMEOUT_MS.DRAFT_REVEAL;
-  const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId
-    : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.order[room.game.abilityDraft.picks.length] : undefined;
+  const draftPicker = room.game.phase === "OPEN_DRAFT" ? room.game.draft?.order[room.game.draft.picks.length]?.playerId : undefined;
   const botDraftTurn = !!draftPicker && !activeHumans(room).includes(draftPicker);
   const lineup = room.game.phase === "RUN_LOADOUT" && isLineupFinal(room.game.round, room.game);
   const buyback = room.game.phase === "OPEN_DRAFT" && !!room.game.draft?.priceMultiplier;
@@ -231,7 +234,7 @@ function advanceReadyBarrier(room: RoomSnapshot, now = Date.now()): void {
     room.presentationPlayers = { round: room.game.round, players: structuredClone(room.game.players) };
   }
   switch (room.game.phase) {
-    case "ABILITY_ORDER": room.game = openAbilitySelection(room.game); break;
+    case "ABILITY_DEAL": room.game = finishAbilityDeal(room.game); break;
     case "ABILITY_REVEAL": room.game = finishAbilitySelection(room.game); break;
     case "DRAFT_ORDER": room.game = openDraft(room.game); break;
     case "RUN_LOADOUT": room.game = lockRunLoadouts(room.game, activeHumans(room)); break;
@@ -351,7 +354,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const eligible = activeHumans(room);
     if (!eligible.includes(playerId)) throw new Error("관전자는 READY를 대신할 수 없습니다.");
     if (room.presentation && now < room.presentation.endsAt) throw new Error("쇼다운 연출이 끝난 뒤 확인해 주세요.");
-    if (["FINAL_AUCTION", "FINAL_LOADOUT", "ABILITY_PICK", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
+    if (["FINAL_AUCTION", "FINAL_LOADOUT", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SHOP", "GAME_RESULT", "DECK_SELECT"].includes(room.game.phase)) throw new Error("현재 단계의 행동을 완료하세요.");
     if (AUTOMATIC_PRESENTATION_PHASES.includes(room.game.phase)) throw new Error("공통 연출이 끝나면 자동으로 진행됩니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     if (allReady(eligible)) advanceReadyBarrier(room, now);
@@ -365,9 +368,6 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
   } else if (action.type === "CHOOSE_OPPONENT") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
     room.game = chooseOpponent(room.game, playerId, action.playerId);
-  } else if (action.type === "ABILITY_PICK") {
-    if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("선택 시간이 끝났습니다.");
-    room.game = pickAbility(room.game, playerId, action.slot);
   } else if (action.type === "RUN_LOADOUT") {
     if (barrierDeadline(source) !== undefined && now >= barrierDeadline(source)!) throw new Error("배치 시간이 끝났습니다.");
     if (room.readyIds.includes(playerId)) throw new Error("이미 구성을 확정했습니다.");
@@ -435,9 +435,7 @@ export function forceBarrier(source: RoomSnapshot, now = Date.now()): RoomSnapsh
   const draftReveal = waitingForDraftReveal(source);
   if (!pending.length && !spectatorTimer && !draftReveal) return null;
   const room = structuredClone(source);
-  if (room.game.phase === "ABILITY_PICK") {
-    room.game = autoPickAbility(room.game);
-  } else if (room.game.phase === "OPEN_DRAFT") {
+  if (room.game.phase === "OPEN_DRAFT") {
     room.game = draftReveal ? completeDraft(room.game) : autoPickDraft(room.game, true);
   } else if (room.game.phase === "OPPONENT_SELECT") {
     room.game = isOpponentRevealing(room.game) ? completeOpponentSelect(room.game) : autoChooseOpponent(room.game);

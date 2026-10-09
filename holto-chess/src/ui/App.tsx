@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { cardPrice, handLimitFor, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor, purchaseLimitFor } from "../game/config";
 import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "../game/abilities";
 import {
-  beginSecondary, buyCard, confirmSelection, createAbilityGame, openAbilitySelection, pickAbility, autoPickAbility, finishAbilitySelection, finalStandings, leaveRoundResult,
+  beginSecondary, buyCard, confirmSelection, createAbilityGame, finishAbilityDeal, finishAbilitySelection, finalStandings, leaveRoundResult,
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
   sellCard, toggleSelectedCard, toggleShopLock,
 } from "../game/engine";
@@ -91,7 +91,7 @@ function LocalOpponentStage({ view, send }: { view: ReturnType<typeof createPlay
 }
 
 function LocalAbilityStage({ view, send, duration }: { view: ReturnType<typeof createPlayerView>; send: (action: GameAction) => void; duration: number }) {
-  const seconds = useLocalCountdown(duration, `${view.phase}:${view.abilityDraft?.pickedCount}`);
+  const seconds = useLocalCountdown(duration, view.phase);
   return <AbilitySelectionPanel view={view} send={send} seconds={seconds} />;
 }
 
@@ -208,12 +208,11 @@ export function App({ onHome }: { onHome: () => void }) {
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
   const buybackDraft = !!state.draft?.priceMultiplier;
   const draftRevealing = isDraftRevealing(state);
-  const abilityPickIndex = state.abilityDraft?.picks.length ?? 0;
-  const abilityPickerId = state.abilityDraft?.order[abilityPickIndex];
   const lastRound = lastRoundFor(state);
   // Timed auction rounds skip the automatic guide: the five-round final auction and the six-round R3 auction, which has its own pamphlet.
   const timedAuctionRound = state.sixRounds ? state.round === 3 : state.round === 5;
-  const guideOpen = manualGuideRound !== null || !timedAuctionRound && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
+  // The R1 guide waits for the shop: the ability deal gives each player only a few seconds to read their card.
+  const guideOpen = manualGuideRound !== null || !timedAuctionRound && !state.phase.startsWith("ABILITY_") && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
   const lineupStep = isLineupFinal(state.round, state);
   const opponentStep = `${state.opponentSelect?.chooserId ?? ""}:${state.opponentSelect?.opponentId ?? ""}`;
   const guideRound = manualGuideRound ?? state.round;
@@ -224,19 +223,18 @@ export function App({ onHome }: { onHome: () => void }) {
   useEffect(() => {
     const phase = state.phase;
     if (guideOpen) return;
-    if (!["ABILITY_ORDER", "ABILITY_PICK", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
+    if (!["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
     const [chooserId, opponentId] = opponentStep.split(":");
     const delay = phase === "OPPONENT_SELECT" ? opponentId ? BARRIER_TIMEOUT_MS.OPPONENT_REVEAL
         : chooserId === "p1" ? BARRIER_TIMEOUT_MS.OPPONENT_SELECT : BARRIER_TIMEOUT_MS.BOT_OPPONENT_SELECT
-      : phase === "ABILITY_ORDER" || phase === "DRAFT_ORDER" ? BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN
+      : phase === "DRAFT_ORDER" ? BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN
+      : phase === "ABILITY_DEAL" ? BARRIER_TIMEOUT_MS.ABILITY_DEAL
       : phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL
-      : phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK
       : phase === "RUN_LOADOUT" ? lineupStep ? BARRIER_TIMEOUT_MS.FINAL_LINEUP : BARRIER_TIMEOUT_MS.RUN_LOADOUT
       : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
       : draftRevealing ? BARRIER_TIMEOUT_MS.DRAFT_REVEAL
       : draftPickerId === "p1" ? buybackDraft ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
-    const timer = setTimeout(() => setState((s) => phase === "ABILITY_ORDER" ? openAbilitySelection(s)
-      : phase === "ABILITY_PICK" ? autoPickAbility(s)
+    const timer = setTimeout(() => setState((s) => phase === "ABILITY_DEAL" ? finishAbilityDeal(s)
       : phase === "ABILITY_REVEAL" ? finishAbilitySelection(s)
       : phase === "OPPONENT_SELECT" ? isOpponentRevealing(s) ? completeOpponentSelect(s) : autoChooseOpponent(s)
       : advanceLocalNextRound(phase === "DRAFT_ORDER" ? openDraft(s)
@@ -246,7 +244,7 @@ export function App({ onHome }: { onHome: () => void }) {
       : isDraftRevealing(s) ? completeDraft(s)
       : autoPickDraft(s, true))), delay);
     return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex, draftPickerId, buybackDraft, draftRevealing, abilityPickIndex, abilityPickerId, guideOpen, opponentStep, lineupStep]);
+  }, [state.phase, draftPickIndex, draftPickerId, buybackDraft, draftRevealing, guideOpen, opponentStep, lineupStep]);
   const finalRound = isFinalRound(state.round, state);
   useEffect(() => { if (finalRound) preloadFinalArena(); else preloadShowdownStage(state.round, false); }, [state.round, finalRound]);
   useEffect(() => {
@@ -276,7 +274,6 @@ export function App({ onHome }: { onHome: () => void }) {
     if (a.type === "FINAL_LOADOUT") act(s => setFinalLoadout(s, "p1", a.cardIds, Date.now()));
     if (a.type === "LOCK_FINAL_LOADOUT") act(s => finishFinalLoadouts(setFinalLoadout(s, "p1", s.players[0]!.finalLoadoutCardIds ?? [], Date.now(), true), Date.now()));
     if (a.type === "READY" && state.phase === "ABILITY_REVEAL") act(finishAbilitySelection);
-    if (a.type === "ABILITY_PICK") act(s => pickAbility(s, "p1", a.slot));
     if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId, true));
     if (a.type === "CHOOSE_OPPONENT") act((s) => chooseOpponent(s, "p1", a.playerId));
     if (a.type === "RUN_LOADOUT") act((s) => setRunLoadout(s, "p1", a.cardIds));
@@ -290,7 +287,7 @@ export function App({ onHome }: { onHome: () => void }) {
     {nav}
     <div id="top" data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
       <GameViewportReset screenKey={`local:${gameVersion}:${state.round}:${state.phase}`} />
-      {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN) / 1000} />}
+      {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.ABILITY_DEAL) / 1000} />}
       {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className={`round-header ${CENTERED_HEADER_PHASES.includes(state.phase) ? "is-centered-phase-header" : ""} ${state.phase === "ROUND_RESULT" ? "is-result-header" : ""}`}><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : roundTitle(state.round, lastRound)}</h1>{/* The rules button would cover the title on the result screens. */}{state.phase !== "GAME_RESULT" && state.phase !== "ROUND_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "SHOP" && state.phase !== "GAME_RESULT" && state.phase !== "RUN_LOADOUT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(state.draft?.priceMultiplier && state.phase === "OPEN_DRAFT" ? "phase.buyback" : PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} tripleRun={isTripleRunRound(state.round, state)} lineup={isLineupFinal(state.round, state)} />}
       {!guideOpen && state.phase === "OPPONENT_SELECT" && <LocalOpponentStage key={opponentStep} view={draftView} send={draftAction} />}

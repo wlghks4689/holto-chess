@@ -97,10 +97,13 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
   // The six-round format builds on the draft rules, so a version 1 game keeps five rounds.
   if (sixRounds && rulesVersion === 2) state.sixRounds = true;
   if (abilityDraft) {
-    // Defer card dealing until the server has recorded the eight unique picks.
+    // Starting cards are dealt once every seat has seen the abilities (finishAbilitySelection).
     for (const entry of state.ownershipCardPool) { entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId; }
-    state.phase = "ABILITY_ORDER";
-    state.abilityDraft = { order: shuffle(players.map(p => p.id), () => nextRandom(state)), deck: shuffle([...ABILITY_IDS], () => nextRandom(state)), picks: [] };
+    // The server deals eight different abilities from the seeded deck, one per seat in seat order.
+    const deck = shuffle([...ABILITY_IDS], () => nextRandom(state));
+    for (const [slot, player] of players.entries()) player.abilityId = deck[slot]!;
+    state.phase = "ABILITY_DEAL";
+    state.abilityDraft = { deck, picks: players.map((player, slot) => ({ playerId: player.id, slot })) };
     state.abilityEvents = [];
     return state;
   }
@@ -112,31 +115,31 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
 
 export function createAbilityGame(seed = Date.now(), randomMode: "seeded" | "secure" = "seeded", sixRounds = true): PorenaGameState { return createGame(seed, randomMode, 2, true, sixRounds); }
 
-export function openAbilitySelection(source: PorenaGameState): PorenaGameState {
-  if (source.phase !== "ABILITY_ORDER" || !source.abilityDraft) throw new Error("어빌리티 순서 공개 단계가 아닙니다.");
-  return { ...structuredClone(source), phase: "ABILITY_PICK" };
+/** Ends each seat's private look at its own ability; everyone's abilities are shown next. */
+export function finishAbilityDeal(source: PorenaGameState): PorenaGameState {
+  if (source.phase !== "ABILITY_DEAL" || !source.abilityDraft) throw new Error("어빌리티 지급 단계가 아닙니다.");
+  return { ...structuredClone(source), phase: "ABILITY_REVEAL" };
 }
 
-export function pickAbility(source: PorenaGameState, playerId: string, slot: number): PorenaGameState {
-  const draft = source.abilityDraft;
-  if (source.phase !== "ABILITY_PICK" || !draft || draft.order[draft.picks.length] !== playerId) throw new Error("내 어빌리티 선택 차례가 아닙니다.");
-  if (!Number.isInteger(slot) || slot < 0 || slot >= draft.deck.length || draft.picks.some(pick => pick.slot === slot)) throw new Error("선택할 수 없는 어빌리티 카드입니다.");
-  const state = structuredClone(source); state.players.find(player => player.id === playerId)!.abilityId = draft.deck[slot]!;
-  state.abilityDraft!.picks.push({ playerId, slot });
-  if (state.abilityDraft!.picks.length === state.players.length) state.phase = "ABILITY_REVEAL";
+/**
+ * Games saved mid-pick before ABILITY-DEAL-001 (phase ABILITY_ORDER/ABILITY_PICK). Abilities already picked
+ * stay; the other seats get the unpicked deck cards in seat order. A lobby waits in ABILITY_DEAL, a game
+ * in progress goes straight to the reveal.
+ */
+export function completeLegacyAbilityDraft(source: PorenaGameState, started: boolean): PorenaGameState {
+  const state = structuredClone(source), draft = state.abilityDraft!;
+  const free = draft.deck.flatMap((_, slot) => draft.picks.some((pick) => pick.slot === slot) ? [] : [slot]);
+  for (const player of state.players.filter((p) => !p.abilityId)) {
+    const slot = free.shift()!;
+    player.abilityId = draft.deck[slot]!; draft.picks.push({ playerId: player.id, slot });
+  }
+  delete (draft as { order?: unknown }).order;
+  state.phase = started ? "ABILITY_REVEAL" : "ABILITY_DEAL";
   return state;
 }
 
-export function autoPickAbility(source: PorenaGameState): PorenaGameState {
-  const draft = source.abilityDraft;
-  if (source.phase !== "ABILITY_PICK" || !draft) throw new Error("어빌리티 선택 단계가 아닙니다.");
-  const slots = draft.deck.flatMap((_, index) => draft.picks.some(pick => pick.slot === index) ? [] : [index]);
-  const randomState = structuredClone(source);
-  return pickAbility({ ...source, seed: randomState.seed }, draft.order[draft.picks.length]!, slots[Math.floor(nextRandom(randomState) * slots.length)]!);
-}
-
 export function finishAbilitySelection(source: PorenaGameState): PorenaGameState {
-  if (source.phase !== "ABILITY_REVEAL" || source.players.some(player => !player.abilityId)) throw new Error("어빌리티 선택이 완료되지 않았습니다.");
+  if (source.phase !== "ABILITY_REVEAL" || source.players.some(player => !player.abilityId)) throw new Error("어빌리티 지급이 완료되지 않았습니다.");
   const state = structuredClone(source); state.phase = "SHOP";
   // Royal Blood's guaranteed starting rank is dealt first so no other seat can consume it.
   const royal = state.players.find(player => player.abilityId === "royal-blood");

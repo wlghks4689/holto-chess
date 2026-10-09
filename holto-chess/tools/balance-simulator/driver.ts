@@ -4,7 +4,7 @@ import { bestRunLoadout } from "../../src/game/botStrategy";
 import { BALANCE, handLimitFor, minHandFor, purchaseLimitFor } from "../../src/game/config";
 import {
   autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, completeOpponentSelect, createAbilityGame, createGame, draftPrice, finalStandings, finishAbilitySelection,
-  finishCardAuctionReveal, getCard, getCardPrice, isOpponentRevealing, leaveRoundResult, lockRunLoadouts, openAbilitySelection, openDraft, pickAbility, pickDraftCard,
+  finishCardAuctionReveal, getCard, getCardPrice, isOpponentRevealing, leaveRoundResult, lockRunLoadouts, finishAbilityDeal, openDraft, pickDraftCard,
   prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound,
 } from "../../src/game/engine";
 import type { PorenaGameState } from "../../src/game/types";
@@ -26,8 +26,8 @@ function dealPolicies(config: SimConfig, game: number, seed: number): PolicyName
 }
 
 /**
- * Runs the real ability-draft phases but decides the picks itself: 8 of all abilities in a seeded shuffle, seated at random,
- * so every ability faces every seat and no ability owns a lucky pick order.
+ * Replaces the engine's deal with its own: 8 of all abilities in a seeded shuffle, seated at random, so across a run
+ * every ability faces every seat. Then runs the real deal and reveal steps.
  */
 function dealAbilities(source: PorenaGameState, seed: number): PorenaGameState {
   // Consecutive seeds feed xorshift nearly identical first outputs, so mix the seed and burn a few draws first.
@@ -36,11 +36,8 @@ function dealAbilities(source: PorenaGameState, seed: number): PorenaGameState {
   const shuffle = <T>(items: readonly T[]) => { const out = [...items]; for (let i = out.length - 1; i > 0; i -= 1) { const j = Math.floor(random() * (i + 1)); [out[i], out[j]] = [out[j]!, out[i]!]; } return out; };
   const chosen: AbilityId[] = shuffle(ABILITY_IDS).slice(0, source.players.length);
   const target = new Map(shuffle(source.players.map((p) => p.id)).map((id, i) => [id, chosen[i]!]));
-  let state = openAbilitySelection(source);
-  while (state.phase === "ABILITY_PICK") {
-    const draft = state.abilityDraft!; const id = draft.order[draft.picks.length]!;
-    state = pickAbility(state, id, draft.deck.indexOf(target.get(id)!));
-  }
+  const state = finishAbilityDeal(source);
+  for (const player of state.players) player.abilityId = target.get(player.id)!;
   return finishAbilitySelection(state);
 }
 

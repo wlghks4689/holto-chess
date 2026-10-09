@@ -4,13 +4,12 @@ import { ABILITY_IDS, type AbilityId } from "./abilities";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE, cardPrice, regularShopSizeFor } from "./config";
 import { rankBotPairs, rankBotPurchases } from "./botStrategy";
-import { autoPickAbility, createAbilityGame, createGame, finishAbilitySelection, openAbilitySelection, prepareShowdown, startNextRound } from "./engine";
+import { createAbilityGame, createGame, finishAbilityDeal, finishAbilitySelection, prepareShowdown, startNextRound } from "./engine";
 import type { MatchResult, PorenaGameState } from "./types";
 
 /** Deals R1 with chosen abilities on the first seats; the rest keep their drafted ones. */
 function dealt(seed: number, first: AbilityId[]): PorenaGameState {
-  let game = openAbilitySelection(createAbilityGame(seed));
-  while (game.phase === "ABILITY_PICK") game = autoPickAbility(game);
+  const game = finishAbilityDeal(createAbilityGame(seed));
   const rest = ABILITY_IDS.filter((id) => !first.includes(id));
   game.players.forEach((player, i) => { player.abilityId = first[i] ?? rest[i - first.length]!; });
   return finishAbilitySelection(game);
@@ -60,14 +59,16 @@ describe("R1 start: no free card except Royal Blood and Target Sniper", () => {
   });
 
   it("lets every bot build a full R1 hand within the limits; Royal Blood and Target Sniper buy just one", () => {
-    const game = prepareShowdown(dealt(5, ["royal-blood", "target-sniper"]), []);
+    const start = dealt(5, ["royal-blood", "target-sniper"]);
+    expect(start.players.map((player) => player.ownedCardIds.length)).toEqual([1, 1, 0, 0, 0, 0, 0, 0]);
+    const game = prepareShowdown(start, []);
     for (const player of game.players) {
       expect(player.ownedCardIds).toHaveLength(BALANCE.handLimits[1]);
       expect(player.purchasesThisRound).toBeLessThanOrEqual(BALANCE.purchaseLimits[1]);
       expect(player.stackBB).toBeGreaterThanOrEqual(0);
     }
-    expect(game.players[0]!.purchasesThisRound).toBe(1);
-    expect(game.players[1]!.purchasesThisRound).toBe(1);
+    // The free card stays; one purchase fills the hand (a bot may still swap that card for a better one).
+    for (const seat of [0, 1]) expect(game.players[seat]!.ownedCardIds).toContain(start.players[seat]!.firstCardId);
     expect(assertPoolIntegrity(game)).toBe(true);
   });
 

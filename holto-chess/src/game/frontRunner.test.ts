@@ -3,7 +3,7 @@ import { ABILITY_IDS } from "./abilities";
 import { rewardAbilities, rewardAbilityInterest, rewardRoundLeader } from "./abilityRewards";
 import { BALANCE, FRONT_RUNNER_POINTS } from "./config";
 import { assertPoolIntegrity } from "./cardPool";
-import { autoPickAbility, beginSecondary, createAbilityGame, createGame, finalStandings, openAbilitySelection, pickAbility, resolvePrimary, resolveSecondary, resolveSurvival } from "./engine";
+import { beginSecondary, createAbilityGame, createGame, finalStandings, finishAbilityDeal, resolvePrimary, resolveSecondary, resolveSurvival } from "./engine";
 import { compareRoundStanding } from "./roundRanking";
 import { createRoundSummary } from "./roundSummary";
 import { parseClientMessage } from "../shared/protocol";
@@ -157,19 +157,19 @@ describe("Front Runner round settlement", () => {
     expect(state.players[0]!.stackBB).toBe(60);
     expect(state.abilityEvents!.filter(event => event.reason === "round-interest")).toHaveLength(1);
   });
-  it("accepts slot twelve and restores 12 slots / 8 unique picks / 4 unpicked", () => {
-    let game = openAbilitySelection(createAbilityGame(19, "seeded", false));
-    game.abilityDraft!.deck = [...ABILITY_IDS]; game.abilityDraft!.order = game.players.map(player => player.id);
-    const action = parseClientMessage(JSON.stringify({ type:"ABILITY_PICK", slot:11, requestId:"leader-test", turnKey:"1:ABILITY_PICK:0:0" }));
-    expect(action).toMatchObject({ slot:11 });
-    game = pickAbility(game,"p1",11);
+  it("deals the last catalog ability and restores eight unique abilities in the reveal; the retired pick is rejected", () => {
+    expect(() => parseClientMessage(JSON.stringify({ type:"ABILITY_PICK", slot:11, requestId:"leader-test", turnKey:"1:ABILITY_PICK:0:0" }))).toThrow("지원하지 않는 명령");
+    let game = createAbilityGame(19, "seeded", false);
+    const holder = game.players.find(player => player.abilityId === ABILITY_IDS[11]);
+    if (holder) holder.abilityId = game.players[0]!.abilityId;
+    game.players[0]!.abilityId = ABILITY_IDS[11];
     expect(game.players[0]!.abilityId).toBe("front-runner");
-    while(game.phase === "ABILITY_PICK") game = autoPickAbility(game);
+    game = finishAbilityDeal(game);
     const room = { ...addSession(createRoom("LEADER", 19, "seeded", 2, false, false),"leader-session").room, game, status:"PLAYING" as const };
     const restored = JSON.parse(JSON.stringify(room)) as typeof room;
     const draft = createPlayerView(restored,"p1").abilityDraft!;
-    expect(draft).toMatchObject({ slotCount:12, pickedCount:8, myPick:{ slot:11, abilityId:"front-runner" } });
-    expect(draft.availableSlots).toHaveLength(4);
-    expect(new Set(draft.abilities!.map(pick=>pick.abilityId)).size).toBe(8);
+    expect(draft).toMatchObject({ mine:"front-runner" });
+    expect(new Set(draft.abilities.map(pick=>pick.abilityId)).size).toBe(8);
+    expect(draft).not.toHaveProperty("deck");
   });
 });

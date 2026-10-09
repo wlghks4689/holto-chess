@@ -64,7 +64,7 @@ export const guideCopyKo: GuideCopy = {
       abilityNote: "어빌리티로 받은 승점과 BB도 이 안에 그대로 더해집니다.",
       formula: `최종 점수 = 누적 승점 + R6 족보 점수 + ⌊남은 BB ÷ ${R.stackScoreUnitBB}⌋`,
     },
-    abilities: { kicker: "09 · ABILITY", title: "나만의 어빌리티", lead: "게임을 시작할 때 뒷면 카드를 골라 어빌리티 하나를 얻습니다. 어빌리티에 따라 카드 구매, 돈 관리, 노리는 족보가 달라집니다.", note: "8명이 서로 다른 어빌리티를 가집니다." },
+    abilities: { kicker: "09 · ABILITY", title: "나만의 어빌리티", lead: "게임이 시작되면 어빌리티 하나를 무작위로 받습니다. 어빌리티에 따라 카드 구매, 돈 관리, 노리는 족보가 달라집니다.", note: "8명이 서로 다른 어빌리티를 가집니다." },
     toRules: { text: "정확한 수치와 세부 규칙이 궁금하다면", cta: "전체 규칙서 보기" },
   },
   rules: {
@@ -135,7 +135,7 @@ export const guideCopyKo: GuideCopy = {
     },
     abilities: {
       title: "어빌리티",
-      intro: [`게임 시작 전, 순서대로 ${ABILITY_DECK_SIZE}장의 뒷면 카드 중 1장을 고릅니다. ${R.players}명이 서로 다른 어빌리티를 받습니다.`, "시간이 지나면 남은 카드 중 하나가 자동으로 선택됩니다.", "매치 보상형 어빌리티는 정규 경기에만 발동합니다. 타이브레이크 보드는 보상을 만들지 않습니다."],
+      intro: [`게임이 시작되면 ${ABILITY_DECK_SIZE}종 중 1장을 무작위로 받습니다. ${R.players}명의 어빌리티는 서로 다릅니다.`, `처음 ${R.timers.abilityDeal}초는 내 어빌리티만 보이고, 이어서 모든 플레이어의 어빌리티가 공개됩니다.`, "매치 보상형 어빌리티는 정규 경기에만 발동합니다. 타이브레이크 보드는 보상을 만들지 않습니다."],
       effect: "효과", timing: "발동 시점", notes: "주의",
     },
     ties: {

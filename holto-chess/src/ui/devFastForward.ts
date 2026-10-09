@@ -1,6 +1,6 @@
 import {
-  autoChooseOpponent, autoPickAbility, autoPickDraft, beginSecondary, completeDraft, completeOpponentSelect, finishAbilitySelection,
-  finishCardAuctionReveal, finishFinalLoadouts, isDraftRevealing, isOpponentRevealing, leaveRoundResult, lockRunLoadouts, openAbilitySelection,
+  autoChooseOpponent, autoPickDraft, beginSecondary, completeDraft, completeOpponentSelect, finishAbilitySelection,
+  finishCardAuctionReveal, finishFinalLoadouts, isDraftRevealing, isOpponentRevealing, leaveRoundResult, lockRunLoadouts, finishAbilityDeal,
   openDraft, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival, startNextRound,
 } from "../game/engine";
 import { settleFinalAuction } from "../game/finalAuction";
@@ -15,8 +15,7 @@ export function fastForwardToRound(start: PorenaGameState, round: Round): Porena
   let state = start;
   for (let guard = 0; guard < 400 && state.round < round && state.phase !== "GAME_RESULT"; guard += 1) {
     switch (state.phase) {
-      case "ABILITY_ORDER": state = openAbilitySelection(state); break;
-      case "ABILITY_PICK": state = autoPickAbility(state); break;
+      case "ABILITY_DEAL": state = finishAbilityDeal(state); break;
       case "ABILITY_REVEAL": state = finishAbilitySelection(state); break;
       case "SHOP": state = prepareShowdown(state, []); break;
       case "DRAFT_ORDER": state = openDraft(state); break;

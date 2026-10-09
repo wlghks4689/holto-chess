@@ -4,8 +4,10 @@ import type { PlayerState, Round } from "./types";
 
 export const ABILITY_IDS = ["royal-blood", "target-sniper", "underdog", "first-class", "golden-hand", "trader", "predator", "architect", "capitalism", "zero-risk", "quad-core", "front-runner"] as const;
 export type AbilityId = typeof ABILITY_IDS[number];
-export type AbilityDraft = { order: string[]; deck: AbilityId[]; picks: { playerId: string; slot: number }[] };
-export type AbilityDraftView = { order: string[]; slotCount: number; availableSlots: number[]; currentPlayerId?: string; pickedCount: number; myPick?: { slot: number; abilityId: AbilityId }; abilities?: { playerId: string; abilityId: AbilityId; slot: number }[] };
+/** The dealt deck and which seat holds which card; `slot` orders the reveal grid. */
+export type AbilityDraft = { deck: AbilityId[]; picks: { playerId: string; slot: number }[] };
+/** `mine` during ABILITY_DEAL; every seat's ability only from ABILITY_REVEAL. */
+export type AbilityDraftView = { mine?: AbilityId; abilities: { playerId: string; abilityId: AbilityId; slot: number }[] };
 export type AbilityEvent = { sequence?: number; round: Round; playerId: string; abilityId: AbilityId; reason: string; subjectId?: string; bb: number; points: number; savedBB: number; matchId?: string; run?: number; originalPosition?: number };
 export type AbilityTotals = { activations: number; bb: number; points: number; savedBB: number };
 export type AbilityBenefitView = AbilityTotals & { draftPositions: { round: Round; originalPosition: number }[] };

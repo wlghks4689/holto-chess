@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import { cardPrice, handLimitFor, minHandFor, purchaseLimitFor, R3_AUCTION, regularShopSizeFor, rerollLimitFor, TRIPLE_RUN } from "./config";
 import {
-  autoChooseOpponent, autoPickAbility, autoPickDraft, beginSecondary, buyCard, chooseOpponent, completeDraft, completeOpponentSelect, createAbilityGame, createGame,
+  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, chooseOpponent, completeDraft, completeOpponentSelect, createAbilityGame, createGame,
   finalStandings, finishAbilitySelection, finishCardAuctionReveal, getCard, isDraftRevealing, isOpponentRevealing, leaveRoundResult,
-  lockRunLoadouts, openAbilitySelection, openDraft, pickDraftCard, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival,
+  lockRunLoadouts, finishAbilityDeal, openDraft, pickDraftCard, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival,
   burnCardIds, sellCard, setRunLoadout, startNextRound,
 } from "./engine";
 import { createMatchView } from "./matchView";
@@ -17,8 +17,7 @@ import type { PorenaGameState, Round } from "./types";
 /** One engine step for a game with no human seats, mirroring what the room does on its timers. */
 function step(state: PorenaGameState): PorenaGameState {
   switch (state.phase) {
-    case "ABILITY_ORDER": return openAbilitySelection(state);
-    case "ABILITY_PICK": return autoPickAbility(state);
+    case "ABILITY_DEAL": return finishAbilityDeal(state);
     case "ABILITY_REVEAL": return finishAbilitySelection(state);
     case "SHOP": return prepareShowdown(state, []);
     case "DRAFT_ORDER": return openDraft(state);

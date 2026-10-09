@@ -43,7 +43,7 @@ export const privacyEn: LegalDocument = {
       { list: [
         "Your nickname (1–8 letters or digits), shown to the other players in the same room",
         "The room code and the player identifier used inside the room",
-        "Game state and results: cards, points, BB, rankings, chosen abilities and so on",
+        "Game state and results: cards, points, BB, rankings, dealt abilities and so on",
         "Reconnection session data: the session token itself is stored only in your browser; the server keeps only its SHA-256 hash.",
       ] },
       "Single play runs entirely in your browser and does not send game data to the server.",

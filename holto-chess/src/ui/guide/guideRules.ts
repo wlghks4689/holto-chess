@@ -1,4 +1,5 @@
 import type { HandCategory } from "../../core/poker/evaluate";
+import { BARRIER_TIMEOUT_MS } from "../../shared/barrierTimeouts";
 import { ABILITY_IDS, CAPITALISM_INTEREST_PERCENT, PREDATOR_BB_PER_STREAK, PROTECTOR_TIERS, TARGET_SNIPER_WIN_BB, type AbilityId } from "../../game/abilities";
 import type { TranslationKey } from "../../i18n";
 import { BALANCE, FRONT_RUNNER_POINTS, handLimitFor, minHandFor, purchaseLimitFor, R3_AUCTION, regularShopSizeFor, rerollLimitFor, ROUND_POINTS, SIX_ROUND_FINAL_PLACEMENT_POINTS, TRIPLE_RUN } from "../../game/config";
@@ -43,7 +44,7 @@ export const GUIDE_RULES = {
   maxSuddenDeathBoards: 2,
   /** Players left after each round; the R6 final keeps its three. */
   alive: [8, 8, 6, 4, 3, 3],
-  timers: { shop: 60, draftPick: 20, runLoadout: 30, auction: 40, auctionIntro: R3_AUCTION.introMs / 1000, opponentPick: 15 },
+  timers: { abilityDeal: BARRIER_TIMEOUT_MS.ABILITY_DEAL / 1000, shop: 60, draftPick: 20, runLoadout: 30, auction: 40, auctionIntro: R3_AUCTION.introMs / 1000, opponentPick: 15 },
 } as const;
 
 export const CARD_PRICES = ([14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2] as const).map((rank) => ({ rank, price: BALANCE.rankPrices[rank] }));
@@ -73,6 +74,6 @@ export const ABILITY_NUMBERS: Record<AbilityId, Record<string, number>> = {
 };
 
 export const GUIDE_ABILITIES: readonly AbilityId[] = ABILITY_IDS;
-/** The ability draft deals the whole catalog face down, so the card count follows the id list. */
+/** Abilities are dealt from the whole catalog, so the deck size follows the id list. */
 export const ABILITY_DECK_SIZE = ABILITY_IDS.length;
 export const abilityThumb = (ability: AbilityId) => `/assets/abilities/guide/${ability}.webp`;

@@ -64,7 +64,7 @@ export const guideCopyEn: GuideCopy = {
       abilityNote: "Points and BB earned from abilities are already included.",
       formula: `Final score = total points + R6 hand score + ⌊leftover BB ÷ ${R.stackScoreUnitBB}⌋`,
     },
-    abilities: { kicker: "09 · ABILITY", title: "Your own ability", lead: "At the start you pick a face-down card and gain one ability. It shapes what you buy, how you manage BB and which hands you chase.", note: "All eight players get a different ability." },
+    abilities: { kicker: "09 · ABILITY", title: "Your own ability", lead: "When the game starts you are dealt one random ability. It shapes what you buy, how you manage BB and which hands you chase.", note: "All eight players get a different ability." },
     toRules: { text: "Want the exact numbers and edge cases?", cta: "Open the full rule book" },
   },
   rules: {
@@ -135,7 +135,7 @@ export const guideCopyEn: GuideCopy = {
     },
     abilities: {
       title: "Abilities",
-      intro: [`Before the game, players take turns choosing one of ${ABILITY_DECK_SIZE} face-down cards. All ${R.players} get a different ability.`, "When time runs out, one of the remaining cards is chosen automatically.", "Match-reward abilities only trigger in regulation matches. Tiebreak boards never pay ability rewards."],
+      intro: [`When the game starts, each player is dealt one of ${ABILITY_DECK_SIZE} abilities at random. No two of the ${R.players} players share one.`, `For the first ${R.timers.abilityDeal} seconds you see only your own; then everyone's abilities are revealed.`, "Match-reward abilities only trigger in regulation matches. Tiebreak boards never pay ability rewards."],
       effect: "Effect", timing: "When", notes: "Notes",
     },
     ties: {

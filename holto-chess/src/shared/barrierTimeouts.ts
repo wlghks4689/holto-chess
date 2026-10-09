@@ -10,7 +10,8 @@ export const BARRIER_TIMEOUT_MS = {
   DRAFT_DEAL_IN: 3_000,
   /** After the last open-draft pick, every pick stays on screen this long before the next phase. */
   DRAFT_REVEAL: 3_500,
-  ABILITY_PICK: 12_000,
+  /** Each seat looks at its own dealt ability before everyone's are revealed. */
+  ABILITY_DEAL: 5_000,
   ABILITY_REVEAL: 30_000,
   MATCH_SETUP: 3_500,
   GROUP_REVIEW: 10_000,
@@ -30,8 +31,7 @@ export const BARRIER_TIMEOUT_MS = {
 export function barrierTimeoutMs(phase: string): number {
   if (phase === "OPEN_DRAFT") return 20_000;
   if (phase === "DRAFT_ORDER") return BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN;
-  if (phase === "ABILITY_ORDER") return BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN;
-  if (phase === "ABILITY_PICK") return BARRIER_TIMEOUT_MS.ABILITY_PICK;
+  if (phase === "ABILITY_DEAL") return BARRIER_TIMEOUT_MS.ABILITY_DEAL;
   if (phase === "ABILITY_REVEAL") return BARRIER_TIMEOUT_MS.ABILITY_REVEAL;
   if (phase === "RUN_LOADOUT") return BARRIER_TIMEOUT_MS.RUN_LOADOUT;
   if (phase === "OPPONENT_SELECT") return BARRIER_TIMEOUT_MS.OPPONENT_SELECT;

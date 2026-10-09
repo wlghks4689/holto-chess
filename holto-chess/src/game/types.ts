@@ -4,7 +4,7 @@ import type { AbilityDraft, AbilityEvent, AbilityId, AbilityTotals } from "./abi
 
 /** Five-round games end at R5; six-round games add the R6 final. */
 export type Round = 1 | 2 | 3 | 4 | 5 | 6;
-export type Phase = "FINAL_AUCTION" | "FINAL_LOADOUT" | "OPPONENT_SELECT" | "ABILITY_ORDER" | "ABILITY_PICK" | "ABILITY_REVEAL" | "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
+export type Phase = "FINAL_AUCTION" | "FINAL_LOADOUT" | "OPPONENT_SELECT" | "ABILITY_DEAL" | "ABILITY_REVEAL" | "DRAFT_ORDER" | "OPEN_DRAFT" | "RUN_LOADOUT" | "SURVIVAL_READY" | "SHOP" | "DECK_SELECT" | "SHOWDOWN_PRIMARY" | "GROUP_ASSIGNMENT" | "SHOWDOWN_SECONDARY" | "ROUND_RESULT" | "NEXT_ROUND" | "GAME_RESULT";
 export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: number; stackBB: number }[]; picks: { playerId: string; cardId: string | null; price: number }[];
   /** Six-round R3 buyback: unsold auction cards at this multiple of the base price, never discounted. */
   priceMultiplier?: number };

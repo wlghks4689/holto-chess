@@ -1,13 +1,12 @@
 import { expect, it } from "vitest";
 import { autoStep } from "../tutorial/practiceState";
 import { ABILITY_IDS, TARGET_SNIPER_WIN_BB } from "./abilities";
-import { autoPickAbility, createAbilityGame, finishAbilitySelection, openAbilitySelection } from "./engine";
+import { createAbilityGame, finishAbilityDeal, finishAbilitySelection } from "./engine";
 import type { PorenaGameState } from "./types";
 
 /** Plays a bot game with Target Sniper on p2 until the R4 group stage has resolved. */
 function throughR4Groups(seed: number): PorenaGameState {
-  let g = openAbilitySelection(createAbilityGame(seed));
-  while (g.phase === "ABILITY_PICK") g = autoPickAbility(g);
+  const g = finishAbilityDeal(createAbilityGame(seed));
   const rest = ABILITY_IDS.filter((id) => id !== "target-sniper");
   g.players.forEach((p, i) => { p.abilityId = i === 1 ? "target-sniper" : rest[i]!; });
   let s = finishAbilitySelection(g);

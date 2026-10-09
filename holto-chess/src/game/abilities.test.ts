@@ -1,19 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { cardPrice } from "./config";
 import { abilityLockCost, abilityPrice, abilityRerollCost, abilityRerollLimit, madeAbilityReward, predatorStreakReward, protectorLossReward, targetSniperWinReward } from "./abilities";
-import { createAbilityGame, createGame, finishAbilitySelection, openAbilitySelection, pickAbility } from "./engine";
+import { createAbilityGame, createGame, finishAbilityDeal, finishAbilitySelection } from "./engine";
+import { ABILITY_IDS } from "./abilities";
 import { rewardAbilities } from "./abilityRewards";
 import type { MatchResult } from "./types";
 import { makeDeck } from "../core/poker/cards";
 
 describe("confirmed ability rules", () => {
-  it("assigns eight unique choices and guarantees royal-blood a face start card", () => {
+  it("deals eight different abilities at creation, the same for the same seed", () => {
+    const game = createAbilityGame(42);
+    expect(game.phase).toBe("ABILITY_DEAL");
+    const dealt = game.players.map(player => player.abilityId);
+    expect(dealt.every(id => id && ABILITY_IDS.includes(id))).toBe(true);
+    expect(new Set(dealt).size).toBe(8);
+    expect(createAbilityGame(42).players.map(player => player.abilityId)).toEqual(dealt);
+    expect(game.ownershipCardPool.every(entry => entry.state === "AVAILABLE")).toBe(true);
+    // The reveal grid lists every seat once.
+    expect(game.abilityDraft!.picks.map(pick => pick.playerId)).toEqual(game.players.map(player => player.id));
+  });
+
+  it("deals the starting cards only after the reveal, and guarantees royal-blood a face card", () => {
     let game = createAbilityGame(42);
-    game = openAbilitySelection(game);
-    const royalSlot = game.abilityDraft!.deck.indexOf("royal-blood");
-    game = pickAbility(game, game.abilityDraft!.order[0]!, royalSlot);
-    while (game.phase === "ABILITY_PICK") game = pickAbility(game, game.abilityDraft!.order[game.abilityDraft!.picks.length]!, game.abilityDraft!.deck.findIndex((_, slot) => !game.abilityDraft!.picks.some(pick => pick.slot === slot)));
+    if (!game.players.some(player => player.abilityId === "royal-blood")) game.players[0]!.abilityId = "royal-blood";
+    game = finishAbilityDeal(game);
+    expect(game.phase).toBe("ABILITY_REVEAL");
+    expect(game.players.every(player => player.ownedCardIds.length === 0)).toBe(true);
     game = finishAbilitySelection(game);
+    expect(game.phase).toBe("SHOP");
     expect(new Set(game.players.map(player => player.abilityId)).size).toBe(8);
     const royal = game.players.find(player => player.abilityId === "royal-blood")!;
     expect(game.ownershipCardPool.find(entry => entry.card.id === royal.firstCardId)!.card.rank).toBeGreaterThanOrEqual(10);

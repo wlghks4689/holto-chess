@@ -95,7 +95,8 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   if (!humanIds(room).includes(viewerPlayerId)) throw new Error("Unknown viewer");
   const g = room.game;
   const me = g.players.find((p) => p.id === viewerPlayerId)!;
-  const ownAbilityPick = g.abilityDraft?.picks.find((pick) => pick.playerId === viewerPlayerId);
+  // Abilities are dealt when the game is created: hidden in the lobby, only one's own during ABILITY_DEAL.
+  const abilityVisible = (ownerId: string) => room.status !== "LOBBY" && (g.phase !== "ABILITY_DEAL" || ownerId === viewerPlayerId);
   // The shop barrier is tracked by endedShopIds, every other barrier by readyIds.
   // Without this the shop shows nobody as ready even once they have committed.
   const readyInPhase = (playerId: string): boolean =>
@@ -131,6 +132,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
   };
   const privateView = (id: string, spectator = false): PrivatePlayerView => {
     const value = privatePlayerView(room, id, now);
+    if (!abilityVisible(id)) delete value.abilityId;
     // A spectator may follow public play, never inspect everyone's private next hand/shop.
     if (spectator) {
       value.ownedCards = value.ownedCards.map((_, i) => concealedCard(`spectator:${id}:${i}`));
@@ -179,11 +181,8 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
         const cue = abilityCue(event); return cue ? [cue] : [];
       }), viewerPlayerId) } : {}),
     ...(room.status === "PLAYING" && g.abilityDraft && g.phase.startsWith("ABILITY_") ? { abilityDraft: {
-      order: [...g.abilityDraft.order], pickedCount: g.abilityDraft.picks.length, slotCount: g.abilityDraft.deck.length,
-      availableSlots: g.abilityDraft.deck.flatMap((_, slot) => g.abilityDraft!.picks.some(pick => pick.slot === slot) ? [] : [slot]),
-      currentPlayerId: g.phase === "ABILITY_PICK" ? g.abilityDraft.order[g.abilityDraft.picks.length] : undefined,
-      ...(ownAbilityPick ? { myPick: { slot: ownAbilityPick.slot, abilityId: me.abilityId! } } : {}),
-      abilities: g.abilityDraft.picks.map(pick => ({ playerId: pick.playerId, slot: pick.slot, abilityId: g.players.find(player => player.id === pick.playerId)!.abilityId! })),
+      ...(me.abilityId ? { mine: me.abilityId } : {}),
+      abilities: g.phase === "ABILITY_REVEAL" ? g.abilityDraft.picks.map(pick => ({ playerId: pick.playerId, slot: pick.slot, abilityId: g.players.find(player => player.id === pick.playerId)!.abilityId! })) : [],
     } } : {}),
     gameId: room.gameGeneration ? `${room.roomId}:${room.gameGeneration}` : room.roomId,
     roomId: room.roomId, revision: room.revision, turnKey: room.publicTurnKey?.key ?? turnKey(room),
@@ -211,7 +210,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     me: privateView(me.id),
     ...(showdownPrepView(room, me.id) ? { showdownPrep: showdownPrepView(room, me.id) } : {}),
     ...(spectatorViews ? { spectatorViews, spectatorMatches: [...spectatorPool.values()] } : {}),
-    players: g.players.map((p) => ({ abilityId: p.abilityId, playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
+    players: g.players.map((p) => ({ ...(abilityVisible(p.id) ? { abilityId: p.abilityId } : {}), playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),
     matches: myMatches,
     roundSummary: visible && complete ? createRoundSummary(g) : [],
     ...(sameIds(myHistory, myMatches) ? {} : { roundHistory: myHistory }),

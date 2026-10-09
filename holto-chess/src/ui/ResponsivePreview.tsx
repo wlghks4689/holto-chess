@@ -24,6 +24,7 @@ import { cinematicTimeline } from "./cinematicTimeline";
 import { SpectatorBanner } from "./SpectatorBanner";
 import { ShopReadyBar } from "./ShopReadyBar";
 import { GameEndActions } from "./GameEndActions";
+import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 
 type Case = { id: string; screen: string; round: Round; count: number };
 const cases: Case[] = [];
@@ -36,14 +37,14 @@ for (const round of [1,2,3,4,5] as const) {
   }
   cases.push({ id:`results-r${round}`, screen:"results", round, count:BALANCE.handLimits[round] });
 }
-for (const count of [0,1,4,7,8]) cases.push({ id:`ability-${count}`, screen:"ability", round:1, count });
-cases.push({ id:"ability-transition", screen:"ability", round:1, count:7 });
+cases.push({ id:"ability-deal", screen:"ability", round:1, count:0 }, { id:"ability-8", screen:"ability", round:1, count:8 });
+cases.push({ id:"ability-transition", screen:"ability", round:1, count:0 });
 cases.push({ id:"ability-8-full-preview", screen:"ability-full-preview", round:1, count:8 });
 cases.push({ id:"ability-8-logo-only-preview", screen:"ability-logo-only-preview", round:1, count:8 });
 cases.push({ id:"ability-8-two-column-preview", screen:"ability-two-column-preview", round:1, count:8 });
 cases.push({ id:"ability-quad-core", screen:"ability-quad-core", round:1, count:8 });
 cases.push({ id:"ability-front-runner", screen:"ability-front-runner", round:1, count:8 });
-cases.push({ id:"ability-order", screen:"ability-order", round:1, count:0 }, { id:"final", screen:"final", round:5, count:7 }, { id:"brackets", screen:"brackets", round:4, count:5 }, { id:"loadout", screen:"loadout", round:2, count:3 }, { id:"showdown-r4-headsup", screen:"showdown-headsup", round:4, count:5 });
+cases.push({ id:"final", screen:"final", round:5, count:7 }, { id:"brackets", screen:"brackets", round:4, count:5 }, { id:"loadout", screen:"loadout", round:2, count:3 }, { id:"showdown-r4-headsup", screen:"showdown-headsup", round:4, count:5 });
 for (const round of [2,4] as const) cases.push({ id:`draft-r${round}`, screen:"draft", round, count:BALANCE.handLimits[round] });
 for (const round of [2,4] as const) cases.push({ id:`draft-r${round}-picking`, screen:"draft", round, count:BALANCE.handLimits[round]-1 });
 for (const round of [3,4] as const) cases.push({ id:`prep-r${round}`, screen:"prep", round, count:BALANCE.handLimits[round] });
@@ -65,14 +66,14 @@ function InteractiveShop() {
   return <ShopPanel state={state} act={fn => setState(previous => fn(previous))} />;
 }
 
-/** The last ability pick lands 1.5s in, so the PICK -> REVEAL transition can be watched. */
+/** The private deal, then everyone's abilities after the same 5s the server waits. */
 function AbilityTransition() {
-  const [count, setCount] = useState(7);
-  useEffect(() => { const timer = setTimeout(() => setCount(8), 1500); return () => clearTimeout(timer); }, []);
-  return <Scene scene={{ id:"ability-transition-step", screen:"ability", round:1, count }} interactive={false} />;
+  const [count, setCount] = useState(0);
+  useEffect(() => { const timer = setTimeout(() => setCount(8), BARRIER_TIMEOUT_MS.ABILITY_DEAL); return () => clearTimeout(timer); }, []);
+  return <Scene scene={{ id:"ability-transition-step", screen:"ability", round:1, count }} />;
 }
 
-function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
+function Scene({ scene }: { scene: Case }) {
   if (scene.id === "shop-reroll-interaction") return <InteractiveShop />;
   if (scene.id === "ability-transition") return <AbilityTransition />;
   const { screen, round, count } = scene;
@@ -123,10 +124,10 @@ function Scene({ scene, interactive }: { scene: Case; interactive: boolean }) {
   if (screen === "results" || screen === "brackets" || screen === "spectator") return <><OnlineScoreboard view={view} /><RoundResults round={round} rows={rows} viewerId="p1" showBrackets={screen === "brackets"} secondsLeft={30}><ShowdownHand cards={qaDeck.slice(0,count)} usedCardIds={qaDeck.slice(0,5).map(c=>c.id)} winner displayName="원 페어" category="PAIR" kickers={[14,12,9,6]} /></RoundResults></>;
   if (screen === "final") return <section className="final-panel"><div className="standings"><FinalStandingsHeader />{rows.map(row => <FinalStandingRow key={row.playerId} name={row.name} row={{ playerId:row.playerId, points:row.totalPoints, handScore:50, stackScore:12345, stackBB:row.stackBB, total:111160, displayName:"로열 스트레이트 플러시", finalPlace:row.rank, placement:row.rank, rankPoints:8, cards:row.cards, usedCardIds:row.cards.slice(0,5).map(c=>c.id), ...(row.rank > 4 ? { eliminatedRound:row.eliminated ? 3 : 4 } : {}) }} />)}</div></section>;
   if (screen.startsWith("ability")) {
-    view.phase = screen === "ability-order" ? "ABILITY_ORDER" : count === 8 ? "ABILITY_REVEAL" : "ABILITY_PICK";
+    view.phase = count === 8 ? "ABILITY_REVEAL" : "ABILITY_DEAL";
     const featured = screen === "ability-front-runner" ? "front-runner" : screen === "ability-quad-core" ? "quad-core" : undefined;
     const abilities: readonly AbilityId[] = featured ? [featured, ...ABILITY_IDS.filter(id=>id !== featured)] : ABILITY_IDS;
-    view.abilityDraft = { slotCount:ABILITY_IDS.length, order:profiles.map(p=>p.playerId), pickedCount:count, availableSlots:Array.from({length:ABILITY_IDS.length-count},(_,i)=>i+count), currentPlayerId:profiles[count]?.playerId, abilities:profiles.slice(0,count).map((p,i)=>({playerId:p.playerId, slot:i, abilityId:abilities[i]!})), ...(interactive && count > 0 ? { myPick:{ slot:0, abilityId:abilities[0]! } } : {}) };
+    view.abilityDraft = { mine:abilities[0]!, abilities:count === 8 ? profiles.map((p,i)=>({playerId:p.playerId, slot:i, abilityId:abilities[i]!})) : [] };
     return <AbilitySelectionPanel view={view} send={()=>{}} seconds={30} />;
   }
   if (screen === "loadout") return <RunLoadoutPanel view={view} send={()=>{}} disabled={false} seconds={30} />;
@@ -143,7 +144,7 @@ export function ResponsivePreview() {
   const [observedPlayer,setObservedPlayer] = useState("p2");
   const shown = selected === "all" ? cases : cases.filter(scene=>scene.id === selected);
   const toolbar = <details className="qa-controls"><summary>QA</summary><header className="qa-toolbar"><label>UI QA 상태 <select value={selected} onChange={e=>{setSelected(e.target.value);setAudit(null);}}><option value="all">전체 상태 매트릭스</option>{cases.map(scene=><option key={scene.id}>{scene.id}</option>)}</select></label><p>단일 상태: 내비·헤더·하단 조작 포함. 쇼다운은 실제처럼 root 바로 아래 렌더링.</p><button onClick={()=>setAudit(auditResponsiveLayout())}>레이아웃 검사</button>{audit && <pre data-qa-report>{JSON.stringify(audit,null,2)}</pre>}</header></details>;
-  if (shown.length === 1 && shown[0]!.screen.startsWith("showdown")) return <>{toolbar}<Scene scene={shown[0]!} interactive={false} /></>;
+  if (shown.length === 1 && shown[0]!.screen.startsWith("showdown")) return <>{toolbar}<Scene scene={shown[0]!} /></>;
   return <main className={`game-arena responsive-preview ${selected === "all" ? "qa-matrix" : "qa-single"}`}>
     {toolbar}
     {shown.map(scene=><section data-qa-case={scene.id} key={scene.id}>
@@ -153,7 +154,7 @@ export function ResponsivePreview() {
         {selected !== "all" && <GameViewportReset screenKey={scene.id} />}
         {(scene.screen === "prep" || scene.screen === "shop" && scene.round > 1) && <PrepRoundHeader prep={getPrepPresentation(scene.round, "SHOP")!} />}
         {!scene.screen.startsWith("match") && !scene.screen.startsWith("ability") && !scene.screen.startsWith("showdown") && scene.screen !== "prep" && !(scene.screen === "shop" && scene.round > 1) && <header className={`round-header ${["draft","loadout"].includes(scene.screen) ? "is-centered-phase-header" : ""}`}><div>{scene.screen !== "final" && <span className="round-number">{scene.screen === "draft" ? `ROUND ${scene.round} · DRAFT PHASE` : `ROUND 0${scene.round}`}</span>}<div className="round-title-row"><h1>{scene.screen === "final" ? "FINAL STANDINGS" : ["","TWO HAND","RUN IT TWICE","OMAHA SWISS","BEST FIVE","THE LAST HAND"][scene.round]}</h1>{scene.screen !== "final" && <button className="secondary title-guide-trigger">?</button>}</div></div>{scene.screen !== "shop" && scene.screen !== "loadout" && scene.screen !== "final" && <div className="phase-badge"><b>{scene.screen === "shop" ? "상점" : scene.screen === "draft" ? "공개 드래프트" : "라운드 결과"}</b></div>}</header>}
-        <Scene scene={scene} interactive={false} />
+        <Scene scene={scene} />
         {scene.screen === "final" && <section className="panel rematch-panel"><GameEndActions onStart={()=>{}} onHome={()=>{}} /></section>}
         {scene.screen === "shop" && <ShopReadyBar ready={shopReady ? 2 : 1} total={2} committed={shopReady} disabled={false} endsAt={43000} now={0} onToggle={()=>setShopReady(ready=>!ready)} />}
         {["prep","results","brackets","spectator"].includes(scene.screen) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{scene.screen === "prep" ? "준비 완료" : "결과 확인"}</b><p>다음 단계로 진행합니다.</p></div><button className="primary">{scene.screen === "prep" ? "준비 완료" : "다음 라운드"} →</button></div>}
