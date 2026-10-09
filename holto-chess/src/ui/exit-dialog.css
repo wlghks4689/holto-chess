@@ -5,6 +5,9 @@
 .exit-dialog .exit-dialog-hint{color:#8aa7b2;font-size:12px}
 .exit-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
 .exit-dialog-actions button{min-height:46px}
+.exit-dialog.is-forfeit{border-color:rgba(255,112,105,.6)}
+.exit-dialog.is-forfeit .eyebrow{color:#ff918c}
+.exit-dialog-actions .danger{background:linear-gradient(180deg,#d6534c,#a8352f);border-color:#ff8f86;color:#fff}
 .nav-exit{justify-self:end;width:auto;padding:8px 14px;font-size:11px;letter-spacing:.1em;white-space:nowrap}
 @media(max-width:620px){
   .exit-dialog{padding:20px 16px 18px}

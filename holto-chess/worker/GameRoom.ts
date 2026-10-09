@@ -1,5 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
-import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, turnKey, type RoomSnapshot } from "../src/game/room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, startSolo, turnKey, type RoomSnapshot } from "../src/game/room";
+import { collectRankObligations } from "../src/game/rankRoom";
+import { settleRankObligation } from "./rank";
 import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 import { classifyGameError } from "../src/shared/gameErrorCode";
@@ -14,6 +16,10 @@ const AUTH_TIMEOUT_MS = 15000;
 const TICKET_KEY = "connection-tickets:v1";
 const TICKET_LIFETIME_MS = 30_000;
 const LEGACY_PENDING_LIMIT = 8;
+/** D1 retry backoff for ranked settlement: 5s doubling to 5 minutes, forever. */
+const rankRetryDelay = (attempts: number) => Math.min(5000 * 2 ** attempts, 300_000);
+/** A room never expires while it still owes the account DB a ranked outcome. */
+const RANK_EXPIRY_GRACE_MS = 10 * 60_000;
 type Tickets = Record<string, { digest: string; expiresAt: number }>;
 /**
  * Multiplayer stall diagnostics: one JSON line per event in Workers Logs (wrangler.jsonc observability).
@@ -70,6 +76,8 @@ export class GameRoom extends DurableObject<Env> {
 
   private async commit(next: RoomSnapshot): Promise<void> {
     if (next.publicTurnKey?.turn !== turnKey(next)) next.publicTurnKey = { turn: turnKey(next), key: token() };
+    // The settlement duty is stored with the state change that created it, so a crash cannot lose it.
+    if (collectRankObligations(next)) { next.rankRetryAt = Date.now(); next.rankAttempts = 0; }
     // Publish only after durable storage succeeds. Failed commands never replace the snapshot.
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
     catch {
@@ -109,6 +117,7 @@ export class GameRoom extends DurableObject<Env> {
     }
     const barrier = this.room ? barrierDeadline(this.room) : undefined;
     if (barrier !== undefined) deadlines.push({ at: barrier, reason: "barrier" });
+    if (this.room?.rankPending?.length) deadlines.push({ at: this.room.rankRetryAt ?? Date.now(), reason: "rank" });
     // Serialization can cross a reveal boundary. Schedule from the state we
     // actually published, even if its next boundary is now overdue, so a final
     // prefix cannot wait for the later barrier or a client's clock probe.
@@ -127,6 +136,35 @@ export class GameRoom extends DurableObject<Env> {
     if (next === null) await this.ctx.storage.deleteAlarm();
     else await this.ctx.storage.setAlarm(next.at);
     diag("alarm.set", { ...roomFields(this.room), at: next?.at ?? null, inMs: next ? next.at - Date.now() : null, reason: next?.reason ?? "none", replacedAt: scheduled });
+  }
+  /**
+   * Writes queued ranked outcomes to the account DB. D1 replays are no-ops (worker/rank.ts), so a crash between the
+   * D1 write and this commit only repeats a harmless write. Failures keep the queue and back off.
+   */
+  private async flushRank(now: number): Promise<void> {
+    const room = this.room;
+    if (!room?.rankPending?.length || (room.rankRetryAt ?? 0) > now) return;
+    const next = structuredClone(room);
+    const pending = next.rankPending!;
+    while (pending.length) {
+      const obligation = pending[0]!;
+      try {
+        const result = await settleRankObligation(this.env.ACCOUNT_DB, obligation, now);
+        pending.shift();
+        if (next.rank?.gameId === obligation.gameId) next.rank.results[obligation.playerId] = result;
+        diag("rank.settled", { ...roomFields(room), playerId: obligation.playerId, gameId: obligation.gameId, skipped: "skipped" in result });
+      } catch (error) {
+        next.rankAttempts = (next.rankAttempts ?? 0) + 1;
+        next.rankRetryAt = now + rankRetryDelay(next.rankAttempts);
+        diag("rank.error", { ...roomFields(room), playerId: obligation.playerId, gameId: obligation.gameId, attempts: next.rankAttempts,
+          message: error instanceof Error ? error.message : String(error) }, "error");
+        break;
+      }
+    }
+    if (!pending.length) { delete next.rankPending; delete next.rankRetryAt; delete next.rankAttempts; }
+    next.revision++;
+    await this.commit(next);
+    this.broadcast();
   }
   private send(ws: WebSocket, message: ServerMessage): boolean {
     try { ws.send(JSON.stringify(message)); return true; } catch { return false; /* Closed sockets have no state authority. */ }
@@ -161,8 +199,14 @@ export class GameRoom extends DurableObject<Env> {
       return this.ctx.blockConcurrencyWhile(async () => {
         if (this.room) return new Response("Room exists", { status: 409 });
         const secret = token();
-        const { room, playerId } = addSession(createRoom(roomId, randomSeed(), "secure", 2, true), await hash(secret), roomAccountIdentity(request.headers));
-        await this.commit(room); // A new room is a lobby: commit() arms the 30-minute idle expiry.
+        const identity = roomAccountIdentity(request.headers);
+        const solo = request.headers.get("X-Internal-Porena-Solo") === "1";
+        if (solo && !identity) return new Response("Ranked solo needs an account", { status: 400 });
+        const seated = addSession(createRoom(roomId, randomSeed(), "secure", 2, true), await hash(secret), identity);
+        const { playerId } = seated;
+        // A ranked solo game starts at once; any other new room is a lobby with the 30-minute idle expiry.
+        const room = solo ? startSolo(seated.room) : seated.room;
+        await this.commit(room);
         await this.rescheduleAlarm();
         return Response.json({ roomId, playerId, token: secret }, { status: 201, headers: { "Cache-Control": "no-store" } });
       });
@@ -329,6 +373,13 @@ export class GameRoom extends DurableObject<Env> {
   async alarm(info?: AlarmInvocationInfo): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
       const now = Date.now();
+      await this.flushRank(now);
+      if (this.expiresAt && now >= this.expiresAt && this.room?.rankPending?.length) {
+        // Expiry would erase a ranked outcome D1 has not confirmed yet: keep the room until it lands.
+        this.expiresAt = now + RANK_EXPIRY_GRACE_MS;
+        await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+        diag("room.expiryDeferred", { ...roomFields(this.room), pending: this.room.rankPending.length });
+      }
       if (this.expiresAt && now >= this.expiresAt) {
         diag("room.expired", roomFields(this.room));
         for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");

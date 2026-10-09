@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { activeSession, forgetSession, rememberSession, storedSessions, ACTIVE_ROOM_KEY, LEGACY_SESSION_KEY, SESSION_KEY } from "./sessionStore";
+import { activeSession, deactivateSession, forgetSession, rememberSession, storedSessions, ACTIVE_ROOM_KEY, LEGACY_SESSION_KEY, SESSION_KEY } from "./sessionStore";
 import type { SessionCredential } from "../shared/protocol";
 
 const cred = (roomId: string, playerId = "p1"): SessionCredential => ({ roomId, playerId, token: "a".repeat(64) });
@@ -90,5 +90,15 @@ describe("session store", () => {
     localStorage.setItem(SESSION_KEY, JSON.stringify([]));
     expect(sessionStorage.getItem(ACTIVE_ROOM_KEY)).toBe("ABCDEF");
     expect(activeSession()).toBeNull();
+  });
+
+  it("keeps this tab's live room when another room is cleaned up, and stops reopening it after an explicit move away", () => {
+    rememberSession(cred("OLDONE"));
+    rememberSession(cred("LIVEAB"));
+    forgetSession("OLDONE");
+    expect(activeSession()?.roomId).toBe("LIVEAB"); // a reload (F5) still returns to the live game
+    deactivateSession();
+    expect(activeSession()).toBeNull();
+    expect(storedSessions().map((s) => s.roomId)).toEqual(["LIVEAB"]); // still listed for rejoining from the lobby
   });
 });

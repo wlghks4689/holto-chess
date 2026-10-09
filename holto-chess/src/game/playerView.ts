@@ -11,6 +11,7 @@ import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
 import { auctionBudget, auctionMaxWins, auctionMinRaise } from "./finalAuction";
 import { cardPrice } from "./config";
+import { rankViewFor } from "./rankRoom";
 import type { Card } from "../core/poker/cards";
 
 function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow: number): PrivatePlayerView {
@@ -48,7 +49,7 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
     const seats = game.players.filter(p => !p.eliminated).map(p => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId,
       cards: (p.finalLoadoutCardIds ?? []).map(id => getCard(game, id)),
       blockCards: p.ownedCardIds.filter(id => !p.finalLoadoutCardIds?.includes(id)).map(id => getCard(game, id)), equity: game.finalAuction!.equities?.[p.id] }));
-    const viewer = seats.find(p => p.playerId === viewerPlayerId) ?? seats[0]!;
+  const viewer = seats.find(p => p.playerId === viewerPlayerId) ?? seats[0]!;
     return { matchNumber: 1, viewer, opponents: seats.filter(p => p.playerId !== viewer.playerId) };
   }
   if (isLineupFinal(game.round, game) && game.phase === "SHOWDOWN_PRIMARY") {
@@ -157,6 +158,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       ...(presentationViewFor(room, player.id, now) ? { presentation: presentationViewFor(room, player.id, now) } : {}) };
   }) : undefined;
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
+  const rankView = rankViewFor(room, viewerPlayerId);
   const view: PlayerView = {
     ...(g.finalAuction ? { finalAuction: {
       startedAt: g.finalAuction.startedAt, endsAt: g.finalAuction.endsAt, hardEndsAt: g.finalAuction.hardEndsAt, serverNow: now,
@@ -208,6 +210,9 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     humanCount: room.sessions.length, capacity: 8,
     barrierEndsAt: complete ? barrierDeadline(room) : undefined, waitingOn: complete ? pendingBarrierIds(room) : [],
     me: privateView(me.id),
+    ...(room.solo ? { solo: true } : {}),
+    // A placement result must not arrive before the shared final reveal; a forfeit has nothing to hide.
+    ...(rankView ? { rank: rankView.result && !rankView.forfeited && !(g.phase === "GAME_RESULT" && complete) ? { ...rankView, result: undefined, pending: true } : rankView } : {}),
     ...(showdownPrepView(room, me.id) ? { showdownPrep: showdownPrepView(room, me.id) } : {}),
     ...(spectatorViews ? { spectatorViews, spectatorMatches: [...spectatorPool.values()] } : {}),
     players: g.players.map((p) => ({ ...(abilityVisible(p.id) ? { abilityId: p.abilityId } : {}), playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),

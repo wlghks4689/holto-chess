@@ -23,7 +23,8 @@ export type GameAction =
   | { type: "CANCEL_SHOP_READY" }
   | { type: "REMATCH_READY" }
   | { type: "FINAL_RESULTS_VIEWED" }
-  | { type: "LEAVE_ROOM" };
+  /** confirmForfeit: the player accepted the ranked forfeit warning (8th, -8 RP). */
+  | { type: "LEAVE_ROOM"; confirmForfeit?: true };
 export type ClientMessage =
   | { type: "JOIN_ROOM"; token: string; nickname?: string }
   | { type: "SYNC_CLOCK"; nonce: string }
@@ -151,7 +152,14 @@ export type PlayerView = {
   /** Omitted when it holds the same matches as `matches`; the client numbers them in order. */
   roundHistory?: MatchView[];
   standings: FinalStandingView[];
+  /** Ranked solo room (one human with seven bots): there is no rematch, only a new solo game. */
+  solo?: boolean;
+  /** The viewer's own ranked state; absent for guests and unranked games. */
+  rank?: RankStateView;
 };
+export type RankResultView = { seasonId: number; placement: number; finalScore: number; forfeited: boolean; base: number; scoreBonus: number; humanBonus: number; delta: number; before: number; after: number };
+/** pending: the server has fixed the outcome but the account DB has not confirmed it yet. */
+export type RankStateView = { ranked: boolean; forfeited: boolean; pending: boolean; result?: RankResultView };
 export type ServerMessage =
   | { type: "CLOCK_SYNC"; nonce: string; receivedAt: number; sentAt: number }
   | { type: "PLAYER_VIEW"; payload: PlayerView }
@@ -181,7 +189,7 @@ export function parseClientMessage(raw: string): ClientMessage {
     FINAL_AUCTION_BID: ["cardId", "expectedHighestAmount", "amount"], FINAL_LOADOUT: ["cardIds"], LOCK_FINAL_LOADOUT: [],
     DRAFT_PICK: ["cardId"], RUN_LOADOUT: ["cardIds"], LOCK_RUN_LOADOUT: [], CHOOSE_OPPONENT: ["playerId"],
     READY: [], BUY_CARD: ["cardId"], SELL_CARD: ["cardId"], REROLL: [], LOCK_SHOP: ["cardId"],
-      SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], FINAL_RESULTS_VIEWED: [], LEAVE_ROOM: [],
+      SELECT_CARDS: ["cardIds"], END_SHOP_PHASE: [], CANCEL_SHOP_READY: [], REMATCH_READY: [], FINAL_RESULTS_VIEWED: [], LEAVE_ROOM: ["confirmForfeit"],
       SELECT_LOADOUT: ["slots"],
   };
   if (typeof v.type !== "string" || !Object.hasOwn(fields, v.type)) throw new Error("지원하지 않는 명령입니다.");
@@ -197,6 +205,7 @@ export function parseClientMessage(raw: string): ClientMessage {
   // R2 places three cards, the six-round R5 six.
   if (v.type === "RUN_LOADOUT" && (!Array.isArray(v.cardIds) || ![3, 5, 6].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("서로 다른 카드 3장이 필요합니다.");
   if (v.type === "CHOOSE_OPPONENT" && !string("playerId", /^p[1-8]$/)) throw new Error("잘못된 상대입니다.");
+  if (v.type === "LEAVE_ROOM" && v.confirmForfeit !== undefined && v.confirmForfeit !== true) throw new Error("잘못된 메시지입니다.");
   if (v.type === "SELECT_CARDS" && (!Array.isArray(v.cardIds) || ![0, 1, 2, 4].includes(v.cardIds.length) || new Set(v.cardIds).size !== v.cardIds.length || v.cardIds.some((id) => typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id)))) throw new Error("잘못된 출전 카드 선택입니다.");
   if (v.type === "SELECT_LOADOUT" && (!Array.isArray(v.slots) || v.slots.length !== 4 || v.slots.some((id) => id !== null && (typeof id !== "string" || !/^[2-9TJQKA][cdhs]$/.test(id))) || new Set(v.slots.filter((id) => id !== null)).size !== v.slots.filter((id) => id !== null).length)) throw new Error("서로 다른 보유 카드를 소켓에 배치하세요.");
   return v as ClientMessage;

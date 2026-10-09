@@ -11,6 +11,7 @@ import { openDraft, autoPickDraft, pickDraftCard, completeDraft, isDraftRevealin
 import { finishFinalLoadouts } from "./engine";
 import { bidFinalAuction, setFinalLoadout, settleFinalAuction } from "./finalAuction";
 import { tickAuctionBots } from "./finalAuctionBot";
+import { beginRankGame, leaveForfeits, type RankGame, type RankObligation } from "./rankRoom";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
@@ -35,6 +36,13 @@ export type RoomSnapshot = {
   /** Worker-issued opaque action epoch; internal encounter counts never cross the network. */
   publicTurnKey?: { turn: string; key: string };
   finalResultsReleasedAt?: number;
+  /** Server-authoritative ranked solo: one human, seven bots, no lobby. */
+  solo?: true;
+  rank?: RankGame;
+  /** Ranked outcomes not yet written to the account DB. Kept across rematches until D1 confirms them. */
+  rankPending?: RankObligation[];
+  rankRetryAt?: number;
+  rankAttempts?: number;
 };
 
 // Re-exported so existing server and test imports keep working.
@@ -223,6 +231,17 @@ export type RoomAccountIdentity = { accountUserId: string; displayName: string }
 export function accountUserIdForPlayer(room: RoomSnapshot, playerId: string): string | undefined {
   return room.sessions.find(session => session.playerId === playerId)?.accountUserId;
 }
+/** A ranked solo room starts at once: there is nobody to wait for in a lobby. */
+export function startSolo(source: RoomSnapshot, now = Date.now()): RoomSnapshot {
+  const room = structuredClone(source);
+  room.solo = true;
+  room.status = "PLAYING";
+  room.readyIds = [];
+  beginRankGame(room, now);
+  refreshBarrier(room, now);
+  room.revision++;
+  return room;
+}
 export function addSession(source: RoomSnapshot, tokenHash: string, identity?: RoomAccountIdentity): { room: RoomSnapshot; playerId: string } {
   if (source.status !== "LOBBY" || source.sessions.length >= 8) throw new Error("입장할 수 없는 방입니다.");
   if (identity && source.sessions.some(session => session.accountUserId === identity.accountUserId)) throw new Error("ACCOUNT_ALREADY_SEATED");
@@ -284,7 +303,7 @@ function settleBarrier(room: RoomSnapshot, now: number): void {
   }
 }
 
-function startRematch(room: RoomSnapshot): void {
+function startRematch(room: RoomSnapshot, now: number): void {
   room.gameGeneration = (room.gameGeneration ?? 0) + 1;
   const names = Object.fromEntries(room.game.players.map((player) => [player.id, player.name]));
   const seed = (room.game.seed + room.revision + 1) >>> 0 || 1;
@@ -298,6 +317,7 @@ function startRematch(room: RoomSnapshot): void {
   room.barrierKey = undefined;
   room.presentation = undefined;
   delete room.finalResultsReleasedAt;
+  beginRankGame(room, now);
 }
 
 /**
@@ -307,6 +327,8 @@ function startRematch(room: RoomSnapshot): void {
  */
 export function resumeSession(source: RoomSnapshot, playerId: string, now = Date.now()): RoomSnapshot | null {
   if (!source.sessions.find((session) => session.playerId === playerId)?.departed) return null;
+  // A ranked forfeit is final for this game: the bot keeps the seat and the person may only watch.
+  if (source.rank?.forfeitIds.includes(playerId)) return null;
   const room = structuredClone(source);
   room.sessions.find((session) => session.playerId === playerId)!.departed = false;
   refreshBarrier(room, now);
@@ -328,19 +350,24 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
   const me = room.game.players.find((p) => p.id === playerId)!;
   const allReady = (ids: string[]) => ids.every((id) => room.readyIds.includes(id));
   if (action.type === "LEAVE_ROOM") {
+    // A live ranked seat forfeits (8th, -8 RP) and must say so explicitly; the warning is the client's job.
+    if (leaveForfeits(room, playerId)) {
+      if (!action.confirmForfeit) throw new Error("FORFEIT_CONFIRM_REQUIRED");
+      room.rank!.forfeitIds.push(playerId);
+    }
     // The seat stays in the game and is played out by the bot. Nobody waits on
     // this person again, so leaving can never strand the remaining players.
     room.sessions.find((s) => s.playerId === playerId)!.departed = true;
     room.readyIds = room.readyIds.filter((id) => id !== playerId);
     if (room.status === "LOBBY") {
       const remaining = controlledHumanIds(room);
-      if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; }
+      if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; beginRankGame(room, now); }
     } else settleBarrier(room, now);
   } else if (room.status === "LOBBY") {
     if (action.type !== "READY") throw new Error("아직 게임이 시작되지 않았습니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     const remaining = controlledHumanIds(room);
-    if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; }
+    if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; beginRankGame(room, now); }
   } else if (action.type === "FINAL_RESULTS_VIEWED") {
     if (room.game.phase !== "GAME_RESULT" || !room.presentation || now < room.presentation.endsAt)
       throw new Error("최종 순위표 공개 이후에만 기록을 열 수 있습니다.");
@@ -353,7 +380,7 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     const players = controlledHumanIds(room);
     if (players.length < 2) throw new Error("같은 방 새 게임에는 실제 플레이어 2명이 필요합니다.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
-    if (allReady(players)) startRematch(room);
+    if (allReady(players)) startRematch(room, now);
   } else if (action.type === "CANCEL_SHOP_READY") {
     if (room.game.phase !== "SHOP" || me.eliminated || !room.endedShopIds.includes(playerId)) throw new Error("취소할 덱 준비가 없습니다.");
     room.endedShopIds = room.endedShopIds.filter((id) => id !== playerId);

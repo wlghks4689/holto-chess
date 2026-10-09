@@ -47,10 +47,16 @@ export function rememberSession(session: SessionCredential): void {
 
 export function forgetSession(roomId: string): void {
   writeLocal(SESSION_KEY, JSON.stringify(storedSessions().filter((s) => s.roomId !== roomId)));
+  // Cleaning up some other finished room must not cost this tab its live game.
+  try { if (sessionStorage.getItem(ACTIVE_ROOM_KEY) === roomId) sessionStorage.removeItem(ACTIVE_ROOM_KEY); } catch { /* storage unavailable */ }
+}
+
+/** An explicit move away from the room (leave, lobby, home): keep the seat listed, but a reload no longer reopens it. */
+export function deactivateSession(): void {
   try { sessionStorage.removeItem(ACTIVE_ROOM_KEY); } catch { /* storage unavailable */ }
 }
 
-/** Only auto-connect to the room this tab already had open, so tabs never collide. */
+/** Only auto-connect to the room this tab already had open, so tabs never collide. A reload (F5) restores it. */
 export function activeSession(): SessionCredential | null {
   let active: string | null = null;
   try { active = sessionStorage.getItem(ACTIVE_ROOM_KEY); } catch { return null; }

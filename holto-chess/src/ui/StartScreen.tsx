@@ -3,7 +3,7 @@ import { useCinematicMotion } from "./useCinematicMotion";
 import { resetSeenRoundGuides, setAutoRoundGuides, useRoundGuidePreferences } from "./roundGuidePreferences";
 import { useMadeSoundPreferences, writeMadeSoundPreferences } from "./madeSound";
 import { useTranslation } from "../i18n";
-import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
+import { followInApp, LEGAL_PATHS, navigate } from "../legal/legalRoute";
 import "./start-screen.css";
 import { AccountLogin, ProfileForm } from "./AccountLogin";
 import { useAccount } from "./useAccount";
@@ -60,6 +60,7 @@ export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMo
         {account.canEnter ? <div className="start-menu" aria-label={t("home.menu")}>
           <button type="button" className="start-menu-primary" onClick={() => setOverlay("mode")}><span>{t("home.start")}</span></button>
           <button type="button" onClick={() => onStart("tutorial")}><span>{t("home.tutorial")}</span></button>
+          <button type="button" onClick={() => navigate("/ranking")}><span>{t("home.ranking")}</span></button>
           <button type="button" onClick={() => setOverlay("guide")}><span>{t("home.guide")}</span></button>
           <button type="button" onClick={() => setOverlay("settings")}><span>{t("home.settings")}</span></button>
           <button type="button" onClick={() => setOverlay("feedback")}><span>{t("home.feedback")}</span></button>
@@ -79,7 +80,7 @@ export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMo
       {overlay === "mode" ? <div className="start-mode-backdrop"><section className="start-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="start-mode-title">
         <header><div><small>SELECT PLAY MODE</small><h2 id="start-mode-title">{t("home.selectMode")}</h2></div><button type="button" aria-label={`${t("home.selectMode")} · ${t("common.close")}`} onClick={() => setOverlay(null)}>×</button></header>
         <div className="start-mode-options">
-          <button type="button" onClick={() => onStart("single")}><span>SINGLE PLAY</span><strong>{t("home.single")}</strong><small>{t("home.singleDescription")}</small><i>→</i></button>
+          <button type="button" onClick={() => onStart("single")}><span>SINGLE PLAY</span><strong>{t("home.single")}</strong><small>{t(account.status === "authenticated" ? "home.singleRankedDescription" : "home.singlePracticeDescription")}</small><i>→</i></button>
           <button type="button" onClick={() => onStart("multi")}><span>MULTIPLAYER</span><strong>{t("home.multi")}</strong><small>{t("home.multiDescription")}</small><i>→</i></button>
         </div>
       </section></div> : overlay === "guide" ? <Suspense fallback={<div className="game-guide-backdrop" role="presentation" />}><GameOverviewGuide onClose={() => setOverlay(null)} /></Suspense> :

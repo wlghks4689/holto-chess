@@ -6,6 +6,7 @@ import type { RoomAccountIdentity } from "../src/game/room";
 import { submitFeedback } from "./feedback";
 import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
+import { handleRankings } from "./rank";
 export { GameRoom } from "./GameRoom";
 
 function code(): string {
@@ -52,13 +53,17 @@ export default {
       status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" },
     });
     if (url.pathname === "/api/feedback" && request.method === "POST") return submitFeedback(request, env);
+    if (url.pathname === "/api/rankings" || url.pathname === "/api/rankings/me") return handleRankings(request, env, url);
     let identity: RoomAccountIdentity | undefined;
+    const solo = url.pathname === "/api/rooms" && request.headers.get("X-Porena-Mode") === "solo";
     const isNewSeat = request.method === "POST" && (url.pathname === "/api/rooms" || /^\/api\/rooms\/[A-Z2-9]{6}\/join$/.test(url.pathname));
     if (isNewSeat) {
       const fail = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store", "Vary": "Cookie" } });
       try {
         const user = await readPorenaSession(request, env);
         if (!user && request.headers.get("X-Porena-Identity") === "account") return fail("ACCOUNT_REQUIRED", 401);
+        // Ranked solo is server-authoritative and account-only; guests practise locally.
+        if (!user && solo) return fail("ACCOUNT_REQUIRED", 401);
         if (user) {
           if (url.origin !== configuredOrigin(env) || request.headers.get("Origin") !== url.origin || request.headers.get("Sec-Fetch-Site") === "cross-site") return fail("Origin rejected", 403);
           if (request.headers.get("X-Porena-Identity") === "guest") return fail("ACCOUNT_CHANGED", 409);
@@ -71,6 +76,7 @@ export default {
     const forward = (roomId: string, path: string) => {
       const target = new URL(request.url); target.pathname = path; target.search = "";
       const headers = roomForwardHeaders(request.headers, identity); headers.set("X-Room-Id", roomId);
+      if (solo && identity) headers.set("X-Internal-Porena-Solo", "1");
       return env.GAME_ROOM.getByName(`room:${roomId}`).fetch(new Request(target, { method: request.method, headers }));
     };
     if (url.pathname === "/api/rooms" && request.method === "POST") {

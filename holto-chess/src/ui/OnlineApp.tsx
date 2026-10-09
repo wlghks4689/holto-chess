@@ -17,7 +17,7 @@ import { RunWinner } from "./RunItTwiceResult";
 import { madeTone } from "./madeTone";
 import { canSellWithoutBlocking } from "../game/shopRules";
 import { RoundResults } from "./RoundResults";
-import { forgetSession, rememberSession, storedSessions } from "./sessionStore";
+import { activeSession, deactivateSession, forgetSession, rememberSession, storedSessions } from "./sessionStore";
 import { MultiplayerLobby, OnlineEntryFrame, RoomWaitingRoom } from "./OnlineLobby";
 import { onlineScreen } from "./onlineScreen";
 import { EmptyHandSlots } from "./EmptyHandSlots";
@@ -27,7 +27,8 @@ import { createServerClock } from "./serverClock";
 import { ShopReadyBar } from "./ShopReadyBar";
 import { PhaseTimer } from "./PhaseTimer";
 import { preloadFinalArena } from "./finalShowdownPresentation";
-import { ExitGameDialog } from "./ExitGameDialog";
+import { ExitGameDialog, type ExitVariant } from "./ExitGameDialog";
+import { RankResultCard } from "./RankResultCard";
 import { SpectatorBanner } from "./SpectatorBanner";
 import { GameEndActions } from "./GameEndActions";
 import { preloadShowdownStage } from "./showdownStage";
@@ -68,6 +69,7 @@ const clientErrorKeys: Record<string, TranslationKey> = {
   "client.roomExpired": "online.roomExpired", "client.noResponse": "connection.noResponse", "client.sendFailed": "connection.sendFailed",
   "client.accountExpired": "profile.accountExpired", "client.accountChanged": "profile.accountExpired",
   "client.accountUnavailable": "profile.accountUnavailable", "client.profileRequired": "profile.required", "client.accountAlreadySeated": "profile.alreadySeated",
+  "client.forfeited": "exit.forfeited", "client.soloFailed": "solo.failed",
 };
 const storedNickname = () => [...(localStorage.getItem("porena-nickname") ?? (getLocale() === "ko-KR" ? "플레이어" : "Player"))].slice(0, 8).join("");
 
@@ -104,12 +106,17 @@ function Selection({ view, send, disabled }: { view: PlayerView; send: (a: GameA
   const required = 2;
   return <section className="panel select-panel"><h2>{t("online.r2SelectHeading", { count: selected.length })}</h2><div className="card-row centered">{view.me.ownedCards.map((card) => { const chosen = selected.includes(card.id); return <CardView key={card.id} card={card} selected={chosen} footer={t(chosen ? "select.chosen" : "select.choose")} onClick={disabled ? undefined : () => send({ type: "SELECT_CARDS", cardIds: chosen ? selected.filter((id) => id !== card.id) : [...selected.slice(-(required - 1)), card.id] })} />; })}</div><p className="hint">{t(selected.length === required ? "online.r2SelectSaved" : "online.r2SelectHelp")}</p></section>;
 }
-export function OnlineApp({ onHome }: { onHome: () => void }) {
+/**
+ * `solo`: a ranked solo game (one account, seven bots) run by the server like any room, so a reload restores it.
+ * Any tab reload restores the room this tab was playing (sessionStore.activeSession), before any lobby or menu.
+ */
+export function OnlineApp({ onHome, solo = false }: { onHome: () => void; solo?: boolean }) {
   const { locale, t } = useTranslation();
   const account = useAccount();
   const joinNickname = useRef(account.user?.displayName ?? storedNickname());
   useEffect(() => { joinNickname.current = account.user?.displayName ?? storedNickname(); }, [account.user?.displayName]);
-  const [credential, setCredential] = useState<SessionCredential | null>(null);
+  const [restoredAtLoad] = useState(() => activeSession());
+  const [credential, setCredential] = useState<SessionCredential | null>(restoredAtLoad);
   const [resumable, setResumable] = useState<SessionCredential[]>(storedSessions);
   const [rawView, setView] = useState<PlayerView | null>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
@@ -131,6 +138,10 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const [now, setNow] = useState(() => Date.now());
   const connection = useRef<ReturnType<typeof createRoomConnection> | null>(null);
   const archivedGameId = useRef<string | null>(null);
+  /** What the exit dialog confirmed; read when the server acknowledges the LEAVE. */
+  const leavingWith = useRef<ExitVariant | null>(null);
+  /** A solo room has no lobby to return to. */
+  const leavingHome = useRef(false);
   // One clock per tab: every received view refines the server-time estimate used by the cinematic.
   const [serverClock] = useState(createServerClock);
   // Clock sync only matters while a server deadline or shared presentation is on screen. Every message wakes the
@@ -204,9 +215,13 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
         }
         if (message.type === "ACK" && pendingRequest.current?.id === message.requestId) {
           if (pendingRequest.current.type === "LEAVE_ROOM") {
-            // The seat stays ours: the bot plays it until we reconnect, so keep the session listed.
-            rememberSession(credential);
-            clearPending(); setCredential(null); setView(null); setPendingSale(null); setStatus("Disconnected"); setError(""); setResumable(storedSessions());
+            const forfeited = leavingWith.current === "forfeit";
+            const toHome = leavingHome.current;
+            // A guest seat stays ours (the bot plays it until we reconnect), so it stays listed; a reload no longer reopens it.
+            // A forfeited seat can never be taken back.
+            if (forfeited) forgetSession(credential.roomId); else { rememberSession(credential); deactivateSession(); }
+            clearPending(); setCredential(null); setView(null); setPendingSale(null); setStatus("Disconnected"); setError(forfeited ? "client.forfeited" : ""); setResumable(storedSessions());
+            if (toHome) onHome();
           } else pendingRequest.current.revision = message.revision;
         }
         if (message.type === "ERROR") { if (!message.requestId || message.requestId === pendingRequest.current?.id) clearPending(); setError({ code: message.code, params: message.params, message: message.message }); }
@@ -221,6 +236,7 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
       window.removeEventListener("online", transport.resume);
       transport.dispose(); connection.current = null; probeRef.current = null; clearPending();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onHome only matters for the LEAVE acknowledgement.
   }, [credential, connectionKey, serverClock]);
 
   const join = async (create: boolean) => {
@@ -272,9 +288,33 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
       clearPending(); setError("client.sendFailed");
     }
   };
-  const leaveRoom = () => {
-    send({ type: "LEAVE_ROOM" });
+  const leaveRoom = (variant: ExitVariant = "multi") => {
+    leavingWith.current = variant;
+    leavingHome.current = solo || !!view?.solo;
+    send(variant === "forfeit" ? { type: "LEAVE_ROOM", confirmForfeit: true } : { type: "LEAVE_ROOM" });
   };
+  /** Ranked solo: the server checks the account; a guest never reaches this (ModeApp keeps guests local). */
+  const soloStarted = useRef(false);
+  const startSolo = async () => {
+    soloStarted.current = true;
+    setBusy(true); setError("");
+    try {
+      const identity = await account.verifyNewRoom();
+      if (identity.kind !== "account") throw new Error("client.accountExpired");
+      joinNickname.current = identity.user.displayName!;
+      const response = await fetch(endpoints.createRoom(), { method: "POST", credentials: "same-origin", headers: { "X-Porena-Identity": "account", "X-Porena-Mode": "solo" } });
+      if (!response.ok) throw new Error(response.status === 429 ? "client.rateLimited" : "client.soloFailed");
+      const session = await response.json() as SessionCredential;
+      rememberSession(session);
+      setView(null); setPendingSale(null); setCredential(session); setResumable(storedSessions().filter((s) => s.roomId !== session.roomId));
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "client.soloFailed"); }
+    finally { setBusy(false); }
+  };
+  useEffect(() => {
+    if (solo && !credential && !soloStarted.current) void startSolo();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- start once per mount; retries are explicit.
+  }, [solo, credential]);
+  const goHome = () => { deactivateSession(); onHome(); };
   const finalViewed = () => {
     if (!view || !view.standings.length || status !== "Connected") return;
     if (!view.finalResultsReleased) {
@@ -297,6 +337,9 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
     setResumable(storedSessions().filter((s) => s.roomId !== session.roomId));
   };
   const returnToLobby = () => {
+    // An explicit move away: the room stays listed for rejoining, but a reload no longer reopens it.
+    deactivateSession();
+    if (solo || view?.solo) { goHome(); return; }
     clearPending(); setError(""); setSpectating(false);
     setCredential(null); setView(null); setPendingSale(null); setStatus("Disconnected");
     setResumable(storedSessions());
@@ -328,8 +371,9 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const lockedShopCardCount = displayView?.me.shopCards.filter(({ card }) => displayView.me.lockedShopCardIds?.includes(card.id)).length ?? 0;
   const allShopCardsLocked = !!displayView?.me.shopSize && lockedShopCardCount >= displayView.me.shopSize;
   const screen = onlineScreen(credential, view);
+  if (screen === "lobby" && solo) return <OnlineEntryFrame title={t(busy || !error ? "solo.creating" : "solo.failed")} eyebrow="RANKED SOLO">{error && <p className="room-error" role="alert">{visibleError}</p>}<div className="entry-recovery">{!busy && error && <button className="secondary" onClick={() => void startSolo()}>{t("connection.retry")}</button>}<button className="secondary" onClick={goHome}>{t("action.home")}</button></div></OnlineEntryFrame>;
   if (screen === "lobby") return <MultiplayerLobby nickname={account.user?.displayName ?? nickname} nicknameReadOnly={account.status === "authenticated"} onNickname={setNickname} roomCode={roomCode} onRoomCode={setRoomCode} busy={busy} error={visibleError} sessions={resumable} onJoin={(create) => void join(create)} onResume={resume} onHome={() => { void account.refresh(); onHome(); }} />;
-  if (screen === "connecting" || screen === "departed") return <OnlineEntryFrame title={t(screen === "departed" ? "online.departedRoom" : "online.connectingRoom")} eyebrow="PRIVATE ARENA"><p className="entry-description">{credential?.roomId} · {statusLabel}</p>{error && <p className="room-error" role="alert">{visibleError}</p>}<div className="entry-recovery">{screen === "connecting" && <button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>{t("connection.retry")}</button>}<button className="secondary" onClick={() => { if (screen === "departed" && credential) forgetSession(credential.roomId); returnToLobby(); }}>{t("online.returnLobby")}</button></div></OnlineEntryFrame>;
+  if (screen === "connecting" || screen === "departed") return <OnlineEntryFrame title={t(screen === "departed" ? "online.departedRoom" : restoredAtLoad?.roomId === credential?.roomId ? "online.restoring" : "online.connectingRoom")} eyebrow="PRIVATE ARENA"><p className="entry-description">{credential?.roomId} · {statusLabel}</p>{error && <p className="room-error" role="alert">{visibleError}</p>}<div className="entry-recovery">{screen === "connecting" && <button className="secondary" onClick={() => setConnectionKey((n) => n + 1)}>{t("connection.retry")}</button>}<button className="secondary" onClick={() => { if (screen === "departed" && credential) forgetSession(credential.roomId); returnToLobby(); }}>{t(solo ? "action.home" : "online.returnLobby")}</button></div></OnlineEntryFrame>;
   if (!view) return null;
   if (screen === "waiting") return <RoomWaitingRoom view={view} status={statusLabel} connected={status === "Connected"} pending={!!pending} error={visibleError} onReady={() => send({ type: "READY" })} onLeave={leaveRoom} onRetry={() => setConnectionKey((n) => n + 1)} onReturn={returnToLobby} />;
   if (!displayView) return null;
@@ -345,10 +389,22 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
   const autoGuideRound = displayView.phase !== "LOBBY" && !displayView.phase.startsWith("ABILITY_") && !timedAuctionRound && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, displayView.round)
     ? displayView.round : null;
   const guideRound = manualGuideRound ?? autoGuideRound;
-  const nav = <><nav><button className="brand brand-home" type="button" onClick={onHome} aria-label={t("nav.homeAria")}><ArenaBrand /></button>{displayView.phase !== "LOBBY" ? <RoundProgress round={displayView.round} prep={null} lastRound={lastRound} /> : <span />}<div className="nav-status"><div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : t("online.lobbyShort")}</b></div><div className="nav-actions"><button type="button" className="secondary nav-exit" disabled={!!pending} onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
-      {exiting && <ExitGameDialog mode="multi" busy={!!pending} onCancel={() => setExiting(false)} onConfirm={() => { setExiting(false); leaveRoom(); }} />}</>;
+  // One exit policy for the Leave button and the logo: a live ranked seat must see the forfeit warning.
+  const mySeat = view.players.find((player) => player.playerId === view.me.playerId);
+  const exitVariant: ExitVariant | null = view.phase === "GAME_RESULT" ? null
+    : status !== "Connected" ? "reconnecting"
+    : view.rank?.ranked && !view.rank.forfeited ? view.me.alive ? "forfeit" : "settled"
+    : mySeat?.departed ? null : "multi";
+  const requestExit = () => { if (exitVariant) setExiting(true); else goHome(); };
+  const confirmExit = () => {
+    setExiting(false);
+    if (exitVariant === "reconnecting") goHome();
+    else if (exitVariant) leaveRoom(exitVariant);
+  };
+  const nav = <><nav><button className="brand brand-home" type="button" onClick={requestExit} aria-label={t("nav.homeAria")}><ArenaBrand /></button>{displayView.phase !== "LOBBY" ? <RoundProgress round={displayView.round} prep={null} lastRound={lastRound} /> : <span />}<div className="nav-status"><div className="survivors"><small>CONNECTION</small><b className={credential ? `conn-${status.toLowerCase()}` : "conn-lobby"}>{credential ? statusLabel : t("online.lobbyShort")}</b></div><div className="nav-actions"><button type="button" className="secondary nav-exit" disabled={!!pending} onClick={requestExit}>{t("exit.leave")}</button></div></div></nav>
+      {exiting && exitVariant && <ExitGameDialog mode={exitVariant} busy={!!pending} onCancel={() => setExiting(false)} onConfirm={confirmExit} />}</>;
   return <>{(status !== "Connected" || error) && <aside className="online-session-overlay" aria-label={t("online.connectionSpectatorAria")}>
-    {status !== "Connected" && <div role="status"><b>{statusLabel}</b><span>{t("connection.resumeAfterReconnect")}</span><button className="secondary" onClick={() => setConnectionKey(n => n + 1)}>{t("connection.retry")}</button><button className="secondary" onClick={returnToLobby}>{t("online.returnLobbyKeepRoom")}</button></div>}
+    {status !== "Connected" && <div role="status"><b>{statusLabel}</b><span>{t("connection.resumeAfterReconnect")}</span><button className="secondary" onClick={() => setConnectionKey(n => n + 1)}>{t("connection.retry")}</button><button className="secondary" onClick={view.rank?.ranked && view.me.alive ? requestExit : returnToLobby}>{t(view.rank?.ranked && view.me.alive ? "exit.homeKeepSeat" : "online.returnLobbyKeepRoom")}</button></div>}
     {error && <p role="alert">{visibleError}</p>}
   </aside>}{(isSpectatingPlayer || autoSpectating) && <SpectatorBanner activeId={effectiveSpectatedPlayerId} candidates={(view.spectatorViews ?? []).map((candidate) => ({ playerId: candidate.playerId, name: view.players.find((player) => player.playerId === candidate.playerId)?.name ?? candidate.playerId }))} onPick={(id) => { setSpectating(true); setSpectatedPlayerId(id); }} onClose={isSpectatingPlayer ? () => setSpectating(false) : undefined} />}{guideRound !== null && <RoundGuide round={guideRound} lastRound={lastRound} onClose={() => { markRoundGuideSeen(guideRound); setManualGuideRound(null); }} confirmLabel={t("round.returnToGame")} timerNotice={t("round.onlineTimerNotice")} />}<CinematicGate key={`${credential?.roomId ?? "lobby"}:${displayView.me.playerId}`} nav={nav} soundSessionId={`online:${view.gameId}`} matches={displayView.matches} profiles={displayView.players} viewerId={displayView.me.playerId} identityId={view.me.playerId} receivedAt={view.serverNow} presentation={displayView.presentation} clock={serverClock}><main className={displayView.phase !== "LOBBY" ? "game-arena" : "arena-lobby"}>{nav}
     <div data-round={displayView.round} className={`page-shell ${displayView.phase === "SHOP" ? "shop-page" : ""} ${displayView.phase === "GAME_RESULT" ? "final-results-page" : ""}`} id="top">
@@ -370,7 +426,9 @@ export function OnlineApp({ onHome }: { onHome: () => void }) {
           {(displayView.round === 2) && <Selection key={`${displayView.round}:${displayView.me.playerId}:${displayView.me.ownedCards.map((c) => c.id).join()}`} view={displayView} send={send} disabled={interactionDisabled || displayView.me.committed} />}
           <ShopReadyBar ready={readyHumans} total={totalHumans} committed={displayView.me.committed} endsAt={displayView.barrierEndsAt} now={now} disabled={interactionDisabled || (!displayView.me.committed && (displayView.me.ownedCards.length < (displayView.me.minHand ?? displayView.me.handLimit) || displayView.me.ownedCards.length > displayView.me.handLimit || (displayView.round === 2 && displayView.me.selectedCardIds.length !== 2)))} onToggle={() => send(displayView.me.committed ? { type: "CANCEL_SHOP_READY" } : { type: "END_SHOP_PHASE" })} /></>}
         {["ROUND_RESULT", "GAME_RESULT"].includes(displayView.phase) && <RoundAbilityBenefits cues={view.roundAbilityCues} identityId={view.me.playerId} />}
-        {displayView.phase === "GAME_RESULT" && <><FinalResultsPanel view={view} onViewed={finalViewed} /><section className="panel rematch-panel"><span className="eyebrow">NEXT GAME</span><h2>{t("online.nextChoice")}</h2><p>{t("online.rematchHint")}</p><GameEndActions disabled={disabled || !view.finalResultsReleased || meReadyForRematch || rematchHumans.length < 2} onStart={() => send({ type: "REMATCH_READY" })} startLabel={meReadyForRematch ? t("online.rematchWaiting", { ready: rematchReady, total: rematchHumans.length }) : undefined} onHome={onHome} /></section></>}
+        {displayView.phase === "GAME_RESULT" && <><FinalResultsPanel view={view} onViewed={finalViewed} />{view.rank && <RankResultCard rank={view.rank} />}<section className="panel rematch-panel"><span className="eyebrow">NEXT GAME</span><h2>{t("online.nextChoice")}</h2>{!view.solo && <p>{t("online.rematchHint")}</p>}{view.solo
+          ? <GameEndActions disabled={busy || !view.finalResultsReleased} onStart={() => { forgetSession(view.roomId); setCredential(null); setView(null); void startSolo(); }} startLabel={t("solo.newGame")} onHome={goHome} />
+          : <GameEndActions disabled={disabled || !view.finalResultsReleased || meReadyForRematch || rematchHumans.length < 2} onStart={() => send({ type: "REMATCH_READY" })} startLabel={meReadyForRematch ? t("online.rematchWaiting", { ready: rematchReady, total: rematchHumans.length }) : undefined} onHome={goHome} />}</section></>}
         {["FINAL_AUCTION", "FINAL_LOADOUT"].includes(view.phase) && <FinalAuctionPanel view={view} send={send} clock={serverClock} disabled={disabled} />}
         {isShowdownPrep && (viewFinalRound
           ? <FinalRoundTransition round={displayView.round} matchup={displayView.showdownPrep ?? finalPrepMatchup(displayView.players.filter(p => p.alive).map(p => ({ playerId: p.playerId, name: p.name, points: p.points, abilityId: p.abilityId })), displayView.me.playerId)} seconds={secondsLeft} />

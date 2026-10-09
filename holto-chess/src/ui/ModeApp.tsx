@@ -3,7 +3,8 @@ import "./gameStyles";
 import { invitedRoom } from "./roomInvite";
 import { StartScreen, type StartMode } from "./StartScreen";
 import { useTranslation } from "../i18n";
-import { legalPageFor, usePathname } from "../legal/legalRoute";
+import { legalPageFor, navigate, usePathname } from "../legal/legalRoute";
+import { activeSession } from "./sessionStore";
 import { AccountProvider } from "./AccountProvider";
 import { useAccount } from "./useAccount";
 import { useEntryIntent } from "./entryIntent";
@@ -25,6 +26,7 @@ const EntrancePreview = import.meta.env.DEV ? lazy(() => import("./EntrancePrevi
 // Chapters, practice scenarios and the simple bots load only when the guide is opened.
 // Privacy policy and terms (/privacy, /terms): public pages, fetched only when visited.
 const LegalPage = lazy(() => import("../legal/LegalPage").then((module) => ({ default: module.LegalPage })));
+const RankingPage = lazy(() => import("./RankingPage").then((module) => ({ default: module.RankingPage })));
 const TutorialApp = lazy(() => import("./tutorial/TutorialApp").then((module) => ({ default: module.TutorialApp })));
 export function ModeApp() {
   return <AccountProvider><ModeContent /></AccountProvider>;
@@ -33,12 +35,17 @@ function ModeContent() {
   const { t } = useTranslation();
   const account = useAccount();
   const entryRequested = useEntryIntent();
-  const legalPage = legalPageFor(usePathname());
-  const [mode, setMode] = useState<StartMode | null>(() => invitedRoom(typeof location === "undefined" ? "" : location.search) ? "multi" : null);
+  const pathname = usePathname();
+  const legalPage = legalPageFor(pathname);
+  // A reload (F5) returns this tab to the game it was playing before the menu or login entrance can intervene.
+  // The seat token alone reconnects; the account check only guards new seats.
+  const [restoring] = useState(() => typeof location !== "undefined" && !!activeSession());
+  const [mode, setMode] = useState<StartMode | null>(() => restoring || invitedRoom(typeof location === "undefined" ? "" : location.search) ? "multi" : null);
   useEffect(() => {
     if (mode === "single") void loadLocalApp();
     if (mode === "multi") void loadOnlineApp();
   }, [mode]);
+  if (pathname.replace(/\/+$/, "").toLowerCase() === "/ranking") return <Suspense fallback={<main className="local-loading-screen"><div><span>RANKING</span><b>{t("common.loading")}</b></div></main>}><RankingPage onBack={() => { setMode(null); navigate("/"); }} /></Suspense>;
   if (legalPage) return <Suspense fallback={<main className="local-loading-screen"><div><span>PORENA</span><b>{t("common.loading")}</b></div></main>}><LegalPage kind={legalPage} /></Suspense>;
   // Unlisted effect gallery. The SPA fallback serves it at /fx on any deploy, so
   // the same build can be checked without a local dev server.
@@ -54,7 +61,7 @@ function ModeContent() {
   if (EntrancePreview && location.pathname === "/entrance-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><EntrancePreview /></Suspense>;
   if (ResponsivePreview && location.pathname === "/responsive-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><ResponsivePreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
-  if (!account.canEnter || entryRequested || !mode) return <StartScreen onStart={setMode} />;
+  if (!mode || (!(restoring && mode === "multi") && (!account.canEnter || entryRequested))) return <StartScreen onStart={setMode} />;
   if (mode === "tutorial") return <Suspense fallback={<main className="local-loading-screen"><div><span>TUTORIAL</span><b>{t("common.loading")}</b></div></main>}><TutorialApp onHome={() => setMode(null)} onSinglePlay={() => setMode("single")} /></Suspense>;
-  return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>{t("mode.multiplayer")}</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>{t("mode.single")}</button></div>}{mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("home.singleDescription")}</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <Suspense fallback={<main className="local-loading-screen"><div><span>MULTIPLAYER</span><b>{t("common.loading")}</b></div></main>}><OnlineApp onHome={() => setMode(null)} /></Suspense>}</>;
+  return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>{t("mode.multiplayer")}</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>{t("mode.single")}</button></div>}{mode === "single" && account.status === "authenticated" ? <Suspense fallback={<main className="local-loading-screen"><div><span>RANKED SOLO</span><b>{t("common.loading")}</b></div></main>}><OnlineApp solo onHome={() => setMode(null)} /></Suspense> : mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("home.singleDescription")}</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <Suspense fallback={<main className="local-loading-screen"><div><span>MULTIPLAYER</span><b>{t("common.loading")}</b></div></main>}><OnlineApp onHome={() => setMode(null)} /></Suspense>}</>;
 }

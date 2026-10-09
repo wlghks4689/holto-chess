@@ -9,6 +9,7 @@ import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
 import { ABILITY_IDS, abilityPrice, abilityShopSize, abilitySellRate, abilityRerollCost, abilityRerollLimit, abilityLockCost } from "./abilities";
 import { rawShowdownEquity } from "./showdownEquity";
+import { PLACEMENT_RP } from "./rank";
 import { recordAbilityBenefit, recordAbilitySaving, rewardAbilities, rewardAbilityInterest, rewardQuadCorePlacement, rewardRoundLeader } from "./abilityRewards";
 import type { GameLog, PorenaGameState, MatchResult, PlayerShowdown, PlayerState, Round, StreetSnapshot } from "./types";
 import { beginCardAuction, beginFinalAuction, bestFinalLoadout } from "./finalAuction";
@@ -1281,7 +1282,6 @@ export function lockRunLoadouts(source: PorenaGameState, humanIds: readonly stri
 }
 
 export function finalStandings(state: PorenaGameState) {
-  const rankPoints = [8, 4, 2, 0, -1, -2, -4, -8] as const;
   const rows = state.players.map((player) => {
     const final = state.roundResults[0]?.results.find((result) => result.playerId === player.id);
     const hand = final?.hand ?? player.eliminationSnapshot?.hand;
@@ -1314,7 +1314,7 @@ export function finalStandings(state: PorenaGameState) {
     return b.total - a.total || a.finalPlace - b.finalPlace
       || a.playerId.localeCompare(b.playerId);
   });
-  return rows.map((row, index) => ({ ...row, placement: index + 1, rankPoints: rankPoints[index]! }));
+  return rows.map((row, index) => ({ ...row, placement: index + 1, rankPoints: PLACEMENT_RP[index]! }));
 }
 
 export function getCard(state: PorenaGameState, id: string): Card { return state.ownershipCardPool.find((entry) => entry.card.id === id)!.card; }
