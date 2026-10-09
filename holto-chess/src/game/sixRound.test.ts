@@ -281,7 +281,7 @@ describe("R6 lineup and burn cards", { timeout: 60_000 }, () => {
     expect(burnCardIds(state, human)).toEqual(me.ownedCardIds.filter((id) => !me.selectedCardIds.includes(id)));
   });
 
-  it("plays the chosen five on one board, burns the rest and shows burns but not opponents' five", () => {
+  it("plays the chosen five on one board, burns the rest and shows every locked five with its win chance", () => {
     const start = toLineup(); const human = start.human; let state = start.state;
     const me = state.players.find((p) => p.id === human)!;
     const burned = burnCardIds(state, human);
@@ -298,9 +298,14 @@ describe("R6 lineup and burn cards", { timeout: 60_000 }, () => {
     expect(prep.viewer.blockCards!.map((card) => card.id)).toEqual(me.ownedCardIds.filter((id) => !lineup.includes(id)));
     for (const seat of prep.opponents!) {
       expect(seat.cards).toHaveLength(5);
-      expect(seat.cards.every((card) => card.hidden)).toBe(true);
+      expect(seat.cards.every((card) => !card.hidden)).toBe(true);
       expect(seat.blockCards!.every((card) => !card.hidden)).toBe(true);
     }
+    // The opponents' five are their locked lineups, and the win chances cover every outcome.
+    const seats = [prep.viewer, ...prep.opponents!];
+    for (const seat of seats) expect(seat.cards.map((card) => card.id).every((id) => state.players.find((p) => p.id === seat.playerId)!.ownedCardIds.includes(id))).toBe(true);
+    expect(seats.reduce((sum, seat) => sum + seat.equity!, 0)).toBeCloseTo(100, 5);
+    expect(createPlayerView(room, human).showdownPrep).toEqual(prep);
     const end = resolvePrimary(state);
     const final = end.roundResults[0]!;
     expect(final.boards).toHaveLength(1);

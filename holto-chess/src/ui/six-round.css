@@ -285,3 +285,13 @@
 .six-round-header.is-compact h2{margin:2px 0 4px}
 .triple-loadout .triple-runs{position:relative}
 .triple-loadout .triple-run-timer.phase-timer{position:absolute;right:0;bottom:calc(100% + 8px);z-index:2}
+/* R6 loading: every seat now shows five cards, burns and a win chance, so PC seats are tightened to fit one screen. */
+@media(min-width:769px){
+  .game-arena .showdown-prep[data-round="6"] .showdown-prep-stage{row-gap:12px}
+  .game-arena .showdown-prep[data-round="6"] .showdown-prep-player{min-height:0;padding-block:10px}
+  /* Burns and the win chance share one row under the five. */
+  .game-arena .showdown-prep[data-round="6"] .showdown-prep-player{display:grid;grid-template-columns:auto auto;justify-content:center;align-items:end;column-gap:20px}
+  .game-arena .showdown-prep[data-round="6"] :is(.showdown-prep-identity,.showdown-prep-hand){grid-column:1/-1;justify-self:center}
+  .game-arena .showdown-prep[data-round="6"] .final-block-cards{margin-top:6px}
+  .game-arena .showdown-prep[data-round="6"] .showdown-prep-equity{margin:0 0 8px}
+}

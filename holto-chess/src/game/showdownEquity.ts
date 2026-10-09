@@ -4,8 +4,16 @@ import type { Round } from "./types";
 import { FINAL_EQUITY_SAMPLES } from "./config";
 
 /** Public-input-only, independent from the game's RNG and future board. */
+/**
+ * The result depends only on the cards, and an online showdown re-renders it on every server view, so it is cached.
+ * Callers get a copy so a caller mutating its array cannot poison the cache.
+ */
+const finalCache = new Map<string, number[]>();
 export function finalFourWayEquity(hands: readonly (readonly Card[])[], deadCards: readonly Card[] = []): number[] {
   const keys = hands.map(hand => hand.map(card => card.id).sort().join(","));
+  const cacheKey = `${keys.join("|")}#${[...new Set(deadCards.map(c => c.id))].sort().join(",")}`;
+  const cached = finalCache.get(cacheKey);
+  if (cached) return [...cached];
   const ordered = hands.map((hand, index) => ({ hand, key: keys[index]!, index })).sort((a, b) => a.key.localeCompare(b.key) || a.index - b.index);
   const ids = new Set([...hands.flat(), ...deadCards].map(c => c.id));
   const deck = makeDeck().filter(c => !ids.has(c.id));
@@ -18,7 +26,9 @@ export function finalFourWayEquity(hands: readonly (readonly Card[])[], deadCard
     const best = Math.max(...scores), winners = scores.flatMap((s, i) => s === best && s >= 0 ? [i] : []);
     for (const i of winners) shares[ordered[i]!.index]! += 100 / FINAL_EQUITY_SAMPLES / winners.length;
   }
-  return shares;
+  if (finalCache.size >= 64) finalCache.clear();
+  finalCache.set(cacheKey, shares);
+  return [...shares];
 }
 
 /** The existing rank evaluator supports 10 cards except the two-flush case. */

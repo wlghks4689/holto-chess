@@ -11,8 +11,8 @@ import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
 import { auctionBudget, auctionMaxWins, auctionMinRaise } from "./finalAuction";
 import { cardPrice } from "./config";
+import { finalFourWayEquity } from "./showdownEquity";
 import { rankViewFor } from "./rankRoom";
-import type { Card } from "../core/poker/cards";
 
 function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow: number): PrivatePlayerView {
   const g = room.game;
@@ -53,16 +53,18 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
     return { matchNumber: 1, viewer, opponents: seats.filter(p => p.playerId !== viewer.playerId) };
   }
   if (isLineupFinal(game.round, game) && game.phase === "SHOWDOWN_PRIMARY") {
-    // R6: the viewer sees their own five, an opponent only card backs; every seat's burn cards are public.
-    const seats = game.players.filter(p => !p.eliminated).map(p => {
+    // R6: the five lineups are locked here, so every seat's five, burns and pre-board win chance are public.
+    const lineups = game.players.filter(p => !p.eliminated).map(p => {
       const burned = burnCardIds(game, p.id);
       // In lineup order when the saved five is the one played.
       const fromLineup = p.selectedCardIds.filter(id => p.ownedCardIds.includes(id) && !burned.includes(id));
       const played = fromLineup.length === p.ownedCardIds.length - burned.length ? fromLineup : p.ownedCardIds.filter(id => !burned.includes(id));
-      return { playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId,
-        cards: p.id === viewerPlayerId ? played.map(id => getCard(game, id)) : played.map((_, index): Card => concealedCard(`prep:${p.id}:${index}`)),
-        blockCards: burned.map(id => getCard(game, id)) };
+      return { p, cards: played.map(id => getCard(game, id)), blockCards: burned.map(id => getCard(game, id)) };
     });
+    // The same public inputs the showdown's first equity meter uses (cached), so both show the same numbers.
+    const equities = finalFourWayEquity(lineups.map(seat => seat.cards), lineups.flatMap(seat => seat.blockCards));
+    const seats = lineups.map(({ p, cards, blockCards }, index) => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId,
+      cards, blockCards, equity: equities[index] }));
     const viewer = seats.find(p => p.playerId === viewerPlayerId) ?? seats[0]!;
     return { matchNumber: 1, viewer, opponents: seats.filter(p => p.playerId !== viewer.playerId) };
   }
