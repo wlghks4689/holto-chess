@@ -20,8 +20,12 @@ function playOut(room: RoomSnapshot) {
   expect(room.game.phase).toBe("GAME_RESULT");
   return room;
 }
+// A played-out game takes seconds; tests that only read it share one.
+let finishedGame: RoomSnapshot | undefined;
+const finished = () => structuredClone(finishedGame ??= playOut(started()));
 
-describe("RANK-SYSTEM-002 room rank state", () => {
+// Several cases play a whole six-round game with timeout bots, like the release audit.
+describe("RANK-SYSTEM-002 room rank state", { timeout: 120_000 }, () => {
   it("fixes the ranked seats, human count and season when the game starts", () => {
     const room = started();
     expect(room.status).toBe("PLAYING");
@@ -66,12 +70,11 @@ describe("RANK-SYSTEM-002 room rank state", () => {
     const room = started();
     room.game.players[0]!.eliminated = true;
     expect(act(room, "p1", { type: "LEAVE_ROOM" }).rank!.forfeitIds).toEqual([]);
-    const finished = playOut(started());
-    expect(act(finished, "p2", { type: "LEAVE_ROOM" }).rank!.forfeitIds).toEqual([]);
+    expect(act(finished(), "p2", { type: "LEAVE_ROOM" }).rank!.forfeitIds).toEqual([]);
   });
 
   it("queues every ranked seat's real placement at GAME_RESULT, once, and none for guests", () => {
-    const room = playOut(started());
+    const room = finished();
     expect(collectRankObligations(room)).toBe(true);
     const queued = room.rankPending!.map((entry) => entry.playerId).sort();
     expect(queued).toEqual(["p1", "p2"]);

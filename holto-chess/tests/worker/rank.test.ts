@@ -237,7 +237,8 @@ describe("RANK-SYSTEM-002 rankings API", () => {
       await env.ACCOUNT_DB.prepare("UPDATE rank_profiles SET rank_points = ?, updated_at = ? WHERE user_id = ?").bind(rp, updated, user.id).run();
     }
     await account("미참가");
-    const response = await call("/api/rankings");
+    // A same-origin browser GET sends no Origin header.
+    const response = await exports.default.fetch(new Request(`${origin}/api/rankings`, { headers: { "CF-Connecting-IP": crypto.randomUUID() } }));
     expect(response.status).toBe(200);
     const text = await response.text();
     for (const user of users) expect(text).not.toContain(user.id);
@@ -248,5 +249,7 @@ describe("RANK-SYSTEM-002 rankings API", () => {
     const me = await (await call("/api/rankings/me", { headers: { Cookie: users[0]!.cookie } })).json() as { rank: number; points: number; tier: string };
     expect(me).toMatchObject({ rank: 3, points: 140, tier: "HIGH_CARD" });
     expect(await (await call("/api/rankings/me")).json()).toMatchObject({ authenticated: false });
+    expect((await call("/api/rankings", { method: "POST" })).status).toBe(405);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 });

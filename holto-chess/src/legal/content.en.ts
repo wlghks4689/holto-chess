@@ -61,7 +61,8 @@ export const privacyEn: LegalDocument = {
         "A separate account database stores the Google account identifier (sub), sign-in provider, PORENA account identifier, the public nickname you choose, account creation and last sign-in times, and account status.",
         "Google's signed ID token is used only to verify sign-in. We do not store the original ID, access or refresh tokens.",
         "We store the sign-in session hash, creation and expiry times, and temporary authentication data that prevents forged or replayed sign-in requests.",
-        "The Google account identifier is used only to recognise the same account at sign-in. When you join a room while signed in, the room server stores your PORENA account identifier and public nickname at entry to link your account to the seat. Other players do not receive your account identifier, and we do not store permanent account-level match history. Deleting your account does not remove existing room seat information before the room retention period ends.",
+        "The Google account identifier is used only to recognise the same account at sign-in. When you join a room while signed in, the room server stores your PORENA account identifier and public nickname at entry to link your account to the seat. Other players do not receive your account identifier. Deleting your account does not remove existing room seat information before the room retention period ends.",
+        "Single and multiplayer games played while signed in are recorded in the season ranking. The account database stores per-season RP, games, wins, forfeits and best Final Score, and per-game final placement, Final Score, the number of real players at the start, whether you forfeited, the RP change and when it was settled. The ranking page shows your public nickname, RP, tier, games and wins to anyone; your account identifier is never shown.",
       ] },
     ] },
     { id: "browser", title: "3. Information stored only in your browser", body: [
@@ -137,6 +138,7 @@ export const privacyEn: LegalDocument = {
         ["Cloudflare service logs", "Cloudflare's retention period (currently 3 days)"],
         ["Browser-stored information", "Until you or your browser clear it"],
         ["Google account link and PORENA account", "While the account is maintained; deleted together after an account deletion request and identity verification"],
+        ["Season ranking records (RP and per-game results)", "While the account is maintained. Kept as past-season records after a season ends; deleted together with the account"],
         ["Sign-in sessions", "Up to 30 days. Signing out deletes that session immediately; expired server sessions are purged daily"],
         ["Temporary sign-in authentication data", "Valid for up to 10 minutes. Consumed once when processing a callback; expired data is purged when sign-in starts or by the daily job"],
       ] } },
@@ -210,7 +212,7 @@ export const termsEn: LegalDocument = {
       `PORENA is intended for users aged ${MINIMUM_AGE} and over. When you use it on a third-party platform such as Discord whose minimum age is higher, that platform's minimum age also applies.`,
     ] },
     { id: "account", title: "4. Accounts", body: [
-      "Google sign-in is optional; you can also play as a guest. A signed-in account stores the public nickname you choose and is linked to your seat when you join a new room. Profile nickname changes apply to future room entries. We do not store permanent account-level match history; settings, progress and recent match history remain in your browser. You can request account deletion through the contact in the Privacy Policy.",
+      "Google sign-in is optional; you can also play as a guest. A signed-in account stores the public nickname you choose and is linked to your seat when you join a new room. Profile nickname changes apply to future room entries. Games played while signed in are recorded in the season ranking (RP) and shown on the ranking page with your public nickname. Leaving a ranked game in progress counts as last place (8th), which cannot be undone. Settings, progress and recent match history remain in your browser. You can request account deletion through the contact in the Privacy Policy.",
     ] },
     { id: "nickname", title: "5. Nicknames", body: [
       "Your nickname is shown to other players in the same room. You may not use a nickname that impersonates another person or the operator, contains hateful, discriminatory, sexual or violent content, is unlawful or infringes others' rights. The operator may restrict such nicknames.",

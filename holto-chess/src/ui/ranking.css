@@ -1,5 +1,6 @@
 /* RANK-SYSTEM-002: season ranking page and the end-of-game RP card. */
 .ranking-page{min-height:100svh;box-sizing:border-box;width:min(1040px,100%);margin:0 auto;padding:16px 16px 48px;color:#e7f1ff;display:grid;gap:16px;align-content:start}
+.ranking-page .panel{padding:16px 18px}
 .ranking-nav{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ranking-nav .brand-home{background:none;border:0;padding:0;cursor:pointer}
 .ranking-header{text-align:center}
@@ -51,8 +52,8 @@
   .ranking-list td:nth-child(3),.ranking-list th:nth-child(3){display:none}
 }
 /* End-of-game RP card. */
-.rank-result{display:grid;gap:10px;max-width:520px;margin:0 auto;width:100%;box-sizing:border-box}
-.rank-result header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rank-result{display:grid;gap:10px;max-width:520px;margin:0 auto 16px;width:100%;box-sizing:border-box;padding:18px 20px}
+.rank-result header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0}
 .rank-result h2{margin:4px 0 0;font-size:18px}
 .rank-result-delta{font-size:28px;font-variant-numeric:tabular-nums;color:#7ce4ff}
 .rank-result.is-loss .rank-result-delta{color:#ff977c}

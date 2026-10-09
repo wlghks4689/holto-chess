@@ -42,6 +42,13 @@ export default {
     if (url.pathname.startsWith("/api/auth/") || url.pathname === "/api/profile") return handleAuth(request, env, url);
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
     if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return serveApp(request, env, url);
+    // Read-only and public: a same-origin GET carries no Origin header, so it is rate-limited instead of origin-checked.
+    // The JSON has no CORS headers, so another site can never read /me even with the visitor's cookie.
+    if (url.pathname === "/api/rankings" || url.pathname === "/api/rankings/me") {
+      const { success } = await env.ROOM_CONNECT_LIMITER.limit({ key: request.headers.get("CF-Connecting-IP") ?? "local" });
+      if (!success) return new Response("요청이 너무 많습니다. 잠시 후 다시 시도하세요.", { status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" } });
+      return handleRankings(request, env, url);
+    }
     // Same-origin browser credentials. No token in a query string, cookie or routing header.
     // The only other caller is our own Discord Activity origin, matched exactly (worker/origin.ts).
     if (!isAllowedOrigin(request.headers.get("Origin"), url.origin, env.DISCORD_ACTIVITY_CLIENT_IDS)) return new Response("Origin rejected", { status: 403 });
@@ -53,7 +60,6 @@ export default {
       status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" },
     });
     if (url.pathname === "/api/feedback" && request.method === "POST") return submitFeedback(request, env);
-    if (url.pathname === "/api/rankings" || url.pathname === "/api/rankings/me") return handleRankings(request, env, url);
     let identity: RoomAccountIdentity | undefined;
     const solo = url.pathname === "/api/rooms" && request.headers.get("X-Porena-Mode") === "solo";
     const isNewSeat = request.method === "POST" && (url.pathname === "/api/rooms" || /^\/api\/rooms\/[A-Z2-9]{6}\/join$/.test(url.pathname));

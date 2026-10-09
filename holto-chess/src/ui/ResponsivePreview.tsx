@@ -24,6 +24,7 @@ import { cinematicTimeline } from "./cinematicTimeline";
 import { SpectatorBanner } from "./SpectatorBanner";
 import { ShopReadyBar } from "./ShopReadyBar";
 import { GameEndActions } from "./GameEndActions";
+import { RankResultCard } from "./RankResultCard";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 
 type Case = { id: string; screen: string; round: Round; count: number };
@@ -44,6 +45,7 @@ cases.push({ id:"ability-8-logo-only-preview", screen:"ability-logo-only-preview
 cases.push({ id:"ability-8-two-column-preview", screen:"ability-two-column-preview", round:1, count:8 });
 cases.push({ id:"ability-quad-core", screen:"ability-quad-core", round:1, count:8 });
 cases.push({ id:"ability-front-runner", screen:"ability-front-runner", round:1, count:8 });
+cases.push({ id:"final-rp-pending", screen:"final", round:6, count:0 }, { id:"final-rp-forfeit", screen:"final", round:6, count:1 });
 cases.push({ id:"final", screen:"final", round:5, count:7 }, { id:"brackets", screen:"brackets", round:4, count:5 }, { id:"loadout", screen:"loadout", round:2, count:3 }, { id:"showdown-r4-headsup", screen:"showdown-headsup", round:4, count:5 });
 for (const round of [2,4] as const) cases.push({ id:`draft-r${round}`, screen:"draft", round, count:BALANCE.handLimits[round] });
 for (const round of [2,4] as const) cases.push({ id:`draft-r${round}-picking`, screen:"draft", round, count:BALANCE.handLimits[round]-1 });
@@ -155,6 +157,9 @@ export function ResponsivePreview() {
         {(scene.screen === "prep" || scene.screen === "shop" && scene.round > 1) && <PrepRoundHeader prep={getPrepPresentation(scene.round, "SHOP")!} />}
         {!scene.screen.startsWith("match") && !scene.screen.startsWith("ability") && !scene.screen.startsWith("showdown") && scene.screen !== "prep" && !(scene.screen === "shop" && scene.round > 1) && <header className={`round-header ${["draft","loadout"].includes(scene.screen) ? "is-centered-phase-header" : ""}`}><div>{scene.screen !== "final" && <span className="round-number">{scene.screen === "draft" ? `ROUND ${scene.round} · DRAFT PHASE` : `ROUND 0${scene.round}`}</span>}<div className="round-title-row"><h1>{scene.screen === "final" ? "FINAL STANDINGS" : ["","TWO HAND","RUN IT TWICE","OMAHA SWISS","BEST FIVE","THE LAST HAND"][scene.round]}</h1>{scene.screen !== "final" && <button className="secondary title-guide-trigger">?</button>}</div></div>{scene.screen !== "shop" && scene.screen !== "loadout" && scene.screen !== "final" && <div className="phase-badge"><b>{scene.screen === "shop" ? "상점" : scene.screen === "draft" ? "공개 드래프트" : "라운드 결과"}</b></div>}</header>}
         <Scene scene={scene} />
+        {scene.screen === "final" && <RankResultCard rank={scene.count === 0 ? { ranked:true, forfeited:false, pending:true }
+          : scene.count === 1 ? { ranked:true, forfeited:true, pending:false, result:{ seasonId:1, placement:8, finalScore:0, forfeited:true, base:-8, scoreBonus:0, humanBonus:0, delta:-8, before:5, after:0 } }
+          : { ranked:true, forfeited:false, pending:false, result:{ seasonId:1, placement:1, finalScore:131, forfeited:false, base:8, scoreBonus:3, humanBonus:4, delta:15, before:192, after:207 } }} />}
         {scene.screen === "final" && <section className="panel rematch-panel"><GameEndActions onStart={()=>{}} onHome={()=>{}} /></section>}
         {scene.screen === "shop" && <ShopReadyBar ready={shopReady ? 2 : 1} total={2} committed={shopReady} disabled={false} endsAt={43000} now={0} onToggle={()=>setShopReady(ready=>!ready)} />}
         {["prep","results","brackets","spectator"].includes(scene.screen) && <div className="action-bar phase-ready-bar"><div className="phase-wait-copy"><b>{scene.screen === "prep" ? "준비 완료" : "결과 확인"}</b><p>다음 단계로 진행합니다.</p></div><button className="primary">{scene.screen === "prep" ? "준비 완료" : "다음 라운드"} →</button></div>}
