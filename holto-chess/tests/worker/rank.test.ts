@@ -33,6 +33,16 @@ async function seat(cookie = "", roomId?: string, extra: Record<string, string> 
   return await response.json() as SessionCredential;
 }
 const stubFor = (roomId: string) => env.GAME_ROOM.getByName(`room:${roomId}`);
+/** Settlement waits about a second (or for the showdown to end); tests bring it forward instead of sleeping. */
+async function dueRank(roomId: string) {
+  await runInDurableObject(env.GAME_ROOM.getByName(`room:${roomId}`), async (instance, state) => {
+    const room = await state.storage.get<RoomSnapshot>("snapshot:v1");
+    if (!room?.rankPending?.length) return;
+    room.rankRetryAt = Date.now() - 1;
+    await state.storage.put("snapshot:v1", room);
+    (instance as unknown as { room: RoomSnapshot }).room = room;
+  });
+}
 const saved = async (roomId: string) => (await runInDurableObject(stubFor(roomId), (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1")))!;
 async function connect(credential: SessionCredential) {
   const response = await call(`/ws/rooms/${credential.roomId}`, { headers: { Upgrade: "websocket" } });
@@ -141,6 +151,7 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
     // The real alarm may already have flushed it: queued or settled, but exactly once.
     const queued = await saved(host.roomId);
     expect((queued.rankPending?.length ?? 0) + (queued.rank!.results.p1 ? 1 : 0)).toBe(1);
+    await dueRank(host.roomId);
     await runDurableObjectAlarm(stubFor(host.roomId));
     const room = await saved(host.roomId);
     expect(room.rankPending).toBeUndefined();
@@ -160,6 +171,7 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
     await env.ACCOUNT_DB.prepare("ALTER TABLE rank_events RENAME TO rank_events_offline").run();
     try {
       expect((await a.send({ type: "LEAVE_ROOM", confirmForfeit: true })).type).toBe("ACK");
+      await dueRank(host.roomId);
       await runDurableObjectAlarm(stubFor(host.roomId));
       const failed = await saved(host.roomId);
       expect(failed.rankPending).toHaveLength(1);
@@ -199,6 +211,18 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
       await room.commit(next);
       await room.rescheduleAlarm();
     });
+    // Production 2026-10-10: settlement armed at the running alarm's own time, the runtime dropped that alarm and the
+    // final reveal stalled for 51s. Settlement now waits for the showdown, and the armed alarm is a future reveal.
+    // getAlarm() reads null while that alarm is executing, so read once it has finished.
+    let armed = { alarm: null as number | null, room: undefined as RoomSnapshot | undefined };
+    for (let attempt = 0; attempt < 20 && armed.alarm === null; attempt++) {
+      if (attempt) await new Promise(resolve => setTimeout(resolve, 50));
+      armed = await runInDurableObject(stubFor(host.roomId), async (_instance, state) => ({ alarm: await state.storage.getAlarm(), room: await state.storage.get<RoomSnapshot>("snapshot:v1") }));
+    }
+    expect(armed.room!.rankRetryAt).toBeGreaterThanOrEqual((armed.room!.presentation?.endsAt ?? 0) + 1000);
+    expect(armed.alarm).toBeGreaterThan(Date.now() - 5000);
+    expect(armed.alarm).toBeLessThan(armed.room!.rankRetryAt!);
+    await dueRank(host.roomId);
     await runDurableObjectAlarm(stubFor(host.roomId));
     const room = await saved(host.roomId);
     expect(room.game.phase).toBe("GAME_RESULT");
@@ -210,7 +234,7 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
     // The guest seat is never ranked.
     expect(room.rank!.seats[guest.playerId]).toBeUndefined();
     expect((await env.ACCOUNT_DB.prepare("SELECT COUNT(*) AS n FROM rank_events").first<number>("n"))).toBe(1);
-  });
+  }, 30_000); // Plays a whole six-round game inside the Durable Object.
 
   it("creates a ranked solo room only for a signed-in account and starts it at once", async () => {
     const anonymous = await call("/api/rooms", { method: "POST", headers: { "X-Porena-Mode": "solo" } });

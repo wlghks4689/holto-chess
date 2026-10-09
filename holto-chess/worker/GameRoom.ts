@@ -40,6 +40,8 @@ export class GameRoom extends DurableObject<Env> {
   private room: RoomSnapshot | undefined;
   private expiresAt: number | undefined;
   private tickets: Tickets = {};
+  /** Scheduled time of the alarm now executing; a re-armed alarm must land strictly after it. */
+  private runningAlarmAt: number | undefined;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -78,7 +80,8 @@ export class GameRoom extends DurableObject<Env> {
     if (next.publicTurnKey?.turn !== turnKey(next)) next.publicTurnKey = { turn: turnKey(next), key: token() };
     // The settlement duty is stored with the state change that created it, so a crash cannot lose it.
     // A new duty is flushed at once, unless D1 is already failing: then it joins the running backoff.
-    if (collectRankObligations(next)) { next.rankRetryAt ??= Date.now(); next.rankAttempts ??= 0; }
+    // Results stay hidden until the shared presentation ends, so settlement waits for it and never competes with reveals.
+    if (collectRankObligations(next)) { next.rankRetryAt ??= Math.max(Date.now(), next.presentation?.endsAt ?? 0) + 1000; next.rankAttempts ??= 0; }
     // Publish only after durable storage succeeds. Failed commands never replace the snapshot.
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
     catch {
@@ -124,7 +127,11 @@ export class GameRoom extends DurableObject<Env> {
     // prefix cannot wait for the later barrier or a client's clock probe.
     const reveal = this.room ? nextDisclosureAt(this.room, disclosedAt) : undefined;
     if (reveal !== undefined) deadlines.push({ at: reveal, reason: "reveal" });
-    const next = deadlines.reduce<{ at: number; reason: string } | null>((best, item) => !best || item.at < best.at ? item : best, null);
+    const earliest = deadlines.reduce<{ at: number; reason: string } | null>((best, item) => !best || item.at < best.at ? item : best, null);
+    // Never arm an overdue time. Inside alarm() the clock is frozen at the running alarm's time, and an alarm set
+    // to that same time is treated as the one finishing and dropped, leaving the room with no alarm at all
+    // (production 2026-10-10: the R6 reveal stalled for 51s). One millisecond later still fires at once.
+    const next = earliest && { ...earliest, at: Math.max(earliest.at, Date.now() + 1, (this.runningAlarmAt ?? 0) + 1) };
     const scheduled = await this.ctx.storage.getAlarm();
     // An overdue broadcast may be queued behind this request. A per-seat clock
     // response must not cancel that reveal for everybody else. In alarm() the
@@ -372,6 +379,7 @@ export class GameRoom extends DurableObject<Env> {
   async alarm(info?: AlarmInvocationInfo): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
       const now = Date.now();
+      this.runningAlarmAt = Math.max(now, info?.scheduledTime ?? 0);
       await this.flushRank(now);
       if (this.expiresAt && now >= this.expiresAt && this.room?.rankPending?.length) {
         // Expiry would erase a ranked outcome D1 has not confirmed yet: keep the room until it lands.
@@ -418,6 +426,7 @@ export class GameRoom extends DurableObject<Env> {
       }
       diag("alarm.run", { ...roomFields(this.room), scheduledAt: info?.scheduledTime ?? null, lateMs: info ? now - info.scheduledTime : null,
         retryCount: info?.retryCount ?? 0, forced, from: from?.phase, fromRevision: from?.revision, ms: Date.now() - now });
+      this.runningAlarmAt = undefined;
     });
   }
 }

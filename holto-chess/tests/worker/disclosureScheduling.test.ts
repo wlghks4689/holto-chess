@@ -59,6 +59,8 @@ it("does not skip the final disclosure alarm if broadcasting crosses the end bou
     }
   });
   // The final prefix must be sent promptly, without depending on a client's
-  // next 10-second clock probe or the later result-confirmation barrier.
-  expect(result.nextAlarm).toBe(result.end);
+  // next 10-second clock probe or the later result-confirmation barrier. An overdue
+  // time is armed 1ms after the frozen clock: the runtime drops an alarm re-armed at its own time.
+  expect(result.nextAlarm).toBeGreaterThanOrEqual(result.end);
+  expect(result.nextAlarm).toBeLessThanOrEqual(result.end + 2);
 });
