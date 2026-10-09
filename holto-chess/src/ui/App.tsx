@@ -25,6 +25,7 @@ import { RoundGuide } from "./RoundGuide";
 import { RoundResults } from "./RoundResults";
 import { createRoundSummary, roundMatches } from "../game/roundSummary";
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
+import { CENTERED_HEADER_PHASES } from "./phaseHeader";
 import { getPrepPresentation } from "./prepPresentation";
 import { preloadFinalArena } from "./finalShowdownPresentation";
 import { ExitGameDialog } from "./ExitGameDialog";
@@ -188,6 +189,8 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   if (state.phase === "ROUND_RESULT") { label = t("action.closeRound"); fn = leaveRoundResult; }
   const requiredSelection = 2;
   if (state.phase === "GAME_RESULT" || state.phase === "NEXT_ROUND" || (!fn && !me.eliminated)) return null;
+  // The match loading screen fills the viewport; an eliminated viewer's new-game bar would sit on its footer.
+  if (!fn && ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return null;
   return <div className="action-bar action-only">{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>{t("action.newGame")}<span>↻</span></button>}</div>;
 }
 
@@ -203,6 +206,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const expireResult = useCallback(() => setState((current) => advanceLocalNextRound(current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current)), []);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
+  const buybackDraft = !!state.draft?.priceMultiplier;
   const draftRevealing = isDraftRevealing(state);
   const abilityPickIndex = state.abilityDraft?.picks.length ?? 0;
   const abilityPickerId = state.abilityDraft?.order[abilityPickIndex];
@@ -230,7 +234,7 @@ export function App({ onHome }: { onHome: () => void }) {
       : phase === "RUN_LOADOUT" ? lineupStep ? BARRIER_TIMEOUT_MS.FINAL_LINEUP : BARRIER_TIMEOUT_MS.RUN_LOADOUT
       : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
       : draftRevealing ? BARRIER_TIMEOUT_MS.DRAFT_REVEAL
-      : draftPickerId === "p1" ? 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
+      : draftPickerId === "p1" ? buybackDraft ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
     const timer = setTimeout(() => setState((s) => phase === "ABILITY_ORDER" ? openAbilitySelection(s)
       : phase === "ABILITY_PICK" ? autoPickAbility(s)
       : phase === "ABILITY_REVEAL" ? finishAbilitySelection(s)
@@ -242,7 +246,7 @@ export function App({ onHome }: { onHome: () => void }) {
       : isDraftRevealing(s) ? completeDraft(s)
       : autoPickDraft(s, true))), delay);
     return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex, draftPickerId, draftRevealing, abilityPickIndex, abilityPickerId, guideOpen, opponentStep, lineupStep]);
+  }, [state.phase, draftPickIndex, draftPickerId, buybackDraft, draftRevealing, abilityPickIndex, abilityPickerId, guideOpen, opponentStep, lineupStep]);
   const finalRound = isFinalRound(state.round, state);
   useEffect(() => { if (finalRound) preloadFinalArena(); else preloadShowdownStage(state.round, false); }, [state.round, finalRound]);
   useEffect(() => {
@@ -287,11 +291,11 @@ export function App({ onHome }: { onHome: () => void }) {
     <div id="top" data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
       <GameViewportReset screenKey={`local:${gameVersion}:${state.round}:${state.phase}`} />
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_PICK" ? abilityPickerId === "p1" ? BARRIER_TIMEOUT_MS.ABILITY_PICK : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.DRAFT_DEAL_IN) / 1000} />}
-      {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className={`round-header ${["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(state.phase) ? "is-centered-phase-header" : ""} ${state.phase === "ROUND_RESULT" ? "is-result-header" : ""}`}><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : roundTitle(state.round, lastRound)}</h1>{/* The rules button would cover the title on the result screens. */}{state.phase !== "GAME_RESULT" && state.phase !== "ROUND_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "SHOP" && state.phase !== "GAME_RESULT" && state.phase !== "RUN_LOADOUT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(state.draft?.priceMultiplier && state.phase === "OPEN_DRAFT" ? "phase.buyback" : PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
+      {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className={`round-header ${CENTERED_HEADER_PHASES.includes(state.phase) ? "is-centered-phase-header" : ""} ${state.phase === "ROUND_RESULT" ? "is-result-header" : ""}`}><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : roundTitle(state.round, lastRound)}</h1>{/* The rules button would cover the title on the result screens. */}{state.phase !== "GAME_RESULT" && state.phase !== "ROUND_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "SHOP" && state.phase !== "GAME_RESULT" && state.phase !== "RUN_LOADOUT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(state.draft?.priceMultiplier && state.phase === "OPEN_DRAFT" ? "phase.buyback" : PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} tripleRun={isTripleRunRound(state.round, state)} lineup={isLineupFinal(state.round, state)} />}
       {!guideOpen && state.phase === "OPPONENT_SELECT" && <LocalOpponentStage key={opponentStep} view={draftView} send={draftAction} />}
       {["FINAL_AUCTION", "FINAL_LOADOUT"].includes(state.phase) && <FinalAuctionPanel view={draftView} send={draftAction} />}
-      {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? 20 : 2} />}
+      {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? (buybackDraft ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : 20_000) / 1000 : 2} />}
       {error ? <div className="error-toast" role="alert"><span>!</span>{renderGameError(error, t)}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" && <R5OpponentBanner view={draftView} />}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>{t("spectator.mode")}</h2><p>{t("spectator.cardsReturned")}</p></section> : <ShopPanel state={state} act={act} /> : null}

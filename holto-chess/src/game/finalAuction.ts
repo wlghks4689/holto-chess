@@ -3,6 +3,7 @@ import { assertPoolIntegrity } from "./cardPool";
 import { cardPrice, FINAL_AUCTION_DURATION_MS, FINAL_AUCTION_HARD_CAP_MS, FINAL_AUCTION_SNIPE_WINDOW_MS, FINAL_AUCTION_MIN_RAISE_BB, FINAL_AUCTION_MAX_WINS, AUCTION_REVEAL_MS, FINAL_LOADOUT_SIZE, FINAL_LOADOUT_TIMEOUT_MS, FINAL_BOT_REACTION_MS, R3_AUCTION, isAuctionRound } from "./config";
 import type { FinalAuctionState, PorenaGameState } from "./types";
 import type { Card } from "../core/poker/cards";
+import { combinationScore } from "./auctionCardValue";
 
 /** The most cards one seat may lead on, and win. */
 export const auctionMaxWins = (auction: Pick<FinalAuctionState, "maxWins">) => auction.maxWins ?? FINAL_AUCTION_MAX_WINS;
@@ -50,9 +51,21 @@ export function beginCardAuction(source: PorenaGameState, now: number, cardIds: 
     originalCardIds: Object.fromEntries(alive.map(p => [p.id, [...p.ownedCardIds]])),
     botNextAt: Object.fromEntries(alive.map((p, i) => [p.id, opensAt + 2_000 + i * 2_700])), outbid: {}, raises: {},
     maxWins: R3_AUCTION.maxWins, minRaiseBB: R3_AUCTION.minRaiseBB,
+    // Scored once while the rules intro is up: hands do not change during the auction.
+    cardValues: Object.fromEntries(alive.map(p => [p.id, Object.fromEntries(cardIds.map(id => {
+      const card = (cardId: string) => state.ownershipCardPool.find(e => e.card.id === cardId)!.card;
+      return [id, combinationScore(p.ownedCardIds.map(card), card(id)).value];
+    }))])),
     ...(cardIds.length !== R3_AUCTION.cardCount ? { poolWarning: `R3 pool: ${alive.length} players / ${cardIds.length} auction cards` } : {}) };
   state.phase = "FINAL_AUCTION";
   assertPoolIntegrity(state); return state;
+}
+
+/** A copy with every bid the seat leads removed; those cards go back to no bid. */
+function releaseBids(source: PorenaGameState, playerId: string): PorenaGameState {
+  const state = structuredClone(source), auction = state.finalAuction!;
+  for (const [cardId, bid] of Object.entries(auction.bids)) if (bid.playerId === playerId) delete auction.bids[cardId];
+  return state;
 }
 
 export type AuctionBid = { cardId: string; expectedHighestAmount: number | null; amount?: number };
@@ -66,13 +79,17 @@ export function bidFinalAuction(source: PorenaGameState, playerId: string, bid: 
   const current = a.bids[bid.cardId];
   if ((current?.amount ?? null) !== bid.expectedHighestAmount) throw new Error("STALE_PRICE");
   if (current?.playerId === playerId) throw new Error("ALREADY_LEADING");
-  const budget = auctionBudget(source, playerId);
+  // The six-round R3 auction lets a seat at its limit move its bid: the card it was leading
+  // returns to no bid at its opening price, so a seat still wins at most maxWins cards.
+  const moving = isAuctionRound(source.round, source) && auctionBudget(source, playerId).leadingCount >= auctionMaxWins(a);
+  const base = moving ? releaseBids(source, playerId) : source;
+  const budget = auctionBudget(base, playerId);
   if (budget.leadingCount >= auctionMaxWins(a)) throw new Error("MAX_LEADING_REACHED");
   const amount = bid.amount ?? (current ? NaN : cardPrice(entry.card.rank));
   if (!Number.isSafeInteger(amount) || amount < 0 || (!current && amount !== cardPrice(entry.card.rank))) throw new Error("INVALID_AMOUNT");
   if (current && amount < current.amount + auctionMinRaise(a)) throw new Error("BELOW_MIN_RAISE");
   if (amount > budget.availableBidBB) throw new Error("INSUFFICIENT_BB");
-  const state = structuredClone(source), auction = state.finalAuction!;
+  const state = moving ? base : structuredClone(source), auction = state.finalAuction!;
   const sequence = ++auction.bidSequence;
   auction.bids[bid.cardId] = { amount, playerId, sequence };
   if (current) {

@@ -47,8 +47,9 @@ export function autoStep(source: PorenaGameState): PorenaGameState {
       if (auction.settledAt !== null) return finishCardAuctionReveal(source, auction.loadoutStartsAt ?? auction.settledAt);
       // The R3 auction is played out like a real one, the practice seat bidding like a bot; the R5 practice auction settles as it stands.
       let state = source;
-      if (isAuctionRound(state.round, state)) for (let now = auction.startedAt; now < auction.endsAt; now += 1_000) state = tickAuctionBots(state, [], now);
-      return settleFinalAuction(state, auction.endsAt);
+      // Late bids extend endsAt, so read it from the current state each tick.
+      if (isAuctionRound(state.round, state)) for (let now = auction.startedAt; now < state.finalAuction!.endsAt; now += 1_000) state = tickAuctionBots(state, [], now);
+      return settleFinalAuction(state, state.finalAuction!.endsAt);
     }
     case "OPPONENT_SELECT": return isOpponentRevealing(source) ? completeOpponentSelect(source) : autoChooseOpponent(source);
     case "FINAL_LOADOUT": return finishFinalLoadouts(source, source.finalAuction!.loadoutEndsAt!, []);

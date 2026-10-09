@@ -43,8 +43,11 @@ export function OpponentSelectPanel({ view, send, disabled, seconds }: {
         {selectable && <span className="opponent-choose">{t("opponent.choose")}</span>}
       </>;
       const className = `opponent-seat ${leader ? "is-leader" : ""} ${chosen ? "is-chosen" : ""} ${entry.playerId === view.me.playerId ? "is-me" : ""} ${selectable ? "is-selectable" : ""}`;
+      const choose = () => send({ type: "CHOOSE_OPPONENT", playerId: entry.playerId });
+      // The seat holds card views (themselves buttons), so a selectable seat is a button by role, not a <button>.
       return selectable
-        ? <button type="button" key={entry.playerId} className={className} onClick={() => send({ type: "CHOOSE_OPPONENT", playerId: entry.playerId })}>{content}</button>
+        ? <article key={entry.playerId} className={className} role="button" tabIndex={0} aria-label={`${t("opponent.choose")} · ${name(entry.playerId)}`} onClick={choose}
+          onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } }}>{content}</article>
         : <article key={entry.playerId} className={className}>{content}</article>;
     })}</div>
     <p className="six-round-hint">{t(pick.opponentId ? "opponent.shopSoon" : "opponent.timeoutHint")}</p>

@@ -4,6 +4,30 @@ import { createPlayerView } from "./playerView";
 import { addSession, createRoom } from "./room";
 
 describe("showdown prep view", () => {
+  it("publishes locked R5 RUN pairs identically to both players", () => {
+    const room = addSession(addSession(createRoom("R5PREP", 42), "one").room, "two").room;
+    room.status = "PLAYING";
+    room.game.round = 5;
+    room.game.phase = "RUN_LOADOUT";
+    const players = room.game.players.slice(0, 2);
+    players.forEach((player, index) => {
+      player.ownedCardIds = room.game.ownershipCardPool.slice(index * 6, index * 6 + 6).map(entry => entry.card.id);
+      player.selectedCardIds = [...player.ownedCardIds].reverse();
+    });
+    room.game.primaryPairings = [["p1", "p2"]];
+    expect(createPlayerView(room, "p1").showdownPrep).toBeUndefined();
+    room.game.phase = "SHOWDOWN_PRIMARY";
+    for (const id of ["p1", "p2"]) {
+      const prep = createPlayerView(room, id).showdownPrep!;
+      for (const seat of [prep.viewer, prep.opponent!]) {
+        const player = players.find(player => player.id === seat.playerId)!;
+        expect(seat.cards.map(card => card.id)).toEqual(player.ownedCardIds);
+        expect(seat.runCards!.flat().map(card => card.id)).toEqual(player.selectedCardIds);
+        expect(seat.runCards).toHaveLength(3);
+        expect(seat.runCards!.flat().some(card => card.hidden)).toBe(false);
+      }
+    }
+  });
   it("provides each R2 player's full dead-card hand and the actual split-run pairs", () => {
     const room = addSession(createRoom("R2PREP", 20260927, "secure"), "player").room;
     room.status = "PLAYING";

@@ -100,7 +100,7 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
       {
         id: "r3-auction", kind: "ACT", focus: "auction", goal: "입찰해 본 뒤 경매 마감 (입찰 없이도 진행 가능)", title: "상점 대신 카드 옥션",
         body: ["R3에는 개인 상점이 없습니다. 16장 경매에서 한 사람당 1장만 낙찰받아 네 번째 카드를 얻습니다.", "카드를 한 번 눌러 고르고, 다시 누르면 기본가로 입찰합니다. 이미 입찰이 있는 카드는 현재가보다 3BB 이상 높게 입찰하세요."],
-        more: ["실전에서는 10초 안내 뒤 40초 동안 경매가 열리고, 마지막 3초의 입찰은 최대 55초까지 연장됩니다. 연습은 버튼으로 마감합니다.", "입찰은 취소할 수 없고, 낙찰한 카드만 BB를 냅니다."],
+        more: ["실전에서는 10초 안내 뒤 40초 동안 경매가 열리고, 마지막 3초의 입찰은 최대 55초까지 연장됩니다. 연습은 버튼으로 마감합니다.", "다른 카드에 입찰하면 기존 입찰은 취소되고 그 카드는 입찰 없는 상태로 돌아갑니다. 낙찰한 카드만 BB를 냅니다."],
         done: (game) => game.phase !== "FINAL_AUCTION",
       },
       {
@@ -191,5 +191,5 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
 ];
 
 /** A continued practice keeps the player's own cards. */
-// 2631: the practice seat survives every cut through the six-round R6 final.
-export const TUTORIAL_SEED = 2631;
+// 2634: the practice seat survives every cut through the six-round R6 final.
+export const TUTORIAL_SEED = 2634;

@@ -27,7 +27,7 @@ function step(state: PorenaGameState): PorenaGameState {
       const auction = state.finalAuction!;
       if (auction.settledAt !== null) return finishCardAuctionReveal(state, auction.loadoutStartsAt!);
       let next = state;
-      for (let now = auction.startedAt; now < auction.endsAt; now += 500) next = tickAuctionBots(next, [], now);
+      for (let now = auction.startedAt; now < next.finalAuction!.endsAt; now += 500) next = tickAuctionBots(next, [], now);
       return settleFinalAuction(next, next.finalAuction!.endsAt);
     }
     case "OPPONENT_SELECT": return isOpponentRevealing(state) ? completeOpponentSelect(state) : autoChooseOpponent(state);
@@ -114,7 +114,12 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     const auction = state.finalAuction!; const [first, second] = auction.cardIds;
     const open = auction.startedAt;
     state = bidFinalAuction(state, "p1", { cardId: first!, expectedHighestAmount: null }, open);
-    expect(() => bidFinalAuction(state, "p1", { cardId: second!, expectedHighestAmount: null }, open)).toThrow("MAX_LEADING_REACHED");
+    // Bidding on another card moves the bid: the first card goes back to no bid at its opening price.
+    const moved = bidFinalAuction(state, "p1", { cardId: second!, expectedHighestAmount: null }, open);
+    expect(moved.finalAuction!.bids[first!]).toBeUndefined();
+    expect(moved.finalAuction!.bids[second!]!.playerId).toBe("p1");
+    expect(Object.values(moved.finalAuction!.bids).filter((bid) => bid.playerId === "p1")).toHaveLength(1);
+    expect(() => bidFinalAuction(moved, "p2", { cardId: first!, expectedHighestAmount: null }, open)).not.toThrow();
     const base = cardPrice(getCard(state, first!).rank);
     expect(() => bidFinalAuction(state, "p2", { cardId: first!, expectedHighestAmount: base, amount: base + 2 }, open)).toThrow("BELOW_MIN_RAISE");
     state = bidFinalAuction(state, "p2", { cardId: first!, expectedHighestAmount: base, amount: base + 3 }, open);
@@ -130,7 +135,7 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     expect(state.players[0]!.ownedCardIds).toContain(card);
     expect(finishCardAuctionReveal(state, state.finalAuction!.loadoutStartsAt! - 1)).toBe(state);
     state = finishCardAuctionReveal(state, state.finalAuction!.loadoutStartsAt!);
-    expect(state.phase).toBe("DRAFT_ORDER");
+    expect(state.phase).toBe("OPEN_DRAFT");
     expect(state.finalAuction).toBeUndefined();
     expect(state.draft!.priceMultiplier).toBe(2);
     expect(state.draft!.order.map((entry) => entry.playerId)).not.toContain("p1");
@@ -138,7 +143,6 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     const points = state.draft!.order.map((entry) => entry.points);
     expect(points).toEqual([...points].sort((a, b) => a - b));
     expect(state.draft!.cardIds).not.toContain(card);
-    state = openDraft(state);
     const buyer = state.draft!.order[0]!.playerId; const pick = state.draft!.cardIds[0]!;
     const before = state.players.find((p) => p.id === buyer)!.stackBB;
     state = pickDraftCard(state, buyer, pick, true);

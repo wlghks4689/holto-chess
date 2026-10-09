@@ -76,8 +76,15 @@
 }
 
 
-.draft-buyback-help{grid-column:1/-1;margin:2px 0 0;color:#a9c3cb;font-size:12px;line-height:1.5}
-.open-draft.is-buyback .draft-price small{font:600 9px/1 DM Mono;color:#ffd385}
+/* R3 buyback on the auction screen: claimed leftovers name their buyer, the buyer's seat is lit. */
+.final-auction.is-buyback .auction-hud{align-items:center}
+.auction-buyback-turn{display:grid;gap:3px;flex:1 1 100%;margin:0}
+.auction-buyback-turn>b{color:#ffe0a3;font-size:14px}
+.auction-buyback-turn>small{color:#a9c3cb;font-size:11px;line-height:1.4}
+.final-auction.is-buyback .auction-tile.is-claimed>strong{max-width:100%;overflow:hidden;color:#9fb3c8;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.final-auction.is-buyback .auction-tile.is-mine{border-color:#ffc76a}
+.final-auction.is-buyback .auction-opponents article.is-buying{border-color:#ffc76a;box-shadow:0 0 12px #ffc76a40}
+.final-auction.is-buyback .auction-opponents article.is-settled{opacity:.62}
 
 .r5-opponent-banner{width:fit-content;max-width:100%;margin:0 auto 10px;padding:6px 14px;border:1px solid #ffc76a88;border-radius:999px;background:#2a2112;color:#ffe0a3;font-weight:800;font-size:13px;text-align:center}
 
@@ -91,8 +98,19 @@
 .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-street{display:none}
 .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-cards{gap:6px}
 .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-cards .playing-card.compact{width:44px;height:63px}
+/* Desktop windows up to 900px tall: seats, three finished RUN boxes and the button fit without a scroll. */
+@media(min-width:769px) and (max-height:900px){
+  .cinema.cinema-run-three{padding-block:12px}
+  .cinema.cinema-run-three .cinema-heading{margin-bottom:8px}
+  .cinema.cinema-run-three .cinema-made{min-height:36px;margin:6px 0 4px}
+  .cinema.cinema-run-three .cinema-result-footer{margin-top:6px}
+  .cinema.cinema-run-three .cinema-board-stack{gap:6px;margin-top:6px}
+  .cinema.cinema-run-three .cinema-run-scoreboard{margin-bottom:12px}
+  .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-cards .playing-card.compact{width:38px;height:54px}
+}
 .cinema-board-stack.run-it-three-times .cinema-board.is-run-win{--run-tone:#45c97f;background:rgba(30,120,70,.22);box-shadow:0 0 16px rgba(69,201,127,.32),inset 0 0 20px rgba(69,201,127,.12)}
 .cinema-board-stack.run-it-three-times .cinema-board.is-run-loss{--run-tone:#d0575a;background:rgba(130,34,38,.24);box-shadow:0 0 16px rgba(208,87,90,.32),inset 0 0 20px rgba(208,87,90,.12)}
+.cinema-board-stack.run-it-three-times .cinema-board.is-run-decided{--run-tone:#e3c46c;background:rgba(120,96,30,.2);box-shadow:0 0 14px rgba(227,196,108,.26),inset 0 0 20px rgba(227,196,108,.1)}
 .cinema-board-stack.run-it-three-times .cinema-board.is-run-split{--run-tone:#9aa6b0;background:rgba(110,120,130,.2);box-shadow:0 0 14px rgba(154,166,176,.28),inset 0 0 20px rgba(154,166,176,.1)}
 .cinema-board.has-run-detail{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .cinema-board.has-run-detail:focus-visible{outline:2px solid #9cfff4;outline-offset:2px}
@@ -133,6 +151,12 @@
 .cinema:not(.cinema-final) .cinema-seat .cinema-profile-identity{padding-inline:calc(var(--seat-icon) + 6px)}
 @media(max-width:768px){.cinema:not(.cinema-final) .cinema-seat{--seat-icon:38px}}
 @media(max-width:700px){.cinema:is(.cinema-r3-threeway,.cinema-r4-threeway) .cinema-seat{--seat-icon:26px;padding-top:7px}.cinema:is(.cinema-r3-threeway,.cinema-r4-threeway) .cinema-seat>.ability-badge{top:7px;left:5px;right:5px}.cinema:is(.cinema-r3-threeway,.cinema-r4-threeway) .cinema-seat .cinema-profile-identity{padding-inline:calc(var(--seat-icon) + 2px)}}
+/* Phones use the approved tools row (UI-EQUITY-001: icon left, equity meter right, above the name), so
+   the name no longer needs icon-sized gutters on its own row. */
+@media(max-width:620px){.cinema .cinema-seats .cinema-meter-layout .cinema-profile-identity{padding-inline:0}}
+/* The "activated" tag: beside the icon (the default) where the icon has a row of its own; under the icon
+   on wider screens, where the icon shares the name's row. */
+@media(min-width:621px){.cinema:not(.cinema-final) .cinema-seats .cinema-seat>.ability-badge .ability-activation{top:calc(var(--seat-icon) + 3px);left:0;max-width:none;white-space:nowrap;transform:none}}
 .cinema-match-profile>.swiss-record{margin:0;font-size:13px;line-height:18px}
 
 /* Round result: the header stacks centred (round, title, phase label) without the rules button. */
@@ -178,21 +202,85 @@
 .cinema-burn-cards>small{color:#ffb38f;font:700 10px/1 DM Mono;letter-spacing:.14em}
 .cinema-burn-cards>div{display:flex;justify-content:center;gap:3px}
 .cinema .cinema-burn-cards .playing-card.compact{width:30px;height:42px;min-width:0;padding:2px;opacity:.7;filter:saturate(.6)}
-.cinema .cinema-burn-cards .card-rank{font-size:12px}.cinema .cinema-burn-cards .card-suit{font-size:14px}
 @media(min-width:769px){.cinema.cinema-final.cinema-final-threeway:has(.final-community-board){min-height:calc(100dvh - 24px);grid-template-rows:auto minmax(0,1fr) auto auto minmax(70px,auto) minmax(0,1fr)}.cinema.cinema-final.cinema-final-threeway:has(.final-community-board)>.cinema-footer{margin-top:20px}}
 @media(max-width:700px){
   .cinema.cinema-final.cinema-final-threeway:has(.final-community-board){gap:0 4px}
-  /* Three narrow seats: five hole cards wrap three over two, as in R4 3-WAY. */
-  .cinema.cinema-final.cinema-final-threeway .cinema-seat .cinema-hole-cards[data-count="5"]{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;max-width:none}
-  .cinema.cinema-final.cinema-final-threeway .cinema-seat .cinema-hole-cards[data-count="5"]{gap:2px}
-  .cinema.cinema-final.cinema-final-threeway .cinema-seat .cinema-hole-cards[data-count="5"]>.cinema-flip-slot:nth-child(n){width:calc((100% - 8px) / 3);max-width:32px;min-width:0}
-  .cinema.cinema-final.cinema-final-threeway .cinema-seat .cinema-hole-cards[data-count="5"] .playing-card.compact{width:100%;min-width:0}
-  /* Narrow seats: icon and place badge share the top row, the name takes the full row under them. */
-  .cinema.cinema-final.cinema-final-threeway .cinema-seat>.cinema-profile{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px;min-height:0;padding:0;margin-bottom:8px}
-  .cinema.cinema-final.cinema-final-threeway .cinema-seat>.cinema-profile>b{order:3;flex:1 0 100%;width:100%;max-width:100%;font-size:11px;text-align:center}
-  .cinema.cinema-final.cinema-final-threeway .cinema-seat>.cinema-profile>.cinema-victory{position:static;margin-left:auto}
   .cinema .cinema-burn-cards .playing-card.compact{width:24px;height:34px}
-  .cinema .cinema-burn-cards .card-rank{font-size:10px}.cinema .cinema-burn-cards .card-suit{font-size:12px}
+  .cinema-burn-cards.is-empty>div>span{height:34px}
 }
+
+/* R6 podium seats. Once a seat's place is known, a ribbon carrying it sits on the seat's top edge; the
+   room for it is kept from the start so nothing moves. The ability icon is centred over the name, below
+   the ribbon. All three seats share one row structure (icon, name, five cards in one row, BURN, hand,
+   reward). The ribbon is a grid sibling of the seat, so the seat keeps clipping its made-hand FX to its
+   own box (overflow:hidden from .cinema-made-fx); never open a seat's overflow for a decoration. */
+.cinema.cinema-final.cinema-board-final{--podium-w:clamp(96px,min(24vw,18dvh),168px);--r6-card-max:58px;--r6-card-gap:clamp(2px,.5vw,5px)}
+.cinema.cinema-final.cinema-board-final .cinema-seat:nth-child(n){display:flex;flex-direction:column;margin-top:calc(var(--podium-w) * .12)}
+.cinema.cinema-final.cinema-board-final .cinema-seat>.cinema-profile{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;flex-wrap:nowrap;gap:5px;min-height:0;padding:calc(var(--podium-w) * .06) 0 0;margin:0 0 10px}
+.cinema.cinema-final.cinema-board-final .cinema-seat>.cinema-profile>b{order:0;flex:none;width:100%;max-width:100%;font-size:13px;text-align:center}
+/* R6 seats at every width use the approved tools row (UI-EQUITY-001): ability icon left, live equity meter
+   right, both the same size, above the full-width name. The row sits below the ribbon's dip into the seat. */
+.cinema.cinema-final.cinema-board-final{--r6-tool:38px;--r6-tool-top:calc(var(--podium-w) * .1 + 4px)}
+@media(max-width:620px){.cinema.cinema-final.cinema-board-final{--r6-tool:32px}}
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout{padding-top:calc(var(--r6-tool-top) + var(--r6-tool) + 6px)}
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.cinema-profile{padding:0!important}
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.ability-badge{position:absolute!important;left:8px!important;top:var(--r6-tool-top)!important;width:var(--r6-tool)!important;height:var(--r6-tool);min-height:0!important;margin:0!important;display:block}
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.ability-badge .ability-badge-button{box-sizing:border-box;width:var(--r6-tool)!important;height:var(--r6-tool)!important;min-width:0!important;min-height:0!important}
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.cinema-equity-meter{box-sizing:border-box;top:var(--r6-tool-top);right:8px;width:var(--r6-tool);height:var(--r6-tool)}
+.cinema.cinema-final.cinema-board-final .cinema-seat .cinema-hole-cards:nth-child(n){display:grid;grid-template-columns:repeat(var(--hole-count,5),minmax(0,1fr));gap:var(--r6-card-gap);width:100%;max-width:calc(var(--hole-count,5) * var(--r6-card-max));margin:0 auto;zoom:1}
+.cinema.cinema-final.cinema-board-final .cinema-seat .cinema-hole-cards>.cinema-flip-slot:nth-child(n){zoom:1;width:auto;max-width:none;min-width:0}
+.cinema.cinema-final.cinema-board-final .cinema-seat .cinema-hole-cards .playing-card.compact:nth-child(n){width:100%;min-width:0;height:auto;aspect-ratio:53/75;padding:2px;border-radius:clamp(3px,9cqw,6px)}
+/* R6 card spec, shared by the final table (played, BURN, board), the R6 match loading screen and the final
+   standings. Each card is its own size container: rank 45% and suit 50% of the card's width, one shared
+   floor so the smallest stay legible, and the suit set 1.5px lower so the two read apart. */
+.game-arena .final-standing .final-mini-card{container-type:inline-size}
+.cinema.cinema-final.cinema-board-final :is(.cinema-seat,.final-community-board) .playing-card.compact .card-rank,
+.game-arena .showdown-prep[data-round="6"] :is(.showdown-prep-hand,.final-block-cards) .playing-card.compact .card-rank,
+.game-arena .final-standing .final-mini-card:not(.is-card-back)>b{font-size:clamp(10px,45cqw,23px);line-height:1}
+.cinema.cinema-final.cinema-board-final :is(.cinema-seat,.final-community-board) .playing-card.compact .card-suit,
+.game-arena .showdown-prep[data-round="6"] :is(.showdown-prep-hand,.final-block-cards) .playing-card.compact .card-suit,
+.game-arena .final-standing .final-mini-card:not(.is-card-back)>i{position:relative;top:1.5px;font-size:clamp(10px,50cqw,26px);line-height:1}
+.cinema.cinema-final.cinema-board-final .cinema-seat .cinema-hole-cards .playing-card.card-back span{font-size:clamp(9px,44cqw,20px)}
+.cinema.cinema-final.cinema-board-final .cinema-seat>.cinema-final-read{flex:1 0 auto}
+.cinema-burn-cards.is-empty>div>span{display:grid;place-items:center;height:42px;padding:0 10px;border:1px dashed #ffffff26;border-radius:6px;color:#6f8a85;font:600 10px/1 DM Mono;letter-spacing:.12em}
+/* BURN cards share the played cards' size: the row is as wide as the five-card row and each card a fifth
+   of it, so both rows (and their rank and suit) match. The empty row keeps one card's height. */
+.cinema.cinema-final.cinema-board-final .cinema-burn-cards{justify-items:stretch}
+.cinema.cinema-final.cinema-board-final .cinema-burn-cards>small{justify-self:center}
+.cinema.cinema-final.cinema-board-final .cinema-burn-cards>div{width:100%;max-width:calc(5 * var(--r6-card-max));margin:0 auto;gap:var(--r6-card-gap)}
+.cinema.cinema-final.cinema-board-final .cinema-burn-cards .playing-card.compact{flex:none;width:calc((100% - 4 * var(--r6-card-gap)) / 5);height:auto;aspect-ratio:53/75}
+.cinema.cinema-final.cinema-board-final .cinema-burn-cards.is-empty>div>span{box-sizing:border-box;width:calc((100% - 4 * var(--r6-card-gap)) / 5 * 2 + var(--r6-card-gap));height:auto;aspect-ratio:106/75;padding:0}
+/* The hand name takes its made-hand colour, as in the other rounds (the winner's gold no longer wins). */
+.cinema.cinema-final.cinema-board-final .cinema-final-read strong[class*="made-"]{color:var(--made-color)}
+/* Winner seat: no green tint or lingering glow, and a lighter fill so the arena shows through; the gold
+   frame and the ribbon mark first place. */
+.cinema.cinema-final.cinema-board-final .cinema-seat.cinema-winner{background:rgba(4,17,24,.66);animation:none}
+/* Podium frame for the winner only: second and third keep the plain seat border, since an inset frame
+   there ran under the edge cards of a five-card row. */
+.cinema.cinema-final.cinema-board-final .cinema-seat.final-place-1{border-color:#f4d77f;box-shadow:inset 0 0 0 3px #00000059,inset 0 0 0 4px #f4d77f66,0 0 26px #f4d77f45,0 0 60px #f4d77f1a}
+/* Same grid cell as its seat: centred on the seat's top edge (seat margin, then up by half its height). */
+.cinema.cinema-final.cinema-board-final .cinema-seats>.cinema-place-banner{grid-row:3;align-self:start;justify-self:center;margin-top:calc(var(--podium-w) * .12);filter:drop-shadow(0 3px 5px #000000b3)}
+.cinema-place-banner{position:relative;z-index:4;width:var(--podium-w,120px);translate:0 -50%;pointer-events:none;transform-origin:50% 100%;animation:place-banner-drop calc(560ms * var(--final-beat,1)) cubic-bezier(.2,1.3,.4,1) both}
+.cinema-place-banner.place-1{scale:1.08}
+.cinema-place-banner svg{display:block;width:100%;height:auto;overflow:visible}
+/* Geometric text so the label keeps its glyph positions while the ribbon moves (no hinting wobble). */
+.cinema-place-banner-label{font:800 17px Manrope,sans-serif;letter-spacing:.08em;text-rendering:geometricPrecision}
+.cinema-place-banner-split{position:absolute;left:50%;bottom:100%;translate:-50% -2px;padding:1px 6px;border:1px solid #f4d77f;border-radius:999px;background:#1b1206e6;color:#f4d77f;font:800 9px/1.3 Manrope;letter-spacing:.14em;white-space:nowrap}
+/* Drops in without scaling: scaling the ribbon re-snapped its label every frame, so the text seemed to slide. */
+@keyframes place-banner-drop{0%{opacity:0;transform:translateY(-18px)}60%{opacity:1}100%{opacity:1;transform:none}}
+/* Short desktop windows (a 1366x768 laptop leaves ~650px): five cards in a row get shorter. */
+@media(min-width:769px) and (max-height:800px){
+  .cinema.cinema-final.cinema-board-final{--r6-card-max:min(58px,6.1dvh)}
+}
+@media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) .cinema-place-banner{animation:none}}
 /* The tutorial stacks its coach card above the cinema, so the final keeps its natural height there. */
 .tutorial-screen>.cinema.cinema-final.cinema-final-threeway:has(.final-community-board){min-height:0;grid-template-rows:auto 0 auto auto minmax(76px,auto) 0}
+
+/* R3 auction: a seat leading a card sees that bidding elsewhere moves its bid. */
+.auction-move-notice{margin:6px 0;padding:8px 12px;border:1px solid #8a6a3d;border-radius:9px;background:#2a2112;color:#ffe0a3;font-size:12px;line-height:1.45;text-align:center}
+
+/* R5 placement: the clock sits above the RUN 3 box (top-right corner) and the header loses its timer row. */
+.panel .six-round-header.is-compact{gap:4px;margin-bottom:10px;padding-bottom:10px}
+.six-round-header.is-compact h2{margin:2px 0 4px}
+.triple-loadout .triple-runs{position:relative}
+.triple-loadout .triple-run-timer.phase-timer{position:absolute;right:0;bottom:calc(100% + 8px);z-index:2}

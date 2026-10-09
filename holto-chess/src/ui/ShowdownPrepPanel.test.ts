@@ -5,6 +5,21 @@ import { makeDeck } from "../core/poker/cards";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 
 describe("showdown preparation presentation", () => {
+  it("shows both R5 players' three RUN pairs with odds for each independent board", () => {
+    const deck = makeDeck();
+    const seats = [0, 1].map(index => {
+      const cards = deck.slice(index * 6, index * 6 + 6);
+      return { playerId: `p${index}`, name: `PLAYER ${index}`, points: 0, cards,
+        runCards: [cards.slice(0, 2), cards.slice(2, 4), cards.slice(4, 6)] };
+    });
+    const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round: 5, final: false, playerName: "PLAYER 0", seconds: 3,
+      matchup: { matchNumber: 1, viewer: seats[0]!, opponent: seats[1]! } }));
+    expect(html.match(/aria-label="RUN [123]"/g)).toHaveLength(6);
+    expect(html.match(/class="playing-card[^"]* compact/g)).toHaveLength(12);
+    expect(html).not.toContain("card-back");
+    expect(html.match(/class="r2-run-equity"><small>예상 승률<\/small><strong>\d+%<\/strong>/g)).toHaveLength(6);
+    expect(html).toContain("각 RUN 승률은 개별 보드 기준 예상치입니다.");
+  });
   it.each([1,2])("uses the same skill icon component for both seats in round %i", (round) => {
     const cards = makeDeck().slice(0,2);
     const runCards: [typeof cards, typeof cards] = [cards,cards];

@@ -211,8 +211,9 @@ export function barrierDeadline(room: RoomSnapshot): number | undefined {
     : room.game.phase === "ABILITY_PICK" ? room.game.abilityDraft?.order[room.game.abilityDraft.picks.length] : undefined;
   const botDraftTurn = !!draftPicker && !activeHumans(room).includes(draftPicker);
   const lineup = room.game.phase === "RUN_LOADOUT" && isLineupFinal(room.game.round, room.game);
+  const buyback = room.game.phase === "OPEN_DRAFT" && !!room.game.draft?.priceMultiplier;
   return Math.max(room.barrierSince, room.presentation?.endsAt ?? 0)
-    + (botDraftTurn ? BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : lineup ? BARRIER_TIMEOUT_MS.FINAL_LINEUP : barrierTimeoutMs(room.game.phase));
+    + (botDraftTurn ? BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK : lineup ? BARRIER_TIMEOUT_MS.FINAL_LINEUP : buyback ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : barrierTimeoutMs(room.game.phase));
 }
 export function addSession(source: RoomSnapshot, tokenHash: string): { room: RoomSnapshot; playerId: string } {
   if (source.status !== "LOBBY" || source.sessions.length >= 8) throw new Error("입장할 수 없는 방입니다.");

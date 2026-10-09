@@ -14,6 +14,16 @@ const TICKET_KEY = "connection-tickets:v1";
 const TICKET_LIFETIME_MS = 30_000;
 const LEGACY_PENDING_LIMIT = 8;
 type Tickets = Record<string, { digest: string; expiresAt: number }>;
+/**
+ * Multiplayer stall diagnostics: one JSON line per event in Workers Logs (wrangler.jsonc observability).
+ * Metadata only. Never tokens, tickets, cards or whole payloads.
+ */
+function diag(event: string, fields: Record<string, unknown>, level: "log" | "error" = "log"): void {
+  console[level](JSON.stringify({ event, ...fields }));
+}
+function roomFields(room: RoomSnapshot | undefined) {
+  return room ? { roomId: room.roomId, revision: room.revision, round: room.game.round, phase: room.status === "LOBBY" ? "LOBBY" : room.game.phase } : {};
+}
 function randomSeed(): number { return crypto.getRandomValues(new Uint32Array(1))[0]! || 1; }
 function token(): string { return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""); }
 async function hash(value: string): Promise<string> {
@@ -88,41 +98,58 @@ export class GameRoom extends DurableObject<Env> {
    * and room expiry. Always arm the earliest deadline.
    */
   private async rescheduleAlarm(disclosedAt = Date.now()): Promise<void> {
-    const deadlines: number[] = [];
-    if (this.expiresAt) deadlines.push(this.expiresAt);
-    deadlines.push(...Object.values(this.tickets).map(ticket => ticket.expiresAt));
+    // Each deadline keeps its reason so the logs show which one armed the alarm.
+    const deadlines: { at: number; reason: string }[] = [];
+    if (this.expiresAt) deadlines.push({ at: this.expiresAt, reason: "expiry" });
+    deadlines.push(...Object.values(this.tickets).map(ticket => ({ at: ticket.expiresAt, reason: "ticket" })));
     for (const ws of this.ctx.getWebSockets()) {
       const a = ws.deserializeAttachment() as Attachment | null;
-      if (a && !a.playerId) deadlines.push(a.joinedAt + AUTH_TIMEOUT_MS);
+      if (a && !a.playerId) deadlines.push({ at: a.joinedAt + AUTH_TIMEOUT_MS, reason: "auth" });
     }
     const barrier = this.room ? barrierDeadline(this.room) : undefined;
-    if (barrier !== undefined) deadlines.push(barrier);
+    if (barrier !== undefined) deadlines.push({ at: barrier, reason: "barrier" });
     // Serialization can cross a reveal boundary. Schedule from the state we
     // actually published, even if its next boundary is now overdue, so a final
     // prefix cannot wait for the later barrier or a client's clock probe.
     const reveal = this.room ? nextDisclosureAt(this.room, disclosedAt) : undefined;
-    if (reveal !== undefined) deadlines.push(reveal);
-    const next = deadlines.length ? Math.min(...deadlines) : null;
+    if (reveal !== undefined) deadlines.push({ at: reveal, reason: "reveal" });
+    const next = deadlines.reduce<{ at: number; reason: string } | null>((best, item) => !best || item.at < best.at ? item : best, null);
     const scheduled = await this.ctx.storage.getAlarm();
     // An overdue broadcast may be queued behind this request. A per-seat clock
     // response must not cancel that reveal for everybody else. In alarm() the
     // runtime returns null for the alarm currently executing.
-    if (scheduled === next || scheduled !== null && scheduled <= Date.now()) return;
+    if (scheduled === (next?.at ?? null)) return;
+    if (scheduled !== null && scheduled <= Date.now()) {
+      diag("alarm.keep", { ...roomFields(this.room), scheduledAt: scheduled, overdueMs: Date.now() - scheduled, wantedAt: next?.at, wantedReason: next?.reason });
+      return;
+    }
     if (next === null) await this.ctx.storage.deleteAlarm();
-    else await this.ctx.storage.setAlarm(next);
+    else await this.ctx.storage.setAlarm(next.at);
+    diag("alarm.set", { ...roomFields(this.room), at: next?.at ?? null, inMs: next ? next.at - Date.now() : null, reason: next?.reason ?? "none", replacedAt: scheduled });
   }
-  private send(ws: WebSocket, message: ServerMessage): void {
-    try { ws.send(JSON.stringify(message)); } catch { /* Closed sockets have no state authority. */ }
+  private send(ws: WebSocket, message: ServerMessage): boolean {
+    try { ws.send(JSON.stringify(message)); return true; } catch { return false; /* Closed sockets have no state authority. */ }
   }
   private broadcast(): number | undefined {
     if (!this.room) return;
     const now = Date.now();
     const sockets = this.ctx.getWebSockets();
     const connected = sockets.map((ws) => (ws.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id);
+    // Per seat: matches on screen, authorized reveal frames per match and elapsed time of the first one.
+    const views: { p: string; m: number; f: (number | null)[]; e?: number }[] = [];
+    let failed = 0;
     for (const ws of sockets) {
       const a = ws.deserializeAttachment() as Attachment | null;
-      if (a?.playerId && a.roomId === this.room.roomId) this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, a.playerId, connected, now) });
+      if (!a?.playerId || a.roomId !== this.room.roomId) continue;
+      const payload = createPlayerView(this.room, a.playerId, connected, now);
+      if (!this.send(ws, { type: "PLAYER_VIEW", payload })) failed += 1;
+      const shown = payload.matches.find((match) => match.disclosure);
+      views.push({ p: a.playerId, m: payload.matches.length, f: payload.matches.map((match) => match.disclosure?.frames.length ?? null),
+        ...(shown ? { e: Math.round(shown.disclosure!.elapsedMs) } : {}) });
     }
+    const schedule = this.room.presentation;
+    diag("broadcast", { ...roomFields(this.room), sockets: sockets.length, sent: views.length - failed, failed, views,
+      ...(schedule ? { presentation: { key: schedule.key, startsAt: schedule.startsAt, endsAt: schedule.endsAt, inMs: schedule.startsAt - now } } : {}) });
     return now;
   }
   async fetch(request: Request): Promise<Response> {
@@ -216,6 +243,8 @@ export class GameRoom extends DurableObject<Env> {
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
       let requestId: string | undefined;
+      let type: string | undefined;
+      const startedAt = Date.now();
       try {
         const rate = ws.deserializeAttachment() as Attachment | null;
         if (!rate) return;
@@ -226,6 +255,7 @@ export class GameRoom extends DurableObject<Env> {
         if (rate.messages > 100) { ws.close(1008, "Too many messages"); return; }
         if (typeof raw !== "string") throw new Error("텍스트 메시지만 지원합니다.");
         const message = parseClientMessage(raw);
+        type = message.type;
         const attachment = ws.deserializeAttachment() as Attachment | null;
         if (!this.room || !attachment || attachment.roomId !== this.room.roomId) throw new Error("방 연결이 없습니다.");
         if (message.type === "JOIN_ROOM") {
@@ -246,6 +276,7 @@ export class GameRoom extends DurableObject<Env> {
             if (old !== ws && (old.deserializeAttachment() as Attachment | null)?.playerId === session.playerId) old.close(4001, "Session connected elsewhere");
           }
           ws.serializeAttachment({ roomId: attachment.roomId, playerId: session.playerId, joinedAt: attachment.joinedAt } satisfies Attachment);
+          diag("ws.join", { ...roomFields(this.room), playerId: session.playerId, resumed: !!resumed });
           this.send(ws, { type: "ROOM_JOINED", roomId: this.room.roomId, playerId: session.playerId });
           this.broadcast(); return;
         }
@@ -268,22 +299,34 @@ export class GameRoom extends DurableObject<Env> {
         if (this.room.publicTurnKey && message.turnKey !== this.room.publicTurnKey.key) throw new Error("단계가 변경되었습니다. 최신 화면에서 다시 시도하세요.");
         const next = applyRoomAction(candidate, session.playerId, message, this.room.publicTurnKey ? turnKey(candidate) : message.turnKey, Date.now());
         next.sessions.find((s) => s.playerId === session.playerId)!.requests = [...session.requests, requestId].slice(-64);
+        const fromPhase = roomFields(this.room).phase;
         await this.commit(next);
         await this.rescheduleAlarm();
+        diag("action", { ...roomFields(next), playerId: session.playerId, type, ok: true, from: fromPhase, ms: Date.now() - startedAt });
         this.send(ws, { type: "ACK", requestId, revision: next.revision });
         this.broadcast();
       } catch (error) {
         const legacyMessage = error instanceof SyntaxError ? "JSON 메시지가 필요합니다." : error instanceof Error ? error.message : "명령을 처리하지 못했습니다.";
+        const playerId = (ws.deserializeAttachment() as Attachment | null)?.playerId ?? null;
+        diag("action", { ...roomFields(this.room), playerId, type: type ?? "unparsed", ok: false, code: classifyGameError(legacyMessage).code, ms: Date.now() - startedAt });
         this.send(ws, { type: "ERROR", ...classifyGameError(legacyMessage), message: legacyMessage, requestId });
       }
     });
   }
-  webSocketClose(ws: WebSocket, code: number): void { ws.close(code === 1005 ? 1000 : code); this.broadcast(); }
-  webSocketError(ws: WebSocket): void { ws.close(1011, "Connection error"); }
-  async alarm(): Promise<void> {
+  webSocketClose(ws: WebSocket, code: number): void {
+    diag("ws.close", { ...roomFields(this.room), playerId: (ws.deserializeAttachment() as Attachment | null)?.playerId ?? null, code });
+    ws.close(code === 1005 ? 1000 : code); this.broadcast();
+  }
+  webSocketError(ws: WebSocket, error: unknown): void {
+    diag("ws.error", { ...roomFields(this.room), playerId: (ws.deserializeAttachment() as Attachment | null)?.playerId ?? null,
+      error: error instanceof Error ? error.message : String(error) }, "error");
+    ws.close(1011, "Connection error");
+  }
+  async alarm(info?: AlarmInvocationInfo): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
       const now = Date.now();
       if (this.expiresAt && now >= this.expiresAt) {
+        diag("room.expired", roomFields(this.room));
         for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");
         await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY, TICKET_KEY]);
         this.tickets = {};
@@ -302,14 +345,25 @@ export class GameRoom extends DurableObject<Env> {
         this.tickets = activeTickets;
       }
       let disclosedAt: number | undefined;
-      if (this.room) {
-        // Bots stand in for whoever the barrier is still waiting on, so one
-        // unresponsive player can never strand the rest of the room.
-        const forced = forceBarrier(this.room, now);
-        if (forced) await this.commit(forced);
-        disclosedAt = this.broadcast();
+      const from = this.room && { phase: this.room.game.phase, revision: this.room.revision };
+      let forced = false;
+      try {
+        if (this.room) {
+          // Bots stand in for whoever the barrier is still waiting on, so one
+          // unresponsive player can never strand the rest of the room.
+          const next = forceBarrier(this.room, now);
+          if (next) { forced = true; await this.commit(next); }
+          disclosedAt = this.broadcast();
+        }
+        await this.rescheduleAlarm(disclosedAt);
+      } catch (error) {
+        // Rethrown so the runtime still retries. Without this line a handler that keeps throwing stalls the room silently.
+        diag("alarm.error", { ...roomFields(this.room), retryCount: info?.retryCount ?? 0, forced, name: error instanceof Error ? error.name : "unknown",
+          message: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack?.slice(0, 2000) : undefined }, "error");
+        throw error;
       }
-      await this.rescheduleAlarm(disclosedAt);
+      diag("alarm.run", { ...roomFields(this.room), scheduledAt: info?.scheduledTime ?? null, lateMs: info ? now - info.scheduledTime : null,
+        retryCount: info?.retryCount ?? 0, forced, from: from?.phase, fromRevision: from?.revision, ms: Date.now() - now });
     });
   }
 }

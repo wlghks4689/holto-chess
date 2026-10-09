@@ -11,15 +11,17 @@ import { cinematicTimeline } from "../../src/shared/presentationTimeline";
 
 const origin = "https://porena.test";
 const sockets: WebSocket[] = [];
-let sessionSequence = 0;
+let visitorSequence = 0;
+// Each unshared visitor gets its own 198.18.0.0/15 benchmark address, so no rate-limit bucket
+// is shared by accident and the limiter tests' deliberately exhausted 192.0.2.91/92 stay untouched.
+const visitor = () => { const n = ++visitorSequence; return `198.18.${n >> 8}.${n & 255}`; };
 afterEach(() => { for (const ws of sockets.splice(0)) ws.close(1000); });
 async function session(roomId?: string, ip?: string): Promise<SessionCredential> {
-  // Independent visitors keep the expanded suite from exhausting the shared unknown-IP quota.
-  const res = await exports.default.fetch(`${origin}/api/rooms${roomId ? `/${roomId}/join` : ""}`, { method: "POST", headers: { Origin: origin, "CF-Connecting-IP": ip ?? `192.0.2.${++sessionSequence}` } });
+  const res = await exports.default.fetch(`${origin}/api/rooms${roomId ? `/${roomId}/join` : ""}`, { method: "POST", headers: { Origin: origin, "CF-Connecting-IP": ip ?? visitor() } });
   expect(res.status).toBe(201); return res.json();
 }
 async function connect(s: SessionCredential, ip?: string) {
-  let protocols: Record<string, string> = {};
+  let protocols: Record<string, string> = { "CF-Connecting-IP": visitor() };
   if (ip) {
     const proof = await exports.default.fetch(`${origin}/api/rooms/${s.roomId}/connection-ticket`, { method: "POST", headers: { Origin: origin, "CF-Connecting-IP": ip, "X-Porena-Session": s.token } });
     expect(proof.status).toBe(201);

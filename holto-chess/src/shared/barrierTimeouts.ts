@@ -18,6 +18,8 @@ export const BARRIER_TIMEOUT_MS = {
   /** Six-round R6: the strongest five are pre-selected; a player only swaps cards in or out. */
   FINAL_LINEUP: 10_000,
   BOT_DRAFT_PICK: 1_800,
+  /** Six-round R3: a seat that won no auction card buys one leftover, on the auction screen. */
+  BUYBACK_PICK: 10_000,
   /** Six-round R5: the leader's opponent choice, a bot leader's pause, then the pairing on screen. */
   OPPONENT_SELECT: 15_000,
   BOT_OPPONENT_SELECT: 5_000,

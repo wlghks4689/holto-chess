@@ -1096,7 +1096,8 @@ function draftOrder(state: PorenaGameState, players: readonly PlayerState[]): { 
 
 /**
  * Six-round R3, after the auction result is shown: every seat that won nothing buys one unsold
- * auction card at double the base price, in draft order. With no such seat the Omaha matches start.
+ * auction card at double the base price, in draft order, on the auction screen itself (no deal-in
+ * beat). With no such seat the Omaha matches start.
  */
 export function finishCardAuctionReveal(source: PorenaGameState, now: number): PorenaGameState {
   const auction = source.finalAuction;
@@ -1109,7 +1110,7 @@ export function finishCardAuctionReveal(source: PorenaGameState, now: number): P
   delete state.finalAuction;
   if (!buyers.length || !unsold.length) { state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); assertPoolIntegrity(state); return state; }
   state.draft = { cardIds: unsold, order: draftOrder(state, buyers), picks: [], priceMultiplier: R3_AUCTION.buybackMultiplier };
-  state.phase = "DRAFT_ORDER";
+  state.phase = "OPEN_DRAFT";
   log(state, `낙찰 실패 ${buyers.length}명 · 남은 카드 2배 가격 구매`, "economy", { event: "AUCTION_BUYBACK_START", params: { players: buyers.length } });
   assertPoolIntegrity(state); return state;
 }

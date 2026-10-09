@@ -57,7 +57,8 @@ describe.each([
     const final = createPlayerView(room, "p1").standings;
     for (const session of room.sessions) expect(createPlayerView(room, session.playerId).standings).toEqual(final);
   });
-});
+// Whole six-round room games take ~10s alone and can pass 30s when the full suite runs in parallel.
+}, 60_000);
 
 describe("release audit: deadline and stale-action regressions", () => {
   it("settles either draft input or timeout once at the last 100ms and rejects the losing command", () => {
