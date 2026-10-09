@@ -138,7 +138,9 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
     expect(refused).toMatchObject({ type: "ERROR", code: "FORFEIT_CONFIRM_REQUIRED" });
     expect((await saved(host.roomId)).sessions[0]!.departed).toBeFalsy();
     expect((await a.send({ type: "LEAVE_ROOM", confirmForfeit: true })).type).toBe("ACK");
-    expect((await saved(host.roomId)).rankPending).toHaveLength(1);
+    // The real alarm may already have flushed it: queued or settled, but exactly once.
+    const queued = await saved(host.roomId);
+    expect((queued.rankPending?.length ?? 0) + (queued.rank!.results.p1 ? 1 : 0)).toBe(1);
     await runDurableObjectAlarm(stubFor(host.roomId));
     const room = await saved(host.roomId);
     expect(room.rankPending).toBeUndefined();
@@ -220,6 +222,9 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
     const solo = await seat(user.cookie, undefined, { "X-Porena-Mode": "solo" });
     const room = await saved(solo.roomId);
     expect(room).toMatchObject({ status: "PLAYING", solo: true, rank: { mode: "SOLO", humanCount: 1 } });
+    // It skips the lobby, but still gets the in-game lifetime, or an abandoned solo game would never be deleted.
+    const expiresAt = await runInDurableObject(stubFor(solo.roomId), (_instance, state) => state.storage.get<number>("expiresAt"));
+    expect(expiresAt).toBeGreaterThan(Date.now());
     const client = await connect(solo);
     expect(client.view()).toMatchObject({ solo: true, rank: { ranked: true, forfeited: false } });
   });

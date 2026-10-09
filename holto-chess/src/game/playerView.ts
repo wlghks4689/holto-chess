@@ -158,7 +158,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       ...(presentationViewFor(room, player.id, now) ? { presentation: presentationViewFor(room, player.id, now) } : {}) };
   }) : undefined;
   // Explicit allowlist: never spread GameState, PlayerState, MatchResult or logs into payloads.
-  const rankView = rankViewFor(room, viewerPlayerId);
+  const rankView = rankViewFor(room, viewerPlayerId, g.phase === "GAME_RESULT" && complete);
   const view: PlayerView = {
     ...(g.finalAuction ? { finalAuction: {
       startedAt: g.finalAuction.startedAt, endsAt: g.finalAuction.endsAt, hardEndsAt: g.finalAuction.hardEndsAt, serverNow: now,
@@ -211,8 +211,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     barrierEndsAt: complete ? barrierDeadline(room) : undefined, waitingOn: complete ? pendingBarrierIds(room) : [],
     me: privateView(me.id),
     ...(room.solo ? { solo: true } : {}),
-    // A placement result must not arrive before the shared final reveal; a forfeit has nothing to hide.
-    ...(rankView ? { rank: rankView.result && !rankView.forfeited && !(g.phase === "GAME_RESULT" && complete) ? { ...rankView, result: undefined, pending: true } : rankView } : {}),
+    ...(rankView ? { rank: rankView } : {}),
     ...(showdownPrepView(room, me.id) ? { showdownPrep: showdownPrepView(room, me.id) } : {}),
     ...(spectatorViews ? { spectatorViews, spectatorMatches: [...spectatorPool.values()] } : {}),
     players: g.players.map((p) => ({ ...(abilityVisible(p.id) ? { abilityId: p.abilityId } : {}), playerId: p.id, name: p.name, ...publicTotals(p.id), alive: !isEliminated(p.id), human: humanIds(room).includes(p.id), connected: connectedIds.includes(p.id), ready: readyInPhase(p.id), departed: !!room.sessions.find((s) => s.playerId === p.id)?.departed })),

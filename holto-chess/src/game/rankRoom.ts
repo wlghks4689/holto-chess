@@ -57,13 +57,19 @@ export function collectRankObligations(room: RoomSnapshot): boolean {
   return rank.recordedIds.length > before;
 }
 
-export type RankView = { ranked: boolean; forfeited: boolean; pending: boolean; result?: Exclude<RankResult, { skipped: true }> };
-/** The viewer's own rank state only. */
-export function rankViewFor(room: RoomSnapshot, playerId: string): RankView | undefined {
+export type RankView = { ranked: boolean; forfeited: boolean; leaveForfeits: boolean; pending: boolean; result?: Exclude<RankResult, { skipped: true }> };
+/**
+ * The viewer's own rank state only. `leaveForfeits` is the server's rule, so the exit dialog never guesses.
+ * A placement result waits for the shared final reveal (`resultsRevealed`); a forfeit has nothing to hide.
+ */
+export function rankViewFor(room: RoomSnapshot, playerId: string, resultsRevealed: boolean): RankView | undefined {
   const rank = room.rank;
-  if (!rank?.seats[playerId]) return undefined;
-  const result = rank.results[playerId];
-  return { ranked: true, forfeited: rank.forfeitIds.includes(playerId),
-    pending: !!room.rankPending?.some((entry) => entry.gameId === rank.gameId && entry.playerId === playerId),
-    ...(result && !("skipped" in result) ? { result } : {}) };
+  const result = rank?.results[playerId];
+  // An account deleted before settlement has no ranking left to show.
+  if (!rank?.seats[playerId] || (result && "skipped" in result)) return undefined;
+  const forfeited = rank.forfeitIds.includes(playerId);
+  const shown = result && (forfeited || resultsRevealed) ? result : undefined;
+  return { ranked: true, forfeited, leaveForfeits: leaveForfeits(room, playerId),
+    pending: !shown && (!!result || !!room.rankPending?.some((entry) => entry.gameId === rank.gameId && entry.playerId === playerId)),
+    ...(shown ? { result: shown } : {}) };
 }

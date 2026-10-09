@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import "./exit-dialog.css";
 import { useTranslation, type TranslationKey } from "../i18n";
 
@@ -24,11 +24,13 @@ export function ExitGameDialog({ mode, busy = false, onCancel, onConfirm }: {
 }) {
   const { t } = useTranslation();
   const copy = COPY[mode];
+  const latest = useRef({ busy, onCancel });
+  useEffect(() => { latest.current = { busy, onCancel }; });
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !busy) onCancel(); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !latest.current.busy) latest.current.onCancel(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [busy, onCancel]);
+  }, []);
   return <div className="exit-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="exit-dialog-title" onClick={busy ? undefined : onCancel}>
     <section className={`exit-dialog panel is-${mode}`} onClick={(event) => event.stopPropagation()}>
       <span className="eyebrow">{copy.eyebrow}</span>

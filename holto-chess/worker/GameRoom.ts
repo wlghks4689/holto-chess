@@ -77,7 +77,8 @@ export class GameRoom extends DurableObject<Env> {
   private async commit(next: RoomSnapshot): Promise<void> {
     if (next.publicTurnKey?.turn !== turnKey(next)) next.publicTurnKey = { turn: turnKey(next), key: token() };
     // The settlement duty is stored with the state change that created it, so a crash cannot lose it.
-    if (collectRankObligations(next)) { next.rankRetryAt = Date.now(); next.rankAttempts = 0; }
+    // A new duty is flushed at once, unless D1 is already failing: then it joins the running backoff.
+    if (collectRankObligations(next)) { next.rankRetryAt ??= Date.now(); next.rankAttempts ??= 0; }
     // Publish only after durable storage succeeds. Failed commands never replace the snapshot.
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
     catch {
@@ -87,8 +88,8 @@ export class GameRoom extends DurableObject<Env> {
     if (next.status === "LOBBY") {
       this.expiresAt = Date.now() + LOBBY_IDLE_LIFETIME_MS;
       await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
-    } else if (this.room?.status === "LOBBY") {
-      // The game started: it gets the normal in-game lifetime from now.
+    } else if (!this.room || this.room.status === "LOBBY") {
+      // The game started (a ranked solo room starts at creation): it gets the normal in-game lifetime from now.
       this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
       await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
     } else if (next.finalResultsReleasedAt && !this.room?.finalResultsReleasedAt) {
@@ -145,23 +146,21 @@ export class GameRoom extends DurableObject<Env> {
     const room = this.room;
     if (!room?.rankPending?.length || (room.rankRetryAt ?? 0) > now) return;
     const next = structuredClone(room);
-    const pending = next.rankPending!;
-    while (pending.length) {
-      const obligation = pending[0]!;
-      try {
-        const result = await settleRankObligation(this.env.ACCOUNT_DB, obligation, now);
-        pending.shift();
-        if (next.rank?.gameId === obligation.gameId) next.rank.results[obligation.playerId] = result;
-        diag("rank.settled", { ...roomFields(room), playerId: obligation.playerId, gameId: obligation.gameId, skipped: "skipped" in result });
-      } catch (error) {
-        next.rankAttempts = (next.rankAttempts ?? 0) + 1;
-        next.rankRetryAt = now + rankRetryDelay(next.rankAttempts);
-        diag("rank.error", { ...roomFields(room), playerId: obligation.playerId, gameId: obligation.gameId, attempts: next.rankAttempts,
-          message: error instanceof Error ? error.message : String(error) }, "error");
-        break;
+    // Independent accounts settle in parallel, so a full table holds the room for about one D1 round trip.
+    const settled = await Promise.allSettled(room.rankPending.map((obligation) => settleRankObligation(this.env.ACCOUNT_DB, obligation, now)));
+    next.rankPending = room.rankPending.filter((obligation, i) => {
+      const outcome = settled[i]!;
+      if (outcome.status === "fulfilled") {
+        if (next.rank?.gameId === obligation.gameId) next.rank.results[obligation.playerId] = outcome.value;
+        diag("rank.settled", { ...roomFields(room), playerId: obligation.playerId, gameId: obligation.gameId, skipped: "skipped" in outcome.value });
+        return false;
       }
-    }
-    if (!pending.length) { delete next.rankPending; delete next.rankRetryAt; delete next.rankAttempts; }
+      diag("rank.error", { ...roomFields(room), playerId: obligation.playerId, gameId: obligation.gameId, attempts: (room.rankAttempts ?? 0) + 1,
+        message: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason) }, "error");
+      return true;
+    });
+    if (!next.rankPending.length) { delete next.rankPending; delete next.rankRetryAt; delete next.rankAttempts; }
+    else { next.rankAttempts = (room.rankAttempts ?? 0) + 1; next.rankRetryAt = now + rankRetryDelay(next.rankAttempts); }
     next.revision++;
     await this.commit(next);
     this.broadcast();

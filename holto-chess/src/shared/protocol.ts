@@ -159,7 +159,8 @@ export type PlayerView = {
 };
 export type RankResultView = { seasonId: number; placement: number; finalScore: number; forfeited: boolean; base: number; scoreBonus: number; humanBonus: number; delta: number; before: number; after: number };
 /** pending: the server has fixed the outcome but the account DB has not confirmed it yet. */
-export type RankStateView = { ranked: boolean; forfeited: boolean; pending: boolean; result?: RankResultView };
+/** leaveForfeits: leaving now would be a ranked forfeit (the server's rule, used by the exit dialog). */
+export type RankStateView = { ranked: boolean; forfeited: boolean; leaveForfeits: boolean; pending: boolean; result?: RankResultView };
 export type ServerMessage =
   | { type: "CLOCK_SYNC"; nonce: string; receivedAt: number; sentAt: number }
   | { type: "PLAYER_VIEW"; payload: PlayerView }

@@ -36,6 +36,9 @@ describe("RANK-SYSTEM-002 room rank state", { timeout: 120_000 }, () => {
 
   it("requires an explicit confirmation before a live ranked seat forfeits, then records it once", () => {
     let room = started();
+    // The exit dialog reads the server's rule instead of guessing.
+    expect(createPlayerView(room, "p1").rank).toMatchObject({ ranked: true, leaveForfeits: true });
+    expect(createPlayerView(room, "p3").rank).toBeUndefined();
     expect(() => act(room, "p1", { type: "LEAVE_ROOM" })).toThrow("FORFEIT_CONFIRM_REQUIRED");
     room = act(room, "p1", { type: "LEAVE_ROOM", confirmForfeit: true });
     expect(room.rank!.forfeitIds).toEqual(["p1"]);
@@ -69,6 +72,7 @@ describe("RANK-SYSTEM-002 room rank state", { timeout: 120_000 }, () => {
   it("charges no forfeit to a seat that is already eliminated, or after the final result", () => {
     const room = started();
     room.game.players[0]!.eliminated = true;
+    expect(createPlayerView(room, "p1").rank).toMatchObject({ ranked: true, leaveForfeits: false });
     expect(act(room, "p1", { type: "LEAVE_ROOM" }).rank!.forfeitIds).toEqual([]);
     expect(act(finished(), "p2", { type: "LEAVE_ROOM" }).rank!.forfeitIds).toEqual([]);
   });
@@ -87,6 +91,10 @@ describe("RANK-SYSTEM-002 room rank state", { timeout: 120_000 }, () => {
     // The result stays hidden from the view until the server confirms it; a pending flag says so.
     expect(createPlayerView(room, "p1").rank).toMatchObject({ ranked: true, forfeited: false, pending: true });
     expect(createPlayerView(room, "p3").rank).toBeUndefined();
+    // An account deleted before settlement has no ranking to show, rather than "settling" forever.
+    room.rankPending = [];
+    room.rank!.results.p1 = { skipped: true };
+    expect(createPlayerView(room, "p1").rank).toBeUndefined();
   });
 
   it("starts a new ranked game on rematch without inheriting a forfeit, and keeps an unsent settlement", () => {
