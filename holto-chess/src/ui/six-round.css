@@ -226,6 +226,7 @@
 .cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.cinema-profile{padding:0!important}
 .cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.ability-badge{position:absolute!important;left:8px!important;top:var(--r6-tool-top)!important;width:var(--r6-tool)!important;height:var(--r6-tool);min-height:0!important;margin:0!important;display:block}
 .cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.ability-badge .ability-badge-button{box-sizing:border-box;width:var(--r6-tool)!important;height:var(--r6-tool)!important;min-width:0!important;min-height:0!important}
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.ability-badge .ability-activation{left:calc(100% + 5px);top:50%;transform:translateY(-50%);max-width:none;white-space:nowrap}
 .cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.cinema-equity-meter{box-sizing:border-box;top:var(--r6-tool-top);right:8px;width:var(--r6-tool);height:var(--r6-tool)}
 .cinema.cinema-final.cinema-board-final .cinema-seat .cinema-hole-cards:nth-child(n){display:grid;grid-template-columns:repeat(var(--hole-count,5),minmax(0,1fr));gap:var(--r6-card-gap);width:100%;max-width:calc(var(--hole-count,5) * var(--r6-card-max));margin:0 auto;zoom:1}
 .cinema.cinema-final.cinema-board-final .cinema-seat .cinema-hole-cards>.cinema-flip-slot:nth-child(n){zoom:1;width:auto;max-width:none;min-width:0}

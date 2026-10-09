@@ -409,4 +409,6 @@ main.game-arena:has(.cinema-final)::before{background-image:none}
   .cinema .cinema-seats .cinema-meter-layout>.cinema-equity-meter{box-sizing:border-box;top:8px;right:8px;width:32px;height:32px}
   .cinema .cinema-seats .cinema-meter-layout>.cinema-profile{padding-inline:0!important;margin-top:0}
   .cinema .cinema-seats .cinema-meter-layout>.cinema-equity-meter strong{font-size:10px}
+  /* The badge box is only the icon wide, so the label sits beside it on one line instead of inheriting that width. */
+  .cinema .cinema-seats .cinema-meter-layout>.ability-badge .ability-activation{left:calc(100% + 5px);top:50%;transform:translateY(-50%);max-width:none;white-space:nowrap}
 }
