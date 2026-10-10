@@ -83,7 +83,9 @@ function Scene({ scene }: { scene: Case }) {
   const view = qaView(round, count, scene.id.endsWith("golden-hand") ? "golden-hand" : undefined);
   const match = qaMatch(round, count, screen.endsWith("headsup") ? false : screen === "showdown-tiebreak" || round >= 4);
   // R6 board final on the live clock: three finalists, five locked cards each, one community board.
-  if (screen === "showdown-r6-final-live") Object.assign(match, { id:"qa-r6-final-live", round:6, final:true, stage:"final" });
+  if (screen === "showdown-r6-final-live") Object.assign(match, { id:"qa-r6-final-live", round:6, final:true, stage:"final",
+    // Cards owned but not played: two, one and none, so every BURN row state shows.
+    blockCards:{ p1:qaDeck.slice(44,46), p2:qaDeck.slice(46,47), p3:[] } });
   if (screen === "showdown-tiebreak") {
     match.stage = "secondary"; match.group = "loser"; match.tiebreakKind = "SURVIVAL_TIEBREAK";
     match.winnerIds = ["p2"]; match.boardWinnerIds = [["p2"]];
