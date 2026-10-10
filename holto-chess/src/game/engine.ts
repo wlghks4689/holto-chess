@@ -1130,7 +1130,8 @@ function beginOpponentSelect(state: PorenaGameState): void {
   const seats = new Map(state.players.map((player, index) => [player.id, index]));
   const order = state.players.filter((p) => !p.eliminated)
     .sort((a, b) => compareRoundStanding({ ...a, playerId: a.id }, { ...b, playerId: b.id }, seats)).map((p) => p.id);
-  state.opponentSelect = { order, chooserId: order[0]! };
+  state.opponentSelect = { order, chooserId: order[0]!,
+    cardsAtPairing: Object.fromEntries(order.map((id) => [id, [...playerById(state, id).ownedCardIds]])) };
   state.phase = "OPPONENT_SELECT";
   log(state, `R5 매칭 · ${playerById(state, order[0]!).name}이 상대를 선택`, "info", { event: "OPPONENT_SELECT_START", playerId: order[0], params: { player: playerById(state, order[0]!).name } });
 }

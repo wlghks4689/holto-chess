@@ -9,7 +9,8 @@ export type OpenDraft = { cardIds: string[]; order: { playerId: string; points: 
   /** Six-round R3 buyback: unsold auction cards at this multiple of the base price, never discounted. */
   priceMultiplier?: number };
 /** Six-round R5: the standings leader picks an opponent; the other two seats play each other. */
-export type OpponentSelect = { order: string[]; chooserId: string; opponentId?: string };
+/** cardsAtPairing: every survivor's cards when the pairing was shown (public then); later trades never change it. */
+export type OpponentSelect = { order: string[]; chooserId: string; opponentId?: string; cardsAtPairing?: Record<string, string[]> };
 export type PoolCardState = "AVAILABLE" | "RESERVED_IN_SHOP" | "OWNED";
 
 export type PoolCard = {

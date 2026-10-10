@@ -124,6 +124,8 @@ export type PlayerView = {
   opponentSelect?: { order: { playerId: string; points: number; stackBB: number; cards: Card[] }[]; chooserId: string; opponentId?: string };
   /** Six-round R5 pairs once the leader has chosen: [leader, chosen], [other two]. */
   pairings?: string[][];
+  /** Six-round R5 shop and placement: the viewer's opponent's cards as shown at the pairing (a fixed snapshot). */
+  pairedOpponent?: { playerId: string; cards: Card[] };
   /** R5 in five-round games, R6 in six-round games. */
   lastRound: Round;
   gameId: string; roomId: string; revision: number; turnKey: string;

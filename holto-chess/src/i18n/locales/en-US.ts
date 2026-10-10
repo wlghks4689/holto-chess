@@ -875,6 +875,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "prep.six.r6Board": "Five played + community board · three-way",
   "prep.six.r6Best5": "BEST5 of your five and the board",
   "opponent.yourOpponent": "R5 opponent: {player}",
+  "opponent.cardsAtPairing": "Opponent's cards at pairing",
   "exit.forfeitTitle": "Leave this game?",
   "exit.forfeitDescription": "If you leave now, this game counts as last place (8th) and the base -8 RP penalty applies.",
   "exit.forfeitHint": "Once confirmed, this can't be undone, even if you reconnect.",

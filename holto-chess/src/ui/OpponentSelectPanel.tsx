@@ -60,5 +60,10 @@ export function R5OpponentBanner({ view }: { view: PlayerView }) {
   const pair = view.pairings?.find((ids) => ids.includes(view.me.playerId));
   const opponentId = pair?.find((id) => id !== view.me.playerId);
   if (!opponentId) return null;
-  return <p className="r5-opponent-banner" role="status">{t("opponent.yourOpponent", { player: view.players.find((p) => p.playerId === opponentId)?.name ?? opponentId })}</p>;
+  const banner = <p className="r5-opponent-banner" role="status">{t("opponent.yourOpponent", { player: view.players.find((p) => p.playerId === opponentId)?.name ?? opponentId })}</p>;
+  const memo = view.pairedOpponent?.playerId === opponentId ? view.pairedOpponent.cards : undefined;
+  if (!memo?.length) return banner;
+  // What the opponent held when the pairing was shown; their later trades stay hidden.
+  return <div className="r5-opponent-memo">{banner}<div className="r5-opponent-memo-cards" role="group" aria-label={t("opponent.cardsAtPairing")} title={t("opponent.cardsAtPairing")}>
+    {memo.map((card) => <CardView key={card.id} card={card} compact />)}</div></div>;
 }

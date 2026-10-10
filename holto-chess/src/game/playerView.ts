@@ -208,6 +208,16 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     // The R5 pairing stays public through the shop and placement; never the other seats' new cards.
     ...(g.opponentSelect?.opponentId && ["SHOP", "RUN_LOADOUT", "SHOWDOWN_PRIMARY"].includes(g.phase) ? { pairings: [[g.opponentSelect.chooserId, g.opponentSelect.opponentId],
       g.opponentSelect.order.filter((id) => id !== g.opponentSelect!.chooserId && id !== g.opponentSelect!.opponentId)] } : {}),
+    // The viewer's R5 opponent as they stood at the pairing, so they can be read in the shop and placement.
+    // Only that snapshot: never the opponent's current cards, sales or purchases.
+    ...(() => {
+      const pick = g.opponentSelect;
+      if (!pick?.opponentId || !pick.cardsAtPairing || !["SHOP", "RUN_LOADOUT"].includes(g.phase)) return {};
+      const pairs = [[pick.chooserId, pick.opponentId], pick.order.filter((id) => id !== pick.chooserId && id !== pick.opponentId)];
+      const opponentId = pairs.find((ids) => ids.includes(viewerPlayerId))?.find((id) => id !== viewerPlayerId);
+      const cards = opponentId ? pick.cardsAtPairing[opponentId] : undefined;
+      return cards ? { pairedOpponent: { playerId: opponentId!, cards: cards.map((id) => getCard(g, id)) } } : {};
+    })(),
     lastRound: lastRoundFor(g),
     humanCount: room.sessions.length, capacity: 8,
     barrierEndsAt: complete ? barrierDeadline(room) : undefined, waitingOn: complete ? pendingBarrierIds(room) : [],

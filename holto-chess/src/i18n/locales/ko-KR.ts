@@ -873,6 +873,7 @@ export const koKR = {
   "prep.six.r6Board": "출전 5장 + 커뮤니티 보드 · 3-WAY",
   "prep.six.r6Best5": "출전 5장과 보드 10장 중 BEST5",
   "opponent.yourOpponent": "R5 상대: {player}",
+  "opponent.cardsAtPairing": "매칭 당시 상대 카드",
   "exit.forfeitTitle": "정말 게임에서 나가시겠습니까?",
   "exit.forfeitDescription": "지금 나가면 이번 게임은 최하위(8위) 처리되며, 기본 -8 RP가 적용됩니다.",
   "exit.forfeitHint": "이 결정은 확정 후 재접속해도 취소할 수 없습니다.",

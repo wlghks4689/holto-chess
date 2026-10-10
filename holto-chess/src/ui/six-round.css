@@ -295,3 +295,11 @@
   .game-arena .showdown-prep[data-round="6"] .final-block-cards{margin-top:6px}
   .game-arena .showdown-prep[data-round="6"] .showdown-prep-equity{margin:0 0 8px}
 }
+/* R5 shop and placement: opponent name and their cards at the pairing on one line, for reading their plan. */
+.r5-opponent-memo{display:flex;align-items:center;justify-content:center;gap:8px;width:fit-content;max-width:100%;margin:0 auto 10px;padding:4px 6px 4px 4px;border:1px solid #ffc76a66;border-radius:999px;background:#1b160ecc}
+.r5-opponent-memo .r5-opponent-banner{margin:0;white-space:nowrap}
+.r5-opponent-memo-cards{display:flex;gap:3px}
+/* Beats the shop's card sizing: these are a small reminder, not playable cards. */
+.game-arena .r5-opponent-memo-cards .playing-card,.r5-opponent-memo-cards .playing-card{width:26px!important;height:36px!important;min-width:0!important;flex:0 0 26px!important;padding:1px!important}
+.game-arena .r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit),.r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit){font-size:12px!important;line-height:1}
+@media(max-width:620px){.r5-opponent-memo{gap:5px}.r5-opponent-memo .r5-opponent-banner{padding:5px 9px;font-size:11px}.game-arena .r5-opponent-memo-cards .playing-card,.r5-opponent-memo-cards .playing-card{width:22px!important;height:31px!important;flex-basis:22px!important}.game-arena .r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit),.r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit){font-size:11px!important}}

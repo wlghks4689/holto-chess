@@ -180,6 +180,27 @@ describe("R5 RUN IT THREE TIMES", { timeout: 60_000 }, () => {
     expect(autoChooseOpponent(state).opponentSelect!.opponentId).toBe(pick.order[3]);
   });
 
+  it("shows each seat its opponent's cards as they were at the pairing, never their later trades", () => {
+    let state = toR5(53);
+    const pick = state.opponentSelect!;
+    const opponentOf: Record<string, string> = { [pick.chooserId]: pick.order[2]!, [pick.order[2]!]: pick.chooserId, [pick.order[1]!]: pick.order[3]!, [pick.order[3]!]: pick.order[1]! };
+    const atPairing = Object.fromEntries(pick.order.map((id) => [id, [...state.players.find((p) => p.id === id)!.ownedCardIds]]));
+    state = completeOpponentSelect(chooseOpponent(state, pick.chooserId, pick.order[2]!));
+    const view = (game: PorenaGameState, id: string) => createPlayerView({ schema: 1, roomId: "R5MEMO", revision: 0, status: "PLAYING", game,
+      sessions: pick.order.map((playerId) => ({ playerId, tokenHash: playerId, requests: [] })), readyIds: [], endedShopIds: [] }, id);
+    for (const id of pick.order) expect(view(state, id).pairedOpponent).toEqual({ playerId: opponentOf[id], cards: atPairing[opponentOf[id]!]!.map((cardId) => getCard(state, cardId)) });
+    // The opponent sells and buys in the shop: the memo still shows the pairing-time five.
+    const rival = opponentOf[pick.chooserId]!;
+    const sold = state.players.find((p) => p.id === rival)!.ownedCardIds[0]!;
+    state = sellCard(state, rival, sold);
+    state = buyCard(state, rival, state.players.find((p) => p.id === rival)!.shopCardIds[0]!);
+    expect(view(state, pick.chooserId).pairedOpponent!.cards.map((card) => card.id)).toEqual(atPairing[rival]);
+    state = prepareShowdown(state, []);
+    expect(state.phase).toBe("RUN_LOADOUT");
+    expect(view(state, pick.chooserId).pairedOpponent!.cards.map((card) => card.id)).toEqual(atPairing[rival]);
+    expect(view(lockRunLoadouts(state, []), pick.chooserId).pairedOpponent).toBeUndefined();
+  });
+
   it("plays the leader against the chosen seat and the other two against each other", () => {
     let state = toR5(52);
     const pick = state.opponentSelect!;
