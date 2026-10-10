@@ -39,6 +39,8 @@
 .tutorial-arena .error-toast{position:static}
 /* These are already explained by the coach; the shared live-game panels keep their full UI. */
 .tutorial-arena .r2-order-panel,.tutorial-arena .draft-heading-timer,.tutorial-arena .run-loadout-heading{display:none}
+.tutorial-arena .r2-draft:not(.r4-draft) .r2-order-panel{display:block;margin-block:8px}
+.tutorial-arena .r2-draft:not(.r4-draft) .r2-order li:not(.is-me){display:none}
 .tutorial-arena .r2-draft{display:block;min-height:0}
 .tutorial-arena .r2-draft .r2-stage{margin:0;padding:0;border:0;background:none;box-shadow:none}
 .tutorial-arena .r2-draft .r2-arena{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 6px;padding:10px 0;min-height:0}

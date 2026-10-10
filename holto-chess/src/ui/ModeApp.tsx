@@ -23,6 +23,7 @@ const RunTwicePreview = import.meta.env.DEV ? lazy(() => import("./RunTwicePrevi
 const FinalAuctionPreview = import.meta.env.DEV ? lazy(() => import("./FinalAuctionPreview").then(m => ({ default: m.FinalAuctionPreview }))) : null;
 const AccountPreview = import.meta.env.DEV ? lazy(() => import("./AccountPreview").then(m => ({ default: m.AccountPreview }))) : null;
 const EntrancePreview = import.meta.env.DEV ? lazy(() => import("./EntrancePreview").then(m => ({ default: m.EntrancePreview }))) : null;
+const PhasePreview = import.meta.env.DEV ? lazy(() => import("./PhasePreview").then(m => ({ default: m.PhasePreview }))) : null;
 // Chapters, practice scenarios and the simple bots load only when the guide is opened.
 // Privacy policy and terms (/privacy, /terms): public pages, fetched only when visited.
 const LegalPage = lazy(() => import("../legal/LegalPage").then((module) => ({ default: module.LegalPage })));
@@ -59,6 +60,7 @@ function ModeContent() {
   if (FinalAuctionPreview && location.pathname === "/final-auction-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><FinalAuctionPreview /></Suspense>;
   if (AccountPreview && location.pathname === "/account-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><AccountPreview /></Suspense>;
   if (EntrancePreview && location.pathname === "/entrance-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><EntrancePreview /></Suspense>;
+  if (PhasePreview && location.pathname === "/phase-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><PhasePreview /></Suspense>;
   if (ResponsivePreview && location.pathname === "/responsive-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><ResponsivePreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
   if (!mode || (!(restoring && mode === "multi") && (!account.canEnter || entryRequested))) return <StartScreen onStart={setMode} />;

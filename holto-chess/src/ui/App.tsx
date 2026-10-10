@@ -194,9 +194,10 @@ function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s
   return <div className="action-bar action-only">{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>{t("action.newGame")}<span>↻</span></button>}</div>;
 }
 
-export function App({ onHome }: { onHome: () => void }) {
+export function App({ onHome, previewState }: { onHome: () => void; previewState?: PorenaGameState }) {
+  const preview = import.meta.env.DEV && !!previewState;
   const { locale, t } = useTranslation();
-  const [rawState, setState] = useState(newLocalGame);
+  const [rawState, setState] = useState(() => preview ? previewState! : newLocalGame());
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
   const state = useMemo(() => localizeSeatNames(rawState, t), [rawState, locale]); const [error, setError] = useState<ReceivedGameError | null>(null);
   const [exiting, setExiting] = useState(false);
@@ -212,7 +213,7 @@ export function App({ onHome }: { onHome: () => void }) {
   // Timed auction rounds skip the automatic guide: the five-round final auction and the six-round R3 auction, which has its own pamphlet.
   const timedAuctionRound = state.sixRounds ? state.round === 3 : state.round === 5;
   // The R1 guide waits for the shop: the ability deal gives each player only a few seconds to read their card.
-  const guideOpen = manualGuideRound !== null || !timedAuctionRound && !state.phase.startsWith("ABILITY_") && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
+  const guideOpen = manualGuideRound !== null || !preview && !timedAuctionRound && !state.phase.startsWith("ABILITY_") && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
   const lineupStep = isLineupFinal(state.round, state);
   const opponentStep = `${state.opponentSelect?.chooserId ?? ""}:${state.opponentSelect?.opponentId ?? ""}`;
   const guideRound = manualGuideRound ?? state.round;
@@ -222,7 +223,7 @@ export function App({ onHome }: { onHome: () => void }) {
   };
   useEffect(() => {
     const phase = state.phase;
-    if (guideOpen) return;
+    if (guideOpen || preview) return;
     if (!["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
     const [chooserId, opponentId] = opponentStep.split(":");
     const delay = phase === "OPPONENT_SELECT" ? opponentId ? BARRIER_TIMEOUT_MS.OPPONENT_REVEAL
@@ -244,11 +245,11 @@ export function App({ onHome }: { onHome: () => void }) {
       : isDraftRevealing(s) ? completeDraft(s)
       : autoPickDraft(s, true))), delay);
     return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex, draftPickerId, buybackDraft, draftRevealing, guideOpen, opponentStep, lineupStep]);
+  }, [state.phase, draftPickIndex, draftPickerId, buybackDraft, draftRevealing, guideOpen, opponentStep, lineupStep, preview]);
   const finalRound = isFinalRound(state.round, state);
   useEffect(() => { if (finalRound) preloadFinalArena(); else preloadShowdownStage(state.round, false); }, [state.round, finalRound]);
   useEffect(() => {
-    if (state.phase !== "FINAL_AUCTION" && state.phase !== "FINAL_LOADOUT") return;
+    if (preview || state.phase !== "FINAL_AUCTION" && state.phase !== "FINAL_LOADOUT") return;
     const timer = setInterval(() => setState(s => {
       const now = Date.now();
       if (s.phase === "FINAL_AUCTION") {
@@ -262,7 +263,7 @@ export function App({ onHome }: { onHome: () => void }) {
       return finishFinalLoadouts(s, now);
     }), 150);
     return () => clearInterval(timer);
-  }, [state.phase]);
+  }, [state.phase, preview]);
   const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(advanceLocalNextRound(fn(state))); setError(null); } catch (caught) { const message = caught instanceof Error ? caught.message : ""; setError({ ...classifyGameError(message), message }); } };
   const prep = getPrepPresentation(state.round, state.phase, lastRound);
   const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
@@ -282,7 +283,7 @@ export function App({ onHome }: { onHome: () => void }) {
   const reset = () => { setGameVersion((value) => value + 1); setState(newLocalGame()); };
   const nav = <><nav><a className="brand" href="#top"><ArenaBrand /></a><RoundProgress round={state.round} prep={prep} lastRound={lastRound} /><div className="nav-status"><div className="nav-actions"><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}</>;
-  return <CinematicGate key={gameVersion} nav={nav} soundSessionId={`local:${gameVersion}`} matches={cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated, abilityId: p.abilityId }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase.startsWith("ABILITY_") ? "ABILITY" : state.phase}`} active={state.phase === "ROUND_RESULT" && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
+  return <CinematicGate key={gameVersion} nav={nav} soundSessionId={`local:${gameVersion}`} matches={preview ? [] : cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated, abilityId: p.abilityId }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase.startsWith("ABILITY_") ? "ABILITY" : state.phase}`} active={state.phase === "ROUND_RESULT" && !preview && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {guideOpen ? <RoundGuide round={guideRound} lastRound={lastRound} onClose={closeGuide} confirmLabel={manualGuideRound === null ? undefined : t("round.returnToGame")} /> : null}
     {nav}
     <div id="top" data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>

@@ -156,6 +156,24 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
 .game-arena .r2-draft .draft-heading-timer .phase-timer>span{font-size:8px;margin-bottom:3px}
 .game-arena .r2-draft .draft-heading-timer .phase-timer strong{font-size:22px}
 .game-arena .r2-draft .draft-heading-timer .phase-timer strong i{font-size:8px;margin-left:2px}
+@media(min-width:769px){
+  main.game-arena:has(.r2-draft){background:#030b14}
+  main.game-arena:has(.r2-draft)::before{display:none}
+  .game-arena .r2-draft .r2-order-panel{background:#031726;backdrop-filter:none}
+  .game-arena .r2-draft .r2-stage{background:linear-gradient(180deg,#02091614,#020a1733 55%,#02081380),url('/assets/draft/castle-heraldry-desktop.webp') center/cover no-repeat}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading{position:absolute;top:25%;left:14px;width:calc(100% - 28px);min-height:110px;padding-inline:96px;transform:translateY(-50%)}
+  .game-arena .r2-draft:not(.r4-draft) .r2-arena{position:absolute;top:78%;left:14px;width:calc(100% - 28px);min-height:0;padding:0;transform:translateY(-50%)}
+  .game-arena .r2-draft:not(.r4-draft) .r2-current{position:absolute;top:48%;left:14px;width:calc(100% - 28px)}
+  .game-arena .r2-draft:not(.r4-draft) .draft-title-row{font-size:24px}
+  .game-arena .r2-draft:not(.r4-draft) .draft-title-row::before{flex-basis:32px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading h2{font-size:32px}
+  .game-arena .r2-draft:not(.r4-draft) .draft-help>summary{width:32px;height:32px;font-size:24px}
+  .game-arena .r2-draft:not(.r4-draft) .draft-heading-timer .phase-timer{width:84px;height:60px;padding:6px 8px;font-size:24px;align-content:center}
+  .game-arena .r2-draft:not(.r4-draft) .draft-heading-timer .phase-timer strong{font-size:24px}
+  .game-arena .r2-draft:not(.r4-draft) .draft-heading-timer .phase-timer>span,.game-arena .r2-draft:not(.r4-draft) .draft-heading-timer .phase-timer strong i{font-size:10px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-copy,.game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-copy>strong,.game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .ability-benefit{font-size:18px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .ability-badge-button{width:38px;height:38px}
+}
 .cinema .cinema-run-matchup.is-summary .cinema-run-player.is-loser .playing-card{opacity:.78;filter:brightness(.9) saturate(.8)}
 .game-arena .page-shell:has(>.showdown-prep){padding-block:12px}
 .game-arena .showdown-prep{display:grid;grid-template-rows:auto 1fr auto;min-height:calc(100dvh - 102px);padding:0}
@@ -688,8 +706,40 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
   .game-arena .shop-page:is([data-round="5"],[data-round="6"]){--shop-hand-slots:7}
   .game-arena .shop-page :is(.owned-row,.market-row){flex-wrap:nowrap;gap:4px}
 }
+/* R2 public hands live beside each player's pick order, including the acquired third card. */
+.game-arena .panel.r2-draft:not(.r4-draft){grid-template-columns:minmax(330px,380px) minmax(0,1fr)}
+.game-arena .r2-draft:not(.r4-draft) .r2-order li{grid-template-columns:20px minmax(0,1fr) auto 48px;grid-template-rows:auto auto;min-height:72px;gap:3px 6px;padding:6px}
+.game-arena .r2-draft:not(.r4-draft) .r2-order-number{grid-column:1;grid-row:1/3;font-size:12px}
+.game-arena .r2-draft:not(.r4-draft) .r2-order-name{grid-column:2;grid-row:1;font-size:15px;white-space:nowrap}
+.game-arena .r2-draft:not(.r4-draft) .r2-order-stats{grid-column:2;grid-row:2;font-size:12px}
+.game-arena .r2-draft:not(.r4-draft) .r2-order-status{grid-column:4;grid-row:1/3;font-size:9px}
+.r2-order-cards{grid-column:3;grid-row:1/3;display:flex;gap:3px;align-items:center;--order-card-width:38px}
+.r2-order-cards .playing-card,.r2-order-empty{width:var(--order-card-width);height:auto;aspect-ratio:var(--card-ratio);flex:0 0 var(--order-card-width);min-height:0;padding:2px}
+.r2-order-cards .playing-card .card-rank{font-size:15px}
+.r2-order-cards .playing-card .card-suit{font-size:20px}
+.r2-order-empty{display:grid;place-items:center;border:1px dashed #6ec7d766;border-radius:4px;color:#8ac6d8;background:#04121f80}
+.game-arena .r2-draft:not(.r4-draft) .r2-order li.is-picked{opacity:1}
+@media(max-width:768px){
+  .game-arena .panel.r2-draft:not(.r4-draft){display:flex}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-panel{padding:6px 7px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order{gap:3px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order li{grid-template-columns:16px minmax(0,1fr) auto 43px;min-height:clamp(38px,6dvh,58px);padding:3px 4px;gap:1px 5px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-number{font-size:10px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-name{font-size:13px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-stats{font-size:10px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-status{font-size:8px}
+  .r2-order-cards{--order-card-width:clamp(22px,3.8dvh,32px);gap:3px}
+  .r2-order-cards .playing-card .card-rank{font-size:12px}
+  .r2-order-cards .playing-card .card-suit{font-size:16px}
+}
 /* Minimum-height phones keep the same content; trim controls/spacing, not overflow. */
 @media(max-width:768px) and (max-height:700px){
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-cards{--order-card-width:22px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order li{min-height:36px;padding-block:2px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order{gap:2px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-offer .playing-card{max-width:32px}
+  .game-arena .page-shell:has(>.r2-draft:not(.r4-draft))>.round-header{min-height:42px;margin-bottom:4px}
+  .game-arena .page-shell:has(>.r2-draft:not(.r4-draft))>.round-header h1{font-size:26px}
   .game-arena .page-shell:has(>:is(.round-results,.r2-draft)),.game-arena .shop-page{padding-bottom:4px}
   .game-arena .shop-page>.round-header{min-height:46px;margin-bottom:4px}
   .game-arena .shop-page :is(.card-sell-button,.card-lock,.card-purchase){min-height:28px;padding-block:3px}
@@ -784,4 +834,40 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
   .cinema.cinema-final .cinema-seat>.cinema-profile{min-height:38px}
   .cinema.cinema-final .cinema-profile>b{font-size:12px}
   .cinema.cinema-final .cinema-seats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:768px) and (max-height:600px){
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-cards{--order-card-width:18px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order li{min-height:30px;padding-block:1px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order{gap:1px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-panel{padding-block:4px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-name{font-size:12px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-stats{font-size:9px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-cards .card-rank{font-size:10px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-cards .card-suit{font-size:12px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-offer .playing-card{max-width:24px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-price{min-height:16px;padding-block:1px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-copy{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-panel{margin-top:0;padding-block:0}
+}
+/* Tablet columns need room for the heading and all three public hand slots. */
+@media(min-width:769px) and (max-width:1100px){
+  .game-arena .panel.r2-draft:not(.r4-draft){grid-template-columns:300px minmax(0,1fr);column-gap:16px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order li{grid-template-columns:16px minmax(0,1fr) auto 43px;min-height:64px;gap:3px 4px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-name{font-size:13px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-stats{font-size:10px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-order-cards{--order-card-width:30px}
+  .game-arena .r2-draft .r2-stage{background-image:linear-gradient(180deg,#02091614,#020a1733 55%,#02081380),url('/assets/draft/castle-heraldry-mobile.webp')}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading{padding-inline:66px;min-height:90px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading h2{font-size:24px;white-space:nowrap}
+  .game-arena .r2-draft:not(.r4-draft) .draft-title-row::before{flex-basis:24px}
+  .game-arena .r2-draft:not(.r4-draft) .draft-help>summary{width:24px;height:24px;font-size:18px}
+  .game-arena .r2-draft:not(.r4-draft) .draft-heading-timer .phase-timer{width:60px;height:52px}
+  .game-arena .r2-draft:not(.r4-draft) .draft-heading-timer .phase-timer>span{font-size:8px;letter-spacing:0;white-space:nowrap}
+  .game-arena .r2-draft:not(.r4-draft) .r2-arena{grid-template-columns:repeat(4,minmax(0,1fr));top:68%;gap:12px 8px}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-copy,.game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-copy>strong,.game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .ability-benefit{font-size:14px;white-space:nowrap}
+  .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .ability-badge-button{width:30px;height:30px}
+}
+@media(max-width:768px){
+  main.game-arena:has(.r2-draft)::before{background-image:linear-gradient(180deg,#020c1b25 0%,#020c1b12 28%,#020c1b66 57%,#020b19ed 100%),url('/assets/draft/castle-heraldry-mobile.webp');background-size:100% auto;background-position:center top;background-color:#03101d}
 }

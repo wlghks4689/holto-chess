@@ -6,7 +6,7 @@ import { autoPickDraft, openDraft, pickDraftCard, prepareShowdown, resolvePrimar
 import { createPlayerView } from "../game/playerView";
 import { OpenDraftPanel } from "./OpenDraft";
 import { R4DraftArena } from "./R4DraftArena";
-import { makeDeck } from "../core/poker/cards";
+import { cardLabel, makeDeck } from "../core/poker/cards";
 import { canPickR2Card, DRAFT_DEAL_MS } from "./r2DraftPresentation";
 
 function fixture(open = false) {
@@ -17,19 +17,17 @@ function fixture(open = false) {
   if (open) room.game = openDraft(room.game);
   return createPlayerView(room, room.game.draft!.order[0].playerId);
 }
-it("renders eight public cards with a compact hand-free order panel", () => {
+it("shows every player's public hand in three order slots without a separate private hand", () => {
   const view = fixture();
   const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view, send: () => {}, disabled: false, seconds: 20 }));
   expect(html.match(/class="r2-card-slot /g)).toHaveLength(8);
   expect(html.match(/class="r2-order-name"/g)).toHaveLength(8);
-  expect(html).not.toContain("draft-hand");
-  expect(html).toMatch(/class="draft-private-hand(?: has-timer)?"/);
-  expect(html).toContain("내 보유 카드");
+  expect(html).not.toContain("draft-private-hand");
+  expect(html.match(/class="r2-order-cards"/g)).toHaveLength(8);
+  expect(html.match(/class="r2-order-empty"/g)).toHaveLength(8);
+  for (const cards of Object.values(view.draft!.publicHands!)) for (const card of cards) expect(html).toContain(`aria-label="${cardLabel(card)}"`);
   expect(html).not.toContain('class="draft-private-help"');
   expect(html).not.toContain('aria-label="보유 카드 공개 범위 보기"');
-  expect(html.indexOf('class="draft-private-hand')).toBeGreaterThan(html.indexOf('class="r2-arena"'));
-  const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
-  expect(hand.match(/class="playing-card/g)).toHaveLength(view.me.ownedCards.length);
   expect(html).toContain("드래프트 선택 순서");
   expect(html).toContain('class="draft-heading-timer"');
   expect(html).not.toContain('class="draft-private-timer"');
@@ -50,7 +48,7 @@ it("renders eight public cards with a compact hand-free order panel", () => {
   expect(DRAFT_DEAL_MS).toBeGreaterThanOrEqual(1200);
   expect(DRAFT_DEAL_MS).toBeLessThanOrEqual(1600);
 });
-it("adds the purchased card to the same viewer's centered private hand", () => {
+it("adds the purchased card to its buyer's order row and fills the third slot", () => {
   const room = addSession(createRoom("DRAFT-PICK", 303), "one").room;
   room.status = "PLAYING";
   room.game = openDraft(startNextRound(leaveRoundResult(resolvePrimary(prepareShowdown(room.game, [])))));
@@ -61,10 +59,12 @@ it("adds the purchased card to the same viewer's centered private hand", () => {
   room.game = pickDraftCard(room.game, viewer, chosen.card.id);
   const after = createPlayerView(room, viewer);
   const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view: after, send: () => {}, disabled: false, seconds: 20 }));
-  const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
+  const row = html.match(/<li[^>]*>[\s\S]*?<\/li>/)?.[0] ?? "";
   expect(after.me.ownedCards).toHaveLength(before.me.ownedCards.length + 1);
   expect(after.me.ownedCards.some((card) => card.id === chosen.card.id)).toBe(true);
-  expect(hand.match(/class="playing-card/g)).toHaveLength(after.me.ownedCards.length);
+  expect(row.match(/class="playing-card/g)).toHaveLength(3);
+  expect(row).not.toContain('class="r2-order-empty"');
+  expect(after.draft!.publicHands![viewer].some(card => card.id === chosen.card.id)).toBe(true);
 });
 it("blocks selection during dealing, claimed, other turns, insufficient BB and server-disabled states", () => {
   const view = fixture(true);
