@@ -19,6 +19,7 @@ import { ShowdownCardFlip } from "./ShowdownCardFlip";
 import { FinalArenaBackdrop } from "./FinalArenaBackdrop";
 import { CardView } from "./CardView";
 import { FinalPlaceBanner } from "./FinalPlaceBanner";
+import { FinalArenaFx } from "./FinalArenaFx";
 import type { Card } from "../core/poker/cards";
 import { useCinematicMotion } from "./useCinematicMotion";
 import { showdownSeatOrder } from "./showdownSeatOrder";
@@ -219,6 +220,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     {stage && <div className="cinema-stage" aria-hidden="true" style={{ "--stage-focus": stage.focus } as CSSProperties}><img src={stage.image} alt="" /><i /></div>}
     {final && <div className="cinema-final-arena" aria-hidden="true" style={{ "--arena-progress": arenaZoomProgress(elapsed) } as CSSProperties}>
       <FinalArenaBackdrop /><i /></div>}
+    {final && motion.enabled && <FinalArenaFx phase={frame.phase} winnerIds={match.winnerIds} catchUp={catchUp} />}
     <div className="cinema-seats">{intro && !multi && <span className="cinema-vs" aria-hidden="true">VS</span>}{ids.map((id, index) => {
       const result = results.find((r) => r.playerId === id);
       const streetResult = streetSnapshot?.results.find((r) => r.playerId === id);
@@ -307,7 +309,11 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       {finalBoard && ids.map((id, index) => {
         const result = results.find((r) => r.playerId === id);
         const place = result && (finalWinnerStage || frame.phase === "FINAL_PLACE" && frame.finalPlace !== undefined && result.place >= frame.finalPlace) ? result.place : undefined;
-        return place ? <FinalPlaceBanner key={`podium-${id}`} column={index + 1} place={place} label={placeText(place)} split={place === 1 && match.winnerIds.length > 1 ? "SPLIT" : undefined} /> : null;
+        // First place gets a crowned crest under the arena spotlight instead of a ribbon.
+        if (place === 1) return <div key={`podium-${id}`} className="cinema-champion-crest" role="img" aria-label={match.winnerIds.length > 1 ? `SPLIT ${placeText(1)}` : placeText(1)} style={{ gridColumn: index + 1 }}>
+          <svg viewBox="0 0 48 30" aria-hidden="true"><path d="M4 26 L2 8 L14 16 L24 2 L34 16 L46 8 L44 26 Z" /><circle cx="2" cy="8" r="2.4" /><circle cx="24" cy="2" r="2.4" /><circle cx="46" cy="8" r="2.4" /></svg>
+          <b>{match.winnerIds.length > 1 ? "CO-CHAMPION" : "CHAMPION"}</b></div>;
+        return place ? <FinalPlaceBanner key={`podium-${id}`} column={index + 1} place={place} label={placeText(place)} /> : null;
       })}</div>
     {!intro && (!final || finalBoard) && <div className={`cinema-board-stack ${finalBoard ? "final-community-board" : ""} ${match.runoutCount === 2 ? "run-it-twice" : ""} ${tripleRun ? "run-it-three-times" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
       const current = boardIndex === frame.boardIndex;

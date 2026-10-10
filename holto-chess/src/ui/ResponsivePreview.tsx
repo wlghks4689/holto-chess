@@ -30,6 +30,7 @@ import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 type Case = { id: string; screen: string; round: Round; count: number };
 const cases: Case[] = [];
 cases.push({ id:"showdown-equity-live", screen:"showdown-equity-live", round:2, count:3 });
+cases.push({ id:"showdown-r6-final-live", screen:"showdown-r6-final-live", round:4, count:5 });
 cases.push({ id: "shop-reroll-interaction", screen: "shop", round: 1, count: 1 });
 cases.push({ id: "shop-r1-golden-hand", screen: "shop", round: 1, count: 0 });
 for (const round of [1,2,3,4,5] as const) {
@@ -81,6 +82,8 @@ function Scene({ scene }: { scene: Case }) {
   const { screen, round, count } = scene;
   const view = qaView(round, count, scene.id.endsWith("golden-hand") ? "golden-hand" : undefined);
   const match = qaMatch(round, count, screen.endsWith("headsup") ? false : screen === "showdown-tiebreak" || round >= 4);
+  // R6 board final on the live clock: three finalists, five locked cards each, one community board.
+  if (screen === "showdown-r6-final-live") Object.assign(match, { id:"qa-r6-final-live", round:6, final:true, stage:"final" });
   if (screen === "showdown-tiebreak") {
     match.stage = "secondary"; match.group = "loser"; match.tiebreakKind = "SURVIVAL_TIEBREAK";
     match.winnerIds = ["p2"]; match.boardWinnerIds = [["p2"]];
@@ -117,7 +120,7 @@ function Scene({ scene }: { scene: Case }) {
     const frames = cinematicTimeline(match);
     const switchPhase = screen === "showdown-switch-out" ? "CARD_SWITCH_OUT" : screen === "showdown-switch-in" ? "CARD_SWITCH_IN" : undefined;
     const elapsed = switchPhase ? frames.find(f=>f.phase === switchPhase)!.at + 100 : benefitQa ? frames.find(f=>f.phase === (round === 5 ? "FINAL_WINNER" : round === 2 ? "RUN_RESULT" : "RESULT"))!.at + 250 : screen === "showdown-run1-result" ? frames.find(f=>f.phase === "RUN_RESULT")!.at : screen === "showdown-run2-river" ? frames.find(f=>f.phase === "RIVER_SETTLE" && f.boardIndex === 1)!.at : Number.MAX_SAFE_INTEGER;
-    return <ShowdownCinematic match={match} profiles={profiles} viewerId="p1" onComplete={() => {}} elapsedMs={screen === "showdown-equity-live" ? undefined : elapsed} nextMatchSeconds={screen === "showdown" || screen === "showdown-tiebreak" ? 3 : undefined} catchUp={screen !== "showdown-equity-live"} />;
+    return <ShowdownCinematic match={match} profiles={profiles} viewerId="p1" onComplete={() => {}} elapsedMs={screen.endsWith("-live") ? livePhaseAt(frames) : elapsed} nextMatchSeconds={screen === "showdown" || screen === "showdown-tiebreak" ? 3 : undefined} catchUp={!screen.endsWith("-live")} />;
   }
   if (screen.startsWith("match")) {
     const seats = match.participantIds.map((playerId, i) => ({ playerId, name:QA_NAMES[i]!, points:12345, abilityId:ABILITY_IDS[i], cards:match.revealedCards[playerId]!, ...(round === 2 ? { runCards:[match.revealedCards[playerId]!.slice(0,2),match.revealedCards[playerId]!.slice(-2)] as [typeof qaDeck,typeof qaDeck] } : {}) }));
@@ -139,6 +142,13 @@ function Scene({ scene }: { scene: Case }) {
 }
 
 /** Reuses production components; no network actions, timers or new test dependencies. */
+/** `&phase=RIVER` (optionally `&offset=ms`) pins a live case to one phase, for checking a beat in isolation. */
+function livePhaseAt(frames: { at: number; phase: string }[]): number | undefined {
+  const params = new URLSearchParams(location.search);
+  const frame = frames.find((f) => f.phase === params.get("phase"));
+  return frame ? frame.at + Number(params.get("offset") ?? 100) : undefined;
+}
+
 export function ResponsivePreview() {
   const [selected,setSelected] = useState(new URLSearchParams(location.search).get("case") ?? "shop-r4-5");
   const [audit,setAudit] = useState<ReturnType<typeof auditResponsiveLayout> | null>(null);

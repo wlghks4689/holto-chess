@@ -303,3 +303,16 @@
 .game-arena .r5-opponent-memo-cards .playing-card,.r5-opponent-memo-cards .playing-card{width:26px!important;height:36px!important;min-width:0!important;flex:0 0 26px!important;padding:1px!important}
 .game-arena .r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit),.r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit){font-size:12px!important;line-height:1}
 @media(max-width:620px){.r5-opponent-memo{gap:5px}.r5-opponent-memo .r5-opponent-banner{padding:5px 9px;font-size:11px}.game-arena .r5-opponent-memo-cards .playing-card,.r5-opponent-memo-cards .playing-card{width:22px!important;height:31px!important;flex-basis:22px!important}.game-arena .r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit),.r5-opponent-memo-cards .playing-card :is(.card-rank,.card-suit){font-size:11px!important}}
+/* Final round: Pixi arena light sits between the artwork and the seats. */
+.cinema-final>.cinema-final-fx{position:fixed;inset:0;z-index:1;pointer-events:none}
+.cinema-final-fx canvas{display:block;width:100%;height:100%}
+/* Champion: crowned crest in the podium slot, and the winning seat steps forward into the light. */
+.cinema.cinema-final.cinema-board-final .cinema-seats>.cinema-champion-crest{grid-row:3;align-self:start;justify-self:center;margin-top:calc(var(--podium-w) * .12)}
+.cinema-champion-crest{position:relative;z-index:4;display:flex;flex-direction:column;align-items:center;gap:2px;translate:0 -62%;pointer-events:none;animation:champion-crest-in calc(700ms * var(--final-beat,1)) cubic-bezier(.2,1.4,.4,1) both}
+.cinema-champion-crest svg{width:calc(var(--podium-w,120px) * .34);height:auto;overflow:visible;fill:#f4c95d;stroke:#fff3c4;stroke-width:1.2;stroke-linejoin:round;filter:drop-shadow(0 0 8px rgba(255,209,102,.75)) drop-shadow(0 2px 3px #000a)}
+.cinema-champion-crest b{font:800 clamp(11px,1.5vw,15px) Manrope,sans-serif;letter-spacing:.22em;padding-left:.22em;background:linear-gradient(180deg,#fff6d2,#f4d77f 55%,#c48a22);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 2px #000c)}
+@keyframes champion-crest-in{0%{opacity:0;scale:.4;translate:0 -20%}60%{opacity:1}100%{opacity:1;scale:1;translate:0 -62%}}
+.cinema-final .cinema-seat{transition:background .4s,border-color .4s,box-shadow .4s,opacity .45s,filter .45s,transform .6s cubic-bezier(.2,1.2,.4,1)}
+.cinema-final .cinema-seat.cinema-winner{transform:translateY(-8px);box-shadow:0 0 0 1px #f4d77f,0 0 38px rgba(244,201,93,.35),0 14px 30px rgba(0,0,0,.45)}
+.cinema-final .cinema-seat.cinema-loser{transform:translateY(4px)}
+@media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) .cinema-champion-crest{animation:none}.cinema:not(.cinema-motion-enabled).cinema-final .cinema-seat{transition:none}}

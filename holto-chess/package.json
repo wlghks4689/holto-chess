@@ -21,6 +21,7 @@
     "@discord/embedded-app-sdk": "2.5.0",
     "@vitejs/plugin-react": "latest",
     "jose": "6.2.12",
+    "pixi.js": "^8.22.0",
     "react": "latest",
     "react-dom": "latest",
     "typescript": "latest",
