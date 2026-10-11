@@ -354,10 +354,10 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const completed = !pending && (!current || flags.glow);
       const boardTitle = boardIndex < match.runoutCount ? match.runoutCount > 1 ? `RUN ${boardIndex + 1}` : t("cinema.communityBoard")
         : `${match.tiebreakKind?.replaceAll("_", " ") ?? "SUDDEN DEATH"} ${boardIndex - match.runoutCount + 1}`;
-      // R5: the seats above hold the live RUN's hands, so a finished RUN box only shows the viewer's
+      // R2 and R5: the seats above hold the live RUN's hands, so a finished RUN box only shows the viewer's
       // outcome as its tint; hovering or tapping it opens that RUN's cards and result. A spectator has no
       // side, so a decided RUN gets a neutral tint rather than the first seat's win or loss.
-      const runOutcome = tripleRun && boardIndex < match.runoutCount && completed
+      const runOutcome = multiRun && boardIndex < match.runoutCount && completed
         ? boardWinners.length > 1 ? "split" : !ids.includes(viewerId) ? "decided" : boardWinners.includes(viewerId) ? "win" : "loss" : undefined;
       const toggleDetail = () => setRunDetail((open) => open === boardIndex ? null : boardIndex);
       // R5: once the match result is out, the last RUN settles to the finished RUN size too.
