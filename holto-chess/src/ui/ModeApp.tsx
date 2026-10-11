@@ -20,6 +20,7 @@ const AbilityPreview = lazy(() => import("./AbilityPreview").then((m) => ({ defa
 const ResponsivePreview = import.meta.env.DEV ? lazy(() => import("./ResponsivePreview").then(m => ({ default: m.ResponsivePreview }))) : null;
 const MadePreview = import.meta.env.DEV ? lazy(() => import("./MadePreview").then(m => ({ default: m.MadePreview }))) : null;
 const RunTwicePreview = import.meta.env.DEV ? lazy(() => import("./RunTwicePreview").then(m => ({ default: m.RunTwicePreview }))) : null;
+const RunThreePreview = import.meta.env.DEV ? lazy(() => import("./RunThreePreview").then(m => ({ default: m.RunThreePreview }))) : null;
 const FinalAuctionPreview = import.meta.env.DEV ? lazy(() => import("./FinalAuctionPreview").then(m => ({ default: m.FinalAuctionPreview }))) : null;
 const AccountPreview = import.meta.env.DEV ? lazy(() => import("./AccountPreview").then(m => ({ default: m.AccountPreview }))) : null;
 const EntrancePreview = import.meta.env.DEV ? lazy(() => import("./EntrancePreview").then(m => ({ default: m.EntrancePreview }))) : null;
@@ -57,6 +58,7 @@ function ModeContent() {
   if (import.meta.env.DEV && location.pathname === "/abilities-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><AbilityPreview /></Suspense>;
   if (MadePreview && location.pathname === "/made-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><MadePreview /></Suspense>;
   if (RunTwicePreview && location.pathname === "/run-twice-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><RunTwicePreview /></Suspense>;
+  if (RunThreePreview && location.pathname === "/run-three-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><RunThreePreview /></Suspense>;
   if (FinalAuctionPreview && location.pathname === "/final-auction-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><FinalAuctionPreview /></Suspense>;
   if (AccountPreview && location.pathname === "/account-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><AccountPreview /></Suspense>;
   if (EntrancePreview && location.pathname === "/entrance-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><EntrancePreview /></Suspense>;

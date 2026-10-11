@@ -21,6 +21,7 @@ import { CardView } from "./CardView";
 import { FinalPlaceBanner } from "./FinalPlaceBanner";
 import { FinalArenaFx } from "./FinalArenaFx";
 import type { Card } from "../core/poker/cards";
+import type { MatchReward } from "../game/types";
 import { useCinematicMotion } from "./useCinematicMotion";
 import { showdownSeatOrder } from "./showdownSeatOrder";
 import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
@@ -98,6 +99,25 @@ function RunDetail({ match, index, ids, name }: { match: MatchView; index: numbe
   })}</div>;
 }
 
+function runRewardText(reward: MatchReward | undefined): string {
+  if (!reward) return "";
+  const amount = (value: number, unit: string) => `${value >= 0 ? "+" : "-"} ${Number(Math.abs(value).toFixed(2))}${unit}`;
+  return [reward.deltaBB ? amount(reward.deltaBB, "BB") : "", reward.deltaPoints ? amount(reward.deltaPoints, "P") : ""].filter(Boolean).join(" · ") || "—";
+}
+
+/** R5 seat on a landscape PC: the RUNs before the live one, newest first. Every row is kept from RUN 1 so the seat never grows. */
+function RunHistory({ match, playerId, played }: { match: MatchView; playerId: string; played: number }) {
+  const { t } = useTranslation();
+  const rows = Array.from({ length: match.runoutCount - 1 }, (_, index) => match.runoutCount - 2 - index);
+  return <div className="cinema-run-history"><small>{t("cinema.previousRuns")}</small><ol>{rows.map((index) => {
+    const winners = match.boardWinnerIds[index] ?? [];
+    const outcome = index >= played || !winners.length ? "waiting" : winners.length > 1 ? "split" : winners.includes(playerId) ? "win" : "loss";
+    const label = ({ waiting: "cinema.runWaiting", split: "cinema.matchSplit", win: "cinema.matchWin", loss: "cinema.matchLoss" } as const)[outcome];
+    return <li className={`is-${outcome}`} key={index}><span>RUN {index + 1}</span><b>{t(label)}</b>
+      <strong>{outcome === "waiting" ? "" : runRewardText(match.runRewards?.[index]?.find((entry) => entry.playerId === playerId))}</strong></li>;
+  })}</ol></div>;
+}
+
 /** RUN score: R2 shows it once both RUNs end; R5 updates it after every RUN. */
 function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame: CinematicFrame; viewerId: string; name: (id: string) => string }) {
   const { t } = useTranslation();
@@ -105,11 +125,11 @@ function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame
   const currentComplete = ["RUN_RESULT", "HIGH_CARD_NOTICE", "HIGH_CARD_DRAW", "RESULT", "REWARD", "COMPLETE"].includes(frame.phase);
   const runComplete = (index: number) => frame.boardIndex > index || frame.boardIndex === index && currentComplete;
   const completed = Array.from({ length: match.runoutCount }, (_, index) => index).filter(runComplete).length;
-  const scoreVisible = match.round === 2 ? runComplete(1) : completed > 0;
-  if (!scoreVisible) return null;
+  // R5 keeps a 0 : 0 board from RUN 1; only the landscape PC layout shows it before a RUN ends.
+  if (match.round === 2 && !runComplete(1)) return null;
   const ids = showdownSeatOrder(match.participantIds, viewerId);
   const scores = ids.map((id) => match.boardWinnerIds.slice(0, completed).filter((winners) => winners.length === 1 && winners[0] === id).length);
-  return <aside className="cinema-run-scoreboard" aria-label={t("cinema.runScoreAria")}>
+  return <aside className={`cinema-run-scoreboard ${completed === 0 ? "is-pending" : ""}`} aria-label={t("cinema.runScoreAria")}>
     <div className="cinema-run-score"><span>{name(ids[0]!)}</span><strong>{scores[0]} : {scores[1]}</strong><span>{name(ids[1]!)}</span></div>
   </aside>;
 }
@@ -301,6 +321,11 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             // Most matches no longer pay BB, so a zero is left out rather than shown as "+ 0BB".
             : reward.deltaPoints > 0 && <div className="cinema-reward"><strong>+ {Number(reward.deltaPoints.toFixed(2))}P {t("cinema.earned")}</strong></div>)}
         </div>}
+        {/* R5 landscape PC: the live RUN's status holds the result footer's place until the RUN is decided. */}
+        {tripleRun && !intro && !showMatchOutcome && !showRewardAmount && <div className="cinema-run-live">
+          <span>{t("cinema.runInProgress", { run: frame.boardIndex + 1 })}<i className="cinema-run-spinner" aria-hidden="true" /></span>
+          <small>{t("cinema.runDeciding")}</small></div>}
+        {tripleRun && !intro && <RunHistory match={match} playerId={id} played={frame.boardIndex} />}
         {final && showRewardAmount && reward && match.pointAwards?.[id] !== undefined && <div className="cinema-reward"><strong>{results.filter(r => r.place === result?.place).length > 1 ? `${t("cinema.tied").trim()} ` : ""}{placeText(result?.place)} +{Number(match.pointAwards[id].toFixed(2))}P</strong>{Math.abs(reward.deltaPoints - match.pointAwards[id]) > 0.005 && <small className="final-extra-points">BONUS {reward.deltaPoints - match.pointAwards[id] > 0 ? "+" : ""}{Number((reward.deltaPoints - match.pointAwards[id]).toFixed(2))}P</small>}</div>}
       </div>;
     })}
@@ -342,7 +367,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleDetail(); } } } : {}}>
         {runOutcome && <RunDetail match={match} index={boardIndex} ids={ids} name={name} />}
         <div className="cinema-board-label"><h3>{boardTitle}</h3>
-        <div className="cinema-board-street" aria-live="polite">{current && (frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : "")}</div></div>
+        <div className="cinema-board-street" aria-live="polite">{current && (frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : "")}</div>
+        {tripleRun && current && !settled && <span className="cinema-board-progress" aria-hidden="true">IN PROGRESS<i className="cinema-run-spinner" /></span>}</div>
         {match.runoutCount === 2 && boardIndex < match.runoutCount && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete={completed} name={name} />}
         <div className="cinema-board-cards">{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);
@@ -355,8 +381,16 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             className={`${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`}
             key={`${boardIndex}-${index}`} />;
         })}</div>
+        {tripleRun && settled && <small className="cinema-board-caption" aria-hidden="true">COMPLETED</small>}
       </div>;
-    })}</div>}
+    })}
+      {/* R5 landscape PC: RUNs not dealt yet keep their box, so the three RUN rows never move. */}
+      {tripleRun && Array.from({ length: match.runoutCount }, (_, index) => index).filter((index) => !visibleBoardIndexes.includes(index)).map((index) =>
+        <div className="cinema-board pending cinema-run-board is-placeholder" aria-hidden="true" style={{ order: -index }} key={`slot-${index}`}>
+          <div className="cinema-board-label"><h3>RUN {index + 1}</h3><div className="cinema-board-street" /></div>
+          <div className="cinema-board-cards">{Array.from({ length: 5 }, (_, card) => <span className="cinema-card-slot" key={card} />)}</div>
+        </div>)}
+    </div>}
     {frame.phase === "COMPLETE" && (!synced || nextMatchSeconds !== undefined) && <footer className="cinema-footer" aria-live="polite">
       {!synced && <button className="primary" onClick={onComplete}>{t(hasNextMatch ? "cinema.advanceMatch" : "cinema.viewResults")}</button>}
       {synced && nextMatchSeconds !== undefined && <span className="cinema-next-match"><small>{t("cinema.nextMatchLabel")}</small><strong>{nextMatchSeconds}</strong><span>{t("cinema.nextMatch")}</span></span>}
