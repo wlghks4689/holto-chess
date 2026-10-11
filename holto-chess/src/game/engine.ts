@@ -2,7 +2,7 @@ import { shuffle, type Card } from "../core/poker/cards";
 import { evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice, FINAL_LOADOUT_SIZE, finalPlacementPoints, handLimitFor, isAuctionRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, matchLossBB, minHandFor, purchaseLimitFor, R3_AUCTION, TRIPLE_RUN } from "./config";
-import { bestBotSelection, bestRunLoadout, bestTripleRunLoadout, rankBotPairs, rankBotPurchases, rankBuybackOptions, scoreBotPlan, shouldBotReroll } from "./botStrategy";
+import { bestBotSelection, bestRunLoadout, bestTripleRunLoadout, r5MatchupEquity, rankBotPairs, rankBotPurchases, rankBuybackOptions, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { calculateIcm } from "./icm";
 import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
@@ -328,7 +328,10 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
 
     // Extra purchase capacity becomes a deliberate upgrade: compare every legal swap by expected match EV.
     while (player.ownedCardIds.length === limit && player.purchasesThisRound < purchaseLimitFor(state.round, state)) {
-      const baseline = scoreBotPlan(state.round, ownedCards(), player.stackBB, `${player.id}:upgrade`, planContext);
+      // One shared deck for the baseline and every swap: otherwise sampling noise (several points)
+      // outweighs the 2.25 bar and the "best" swap is whichever candidate drew lucky boards.
+      const swapContext = { ...planContext, sharedKnown: [...ownedCards(), ...player.shopCardIds.map((id) => getCard(state, id))] };
+      const baseline = scoreBotPlan(state.round, ownedCards(), player.stackBB, `${player.id}:upgrade`, swapContext);
       let bestSwap: { ownedId: string; shopId: string; utility: number } | null = null;
       for (const ownedId of player.ownedCardIds) for (const shopId of player.shopCardIds) {
         const owned = state.ownershipCardPool.find((entry) => entry.card.id === ownedId)!.card;
@@ -337,7 +340,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         const refund = Math.floor(cardPrice(owned.rank) * refundRate); const price = abilityPrice(player, offered.rank);
         if (player.stackBB + refund < price) continue;
         const replacement = ownedCards().filter((card) => card.id !== ownedId).concat(offered);
-        const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`, planContext);
+        const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`, swapContext);
         if (plan.utility > baseline.utility + 2.25 && (!bestSwap || plan.utility > bestSwap.utility)) bestSwap = { ownedId, shopId, utility: plan.utility };
       }
       if (bestSwap) {
@@ -1151,11 +1154,22 @@ export function chooseOpponent(source: PorenaGameState, playerId: string, oppone
   return state;
 }
 
-/** Timeout and bot choice: the lowest-ranked survivor. */
+/**
+ * Timeout and bot choice: the survivor the leader's pairing cards beat most often over the three
+ * RUNs, judged from the cards everyone shows at the pairing. Ties go to the lower-ranked survivor.
+ */
 export function autoChooseOpponent(source: PorenaGameState): PorenaGameState {
   const pick = source.opponentSelect;
   if (!pick) throw new Error("상대 선택 단계가 아닙니다.");
-  return chooseOpponent(source, pick.chooserId, pick.order.at(-1)!);
+  const cardsOf = (id: string) => (pick.cardsAtPairing?.[id] ?? playerById(source, id).ownedCardIds).map((cardId) => getCard(source, cardId));
+  const hero = cardsOf(pick.chooserId);
+  let best = { id: pick.order.at(-1)!, equity: -1 };
+  for (const id of [...pick.order].reverse()) {
+    if (id === pick.chooserId) continue;
+    const equity = r5MatchupEquity(hero, cardsOf(id), `${source.seed}:${pick.chooserId}:${id}`);
+    if (equity > best.equity + 1e-9) best = { id, equity };
+  }
+  return chooseOpponent(source, pick.chooserId, best.id);
 }
 
 /** Ends the pairing reveal and opens the R5 shop. */

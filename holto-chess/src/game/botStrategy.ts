@@ -30,11 +30,15 @@ export type BotPlanOptions = {
   sharedKnown?: readonly Card[];
   /** R2 only: score this exact [anchor, run-1, run-2] order instead of the heuristic one. */
   runOrder?: readonly Card[];
+  /** Overrides the round's sample count (the R5 look-ahead at R6 runs a lighter pass). */
+  samples?: number;
 };
 
 // Common-random sampling keeps seven bots responsive. Cheap rounds afford more
 // universes; R4 evaluates ten cards per player, so it stays lean.
 const SAMPLES: Record<Round, number> = { 1: 24, 2: 48, 3: 24, 4: 24, 5: 24, 6: 24 };
+// ponytail: 8 shared-deck samples keep R5 bot think time near R6's; raise if R5 swaps look noisy.
+const R6_LOOKAHEAD_SAMPLES = 8;
 
 /**
  * How a round's hand is played: by its own round number through R4, "triple" for the six-round
@@ -307,7 +311,7 @@ export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: n
   // the score gap between two cards is the cards, never the shuffle.
   const known = new Set([...(options.sharedKnown ?? cards), ...cards].map((card) => card.id));
   const unseen = makeDeck().filter((card) => !known.has(card.id));
-  const samples = SAMPLES[round];
+  const samples = options.samples ?? SAMPLES[round];
   let equity = 0; let expectedHandScore = 0;
   for (let sample = 0; sample < samples; sample += 1) {
     const random = randomFrom(hash(`${seedKey}:${round}:${sample}`));
@@ -323,12 +327,38 @@ export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: n
   const stackValue = Math.floor(Math.max(0, stackAfter) / BALANCE.stackScoreUnitBB);
   // Equity remains the primary signal (x100). Preflop and persistent-card value
   // are bounded tie-break features, deliberately not substitutes for simulation.
+  // Six-round R5 cards carry into the R6 final, where first place and the hand score decide the
+  // game. Scored on the same boards as R5, so a made hand R5 splits up (quads into two pairs that
+  // block each other) is not traded away for a small R5 edge.
+  const finalLookahead = round === 5 && sixRounds
+    ? scoreBotPlan(6, cards, stackAfter, `${seedKey}:r6`, { ...options, sharedKnown: options.sharedKnown ?? cards, samples: R6_LOOKAHEAD_SAMPLES })
+    : undefined;
   const utility = equity * 100 + expectedHandScore * (final ? 1.8 : 0.45) + potential * POTENTIAL_WEIGHT
     + stackValue * (final ? 1.4 : 0.35)
     + (strategic.currentRoundStrength?.score ?? 0) * 0.02
     + strategic.futureAssetValue * 0.015
-    + strategic.poolDenialValue * 0.01;
+    + strategic.poolDenialValue * 0.01
+    + (finalLookahead ? finalLookahead.equity * 100 + finalLookahead.expectedHandScore * 1.8 : 0);
   return { equity, expectedHandScore, potential, ...strategic, utility };
+}
+
+/**
+ * Six-round R5 pairing: how often `hero` beats `opponent` over the three RUNs, from the cards both
+ * show at the pairing. Each hand is filled to six from the unseen deck, as the shop will.
+ */
+export function r5MatchupEquity(hero: readonly Card[], opponent: readonly Card[], seedKey: string): number {
+  const limit = TRIPLE_RUN.runs * 2;
+  const known = new Set([...hero, ...opponent].map((card) => card.id));
+  const unseen = makeDeck().filter((card) => !known.has(card.id));
+  const samples = 96;
+  let wins = 0;
+  for (let sample = 0; sample < samples; sample += 1) {
+    const deck = shuffled(unseen, randomFrom(hash(`${seedKey}:pairing:${sample}`))); let cursor = 0;
+    const heroHand = [...hero.slice(0, limit), ...deck.slice(cursor, cursor += Math.max(0, limit - hero.length))];
+    const opponentHand = [...opponent.slice(0, limit), ...deck.slice(cursor, cursor += Math.max(0, limit - opponent.length))];
+    wins += scoreHeadsUp(5, heroHand, opponentHand, deck.slice(cursor), 2, undefined, false, true).result;
+  }
+  return wins / samples;
 }
 
 export function rankBotPurchases(round: Round, player: PlayerState, ownedCards: readonly Card[], options: readonly PricedCard[], context: BotPlanOptions = {}): (PricedCard & { plan: BotPlanScore })[] {

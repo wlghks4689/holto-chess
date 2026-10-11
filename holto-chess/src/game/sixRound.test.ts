@@ -12,6 +12,7 @@ import { createPlayerView } from "./playerView";
 import type { RoomSnapshot } from "./room";
 import { bidFinalAuction, settleFinalAuction } from "./finalAuction";
 import { tickAuctionBots } from "./finalAuctionBot";
+import { r5MatchupEquity } from "./botStrategy";
 import type { PorenaGameState, Round } from "./types";
 
 /** One engine step for a game with no human seats, mirroring what the room does on its timers. */
@@ -177,7 +178,26 @@ describe("R5 RUN IT THREE TIMES", { timeout: 60_000 }, () => {
     const shop = completeOpponentSelect(chosen);
     expect(shop.phase).toBe("SHOP");
     expect(alive(shop).every((p) => p.shopCardIds.length >= 3)).toBe(true);
-    expect(autoChooseOpponent(state).opponentSelect!.opponentId).toBe(pick.order[3]);
+    // The leader takes the survivor its pairing cards beat most often over the three RUNs.
+    const cardsOf = (id: string) => pick.cardsAtPairing![id]!.map((cardId) => state.ownershipCardPool.find((e) => e.card.id === cardId)!.card);
+    const equities = pick.order.slice(1).map((id) => r5MatchupEquity(cardsOf(pick.chooserId), cardsOf(id), `${state.seed}:${pick.chooserId}:${id}`));
+    const auto = autoChooseOpponent(state).opponentSelect!.opponentId!;
+    expect(equities[pick.order.indexOf(auto) - 1]).toBe(Math.max(...equities));
+  });
+
+  it("lets a bot leader skip the last-placed survivor when that survivor's hand beats its own", () => {
+    const state = toR5(41);
+    const pick = state.opponentSelect!;
+    const id = (rank: number, suit: string) => state.ownershipCardPool.find((e) => e.card.rank === rank && e.card.suit === suit)!.card.id;
+    const [leader, second, third, last] = pick.order as [string, string, string, string];
+    pick.cardsAtPairing = {
+      [leader]: [id(8, "s"), id(8, "h"), id(8, "d"), id(14, "c"), id(12, "c")],
+      [second]: [id(2, "s"), id(7, "h"), id(4, "d"), id(10, "c"), id(3, "c")],
+      [third]: [id(6, "s"), id(2, "h"), id(11, "d"), id(4, "c"), id(3, "d")],
+      [last]: [id(9, "s"), id(9, "h"), id(9, "d"), id(13, "s"), id(14, "s")],
+    };
+    const chosen = autoChooseOpponent(state).opponentSelect!.opponentId;
+    expect(chosen).not.toBe(last);
   });
 
   it("shows each seat its opponent's cards as they were at the pairing, never their later trades", () => {
