@@ -631,6 +631,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "cinema.runDeciding": "Deciding the result…",
   "cinema.previousRuns": "Previous RUNs",
   "cinema.runWaiting": "Waiting",
+  "cinema.runLive": "LIVE",
   "cinema.pointTotal": "POINTS {points}",
   "cinema.finalPlace": "#{place}",
   "cinema.noBurn": "NONE",

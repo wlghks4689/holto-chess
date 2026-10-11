@@ -629,6 +629,7 @@ export const koKR = {
   "cinema.runDeciding": "결과가 결정되고 있습니다…",
   "cinema.previousRuns": "이전 RUN 결과",
   "cinema.runWaiting": "대기",
+  "cinema.runLive": "진행 중",
   "cinema.pointTotal": "승점 {points}",
   "cinema.finalPlace": "{place}위",
   "cinema.noBurn": "없음",

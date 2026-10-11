@@ -360,8 +360,9 @@
   .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-match-profile{grid-template-rows:auto auto;gap:6px;margin:calc(var(--seat-icon) + 4px) 0 clamp(8px,1.4dvh,16px);padding:0}
   .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-profile-identity{padding-inline:0}
   .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-profile-identity b{font-size:clamp(17px,1.35vw,24px);line-height:1.25}
-  .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-hole-cards{gap:clamp(6px,.6vw,10px)}
-  .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-hole-cards{--r5-hole-h:clamp(64px,min(calc(100cqh - var(--r5-seat-chrome,calc(277px + 15dvh))),calc((100cqw - 12px) / 2 * 75 / 53)),300px)}
+  /* The hole cards take whatever height the seat has left, so the seat is always exactly full. */
+  .cinema.cinema-run-three.cinema-table .cinema-seat>:not(.cinema-hole-cards){flex-shrink:0}
+  .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-hole-cards{--r5-hole-h:clamp(56px,min(100cqh,calc((100cqw - 12px) / 2 * 75 / 53),22dvh),340px);flex:1 1 0;min-height:0;container-type:size;align-items:center;align-content:center;gap:clamp(6px,.6vw,10px)}
   .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-hole-cards>.cinema-flip-slot{width:calc(var(--r5-hole-h) * 53 / 75)}
   .cinema.cinema-run-three.cinema-table .cinema-seat :is(.cinema-made,.cinema-street-made){min-height:0;margin:clamp(8px,1.4dvh,16px) 0 0}
   .cinema.cinema-run-three.cinema-table .cinema-seat :is(.cinema-made,.cinema-street-made) strong{font-size:clamp(18px,1.6vw,28px);line-height:1.25}
@@ -373,7 +374,7 @@
   .cinema-seat[data-seat-index="1"] .cinema-run-live>span{color:#8fb6ff}
   .cinema-run-live>small{color:#a9bcc6;font-size:clamp(11px,.85vw,13px)}
   .cinema-run-spinner{display:inline-block;width:.95em;height:.95em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:cinema-run-spin 1s linear infinite}
-  .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-run-history{display:grid;gap:8px;margin-top:auto;padding-top:clamp(10px,1.6dvh,18px);text-align:left}
+  .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-run-history{display:grid;gap:8px;padding-top:clamp(10px,1.6dvh,18px);text-align:left}
   .cinema-run-history>small{color:#b6c8d2;font-size:clamp(11px,.85vw,13px);font-weight:700}
   .cinema-run-history>ol{display:grid;gap:6px;margin:0;padding:0;list-style:none}
   .cinema-run-history li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:clamp(10px,1vw,18px);min-height:clamp(30px,4.2dvh,42px);padding:0 clamp(10px,1vw,16px);border:1px solid #ffffff17;border-radius:8px;background:rgba(2,10,16,.6);font:700 clamp(11px,.85vw,14px) DM Mono}
@@ -383,6 +384,7 @@
   .cinema-run-history li.is-win>:is(b,strong){color:#6fe3a0}
   .cinema-run-history li.is-loss>:is(b,strong){color:#ff7f86}
   .cinema-run-history li.is-split>:is(b,strong){color:#c4ced5}
+  .cinema-run-history li.is-live>b{color:#8fe9da}.cinema-seat[data-seat-index="1"] .cinema-run-history li.is-live>b{color:#8fb6ff}
   .cinema-run-history li.is-waiting{opacity:.55}.cinema-run-history li.is-waiting>b{color:#7f95a2;font-weight:600}
 
   /* RUN boards: three rows that never move. The live RUN is the tallest, lit row; dealt-out RUNs shrink. */
@@ -398,19 +400,19 @@
   .cinema.cinema-run-three.cinema-table .cinema-board .cinema-board-street{position:absolute;left:0;top:50%;height:auto;transform:translateY(-50%);font-size:clamp(10px,.8vw,13px);line-height:1.2}
   .cinema-board-progress{position:absolute;right:0;top:50%;align-items:center;gap:8px;transform:translateY(-50%);color:#7ff0dd;font:700 clamp(10px,.8vw,13px)/1 DM Mono;letter-spacing:.1em}
   .cinema.cinema-run-three.cinema-table .cinema-board-stack .cinema-board.active .cinema-board-progress{display:inline-flex}
-  .cinema.cinema-run-three.cinema-table .cinema-board .cinema-board-cards{--r5-card-h:clamp(40px,min(calc(100cqh - var(--r5-board-chrome)),calc((100cqw - 4 * var(--r5-card-gap)) / 5 * 75 / 53)),260px);grid-template-columns:repeat(5,calc(var(--r5-card-h) * 53 / 75));gap:var(--r5-card-gap);width:auto;justify-content:center}
+  .cinema.cinema-run-three.cinema-table .cinema-board .cinema-board-cards{--r5-card-h:clamp(40px,min(calc(100cqh - var(--r5-board-chrome)),calc((100cqw - 4 * var(--r5-card-gap)) / 5 * 75 / 53 * var(--r5-card-scale,1))),260px);grid-template-columns:repeat(5,calc(var(--r5-card-h) * 53 / 75));gap:var(--r5-card-gap);width:auto;justify-content:center}
   .cinema.cinema-run-three.cinema-table .cinema-board-stack .cinema-board .cinema-board-cards .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio);min-width:0}
   /* Each card is an inline-size container (responsive.css): the glyphs follow the card, with higher caps than the shared compact card. */
   .cinema.cinema-run-three.cinema-table :is(.cinema-board-cards,.cinema-seat .cinema-hole-cards) .playing-card.compact .card-rank{font-size:clamp(12px,30cqw,40px)}
   .cinema.cinema-run-three.cinema-table :is(.cinema-board-cards,.cinema-seat .cinema-hole-cards) .playing-card.compact .card-suit{font-size:clamp(16px,40cqw,54px)}
   .cinema-card-slot{display:block;aspect-ratio:var(--card-ratio);border:1px dashed #2f5366;border-radius:6px;background:rgba(14,36,48,.4)}
-  .cinema.cinema-run-three.cinema-table .cinema-board-stack .cinema-board.complete{--r5-board-chrome:62px}
+  .cinema.cinema-run-three.cinema-table .cinema-board-stack .cinema-board.complete{--r5-board-chrome:62px;--r5-card-scale:.78}
+  .cinema.cinema-run-three.cinema-table .cinema-board-stack .cinema-board.pending{--r5-card-scale:.78}
   .cinema.cinema-run-three.cinema-table .cinema-board-stack .cinema-board.complete .cinema-board-caption{display:block}
   .cinema-board-caption{margin-top:clamp(4px,.8dvh,8px);color:#8aa5b1;font:600 clamp(9px,.7vw,11px)/1 DM Mono;letter-spacing:.24em}
   /* The RUN detail overlay fits the taller PC row. */
   /* Short windows (a 1366x768 screen leaves about 650px): the name shares the icon row and the hole cards keep their size. */
   @media(max-height:760px){
-    .cinema.cinema-run-three.cinema-table .cinema-seat{--r5-seat-chrome:calc(232px + 15dvh)}
     .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-match-profile{grid-template-rows:var(--seat-icon) auto;gap:2px;margin-top:0}
     .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-profile-identity{display:flex;align-items:center;justify-content:center;padding-inline:calc(var(--seat-icon) + 8px)}
     .cinema.cinema-run-three.cinema-table .cinema-seat .cinema-profile-identity b{overflow:hidden;font-size:17px;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal}

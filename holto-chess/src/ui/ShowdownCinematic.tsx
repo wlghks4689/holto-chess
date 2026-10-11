@@ -111,10 +111,10 @@ function RunHistory({ match, playerId, played }: { match: MatchView; playerId: s
   const rows = Array.from({ length: match.runoutCount - 1 }, (_, index) => match.runoutCount - 2 - index);
   return <div className="cinema-run-history"><small>{t("cinema.previousRuns")}</small><ol>{rows.map((index) => {
     const winners = match.boardWinnerIds[index] ?? [];
-    const outcome = index >= played || !winners.length ? "waiting" : winners.length > 1 ? "split" : winners.includes(playerId) ? "win" : "loss";
-    const label = ({ waiting: "cinema.runWaiting", split: "cinema.matchSplit", win: "cinema.matchWin", loss: "cinema.matchLoss" } as const)[outcome];
+    const outcome = index === played ? "live" : index > played || !winners.length ? "waiting" : winners.length > 1 ? "split" : winners.includes(playerId) ? "win" : "loss";
+    const label = ({ live: "cinema.runLive", waiting: "cinema.runWaiting", split: "cinema.matchSplit", win: "cinema.matchWin", loss: "cinema.matchLoss" } as const)[outcome];
     return <li className={`is-${outcome}`} key={index}><span>RUN {index + 1}</span><b>{t(label)}</b>
-      <strong>{outcome === "waiting" ? "" : runRewardText(match.runRewards?.[index]?.find((entry) => entry.playerId === playerId))}</strong></li>;
+      <strong>{outcome === "waiting" || outcome === "live" ? "" : runRewardText(match.runRewards?.[index]?.find((entry) => entry.playerId === playerId))}</strong></li>;
   })}</ol></div>;
 }
 
@@ -325,7 +325,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {tripleRun && !intro && !showMatchOutcome && !showRewardAmount && <div className="cinema-run-live">
           <span>{t("cinema.runInProgress", { run: frame.boardIndex + 1 })}<i className="cinema-run-spinner" aria-hidden="true" /></span>
           <small>{t("cinema.runDeciding")}</small></div>}
-        {tripleRun && !intro && <RunHistory match={match} playerId={id} played={frame.boardIndex} />}
+        {tripleRun && !intro && <RunHistory match={match} playerId={id} played={frame.boardIndex + (showMatchOutcome ? 1 : 0)} />}
         {final && showRewardAmount && reward && match.pointAwards?.[id] !== undefined && <div className="cinema-reward"><strong>{results.filter(r => r.place === result?.place).length > 1 ? `${t("cinema.tied").trim()} ` : ""}{placeText(result?.place)} +{Number(match.pointAwards[id].toFixed(2))}P</strong>{Math.abs(reward.deltaPoints - match.pointAwards[id]) > 0.005 && <small className="final-extra-points">BONUS {reward.deltaPoints - match.pointAwards[id] > 0 ? "+" : ""}{Number((reward.deltaPoints - match.pointAwards[id]).toFixed(2))}P</small>}</div>}
       </div>;
     })}
