@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { autoChooseOpponent, completeOpponentSelect, createAbilityGame, isOpponentRevealing, lockRunLoadouts, prepareShowdown, resolvePrimary } from "../game/engine";
 import { createMatchView } from "../game/matchView";
 import type { PorenaGameState } from "../game/types";
@@ -42,7 +42,10 @@ export function RunThreePreview() {
   const frames = cinematicTimeline(match);
   const choice = selected === "play" ? undefined : choices[selected]!;
   const elapsed = choice ? frames.find((frame) => frame.boardIndex === choice[0] && frame.phase === choice[1])?.at ?? 0 : undefined;
-  return <main className="run-three-preview" style={{ display: "flow-root", background: "#030b12", color: "#e8f4f1", minHeight: "100dvh" }}>
+  // ?frame=1600x900 caps the PC showdown frame, for comparing frame sizes.
+  const [frameW, frameH] = (params.get("frame") ?? "").split("x").map(Number);
+  const frame = frameW && frameH ? { "--r5-frame-max-w": `${frameW}px`, "--r5-frame-max-h": `${frameH}px` } : {};
+  return <main className="run-three-preview" style={{ display: "flow-root", background: "#030b12", color: "#e8f4f1", minHeight: "100dvh", ...frame } as CSSProperties}>
     {!params.has("bare") && <div role="toolbar" aria-label="R5 쇼다운 미리보기" style={{ position: "fixed", insetInline: 0, bottom: 0, zIndex: 50, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6, padding: 5, background: "#030b12cc" }}>
       {choices.map(([, , label], index) => <button key={label} style={{ minHeight: 26, padding: "4px 7px", fontSize: 10 }} className={index === selected ? "primary" : "secondary"} onClick={() => setSelected(index)}>{label}</button>)}
       <button style={{ minHeight: 26, padding: "4px 7px", fontSize: 10 }} className={selected === "play" ? "primary" : "secondary"} onClick={() => setSelected("play")}>재생</button>
