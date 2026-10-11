@@ -3,7 +3,6 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { GameAction, PlayerView } from "../shared/protocol";
 import { CardView } from "./CardView";
 import { DraftRuleTooltip } from "./DraftRuleTooltip";
-import { DraftPrivateHand } from "./DraftPrivateHand";
 import { PhaseTimer } from "./PhaseTimer";
 import { DRAFT_DEAL_MS } from "./r2DraftPresentation";
 import { useTranslation } from "../i18n";
@@ -43,8 +42,10 @@ export function R4DraftArena({ view, send, disabled, seconds }: {
         const player = view.players.find((candidate) => candidate.playerId === entry.playerId);
         const picked = !ordering && index < currentIndex;
         const current = !ordering && !picked && entry.playerId === draft.currentPlayerId;
+        const cards = entry.playerId === view.me.playerId ? view.me.ownedCards : draft.publicHands?.[entry.playerId] ?? [];
         return <li key={entry.playerId} className={`${current ? "is-current" : ""} ${picked ? "is-picked" : ""}`} aria-current={current ? "step" : undefined}>
           <b className="r2-order-number">{String(index + 1).padStart(2,"0")}</b><span className="r2-order-name">{name(entry.playerId)}</span><span className="r2-order-stats">{player?.points ?? entry.points}P · {player?.stackBB ?? entry.stackBB}BB</span><small className="r2-order-status">{t(picked ? "draft.done" : current ? entry.playerId === view.me.playerId ? "draft.yourTurn" : "draft.picking" : "draft.waiting")}</small>
+          <div className="r2-order-cards" aria-label={name(entry.playerId)}>{Array.from({ length: view.me.handLimit }, (_, slot) => cards[slot] ? <CardView key={slot} card={cards[slot]!} compact /> : <span key={slot} className="r2-order-empty" aria-hidden="true">+</span>)}</div>
         </li>;
       })}</ol></aside>
       <div className="r2-stage">
@@ -60,7 +61,6 @@ export function R4DraftArena({ view, send, disabled, seconds }: {
             </div>;
           })}
         </div>
-        <DraftPrivateHand cards={view.me.ownedCards} />
       </div>
     </div>
   </section>;

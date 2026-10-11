@@ -8,6 +8,7 @@ import { OpenDraftPanel } from "./OpenDraft";
 import { R4DraftArena } from "./R4DraftArena";
 import { cardLabel, makeDeck } from "../core/poker/cards";
 import { canPickR2Card, DRAFT_DEAL_MS } from "./r2DraftPresentation";
+import { phasePreviewStates } from "./phasePreviewStates";
 
 function fixture(open = false) {
   const room = addSession(createRoom("DRAFT", 303), "one").room;
@@ -92,14 +93,16 @@ it("does not present the AI pick delay as the local player's remaining time", ()
   expect(html).not.toContain('role="timer"');
   expect(html).toContain("선택 중");
 });
-it("keeps the R4 draft order compact without showing any opponent hole cards", () => {
+it("shows R4 opponent cards in their order rows", () => {
   const view = fixture(true);
   view.round = 4;
   view.draft!.publicHands = { [view.draft!.order[1]!.playerId]: [{ id: "Ah", rank: 14, suit: "h" }] };
   const html = renderToStaticMarkup(createElement(OpenDraftPanel, { view, send: () => {}, disabled: false, seconds: 20 }));
 
   expect(html).toContain('class="r2-order"');
-  expect(html).toMatch(/class="draft-private-hand(?: has-timer)?"/);
+  expect(html).not.toContain('class="draft-private-hand');
+  expect(html.match(/class="r2-order-cards"/g)).toHaveLength(8);
+  expect(html).toContain('aria-label="A♥"');
   expect(html).not.toContain('class="draft-private-help"');
   expect(html).not.toContain("4장 · 상대에게 비공개");
   expect(html).toContain("16장 공개 풀에서 차례마다 1장을 구매");
@@ -110,17 +113,36 @@ it("keeps the R4 draft order compact without showing any opponent hole cards", (
   expect(html).not.toContain('class="draft-acquired"');
 });
 
-it("hides the R4 timer and centers a complete five-card private hand", () => {
+it("hides the R4 timer and shows a complete five-card hand in the player's row", () => {
   const view = fixture(true);
   view.round = 4;
   view.phase = "DRAFT_ORDER";
   view.me.handLimit = 5;
   view.me.ownedCards = makeDeck().slice(0, 5);
   const html = renderToStaticMarkup(createElement(R4DraftArena, { view, send: () => {}, disabled: false, seconds: 20 }));
-  expect(html).toContain('class="draft-private-hand"');
+  expect(html).not.toContain('class="draft-private-hand"');
   expect(html).not.toContain('class="draft-private-timer"');
-  const hand = html.match(/<div class="draft-private-cards">([\s\S]*?)<\/div>/)?.[1] ?? "";
+  const hand = html.match(/<div class="r2-order-cards"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "";
   expect(hand.match(/class="playing-card/g)).toHaveLength(5);
+});
+
+it("publishes R4 hands before and after a draft purchase for both rule versions", () => {
+  for (const sixRounds of [true, false]) {
+    const room = addSession(createRoom("R4-HANDS", 303), "one").room;
+    room.status = "PLAYING";
+    room.game = phasePreviewStates(sixRounds).find(game => game.round === 4 && game.phase === "DRAFT_ORDER")!;
+    const buyer = room.game.draft!.order[0].playerId;
+    room.sessions[0].playerId = buyer;
+    for (const game of [room.game, autoPickDraft(openDraft(room.game), true)]) {
+      room.game = game;
+      const view = createPlayerView(room, buyer);
+      for (const player of game.players.filter(player => !player.eliminated)) {
+        expect(view.draft!.publicHands![player.id].map(card => card.id)).toEqual(player.ownedCardIds);
+      }
+      const html = renderToStaticMarkup(createElement(R4DraftArena, { view, send: () => {}, disabled: false, seconds: 20 }));
+      for (const cards of Object.values(view.draft!.publicHands!)) for (const card of cards) expect(html).toContain(`aria-label="${cardLabel(card)}"`);
+    }
+  }
 });
 
 it("tells everyone where the game goes next while the finished draft is held on screen", () => {

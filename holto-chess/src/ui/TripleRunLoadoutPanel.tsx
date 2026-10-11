@@ -2,7 +2,6 @@ import { Fragment, useState } from "react";
 import type { GameAction, PlayerView } from "../shared/protocol";
 import { CardView } from "./CardView";
 import { PhaseTimer } from "./PhaseTimer";
-import { ShopAbilityPanel } from "./AbilityVisibility";
 import { useTranslation } from "../i18n";
 import { R5OpponentBanner } from "./OpponentSelectPanel";
 import { swapPlacement, swapRuns, tripleRunOrder, TRIPLE_RUN_SLOTS } from "./tripleRunLoadout";
@@ -38,18 +37,17 @@ export function TripleRunLoadoutPanel({ view, send, disabled, seconds }: {
   // Eliminated seats have no RUNs to place; they wait for the survivors.
   if (seat?.alive === false) return <section className="panel triple-loadout">
     <header className="six-round-header">
-      <div><small className="draft-kicker">ROUND 05 · RUN IT THREE TIMES</small><h2>{t("phase.runLoadout")}</h2><p>{t("triple.spectating")}</p></div>
+      <div><h2>{t("phase.runLoadout")}</h2><p>{t("triple.spectating")}</p></div>
       {seconds !== null && <PhaseTimer seconds={seconds} ariaLabel={t("triple.timerAria", { seconds })} />}
     </header>
   </section>;
   return <section className="panel triple-loadout">
     <header className="six-round-header is-compact">
-      <div><small className="draft-kicker">ROUND 05 · RUN IT THREE TIMES</small><h2>{t("triple.heading")}</h2><p>{t("triple.points")}</p></div>
+      <div><h2>{t("triple.heading")}</h2><p>{t("triple.points")}</p></div>
     </header>
     <R5OpponentBanner view={view} />
-    <ShopAbilityPanel ability={view.me.abilityId} benefit={view.me.abilityBenefit} startingCard={view.me.abilityStartingCard} compact />
     {complete ? <div className="triple-runs">
-      {/* The clock sits above the RUN 3 box, in the free corner beside the ability panel, so the header stays short. */}
+      {/* Keep the clock above RUN 3 so the header stays short. */}
       {seconds !== null && <PhaseTimer className="triple-run-timer" seconds={seconds} ariaLabel={t("triple.timerAria", { seconds })} />}{Array.from({ length: RUNS }, (_, run) => <Fragment key={run}>
       {run > 0 && <button type="button" className="triple-run-swap" disabled={locked} onClick={() => swapWhole(run - 1)}
         aria-label={t("triple.swapRuns", { left: run, right: run + 1 })} title={t("triple.swapRuns", { left: run, right: run + 1 })}>⇄</button>}

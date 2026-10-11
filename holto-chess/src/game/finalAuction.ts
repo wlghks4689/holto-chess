@@ -130,7 +130,7 @@ export function settleFinalAuction(source: PorenaGameState, now: number): Porena
     entry.state = "OWNED"; entry.ownerPlayerId = p.id;
   }
   auction.settledAt = now;
-  auction.loadoutStartsAt = now + (auction.results.length ? AUCTION_REVEAL_MS : 0);
+  auction.loadoutStartsAt = now + (auction.results.length ? (isAuctionRound(state.round, state) ? R3_AUCTION.revealMs : AUCTION_REVEAL_MS) : 0);
   // R3 has no loadout: the phase holds on the result reveal until the buyback (finishCardAuctionReveal).
   if (isAuctionRound(state.round, state)) { assertPoolIntegrity(state); return state; }
   auction.loadoutEndsAt = auction.loadoutStartsAt + FINAL_LOADOUT_TIMEOUT_MS;

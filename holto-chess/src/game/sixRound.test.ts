@@ -133,6 +133,7 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     state = settleFinalAuction(state, auction.endsAt);
     expect(state.phase).toBe("FINAL_AUCTION");
     expect(state.players[0]!.ownedCardIds).toContain(card);
+    expect(state.finalAuction!.loadoutStartsAt! - auction.endsAt).toBe(5_000);
     expect(finishCardAuctionReveal(state, state.finalAuction!.loadoutStartsAt! - 1)).toBe(state);
     state = finishCardAuctionReveal(state, state.finalAuction!.loadoutStartsAt!);
     expect(state.phase).toBe("OPEN_DRAFT");

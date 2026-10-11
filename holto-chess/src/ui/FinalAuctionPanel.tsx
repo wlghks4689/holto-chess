@@ -120,7 +120,7 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
   return <section className="final-auction" onClick={() => setSelected(null)}>
     {cardAuction && opening && !introClosed && <AuctionIntro seconds={openingSeconds} maxWins={a.maxWins} minRaise={a.minRaiseBB} onClose={() => setIntroClosed(true)} ko={ko} />}
     <header className="auction-hud">
-      <div><span className="eyebrow">{cardAuction ? "ROUND 03 · CARD AUCTION" : "ROUND 05 · FINAL ARENA"}</span><div className="auction-heading"><h2>{bidding ? copy("카드 옥션", cardAuction ? "CARD AUCTION" : "FINAL AUCTION") : a.settlement && (reveal || cardAuction) ? "AUCTION REVEAL" : "FINAL LOADOUT"}</h2>
+      <div>{!cardAuction && <span className="eyebrow">ROUND 05 · FINAL ARENA</span>}<div className="auction-heading"><h2>{bidding ? copy("카드 옥션", cardAuction ? "CARD AUCTION" : "FINAL AUCTION") : a.settlement && (reveal || cardAuction) ? "AUCTION REVEAL" : "FINAL LOADOUT"}</h2>
         {bidding && <div ref={help} className="auction-help" onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") setHelpOpen(false); }}>
           <button type="button" aria-expanded={helpOpen} aria-label={copy(cardAuction ? "카드 옥션 규칙" : "최종 경매 규칙", cardAuction ? "Card auction rules" : "Final auction rules")} onClick={() => setHelpOpen(open => !open)}>?</button>
           {helpOpen && <div className="auction-help-popover" role="tooltip"><strong>{copy(cardAuction ? "카드 옥션 규칙" : "최종 경매 규칙", cardAuction ? "Card auction rules" : "Final auction rules")}</strong><ul>

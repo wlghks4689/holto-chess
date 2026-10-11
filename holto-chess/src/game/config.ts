@@ -19,7 +19,7 @@ export const SIX_ROUND_FINAL_PLACEMENT_POINTS: Readonly<Record<number, number>> 
 export const FRONT_RUNNER_POINTS: Readonly<Record<Round, number>> = { 1: 3, 2: 4, 3: 5, 4: 6, 5: 7, 6: 8 };
 
 /** Six-round R3: a 16-card auction replaces the shop. One card per seat; seats that win nothing buy back at double price. */
-export const R3_AUCTION = { cardCount: 16, minRaiseBB: 3, maxWins: 1, introMs: 5_000, buybackMultiplier: 2 } as const;
+export const R3_AUCTION = { cardCount: 16, minRaiseBB: 3, maxWins: 1, introMs: 5_000, revealMs: 5_000, buybackMultiplier: 2 } as const;
 /** Six-round R5: the leader picks an opponent, then three RUNs each on its own board. */
 export const TRIPLE_RUN = { runs: 3, win: 5, split: 2, sweepBonus: 15 } as const;
 

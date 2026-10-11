@@ -197,7 +197,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     ...(g.draft && ["DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT"].includes(g.phase) ? { draft: {
       cards: g.draft.cardIds.map((id) => ({ card: getCard(g, id), price: g.draft!.picks.find((p) => p.cardId === id)?.price ?? draftPrice(g, g.draft!.order[g.draft!.picks.length]?.playerId ?? me.id, id), claimedBy: g.draft!.picks.find((p) => p.cardId === id)?.playerId })),
       order: g.draft.order.map((p) => ({ ...p })), currentPlayerId: g.draft.order[g.draft.picks.length]?.playerId,
-      ...(g.round === 2 || isAuctionRound(g.round, g) ? { publicHands: Object.fromEntries(g.players.filter((p) => !p.eliminated).map((p) => [p.id, p.ownedCardIds.map((id) => getCard(g, id))])) } : {}),
+      ...(g.round === 2 || g.round === 4 || isAuctionRound(g.round, g) ? { publicHands: Object.fromEntries(g.players.filter((p) => !p.eliminated).map((p) => [p.id, p.ownedCardIds.map((id) => getCard(g, id))])) } : {}),
       ...(g.draft.priceMultiplier ? { priceMultiplier: g.draft.priceMultiplier } : {}),
     } } : {}),
     ...(g.opponentSelect && g.phase === "OPPONENT_SELECT" ? { opponentSelect: {
