@@ -80,23 +80,24 @@ function RunDetail({ match, index, ids, name }: { match: MatchView; index: numbe
   const { t } = useTranslation();
   const board = match.boards[index] ?? [];
   const winners = match.boardWinnerIds[index] ?? [];
-  return <div className="cinema-run-detail">{ids.map((id) => {
-    const result = match.boardResults[index]?.find((entry) => entry.playerId === id);
-    const hole = match.runCards?.[id]?.[index] ?? [];
-    const pool = [...hole, ...board];
-    const used = (result?.usedCardIds ?? []).map((cardId) => pool.find((card) => card.id === cardId)).filter((card): card is Card => !!card);
-    const label = !result ? undefined : result.displayName === "몰수패" ? { title: t("hand.forfeit") }
-      : detailedHandLabel(result.category, result.kickers, hole, result.usedCardIds, t, board);
-    const outcome = winners.length > 1 ? "split" : winners.includes(id) ? "win" : "loss";
-    return <div className={`cinema-run-detail-player is-${outcome}`} key={id}>
-      <header><b title={name(id)}>{name(id)}</b><span>{t(outcome === "win" ? "cinema.matchWin" : outcome === "loss" ? "cinema.matchLoss" : "cinema.matchSplit")}</span>{label && <strong>{label.title}</strong>}</header>
-      <div className="cinema-run-detail-cards">
-        <div className="cinema-run-detail-hole">{hole.map((card) => <CardView card={card} compact dimmed={!!result && !result.usedCardIds.includes(card.id)} key={card.id} />)}</div>
-        <i aria-hidden="true">›</i>
-        <div className="cinema-run-detail-used">{used.map((card) => <CardView card={card} compact glow={hole.some((own) => own.id === card.id)} key={card.id} />)}</div>
-      </div>
-    </div>;
-  })}</div>;
+  const results = match.boardResults[index] ?? [];
+  // The board is drawn once, under both hands; the cards the winning hand(s) used stay lit.
+  const winningCards = new Set(results.filter((entry) => winners.includes(entry.playerId)).flatMap((entry) => entry.usedCardIds));
+  return <div className="cinema-run-detail">
+    <div className="cinema-run-detail-players">{ids.map((id) => {
+      const result = results.find((entry) => entry.playerId === id);
+      const hole = match.runCards?.[id]?.[index] ?? [];
+      const label = !result ? undefined : result.displayName === "몰수패" ? { title: t("hand.forfeit") }
+        : detailedHandLabel(result.category, result.kickers, hole, result.usedCardIds, t, board);
+      const outcome = winners.length > 1 ? "split" : winners.includes(id) ? "win" : "loss";
+      return <div className={`cinema-run-detail-player is-${outcome}`} key={id}>
+        <header><b title={name(id)}>{name(id)}</b><span>{t(outcome === "win" ? "cinema.matchWin" : outcome === "loss" ? "cinema.matchLoss" : "cinema.matchSplit")}</span></header>
+        {label && <strong className="cinema-run-detail-hand">{label.title}</strong>}
+        <div className="cinema-run-detail-hole">{hole.map((card) => <CardView card={card} compact glow={!!result?.usedCardIds.includes(card.id)} dimmed={!!result && !result.usedCardIds.includes(card.id)} key={card.id} />)}</div>
+      </div>;
+    })}</div>
+    <div className="cinema-run-detail-board">{board.map((card) => <CardView card={card} compact glow={winningCards.has(card.id)} dimmed={winningCards.size > 0 && !winningCards.has(card.id)} key={card.id} />)}</div>
+  </div>;
 }
 
 function runRewardText(reward: MatchReward | undefined): string {
