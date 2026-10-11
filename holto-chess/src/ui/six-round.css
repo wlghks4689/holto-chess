@@ -308,11 +308,16 @@
 .cinema-final-fx canvas{display:block;width:100%;height:100%}
 /* Champion: crowned crest in the podium slot, and the winning seat steps forward into the light. */
 .cinema.cinema-final.cinema-board-final .cinema-seats>.cinema-champion-crest{grid-row:3;align-self:start;justify-self:center;margin-top:calc(var(--podium-w) * .12)}
-.cinema-champion-crest{position:relative;z-index:4;display:flex;flex-direction:column;align-items:center;gap:2px;translate:0 -62%;pointer-events:none;animation:champion-crest-in calc(700ms * var(--final-beat,1)) cubic-bezier(.2,1.4,.4,1) both}
+.cinema-champion-crest{position:relative;z-index:4;display:flex;flex-direction:column;align-items:center;gap:2px;translate:0 -76%;pointer-events:none;animation:champion-crest-in calc(700ms * var(--final-beat,1)) cubic-bezier(.2,1.4,.4,1) both}
 .cinema-champion-crest svg{width:calc(var(--podium-w,120px) * .34);height:auto;overflow:visible;fill:#f4c95d;stroke:#fff3c4;stroke-width:1.2;stroke-linejoin:round;filter:drop-shadow(0 0 8px rgba(255,209,102,.75)) drop-shadow(0 2px 3px #000a)}
 .cinema-champion-crest b{font:800 clamp(11px,1.5vw,15px) Manrope,sans-serif;letter-spacing:.22em;padding-left:.22em;background:linear-gradient(180deg,#fff6d2,#f4d77f 55%,#c48a22);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 2px #000c)}
-@keyframes champion-crest-in{0%{opacity:0;scale:.4;translate:0 -20%}60%{opacity:1}100%{opacity:1;scale:1;translate:0 -62%}}
+@keyframes champion-crest-in{0%{opacity:0;scale:.4;translate:0 -20%}60%{opacity:1}100%{opacity:1;scale:1;translate:0 -76%}}
 .cinema-final .cinema-seat{transition:background .4s,border-color .4s,box-shadow .4s,opacity .45s,filter .45s,transform .6s cubic-bezier(.2,1.2,.4,1)}
 .cinema-final .cinema-seat.cinema-winner{transform:translateY(-8px);box-shadow:0 0 0 1px #f4d77f,0 0 38px rgba(244,201,93,.35),0 14px 30px rgba(0,0,0,.45)}
 .cinema-final .cinema-seat.cinema-loser{transform:translateY(4px)}
 @media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled) .cinema-champion-crest{animation:none}.cinema:not(.cinema-motion-enabled).cinema-final .cinema-seat{transition:none}}
+/* B: during the reveal the ability icon mirrors the equity meter; once a seat's place is called the meter
+   leaves and the icon slides to the top centre, above the nickname. */
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout>.ability-badge{transition:left .45s cubic-bezier(.2,1,.3,1),translate .45s cubic-bezier(.2,1,.3,1)}
+.cinema.cinema-final.cinema-board-final .cinema-seats .cinema-seat.cinema-meter-layout:is(.final-place-1,.final-place-2,.final-place-3)>.ability-badge{left:50%!important;translate:-50% 0}
+@media(prefers-reduced-motion:reduce){.cinema:not(.cinema-motion-enabled).cinema-final .cinema-seat>.ability-badge{transition:none}}
