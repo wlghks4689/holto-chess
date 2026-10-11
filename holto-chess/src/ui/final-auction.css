@@ -87,3 +87,11 @@
  .cinema.cinema-final:has(.final-community-board) .cinema-seat{padding-block:16px}
  .cinema.cinema-final .cinema-seat>.cinema-profile{grid-template-columns:38px minmax(0,1fr) 32px;min-height:44px;margin-bottom:12px}
 }
+/* Live bidding: the price bumps on every raise and warms from gold to orange to red as the card is fought over. */
+.auction-tile>.auction-price.is-raised{display:inline-block;animation:auction-price-bump .55s cubic-bezier(.2,1.6,.4,1) both}
+.auction-tile.is-contested>strong{color:#ffb347;text-shadow:0 0 8px #ff9a3c80}
+.auction-tile.is-hot>strong{color:#ff7a59;text-shadow:0 0 10px #ff5a3c99}
+.auction-tile.has-bid.is-contested{border-color:#ffab4d}
+.auction-tile.has-bid.is-hot{border-color:#ff7a59;box-shadow:inset 0 0 0 1px #ff7a5966,0 0 10px #ff5a3c55}
+@keyframes auction-price-bump{0%{transform:scale(1.35);color:#fff;text-shadow:0 0 14px #ffd27a}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.auction-tile>.auction-price.is-raised{animation:none}}
