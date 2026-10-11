@@ -121,40 +121,37 @@
 .cinema-board.has-run-detail .playing-card{pointer-events:none}
 .cinema-board.has-run-detail.is-detail-open>:not(.cinema-run-detail){visibility:hidden}
 @media(hover:hover){.cinema-board.has-run-detail:hover>:not(.cinema-run-detail){visibility:hidden}}
-.cinema-run-detail{position:absolute;inset:-1px -1px auto;z-index:5;display:grid;align-content:center;gap:10px;min-height:calc(100% + 2px);padding:10px 14px;box-sizing:border-box;border:1px solid var(--run-tone);border-radius:12px;background:#06131b;box-shadow:0 10px 30px #000a;opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s}
+.cinema-run-detail{position:absolute;inset:-1px;z-index:5;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;align-items:center;column-gap:12px;row-gap:4px;padding:10px 14px;box-sizing:border-box;overflow:hidden;border:1px solid var(--run-tone);border-radius:12px;background:#06131b;box-shadow:0 10px 30px #000a;opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s}
 .cinema-board.has-run-detail.is-detail-open .cinema-run-detail{opacity:1;visibility:visible}
 @media(hover:hover){.cinema-board.has-run-detail:hover .cinema-run-detail{opacity:1;visibility:visible}}
-/* A finished RUN's detail: both hands side by side (viewer left), the RUN's one board underneath. */
-/* Each hand hugs the centre line (viewer's on its left), each in its own half so the names never meet. */
-.cinema-run-detail-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(14px,4%,32px)}
-.cinema-run-detail-player{display:grid;gap:4px;justify-items:end;min-width:0;text-align:right}
-.cinema-run-detail-player+.cinema-run-detail-player{justify-items:start;text-align:left}
-.cinema-run-detail-player>header{display:flex;align-items:baseline;gap:8px;max-width:100%;min-width:0;margin:0;padding:0;border:0;font-size:12px}
-.cinema-run-detail-player>header b{min-width:0;overflow:hidden;color:#e6f4f6;text-overflow:ellipsis;white-space:nowrap}
-.cinema-run-detail-player>header span{font-weight:800;white-space:nowrap}
-.cinema-run-detail-player.is-win>header span{color:#6fe3a0}
-.cinema-run-detail-player.is-loss>header span{color:#ff8f8f}
-.cinema-run-detail-player.is-split>header span{color:#c4ced5}
-.cinema-run-detail-hand{max-width:100%;overflow:hidden;color:#c9f0ec;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+/* A finished RUN's detail, the same size as its RUN box: the two hands (viewer's left) over the RUN's one
+   board in the middle column, each name out at its side on the line between the two rows. The loser is dimmed. */
+.cinema-run-detail-side{grid-column:1;grid-row:1/3;display:grid;gap:2px;justify-items:end;min-width:0;max-width:100%;text-align:right;font-size:12px}
+.cinema-run-detail-side.is-right{grid-column:3;justify-items:start;text-align:left}
+.cinema-run-detail-side>*{max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cinema-run-detail-side>b{color:#e6f4f6}
+.cinema-run-detail-side>span{font-weight:800}
+.cinema-run-detail-side>small{color:#c9f0ec;font-size:11px}
+.cinema-run-detail-side.is-win>span{color:#6fe3a0}
+.cinema-run-detail-side.is-loss>span{color:#ff8f8f}
+.cinema-run-detail-side.is-split>span{color:#c4ced5}
+.cinema-run-detail-side.is-loss,.cinema-run-detail-hole.is-loss{opacity:.42;filter:saturate(.55)}
+.cinema-run-detail-hands{grid-column:2;grid-row:1;display:flex;justify-content:center;gap:12px}
 .cinema-run-detail-hole,.cinema-run-detail-board{display:flex;gap:3px}
-.cinema-run-detail-board{justify-content:center;gap:5px}
+.cinema-run-detail-board{grid-column:2;grid-row:2;justify-content:center;gap:5px}
 :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-board .cinema-run-detail .playing-card.compact{width:30px;height:42px;min-width:0;padding:2px}
 :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-rank{font-size:12px}
 :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-suit{font-size:14px}
+/* Two card rows need about 92px: R2's RUN boxes match R5's so the detail fits the box. R2's board-card
+   size must not reach the detail's cards (the landscape PC frame sizes those from the box itself). */
+.cinema-board-stack.run-it-twice .cinema-board.cinema-run-board{min-height:92px;box-sizing:border-box}
+.cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact{width:25px;height:auto;aspect-ratio:var(--card-ratio);padding:2px}
 @media(max-width:700px){
   .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-cards .playing-card.compact{width:35px;height:51px}
   .cinema-run-detail{padding:8px 10px;gap:6px}
-  /* A tapped RUN opens in place: the box grows to the detail instead of covering the RUN below it. */
-  .cinema-board.has-run-detail.is-detail-open>:not(.cinema-run-detail){display:none}
-  .cinema-board.has-run-detail.is-detail-open .cinema-run-detail{position:static;min-height:0;border:0;background:none}
-  /* Phones: each hand sits beside its name and hand label, so the detail stays as short as the RUN row. */
-  .cinema-run-detail-player{grid-template-columns:minmax(0,1fr) auto;column-gap:6px;row-gap:1px;align-items:center}
-  .cinema-run-detail-player>.cinema-run-detail-hole{grid-column:2;grid-row:1/3}
-  .cinema-run-detail-player>:is(header,.cinema-run-detail-hand){grid-column:1;justify-self:end}
-  .cinema-run-detail-player+.cinema-run-detail-player{grid-template-columns:auto minmax(0,1fr)}
-  .cinema-run-detail-player+.cinema-run-detail-player>.cinema-run-detail-hole{grid-column:1}
-  .cinema-run-detail-player+.cinema-run-detail-player>:is(header,.cinema-run-detail-hand){grid-column:2;justify-self:start}
-  .cinema-run-detail-player>:is(header,.cinema-run-detail-hand){font-size:11px}
+  .cinema-run-detail{column-gap:8px;row-gap:3px}
+  .cinema-run-detail-side{font-size:10px}.cinema-run-detail-side>small{font-size:9px}
+  .cinema-run-detail-hands{gap:8px}
   :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-board .cinema-run-detail .playing-card.compact{width:25px;height:35px}
   :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-rank{font-size:10px}
   :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-suit{font-size:12px}
@@ -446,7 +443,7 @@
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-profile-identity{display:flex;align-items:center;justify-content:center;padding-inline:calc(var(--seat-icon) + 8px)}
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-profile-identity b{overflow:hidden;font-size:17px;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal}
   }
-  .cinema.cinema-headsup.cinema-table .cinema-run-detail{align-content:center;padding:10px 18px}
-  /* Two card rows (hands, then the board) and the hand labels share the RUN row's height. */
-  .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board .cinema-run-detail .playing-card.compact{width:clamp(24px,calc((100cqh - 74px) / 2 * 53 / 75),52px);height:auto;aspect-ratio:var(--card-ratio)}
+  .cinema.cinema-headsup.cinema-table .cinema-run-detail{padding:10px 18px}
+  /* Two card rows (hands, then the board) share the RUN box's height; the names sit at the sides. */
+  .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact{width:clamp(22px,calc((100cqh - 28px) / 2 * 53 / 75),64px);height:auto;aspect-ratio:var(--card-ratio)}
 }

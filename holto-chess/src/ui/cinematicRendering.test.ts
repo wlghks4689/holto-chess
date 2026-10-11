@@ -319,12 +319,12 @@ describe("cinematic initial rendering", () => {
     const runOneResultHtml = render(at("RUN_RESULT", 0));
     const html = render(at("COMPLETE"));
     for (const markup of [beforeResultHtml, runOneResultHtml, html]) expect(markup).not.toContain("cinema-board-matchup");
-    expect(beforeResultHtml).not.toContain("cinema-run-detail-players");
-    expect(runOneResultHtml.match(/cinema-run-detail-players/g)).toHaveLength(1);
+    expect(beforeResultHtml).not.toContain("cinema-run-detail-hands");
+    expect(runOneResultHtml.match(/cinema-run-detail-hands/g)).toHaveLength(1);
     // The viewer's hand comes first: p1 won RUN 1 and lost RUN 2.
-    expect(runOneResultHtml).toMatch(/cinema-board [^"]*is-run-win has-run-detail[\s\S]*?cinema-run-detail-player is-win[\s\S]*?cinema-run-detail-player is-loss/);
-    expect(html.match(/cinema-run-detail-players/g)).toHaveLength(2);
-    expect(html).toMatch(/is-run-loss has-run-detail[\s\S]*?cinema-run-detail-player is-loss[\s\S]*?cinema-run-detail-player is-win/);
+    expect(runOneResultHtml).toMatch(/cinema-board [^"]*is-run-win has-run-detail[\s\S]*?cinema-run-detail-side is-win [\s\S]*?cinema-run-detail-side is-loss is-right/);
+    expect(html.match(/cinema-run-detail-hands/g)).toHaveLength(2);
+    expect(html).toMatch(/is-run-loss has-run-detail[\s\S]*?cinema-run-detail-side is-loss [\s\S]*?cinema-run-detail-side is-win is-right/);
     expect(html.match(/class="cinema-run-detail-board"/g)).toHaveLength(2);
     expect(html).toContain("RUN 2");
     expect(html).toContain('aria-label="Run It Twice 스코어"');
