@@ -144,6 +144,9 @@
 @media(max-width:700px){
   .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-cards .playing-card.compact{width:35px;height:51px}
   .cinema-run-detail{padding:8px 10px;gap:6px}
+  /* A tapped RUN opens in place: the box grows to the detail instead of covering the RUN below it. */
+  .cinema-board.has-run-detail.is-detail-open>:not(.cinema-run-detail){display:none}
+  .cinema-board.has-run-detail.is-detail-open .cinema-run-detail{position:static;min-height:0;border:0;background:none}
   /* Phones: each hand sits beside its name and hand label, so the detail stays as short as the RUN row. */
   .cinema-run-detail-player{grid-template-columns:minmax(0,1fr) auto;column-gap:6px;row-gap:1px;align-items:center}
   .cinema-run-detail-player>.cinema-run-detail-hole{grid-column:2;grid-row:1/3}
@@ -413,8 +416,7 @@
   /* RUN boards: three rows that never move. The live RUN is the tallest, lit row; dealt-out RUNs shrink. */
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board{--r5-board-chrome:44px;flex:1 1 0;container-type:size;display:flex;flex-direction:column;justify-content:center;min-height:0;padding:clamp(6px,calc(var(--r5-h) * 1 / 100),12px) 16px;border-radius:14px}
   .cinema.cinema-multi-run.cinema-table .cinema-board-stack .cinema-board.active{flex-grow:1.55}
-  /* R2 on PC reads like R5: the seats hold each RUN's hands, so the boards drop their matchup row and RUN 1 sits at the bottom. */
-  .cinema.cinema-multi-run.cinema-table .cinema-run-matchup{display:none}
+  /* R2 on PC reads like R5: RUN 1 sits at the bottom. */
   .cinema.cinema-multi-run.cinema-table .cinema-board-stack>.cinema-board{order:var(--run-order,0)}
   .cinema.cinema-multi-run.cinema-table .cinema-board-label{align-self:stretch;width:100%}
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board:is(.active,.pending,.complete):not(.has-run-detail){--run-tone:#2d5a6d;background:rgba(4,16,24,.7)}

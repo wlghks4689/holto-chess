@@ -174,7 +174,6 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
   .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-copy,.game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .shop-ability-copy>strong,.game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .ability-benefit{font-size:18px}
   .game-arena .r2-draft:not(.r4-draft) .r2-draft-heading .ability-badge-button{width:38px;height:38px}
 }
-.cinema .cinema-run-matchup.is-summary .cinema-run-player.is-loser .playing-card{opacity:.78;filter:brightness(.9) saturate(.8)}
 .game-arena .page-shell:has(>.showdown-prep){padding-block:12px}
 .game-arena .showdown-prep{display:grid;grid-template-rows:auto 1fr auto;min-height:calc(100dvh - 102px);padding:0}
 .game-arena .showdown-prep :is(.showdown-prep-stage,.r2-match-stage){align-self:center;width:100%}
@@ -182,8 +181,6 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
 .cinema[data-round="2"] .cinema-run-scoreboard{margin:0 auto 10px;padding:6px 12px}
 .cinema[data-round="2"] .cinema-board-stack{margin:6px auto 4px}
 .cinema[data-round="2"] .cinema-board{padding:10px 8px}
-.cinema[data-round="2"] .cinema-board.is-collapsed{padding:6px 8px}
-.cinema[data-round="2"] .cinema-board.is-collapsed .cinema-run-hand .playing-card.compact{width:45px;height:auto;aspect-ratio:53/75}
 .cinema[data-round="2"] .cinema-footer{margin-top:8px}
 
 /* Draft/loadout and round-prep headings share one centered title axis. */
@@ -434,11 +431,6 @@ dialog.ability-draft-dialog{width:min(352px,calc(100vw - 24px),calc((90dvh - 82p
   .cinema[data-round="2"] .cinema-run-score strong{font-size:22px}
   .cinema[data-round="2"] .cinema-board-stack{margin:6px auto 2px}
   .cinema[data-round="2"] .cinema-board{padding:10px 4px}
-  .cinema[data-round="2"] .cinema-board.is-collapsed{padding:5px 4px}
-  .cinema[data-round="2"] .cinema-board.is-collapsed h3{margin:0 0 4px}
-  .cinema[data-round="2"] .cinema-board.is-collapsed .cinema-run-hand .playing-card.compact{width:27px;height:auto;aspect-ratio:53/75;padding:2px}
-  .cinema[data-round="2"] .cinema-board.is-collapsed .cinema-run-hand .card-rank{font-size:12px}
-  .cinema[data-round="2"] .cinema-board.is-collapsed .cinema-run-hand .card-suit{font-size:16px}
   .cinema[data-round="2"] .cinema-reward{margin-top:6px;padding-top:6px}
   .cinema.cinema-final .cinema-seats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   .cinema.cinema-final .cinema-seat .cinema-hole-cards[data-count="7"]{gap:1px}
@@ -592,7 +584,6 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
  .cinema.cinema-final .cinema-seat>.cinema-profile{min-height:31px;padding-right:38px}
 }
 @media(min-width:640px) and (max-width:768px){
- .cinema .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .cinema-board-cards .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
 }
 
 /* Desktop contract: card rows depend on their container, density on available height.
@@ -757,13 +748,11 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
   .game-arena .r4-draft .r2-offer .playing-card{max-width:30px}
   .cinema[data-round="2"] .cinema-board{padding-block:5px}
   .cinema[data-round="2"] .cinema-board-cards{max-width:215px}
-  .cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio)}
-  .cinema[data-round="2"] .cinema-board-matchup{margin-block:0 5px}
 }
 
-/* R2: two stacked runs. Desktop cards share a baseline; mobile hands sit above the board. */
+/* R2: two stacked runs; each RUN's hands live in the seats and in the finished RUN's detail. */
 .cinema[data-round="2"] .cinema-board-stack.run-it-twice{grid-template-columns:minmax(0,1fr);gap:0;border:1px solid #294839;border-radius:12px;overflow:hidden;background:rgba(4,18,25,.82)}
-.cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:clamp(30px,4vw,53px);--run-board-gap:5px;--run-hand-gap:3px;--run-matchup-gap:8px;--run-vs-width:18px;display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-areas:"label hands" "label board";align-items:center;gap:8px 18px;padding:10px 16px}
+.cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:clamp(30px,4vw,53px);--run-board-gap:5px;--run-hand-gap:3px;--run-matchup-gap:8px;--run-vs-width:18px;display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-areas:"label board";align-items:center;gap:8px 18px;padding:10px 16px}
 .cinema[data-round="2"] .cinema-run-board .cinema-board-label{grid-area:label}
 .cinema[data-round="2"] .run-it-twice .cinema-run-board+.cinema-run-board{border-top:1px solid #294839;border-left:0}
 .cinema[data-round="2"] .cinema-run-board .cinema-board-label h3{margin:0;font-size:12px;white-space:nowrap}
@@ -775,23 +764,13 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
 /* One typography rule for both flip-front board cards and bare player cards. */
 .cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-run-board .playing-card.compact .card-rank{font-size:clamp(12px,calc(var(--run-card-width) * .36),20px);line-height:1}
 .cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-run-board .playing-card.compact .card-suit{font-size:clamp(16px,calc(var(--run-card-width) * .48),26px);line-height:1}
-.cinema[data-round="2"] .cinema-run-board .cinema-board-matchup{grid-area:hands;width:calc(4 * var(--run-card-width) + 2 * var(--run-hand-gap) + 2 * var(--run-matchup-gap) + var(--run-vs-width));max-width:100%;margin:0 auto;padding:0;gap:var(--run-matchup-gap);grid-template-columns:minmax(0,1fr) var(--run-vs-width) minmax(0,1fr)}
-.cinema[data-round="2"] .cinema-run-board .cinema-run-player{display:grid;justify-items:center;justify-content:stretch;gap:4px}
-.cinema[data-round="2"] .cinema-run-board .cinema-run-player small{width:100%;font-size:11px;text-align:center;line-height:1.2}
-.cinema[data-round="2"] .cinema-run-board .cinema-run-player.is-winner small{color:var(--made-color)}
-.cinema[data-round="2"] .cinema-run-board .cinema-run-hand{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:var(--run-hand-gap)}
-.cinema[data-round="2"] .cinema-run-board .cinema-run-hand .playing-card.compact{width:100%;height:auto;aspect-ratio:var(--card-ratio);padding:2px}
 @media(min-width:769px){
-  .cinema[data-round="2"] .run-it-twice .cinema-run-board{grid-template-columns:64px minmax(0,1.2fr) minmax(0,1fr);grid-template-areas:"label board hands";padding-block:28px 12px}
-  .cinema[data-round="2"] .cinema-run-board .cinema-run-player{position:relative;display:block}
-  .cinema[data-round="2"] .cinema-run-board .cinema-run-player small{position:absolute;bottom:calc(100% + 5px);left:0;line-height:14px}
+  .cinema[data-round="2"] .run-it-twice .cinema-run-board{grid-template-columns:64px minmax(0,1fr);grid-template-areas:"label board";padding-block:12px}
 }
 @media(max-width:768px){
   .cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:clamp(27px,9vw,35.6px);--run-board-gap:3px;--run-matchup-gap:3px;--run-vs-width:12px;grid-template-columns:34px minmax(0,1fr);gap:5px 6px;padding:7px 6px}
   .cinema[data-round="2"] .cinema-run-board .cinema-board-label h3{font-size:9px;letter-spacing:0}
   .cinema[data-round="2"] .cinema-run-board .cinema-board-street{font-size:7px}
-  .cinema[data-round="2"] .cinema-run-board .cinema-board-matchup>strong{font-size:7px}
-  .cinema[data-round="2"] .cinema-run-board .cinema-run-player small{font-size:8px}
 }
 @media(max-width:768px) and (max-height:700px){
   .cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:27.6px;row-gap:3px;padding-block:5px}

@@ -49,31 +49,6 @@ function displayedMatchNumber(match: MatchView): number {
   return match.matchday ?? match.matchNumber;
 }
 
-function RunMatchup({ match, index, viewerId, complete, name }: {
-  match: MatchView; index: number; viewerId: string; complete: boolean; name: (id: string) => string;
-}) {
-  const [leftId, rightId] = showdownSeatOrder(match.participantIds, viewerId);
-  const winners = match.boardWinnerIds[index] ?? [];
-  const dimLeft = complete && winners.length === 1 && winners[0] !== leftId;
-  const dimRight = complete && winners.length === 1 && winners[0] !== rightId;
-  const glowLeft = complete && winners.includes(leftId);
-  const glowRight = complete && winners.includes(rightId);
-  const runHand = (playerId: string) => match.runCards?.[playerId]?.[index] ?? match.revealedCards[playerId] ?? [];
-  const usedCards = (playerId: string) => {
-    const result = match.boardResults[index]?.find((entry) => entry.playerId === playerId);
-    return result ? new Set(result.usedCardIds) : undefined;
-  };
-  const leftUsed = usedCards(leftId);
-  const rightUsed = usedCards(rightId);
-  const tone = (playerId: string) => complete ? madeTone(match.boardResults[index]?.find(entry => entry.playerId === playerId)?.displayName ?? "") : "default";
-  const leftClass = `cinema-run-player made-${tone(leftId)}${dimLeft ? " is-loser" : ""}${glowLeft ? " is-winner" : ""}`;
-  const rightClass = `cinema-run-player is-right made-${tone(rightId)}${dimRight ? " is-loser" : ""}${glowRight ? " is-winner" : ""}`;
-  return <div className="cinema-run-matchup cinema-board-matchup">
-    <div className={leftClass}><small title={name(leftId)}>{name(leftId)}</small><div className="cinema-run-hand">{runHand(leftId).map((card) => <CardView card={card} compact dimmed={dimLeft || complete && !!leftUsed && !leftUsed.has(card.id)} glow={glowLeft && (!leftUsed || leftUsed.has(card.id))} key={card.id} />)}</div></div>
-    <strong>VS</strong>
-    <div className={rightClass}><small title={name(rightId)}>{name(rightId)}</small><div className="cinema-run-hand">{runHand(rightId).map((card) => <CardView card={card} compact dimmed={dimRight || complete && !!rightUsed && !rightUsed.has(card.id)} glow={glowRight && (!rightUsed || rightUsed.has(card.id))} key={card.id} />)}</div></div>
-  </div>;
-}
 
 /** A finished R5 RUN on hover or tap: each seat's hand for that RUN, the five cards it played and the result. */
 function RunDetail({ match, index, ids, name }: { match: MatchView; index: number; ids: readonly string[]; name: (id: string) => string }) {
@@ -373,7 +348,6 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         <div className="cinema-board-label"><h3>{boardTitle}</h3>
         <div className="cinema-board-street" aria-live="polite">{current && (frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : "")}</div>
         {multiRun && current && !settled && <span className="cinema-board-progress" aria-hidden="true">IN PROGRESS<i className="cinema-run-spinner" /></span>}</div>
-        {match.runoutCount === 2 && boardIndex < match.runoutCount && <RunMatchup match={match} index={boardIndex} viewerId={viewerId} complete={completed} name={name} />}
         <div className="cinema-board-cards">{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;

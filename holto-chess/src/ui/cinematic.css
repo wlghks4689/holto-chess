@@ -21,18 +21,7 @@
 .cinema-controls select{background:#102a1e;color:#e7f5ed;border:1px solid #375344;border-radius:4px;padding:5px}
 .cinema-controls button{font-size:10px;padding:8px}
 .cinema-run-scoreboard{display:flex;justify-content:center;width:min(440px,100%);box-sizing:border-box;margin:-8px auto 24px;padding:10px 18px;border:1px solid #315a4b;border-radius:12px;background:rgba(4,19,12,.8);box-shadow:0 10px 30px rgba(0,0,0,.2),inset 0 0 18px rgba(91,225,173,.035)}
-.cinema-run-row{display:grid;grid-template-columns:58px minmax(0,1fr) minmax(112px,auto);align-items:center;gap:12px;min-height:64px;padding:7px 0;color:#688879;font:600 10px DM Mono;transition:color .25s,opacity .25s}
-.cinema-run-row+.cinema-run-row{border-top:1px solid #294839}.cinema-run-label{letter-spacing:.08em}
-.cinema-run-matchup{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);align-items:center;gap:8px}.cinema-run-matchup>strong{color:#6f9b87;text-align:center;font-size:10px}
-.cinema-run-player{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0}.cinema-run-player.is-right{justify-content:flex-start}.cinema-run-player small{overflow:hidden;color:#a8c8b8;text-overflow:ellipsis;white-space:nowrap}.cinema-run-hand{display:flex;gap:3px;flex:0 0 auto}
-.cinema-run-player.is-loser small{opacity:.4}.cinema-run-player.is-loser .playing-card{opacity:.22;filter:brightness(.52) saturate(.3);box-shadow:none}
-.cinema-run-player.made-default{--made-color:#84f5b6}
-.cinema-run-player.is-winner .playing-card.glow{opacity:1;transform:scale(1.025);box-shadow:0 0 0 1px color-mix(in srgb,var(--made-color) 78%,white),0 0 14px color-mix(in srgb,var(--made-color) 58%,transparent)}
-.cinema-board-matchup{display:grid;width:min(460px,100%);margin:-8px auto 20px;padding:0;border:0;background:transparent}
-.cinema-board-matchup .cinema-run-hand .playing-card.compact{width:53px;height:75px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-rank{font-size:19px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-suit{font-size:25px}
-.cinema-run-hand .playing-card.compact{width:28px;height:40px;padding:2px;border-radius:4px}.cinema-run-hand .playing-card.compact .card-rank{font-size:11px}.cinema-run-hand .playing-card.compact .card-suit{font-size:14px}
-.cinema-run-result{text-align:right;font-size:11px}.cinema-run-row.active{color:#d8ebe1}.cinema-run-row.active .cinema-run-matchup>strong{color:var(--mint);text-shadow:0 0 8px rgba(132,245,182,.55)}
-.cinema-run-row.complete{color:#9fc4b1}.cinema-run-row.complete .cinema-run-result{color:var(--mint)}.cinema-run-row.tiebreak{min-height:38px;color:#e3b957}.cinema-run-tiebreak-copy{text-align:center;color:#9f8c62}
+.cinema-run-tiebreak-copy{text-align:center;color:#9f8c62}
 .cinema-run-score{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:18px;text-align:center;color:#b9d2c7;font:700 13px Manrope}
 .cinema-run-score strong{min-width:82px;color:var(--mint);font:800 30px/1 DM Mono;letter-spacing:.08em;text-shadow:0 0 16px rgba(132,245,182,.3)}.cinema-run-score span{overflow:hidden;text-align:center;text-overflow:ellipsis;white-space:nowrap}
 .cinema-seats{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px}
@@ -143,18 +132,12 @@ main.game-arena:has(.cinema-final)::before{background-image:none}
 .cinema-board{margin:0 auto;padding:24px 8px;text-align:center;--made-color:#84f5b6;width:100%;box-sizing:border-box}
 .cinema-board h3{display:flex;justify-content:center;align-items:center;gap:14px;font:500 11px DM Mono;letter-spacing:.12em;color:#92b5a2;margin:0 0 3px}.cinema-board h3 b{color:var(--mint);font-size:9px}
 .cinema-board-street{position:relative;top:-2px;height:17px;margin-bottom:0;color:var(--mint);font:600 11px/17px DM Mono;letter-spacing:.1em}
-.cinema-board.is-collapsed h3{margin-bottom:12px}
 .cinema-board-stack.run-it-twice .cinema-board+.cinema-board{border-top:1px solid #294839}
 .cinema-board.complete{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.36)}
 .cinema-board.pending{padding-top:15px;padding-bottom:15px;background:rgba(3,15,10,.18);opacity:.72}
-.cinema-board.is-collapsed{min-height:0;padding:10px 8px 12px;background:rgba(3,15,10,.52)}
-.cinema-board.is-collapsed h3{margin:0 0 7px}
-.cinema-run-summary{display:grid;min-width:0;place-items:center}.cinema-run-summary>.cinema-run-matchup{margin:0 auto}
-.cinema-board.is-collapsed .cinema-run-player.is-winner{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--made-color) 55%,transparent))}
 .cinema-board.complete .playing-card.compact{width:48px;height:69px}.cinema-board.complete .cinema-board-cards{gap:8px}.cinema-board.complete .hint{margin:8px 0 0}
 .cinema-board-cards{display:flex;justify-content:center;gap:12px}
 .cinema-board .playing-card.compact{width:64px;height:91px}
-.cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:64px;height:91px}
 .cinema-card-open{animation:cinema-flip var(--flip-duration,.22s) ease-out both;perspective:800px}
 .cinema-card-open.cinema-river{animation:cinema-river-impact var(--river-duration,.4s) ease-out both}
 .cinema-suspense{animation:cinema-suspense var(--suspense-duration,.25s) ease-in both}
@@ -293,7 +276,6 @@ main.game-arena:has(.cinema-final)::before{background-image:none}
   .cinema-heading{align-items:center;flex-direction:column;margin-bottom:12px}
   .cinema-controls{position:static;width:100%;justify-content:space-between}
   .cinema-run-scoreboard{max-width:300px;margin:0 auto 16px;padding:9px 12px}.cinema-run-score{gap:10px;font-size:11px}.cinema-run-score strong{min-width:66px;font-size:24px}
-  .cinema-run-matchup{gap:4px;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)}.cinema-board-matchup{width:min(250px,100%);margin:-7px auto 16px;padding:0}.cinema-run-player{gap:3px}.cinema-board-matchup .cinema-run-hand .playing-card.compact{width:32px;height:48px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-rank{font-size:13px}.cinema-board-matchup .cinema-run-hand .playing-card.compact .card-suit{font-size:19px}
   .cinema-table.cinema-headsup .cinema-seats{gap:8px}
   .cinema-seat{padding:9px 5px}
   .cinema-headsup .cinema-reward strong{font-size:12px;white-space:normal;overflow-wrap:anywhere}
@@ -313,7 +295,6 @@ main.game-arena:has(.cinema-final)::before{background-image:none}
   .cinema-board{padding:10px 8px 16px}
   .cinema-footer{margin-top:10px}
   .cinema-board .playing-card.compact{width:43px;height:64px}
-  .cinema-board-stack.run-it-twice .cinema-board:not(.is-collapsed) .playing-card.compact{width:43px;height:64px}
   .cinema-hole-cards{gap:3px}
   .cinema-hole-cards .playing-card.compact{width:43px;height:64px}
   .cinema-hole-cards[data-count="4"]{--hole-count:4}
