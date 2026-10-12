@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
 import { cinematicTimeline } from "./cinematicTimeline";
-import { equityBoardCount, matchStreetEquity, visibleStreetEquity } from "./streetEquity";
+import { equityBoardCount, releasedEquityBoardCount, matchStreetEquity, visibleStreetEquity } from "./streetEquity";
 import { qaMatch } from "./responsiveFixtures";
 
 const cards = (ids: string) => ids.split(" ").map(id => makeDeck().find(c => c.id === id)!);
 describe("street equity disclosure", () => {
+  it("can compute a released street during its flip but cannot display it before the existing delay", () => {
+    const frames = cinematicTimeline(qaMatch(2, 3));
+    for (const [phase, previous, next] of [["FLOP_3", 0, 3], ["TURN", 3, 4], ["RIVER", 4, 5]] as const) {
+      const at = frames.find(frame => frame.phase === phase)!.at;
+      expect(releasedEquityBoardCount(frames, 0, at - 1)).toBe(previous);
+      expect(releasedEquityBoardCount(frames, 0, at)).toBe(next);
+      expect(equityBoardCount(frames, 0, at)).toBe(previous);
+      expect(releasedEquityBoardCount(frames, 1, at)).toBe(0);
+    }
+  });
   it("waits until the last flop flip, turn flip and river flip plus 300ms", () => {
     const frames = cinematicTimeline(qaMatch(2, 3));
     for (const [phase, delay, previous, next] of [["FLOP_3",720,0,3],["TURN",720,3,4],["RIVER",900,4,5]] as const) {

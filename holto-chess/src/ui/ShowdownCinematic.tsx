@@ -1,9 +1,11 @@
 import { AbilityBadge } from "./AbilityVisibility";
 import { GameViewportReset } from "./GameViewportReset";
 import { activeAbilityCues } from "./abilityPresentation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EquityMeter } from "./EquityMeter";
-import { equityBoardCount, matchStreetEquity } from "./streetEquity";
+import { equityBoardCount, releasedEquityBoardCount } from "./streetEquity";
+import { streetEquityJob } from "./displayEquity";
+import { useDisplayEquity } from "./useDisplayEquity";
 import type { CSSProperties, KeyboardEvent } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, isFinalMatch, revealFlags, type CinematicFrame } from "./cinematicTimeline";
@@ -200,7 +202,9 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
   const runIndex = cardSwitch ? Math.max(0, frame.boardIndex - 1) : frame.boardIndex;
   const equityKey = `${match.id}:${runIndex}`;
   const equityCount = Math.min(equityBoardCount(frames, runIndex, elapsed), equityReady[equityKey] ?? 0);
-  const equity = useMemo(() => matchStreetEquity(match, runIndex, equityCount), [match, runIndex, equityCount]);
+  // Compute only the released prefix during the flip; publish after both clock and DOM reveal gates.
+  const calculationCount = releasedEquityBoardCount(frames, runIndex, elapsed);
+  const equity = useDisplayEquity(streetEquityJob(match, runIndex, calculationCount), streetEquityJob(match, runIndex, equityCount))?.[0];
   const cardsForRun = (id: string) => match.runCards?.[id]?.[runIndex] ?? match.revealedCards[id] ?? [];
   const labelFor = (id: string, result: RevealedHand, communityCards: readonly Card[] = []) => result.displayName === "몰수패" ? { title: t("hand.forfeit"), kicker: t("hand.forfeitDetails") }
     : detailedHandLabel(result.category, result.kickers, cardsForRun(id), result.usedCardIds, t, communityCards);
