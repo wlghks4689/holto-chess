@@ -133,3 +133,14 @@
 - [ ] SEC-006 | 담당 Codex | 상태 REVIEW | 의존 보안 수정 작업 진행 | 완료 조건: 인증 전 소켓이 전체 방 연결 cap을 점유해 정상 재접속을 거부하는 문제를 수정하고 로컬 Workers 회귀를 추가한다. 최초 감사의 무인증 24연결 뒤 정상 handshake 429 재현을 인증된 좌석의 일회용 티켓과 제한된 레거시 대기 슬롯으로 보강한다. | 구현 완료, 통합 검증과 남은 한계: [보안 후속 QA](qa/2026-10-03-security-followup.md).
 
 감사 근거와 보강 제안: [2026-10-03 보안 감사](qa/2026-10-03-devtools-security-audit.md). 게임 코드 수정·운영 공격 검증·커밋·push·배포는 이번 감사에서 진행하지 않았다.
+
+## 검색 유입과 실제 플레이 전환 측정
+
+### 검색 등록 및 전환 기반 구축
+
+#### 운영 사이트·계정 등록 검증
+
+- [x] SEO-001-SITE | 담당 Codex | 상태 DONE | 의존 사용자 검색 설정·운영 반영 승인 | 완료 조건: 실제 공개 페이지 sitemap/robots/canonical 배포 및 운영 응답 확인. `b4f3921`, [QA](qa/2026-10-12-search-analytics.md).
+- [x] SEO-001-GA4 | 담당 Codex | 상태 DONE | 의존 기존 GA4 관리자 접근 | 완료 조건: 실제 게임 시작·완료 이벤트 연결 및 game_start/tutorial_complete/game_complete 주요 이벤트 UI 저장 확인. 새 데이터 수신은 QA의 검증 한계 참고.
+- [x] SEO-001-NAVER | 담당 Codex·사용자 | 상태 DONE | 의존 네이버 관리자 접근·사용자 CAPTCHA 처리 | 완료 조건: 사이트 소유 확인, sitemap 제출, 홈페이지 수집 접수 및 IndexNow HTTP 200 확인.
+- [ ] SEO-001-GOOGLE | 담당 Codex | 상태 REVIEW | 의존 Google 사이트맵 보고서 갱신 | 완료 조건: 제출한 sitemap의 처리 성공·발견 URL 수를 확인한다. 제출 완료 및 Google 실제 URL 가져오기 성공 확인했지만 sitemap 보고서는 아직 가져올 수 없음. 실패 원인 단정·색인 성공 표시 금지.
