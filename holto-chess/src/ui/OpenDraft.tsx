@@ -57,11 +57,12 @@ export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = tru
     send({ type: "RUN_LOADOUT", cardIds: next });
   };
   return <section className="panel run-loadout">
+    {showTimer && <header className="run-loadout-header">
+      <PhaseTimer className="run-loadout-timer" seconds={seconds ?? 30} ariaLabel={t("loadout.timerAria", { seconds: seconds ?? 30 })} />
+    </header>}
     <h2 className="run-loadout-heading">{t("loadout.headingFirst")}<br className="run-loadout-mobile-break" /> {t("loadout.headingSecond")}</h2>
     <div className="run-loadout-content">
       <div className="run-loadout-slots">
-        {/* The clock sits above the RUN 2 slot, in the free corner beside the ability panel (as in R5). */}
-        {showTimer && <PhaseTimer className="run-loadout-timer" seconds={seconds ?? 30} ariaLabel={t("loadout.timerAria", { seconds: seconds ?? 30 })} />}
         {[t("loadout.representative"), t("loadout.run1"), t("loadout.run2")].map((label, index) => <label key={index}>
         <span className="run-loadout-slot-title" role="heading" aria-level={3}>{label}</span>
         {owned.find((c) => c.id === ids[index]) && <CardView card={owned.find((c) => c.id === ids[index])!} />}

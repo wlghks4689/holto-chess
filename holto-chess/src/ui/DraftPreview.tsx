@@ -88,7 +88,8 @@ function RunLoadoutPreview() {
   return <RoundTwoLayout phase="RUN 카드 배치"><TimedRunLoadoutPanel view={view} send={()=>undefined} disabled={false} seconds={null} durationSeconds={30} /></RoundTwoLayout>;
 }
 function RoundTwoLayout({ phase, children }: { phase: string; children: ReactNode }) {
-  return <main className="game-arena"><nav><div className="brand"><b>PORENA</b></div><span /><div className="nav-status" /></nav><div className="page-shell"><header className="round-header"><div><span className="round-number">ROUND 02</span><div className="round-title-row"><h1>RUN IT TWICE</h1><button className="secondary round-guide-trigger title-guide-trigger">?</button></div></div><div className="phase-badge"><b>{phase}</b></div></header>{children}</div></main>;
+  const loadout = phase === "RUN 카드 배치";
+  return <main className="game-arena"><nav><div className="brand"><b>PORENA</b></div><span /><div className="nav-status" /></nav><div className="page-shell"><header className={`round-header ${loadout ? "is-centered-phase-header" : ""}`}><div><span className="round-number">ROUND 02</span><div className="round-title-row"><h1>RUN IT TWICE</h1><button className="secondary round-guide-trigger title-guide-trigger">?</button></div></div>{!loadout && <div className="phase-badge"><b>{phase}</b></div>}</header>{children}</div></main>;
 }
 function RoundTwoResultsPreview() {
   let game = openDraft(fixture(2));
