@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { analytics } from "../analytics/events";
+import { canonicalFor } from "../shared/searchPages";
 import "./gameStyles";
 import { invitedRoom } from "./roomInvite";
 import { StartScreen, type StartMode } from "./StartScreen";
@@ -39,6 +41,16 @@ function ModeContent() {
   const entryRequested = useEntryIntent();
   const pathname = usePathname();
   const legalPage = legalPageFor(pathname);
+  useEffect(() => {
+    const href = canonicalFor(pathname);
+    const current = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!href) { current?.remove(); return; }
+    const link = current ?? document.createElement("link");
+    link.rel = "canonical"; link.href = href;
+    if (!current) document.head.append(link);
+  }, [pathname]);
+  const [landingVisit] = useState(() => crypto.randomUUID());
+  useEffect(() => { if (pathname === "/") analytics.track("landing_view", {}, landingVisit); }, [pathname, landingVisit]);
   // A reload (F5) returns this tab to the game it was playing before the menu or login entrance can intervene.
   // The seat token alone reconnects; the account check only guards new seats.
   const [restoring] = useState(() => typeof location !== "undefined" && !!activeSession());
@@ -65,7 +77,7 @@ function ModeContent() {
   if (PhasePreview && location.pathname === "/phase-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><PhasePreview /></Suspense>;
   if (ResponsivePreview && location.pathname === "/responsive-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><ResponsivePreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
-  if (!mode || (!(restoring && mode === "multi") && (!account.canEnter || entryRequested))) return <StartScreen onStart={setMode} />;
+  if (!mode || (!(restoring && mode === "multi") && (!account.canEnter || entryRequested))) return <StartScreen onStart={(selectedMode) => { analytics.track("play_cta_click", { selected_mode: selectedMode }); setMode(selectedMode); }} />;
   if (mode === "tutorial") return <Suspense fallback={<main className="local-loading-screen"><div><span>TUTORIAL</span><b>{t("common.loading")}</b></div></main>}><TutorialApp onHome={() => setMode(null)} onSinglePlay={() => setMode("single")} /></Suspense>;
   return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>{t("mode.multiplayer")}</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>{t("mode.single")}</button></div>}{mode === "single" && account.status === "authenticated" ? <Suspense fallback={<main className="local-loading-screen"><div><span>RANKED SOLO</span><b>{t("common.loading")}</b></div></main>}><OnlineApp solo onHome={() => setMode(null)} /></Suspense> : mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("home.singleDescription")}</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <Suspense fallback={<main className="local-loading-screen"><div><span>MULTIPLAYER</span><b>{t("common.loading")}</b></div></main>}><OnlineApp onHome={() => setMode(null)} /></Suspense>}</>;
 }

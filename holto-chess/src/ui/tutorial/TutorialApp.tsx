@@ -1,3 +1,4 @@
+import { analytics } from "../../analytics/events";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { localizeSeatNames } from "../botNames";
 import { BALANCE, handLimitFor, isLineupFinal, isTripleRunRound, minHandFor, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
@@ -57,6 +58,8 @@ function resolvePending(game: PorenaGameState): PorenaGameState {
 
 export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSinglePlay: () => void }) {
   const { locale, t } = useTranslation();
+  const [analyticsRun] = useState(() => crypto.randomUUID());
+  const chapterAttempt = useRef(0);
   const [save, setSave] = useState<TutorialSave>(() => loadTutorial());
   const [screen, setScreen] = useState<Screen>({ kind: "menu" });
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,8 @@ export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSi
   const open = useCallback((chapter: ChapterId, carried?: PorenaGameState) => {
     try {
       const session = startChapter(chapter, carried);
+      chapterAttempt.current += 1;
+      analytics.track("tutorial_start", { chapter }, `${analyticsRun}:${chapterAttempt.current}`);
       setSave((current) => markChapterStarted(current, chapter));
       setScreen({ kind: "chapter", session });
       setError(null);
@@ -71,7 +76,7 @@ export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSi
       setError(caught instanceof Error ? caught.message : t("tutorial.initFailed"));
       setScreen({ kind: "menu" });
     }
-  }, [t]);
+  }, [t, analyticsRun]);
 
   if (screen.kind === "menu") {
     return <TutorialChapterMenu save={save} error={error} onStart={open} onHome={onHome} />;
@@ -98,7 +103,11 @@ export function TutorialApp({ onHome, onSinglePlay }: { onHome: () => void; onSi
     key={`${screen.session.chapterId}:${screen.session.origin}`}
     session={screen.session}
     onSession={(session) => setScreen({ kind: "chapter", session })}
-    onFinish={(session) => { setSave((current) => markChapterDone(current, session.chapterId)); setScreen({ kind: "chapter-done", session: completeChapter(session) }); }}
+    onFinish={(session) => {
+      const attempt = `${analyticsRun}:${chapterAttempt.current}`;
+      analytics.track("tutorial_chapter_complete", { chapter: session.chapterId }, attempt);
+      if (session.chapterId === 6) analytics.track("tutorial_complete", { chapter: 6 }, attempt);
+      setSave((current) => markChapterDone(current, session.chapterId)); setScreen({ kind: "chapter-done", session: completeChapter(session) }); }}
     onChapters={() => setScreen({ kind: "menu" })}
     onHome={onHome}
   />;

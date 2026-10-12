@@ -1,3 +1,4 @@
+import { analytics, gameMilestones } from "../analytics/events";
 import { ArenaBrand } from "./ArenaBrand";
 import { GameViewportReset } from "./GameViewportReset";
 import { ShopAbilityPanel } from "./AbilityVisibility";
@@ -202,6 +203,11 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
   const state = useMemo(() => localizeSeatNames(rawState, t), [rawState, locale]); const [error, setError] = useState<ReceivedGameError | null>(null);
   const [exiting, setExiting] = useState(false);
   const [gameVersion, setGameVersion] = useState(0);
+  const [analyticsRun] = useState(() => crypto.randomUUID());
+  useEffect(() => {
+    if (preview) return;
+    for (const event of gameMilestones(state.round, state.phase)) analytics.track(event, { game_mode: "local_practice" }, `${analyticsRun}:${gameVersion}`);
+  }, [state.round, state.phase, analyticsRun, gameVersion, preview]);
   const [manualGuideRound, setManualGuideRound] = useState<Round | null>(null);
   const roundGuidePreferences = useRoundGuidePreferences();
   const expireResult = useCallback(() => setState((current) => advanceLocalNextRound(current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current)), []);

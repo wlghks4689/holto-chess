@@ -1,3 +1,4 @@
+import { searchFile, withSearchMetadata } from "./search";
 import { adminRoute, handleAdmin } from "./admin";
 import { configuredOrigin, handleAuth, purgeExpiredAuth, readPorenaSession } from "./auth";
 import { roomForwardHeaders } from "./roomIdentity";
@@ -36,12 +37,17 @@ export default {
       url.hostname = "porena.kr";
       return Response.redirect(url.toString(), 301);
     }
+    // Handle on the main host only; never expose public SEO files on the admin subdomain.
+    if (url.hostname === "porena.kr" || url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+      const search = searchFile(request, url);
+      if (search) return search;
+    }
     const admin = adminRoute(url);
     if (admin === "admin") return handleAdmin(request, env, url);
     if (admin === "hidden") return new Response("Not found", { status: 404 });
     if (url.pathname.startsWith("/api/auth/") || url.pathname === "/api/profile") return handleAuth(request, env, url);
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
-    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return serveApp(request, env, url);
+    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return withSearchMetadata(await serveApp(request, env, url), url);
     // Read-only and public: a same-origin GET carries no Origin header, so it is rate-limited instead of origin-checked.
     // The JSON has no CORS headers, so another site can never read /me even with the visitor's cookie.
     if (url.pathname === "/api/rankings" || url.pathname === "/api/rankings/me") {

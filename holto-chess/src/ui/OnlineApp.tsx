@@ -1,3 +1,4 @@
+import { analytics, gameMilestones } from "../analytics/events";
 import { ArenaBrand } from "./ArenaBrand";
 import { GameViewportReset } from "./GameViewportReset";
 import { ShopAbilityPanel } from "./AbilityVisibility";
@@ -121,6 +122,12 @@ export function OnlineApp({ onHome, solo = false }: { onHome: () => void; solo?:
   const [rawView, setView] = useState<PlayerView | null>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
   const view = useMemo(() => rawView && localizeSeatNames(rawView, t), [rawView, locale]);
+  useEffect(() => {
+    if (!view || onlineScreen(credential, view) !== "game") return;
+    for (const event of gameMilestones(view.round, view.phase, view.finalResultsReleased === true)) {
+      analytics.track(event, { game_mode: view.solo ? "ranked_solo" : "multiplayer" }, view.gameId);
+    }
+  }, [credential, view]);
   const [pendingSale, setPendingSale] = useState<Card | null>(null);
   // Fetch this round's showdown artwork (the final: the Final Arena) during its shop so the showdown opens on it.
   const finalRound = !!view && view.round === view.lastRound;
