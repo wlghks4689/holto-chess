@@ -83,10 +83,3 @@ export function ShopAbilityPanel({ ability, benefit, startingCard, compact = fal
   </aside>;
 }
 
-export function RoundAbilityBenefits({ cues, identityId }: { cues?: AbilityCue[]; identityId: string }) {
-  const { t } = useTranslation();
-  const own = cues?.filter(cue => cue.playerId === identityId) ?? [];
-  if (!own.length) return null;
-  return <aside className="round-ability-benefits">{own.map(cue => <div key={cue.id}><AbilityBadge ability={cue.abilityId} />
-    <span>{t(`ability.card.${cue.abilityId}.name`)} · {cueAmount(cue)}<small>{t("ability.ux.included")}</small></span></div>)}</aside>;
-}

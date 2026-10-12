@@ -72,7 +72,9 @@ export type RoundSummaryRow = {
   totalPoints: number; stackBB: number; rank: number; previousRank?: number;
   eliminated: boolean; bracket?: "winner" | "loser";
 };
-export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[] };
+export type FinalStandingView = { playerId: string; points: number; handScore: number; stackScore: number; stackBB: number; total: number; displayName: string; finalPlace: number; placement: number; rankPoints: number; eliminatedRound?: Round; cards?: Card[]; usedCardIds?: string[];
+  /** Points and BB this seat earned from its ability, already counted in points and stackBB. Absent in older saved results. */
+  abilityPoints?: number; abilityBB?: number };
 export type PrivatePlayerView = {
   abilityBenefit?: AbilityBenefitView;
   abilityStartingCard?: Card;

@@ -230,7 +230,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     matches: myMatches,
     roundSummary: visible && complete ? createRoundSummary(g) : [],
     ...(sameIds(myHistory, myMatches) ? {} : { roundHistory: myHistory }),
-    standings: g.phase === "GAME_RESULT" && complete ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, stackBB: s.stackBB, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound, cards: s.cards, usedCardIds: s.usedCardIds })) : [],
+    standings: g.phase === "GAME_RESULT" && complete ? finalStandings(g).map((s) => ({ playerId: s.playerId, points: s.points, handScore: s.handScore, stackScore: s.stackScore, stackBB: s.stackBB, total: s.total, displayName: s.hand?.displayName ?? "", finalPlace: s.finalPlace, placement: s.placement, rankPoints: s.rankPoints, eliminatedRound: s.eliminatedRound, cards: s.cards, usedCardIds: s.usedCardIds, abilityPoints: s.abilityPoints, abilityBB: s.abilityBB })) : [],
   };
   return structuredClone(view);
 }

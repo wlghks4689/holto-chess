@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buyCard, createGame, rerollShop, sellCard, toggleShopLock, resolvePrimary, resolveSurvival, startNextRound, pickDraftCard, openDraft } from "./engine";
+import { buyCard, createGame, finalStandings, rerollShop, sellCard, toggleShopLock, resolvePrimary, resolveSurvival, startNextRound, pickDraftCard, openDraft } from "./engine";
 import { BALANCE, cardPrice } from "./config";
 import { recordAbilityBenefit, rewardAbilityInterest, rewardAbilities } from "./abilityRewards";
 import { abilityBenefit, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
@@ -160,5 +160,19 @@ describe("settlement and disclosure", () => {
     const entry = { matchId: full.id, offsetMs: 0, durationMs: 50000 };
     for (const f of frames.filter(f => f.at < frames.find(f => f.phase === "FINAL_WINNER")!.at)) expect(discloseMatch(full, entry, 0, f.at)!.abilityCues).toEqual([]);
     expect(discloseMatch(full, entry, 0, frames.find(f => f.phase === "FINAL_WINNER")!.at)!.abilityCues!.length).toBeGreaterThan(0);
+  });
+});
+
+describe("final standings ability totals", () => {
+  it("lists the points and BB each seat earned from its ability", () => {
+    const s = resolvePrimary(fixture(2, "target-sniper"));
+    const seat = s.players[0]!;
+    recordAbilityBenefit(s, seat, { reason: "round-leader", bb: 6, points: 4, savedBB: 0 });
+    const benefit = abilityBenefit(s.abilityEvents ?? [], seat.id);
+    const row = finalStandings(s).find((entry) => entry.playerId === seat.id)!;
+    expect(row.abilityPoints).toBe(benefit.points);
+    expect(row.abilityBB).toBe(benefit.bb);
+    expect(row.abilityPoints).toBeGreaterThanOrEqual(4);
+    expect(row.abilityBB).toBeGreaterThanOrEqual(6);
   });
 });

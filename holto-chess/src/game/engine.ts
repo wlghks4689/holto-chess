@@ -1304,6 +1304,10 @@ export function finalStandings(state: PorenaGameState) {
     const stackBB = player.eliminationSnapshot?.stackBB ?? player.stackBB;
     const handScore = hand ? BALANCE.handScores[hand.category] : 0;
     const stackScore = Math.floor(stackBB / BALANCE.stackScoreUnitBB);
+    // Already inside points and stackBB; shown on its own in the final score breakdown.
+    const abilityEvents = (state.abilityEvents ?? []).filter((event) => event.playerId === player.id);
+    const abilityPoints = abilityEvents.reduce((sum, event) => sum + event.points, 0);
+    const abilityBB = abilityEvents.reduce((sum, event) => sum + event.bb, 0);
     const lastMatch = [...state.matches].reverse().find((match) => match.revealedCardIds[player.id]?.length);
     // A seat knocked out in R5 shows every RUN hand it played, not just RUN 1.
     const cardIds = player.ownedCardIds.length ? player.ownedCardIds : (lastMatch?.runCards?.[player.id] ? [...new Set(lastMatch.runCards[player.id]!.flat())] : lastMatch?.revealedCardIds[player.id]);
@@ -1312,7 +1316,7 @@ export function finalStandings(state: PorenaGameState) {
       : state.finalAuction && final ? hand?.bestFive ?? [] : cardIds ? cardsFor(state, cardIds) : hand?.bestFive ?? [];
     return { playerId: player.id, points, handScore, stackScore, total: points + handScore + stackScore, hand,
       cards, usedCardIds: lineup ?? hand?.bestFive.map((card) => card.id) ?? [],
-      finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB };
+      finalPlace: final?.place ?? Infinity, eliminatedRound: player.eliminatedRound, stackBB, abilityPoints, abilityBB };
   }).sort((a, b) => {
     const aEliminated = a.eliminatedRound !== undefined;
     const bEliminated = b.eliminatedRound !== undefined;

@@ -59,13 +59,18 @@ function ShopStylePreview() {
   return <main className="game-arena"><div className="page-shell shop-page"><header className="round-header"><div><span className="round-number">ROUND 01</span><h1>TWO HAND</h1></div></header><section className="shop-layout"><div className="market panel"><header><div className="shop-heading"><h2>카드 마켓</h2><strong className="shop-count">2 / 2</strong></div><span className="purchase-count">구매 0 / 2</span></header><div className="card-row market-row"><ShopCard card={{ id:"6d", rank:6, suit:"d" }} price={6} locked={false} onBuy={() => undefined} onLock={() => undefined} /><ShopCard card={{ id:"2s", rank:2, suit:"s" }} price={5} locked={false} dealIndex={1} onBuy={() => undefined} onLock={() => undefined} /></div></div></section></div></main>;
 }
 const finalRows: FinalStandingView[] = [
-  { playerId:"p1", points:52, handScore:15, stackScore:24, stackBB:195, total:95, displayName:"풀하우스", finalPlace:1, placement:1, rankPoints:8, cards:[{id:"Ad",rank:14,suit:"d"},{id:"Kh",rank:13,suit:"h"},{id:"As",rank:14,suit:"s"},{id:"Kd",rank:13,suit:"d"},{id:"Ac",rank:14,suit:"c"}], usedCardIds:["Ad","Kh","As","Kd","Ac"] },
-  { playerId:"p2", points:32, handScore:12, stackScore:27, stackBB:177, total:71, displayName:"플러시", finalPlace:2, placement:2, rankPoints:4, cards:[{id:"Td",rank:10,suit:"d"},{id:"Qd",rank:12,suit:"d"},{id:"2d",rank:2,suit:"d"},{id:"6d",rank:6,suit:"d"},{id:"3d",rank:3,suit:"d"}], usedCardIds:["Td","Qd","2d","6d","3d"] },
-  { playerId:"p3", points:35, handScore:2, stackScore:25, stackBB:168, total:62, displayName:"투페어", finalPlace:3, placement:3, rankPoints:2, cards:[{id:"9h",rank:9,suit:"h"},{id:"Ah",rank:14,suit:"h"},{id:"8d",rank:8,suit:"d"},{id:"8h",rank:8,suit:"h"},{id:"9s",rank:9,suit:"s"}], usedCardIds:["9h","Ah","8d","8h","9s"] },
+  { playerId:"p1", abilityPoints:3, abilityBB:12, points:52, handScore:15, stackScore:24, stackBB:195, total:95, displayName:"풀하우스", finalPlace:1, placement:1, rankPoints:8, cards:[{id:"Ad",rank:14,suit:"d"},{id:"Kh",rank:13,suit:"h"},{id:"As",rank:14,suit:"s"},{id:"Kd",rank:13,suit:"d"},{id:"Ac",rank:14,suit:"c"}], usedCardIds:["Ad","Kh","As","Kd","Ac"] },
+  { playerId:"p2", abilityPoints:0, abilityBB:0, points:32, handScore:12, stackScore:27, stackBB:177, total:71, displayName:"플러시", finalPlace:2, placement:2, rankPoints:4, cards:[{id:"Td",rank:10,suit:"d"},{id:"Qd",rank:12,suit:"d"},{id:"2d",rank:2,suit:"d"},{id:"6d",rank:6,suit:"d"},{id:"3d",rank:3,suit:"d"}], usedCardIds:["Td","Qd","2d","6d","3d"] },
+  { playerId:"p3", abilityPoints:8, abilityBB:0, points:35, handScore:2, stackScore:25, stackBB:168, total:62, displayName:"투페어", finalPlace:3, placement:3, rankPoints:2, cards:[{id:"9h",rank:9,suit:"h"},{id:"Ah",rank:14,suit:"h"},{id:"8d",rank:8,suit:"d"},{id:"8h",rank:8,suit:"h"},{id:"9s",rank:9,suit:"s"}], usedCardIds:["9h","Ah","8d","8h","9s"] },
+  { playerId:"p4", abilityPoints:0, abilityBB:6, points:30, handScore:0, stackScore:9, stackBB:94, total:39, displayName:"원페어", finalPlace:4, placement:4, rankPoints:0, eliminatedRound:5, cards:[{id:"Kc",rank:13,suit:"c"},{id:"Qs",rank:12,suit:"s"},{id:"7h",rank:7,suit:"h"},{id:"6c",rank:6,suit:"c"},{id:"5d",rank:5,suit:"d"},{id:"4h",rank:4,suit:"h"}], usedCardIds:[] },
+  { playerId:"p5", abilityPoints:2, abilityBB:0, points:22, handScore:0, stackScore:8, stackBB:83, total:30, displayName:"하이카드", finalPlace:5, placement:5, rankPoints:0, eliminatedRound:4, cards:[{id:"9c",rank:9,suit:"c"},{id:"8s",rank:8,suit:"s"},{id:"7d",rank:7,suit:"d"},{id:"6h",rank:6,suit:"h"},{id:"2c",rank:2,suit:"c"}], usedCardIds:[] },
+  { playerId:"p6", abilityPoints:0, abilityBB:0, points:18, handScore:0, stackScore:6, stackBB:61, total:24, displayName:"하이카드", finalPlace:6, placement:6, rankPoints:0, eliminatedRound:4, cards:[{id:"Jc",rank:11,suit:"c"},{id:"Ts",rank:10,suit:"s"},{id:"4d",rank:4,suit:"d"},{id:"3h",rank:3,suit:"h"},{id:"2s",rank:2,suit:"s"}], usedCardIds:[] },
+  { playerId:"p7", abilityPoints:0, abilityBB:0, points:12, handScore:0, stackScore:4, stackBB:45, total:16, displayName:"원페어", finalPlace:7, placement:7, rankPoints:0, eliminatedRound:3, cards:[{id:"Qc",rank:12,suit:"c"},{id:"5s",rank:5,suit:"s"},{id:"5h",rank:5,suit:"h"},{id:"3c",rank:3,suit:"c"}], usedCardIds:[] },
+  { playerId:"p8", abilityPoints:0, abilityBB:0, points:9, handScore:0, stackScore:3, stackBB:32, total:12, displayName:"하이카드", finalPlace:8, placement:8, rankPoints:0, eliminatedRound:3, cards:[{id:"Ac",rank:14,suit:"c"},{id:"9d",rank:9,suit:"d"},{id:"6s",rank:6,suit:"s"},{id:"2h",rank:2,suit:"h"}], usedCardIds:[] },
 ];
 function FinalResultsPreview() {
-  const names = ["나", "턴 샤크", "올인 베어"];
-  return <main className="game-arena"><div className="page-shell final-results-page"><header className="round-header"><div><h1>FINAL STANDINGS</h1></div></header><section className="final-panel"><div className="standings"><FinalStandingsHeader />{finalRows.map((row,index)=><FinalStandingRow key={row.playerId} row={row} name={names[index]!} />)}</div></section></div></main>;
+  const names = ["나", "턴 샤크", "올인 베어", "리버 폭스", "클럽 레이븐", "블러프 캣", "스페이드 울프", "다이아 바이퍼"];
+  return <main className="game-arena"><div className="page-shell final-results-page"><header className="round-header is-centered-phase-header"><div><div className="round-title-row"><h1>FINAL STANDINGS</h1></div></div></header><section className="final-panel"><div className="standings"><FinalStandingsHeader />{finalRows.map((row,index)=><FinalStandingRow key={row.playerId} row={row} name={names[index]!} />)}</div></section></div></main>;
 }
 function RunSummaryPreview() {
   let game = openDraft(fixture(2));
@@ -110,14 +115,13 @@ function DraftFixturePreview() {
 }
 /**
  * The live game page around a draft: the online nav (brand, round steps, connection, leave) and the centred
- * round header with its rules button, plus an ability for every seat, so heights match a real phone.
+ * round header with its rules button, so heights match a real phone.
  * `?picks=N` plays N picks first to show sold cards.
  */
 function draftFixture(round: 2 | 4) {
   let game = openDraft(fixture(round));
   const picks = Number(new URLSearchParams(location.search).get("picks") ?? 0);
   for (let i = 0; i < picks && game.phase === "OPEN_DRAFT"; i += 1) game = autoPickDraft(game, true);
-  game.players.forEach((player) => { player.abilityId = "capitalism"; });
   return game;
 }
 function DraftGameShell({ round, children }: { round: 2 | 4; children: ReactNode }) {

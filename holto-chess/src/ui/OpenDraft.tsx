@@ -1,4 +1,3 @@
-import { ShopAbilityPanel } from "./AbilityVisibility";
 import type { CSSProperties } from "react";
 import { cardLabel } from "../core/poker/cards";
 import type { GameAction, PlayerView } from "../shared/protocol";
@@ -59,7 +58,6 @@ export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = tru
   };
   return <section className="panel run-loadout">
     <h2 className="run-loadout-heading">{t("loadout.headingFirst")}<br className="run-loadout-mobile-break" /> {t("loadout.headingSecond")}</h2>
-    <ShopAbilityPanel ability={view.me.abilityId} benefit={view.me.abilityBenefit} startingCard={view.me.abilityStartingCard} compact />
     <div className="run-loadout-content">
       <div className="run-loadout-slots">
         {/* The clock sits above the RUN 2 slot, in the free corner beside the ability panel (as in R5). */}

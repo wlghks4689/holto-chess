@@ -1,6 +1,6 @@
 import { ArenaBrand } from "./ArenaBrand";
 import { GameViewportReset } from "./GameViewportReset";
-import { ShopAbilityPanel, RoundAbilityBenefits } from "./AbilityVisibility";
+import { ShopAbilityPanel } from "./AbilityVisibility";
 import { abilityBenefit, personalAbilityCues } from "../game/abilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -297,7 +297,6 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
       {error ? <div className="error-toast" role="alert"><span>!</span>{renderGameError(error, t)}<button onClick={() => setError(null)}>×</button></div> : null}
       {state.phase === "SHOP" && <R5OpponentBanner view={draftView} />}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>{t("spectator.mode")}</h2><p>{t("spectator.cardsReturned")}</p></section> : <ShopPanel state={state} act={act} /> : null}
-      {["ROUND_RESULT", "GAME_RESULT"].includes(state.phase) && <RoundAbilityBenefits cues={draftView.roundAbilityCues} identityId="p1" />}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
       {state.phase === "SURVIVAL_READY" && state.survival ? <SurvivalReadyPanel {...state.survival} viewerId="p1" name={(id) => state.players.find((player) => player.id === id)?.name ?? id} /> : null}
       {["SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"].includes(state.phase) ? <ShowdownPanel state={state} secondsLeft={pauseLocalResultTimer ? BARRIER_TIMEOUT_MS.RESULTS / 1000 : resultSecondsLeft} matchup={draftView.showdownPrep} /> : null}
