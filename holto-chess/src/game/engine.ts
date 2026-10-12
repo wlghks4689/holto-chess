@@ -3,6 +3,7 @@ import { evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, pla
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
 import { BALANCE, cardPrice, FINAL_LOADOUT_SIZE, finalPlacementPoints, handLimitFor, isAuctionRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, matchLossBB, minHandFor, purchaseLimitFor, R3_AUCTION, TRIPLE_RUN } from "./config";
 import { bestBotSelection, bestRunLoadout, bestTripleRunLoadout, r5MatchupEquity, rankBotPairs, rankBotPurchases, rankBuybackOptions, scoreBotPlan, shouldBotReroll } from "./botStrategy";
+import { planR1Shop } from "./r1ShopStrategy";
 import { calculateIcm } from "./icm";
 import { emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
@@ -197,6 +198,7 @@ export function rerollShop(source: PorenaGameState, playerId: string): PorenaGam
   const targetSize = abilityShopSize(player, state.round, state);
   const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
+  if (player.purchasesThisRound >= purchaseLimitFor(state.round, state)) throw new Error("구매 횟수를 모두 사용해 리롤할 수 없습니다.");
   if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state)) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
   if (targetSize > 0 && lockedCount >= targetSize) throw new Error("모든 상점 카드가 잠겨 있어 리롤할 수 없습니다.");
   assertPoolIntegrity(state);
@@ -262,6 +264,15 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       player.stackBB -= cost; releaseShop(state, player); reserveShopCards(state, player);
       recordAbilitySaving(state, player, "free-reroll", BALANCE.rerollCostBB - cost); player.rerollsUsed = (player.rerollsUsed ?? 0) + 1;
     };
+    const rerollWithLocks = (cardIds: readonly string[]) => {
+      for (const cardId of cardIds) {
+        const cost = abilityLockCost(player);
+        player.stackBB -= cost;
+        (player.lockedShopCardIds ??= []).push(cardId);
+        recordAbilitySaving(state, player, "shop-lock", BALANCE.cardLockCostBB - cost, cardId);
+      }
+      reroll();
+    };
     if (policy) {
       const sell = (cardId: string) => {
         const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
@@ -298,7 +309,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         if (action.type === "REROLL") {
           const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
           const shopSize = abilityShopSize(player, state.round, state);
-          if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state) || player.stackBB < rerollCost) break;
+          if (player.purchasesThisRound >= purchaseLimit || (player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state) || player.stackBB < rerollCost) break;
           if (shopSize > 0 && lockedCount >= shopSize) break;
           reroll(); continue;
         }
@@ -313,6 +324,14 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         || player.shopCardIds.some((id) => !(player.lockedShopCardIds ?? []).includes(id));
     };
     while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state)) {
+      if (state.round === 1) {
+        const decision = planR1Shop(player, ownedCards(), player.shopCardIds.map(id => getCard(state, id)), state);
+        if (decision.reroll) {
+          rerollWithLocks(decision.lockCardIds); continue;
+        }
+        if (decision.buyCards.length) { for (const card of decision.buyCards) buy(card.id); continue; }
+        // A severely depleted stack may only afford one card; keep the existing short-hand fallback.
+      }
       const options = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!)
         .map((entry) => ({ card: entry.card, price: abilityPrice(player, entry.card.rank) })).filter((entry) => entry.price <= player.stackBB);
       const ranked = rankBotPurchases(state.round, player, ownedCards(), options, planContext); const best = ranked[0];
@@ -330,7 +349,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
     while (player.ownedCardIds.length === limit && player.purchasesThisRound < purchaseLimitFor(state.round, state)) {
       // One shared deck for the baseline and every swap: otherwise sampling noise (several points)
       // outweighs the 2.25 bar and the "best" swap is whichever candidate drew lucky boards.
-      const swapContext = { ...planContext, sharedKnown: [...ownedCards(), ...player.shopCardIds.map((id) => getCard(state, id))] };
+      const swapContext = { ...planContext, player, sharedKnown: [...ownedCards(), ...player.shopCardIds.map((id) => getCard(state, id))] };
       const baseline = scoreBotPlan(state.round, ownedCards(), player.stackBB, `${player.id}:upgrade`, swapContext);
       let bestSwap: { ownedId: string; shopId: string; utility: number } | null = null;
       for (const ownedId of player.ownedCardIds) for (const shopId of player.shopCardIds) {
@@ -343,6 +362,11 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`, swapContext);
         if (plan.utility > baseline.utility + 2.25 && (!bestSwap || plan.utility > bestSwap.utility)) bestSwap = { ownedId, shopId, utility: plan.utility };
       }
+      if (state.round === 1) {
+        // Compare keeping/buying the best current exchange with reroll EV before spending the spare purchase.
+        const decision = planR1Shop(player, ownedCards(), player.shopCardIds.map(id => getCard(state, id)), state);
+        if (decision.reroll) { rerollWithLocks(decision.lockCardIds); continue; }
+      }
       if (bestSwap) {
         const oldEntry = state.ownershipCardPool.find((entry) => entry.card.id === bestSwap!.ownedId)!;
         const refundRate = abilitySellRate(player);
@@ -350,6 +374,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
         player.stackBB += Math.floor(cardPrice(oldEntry.card.rank) * refundRate); player.ownedCardIds = player.ownedCardIds.filter((id) => id !== bestSwap!.ownedId);
         oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId; buy(bestSwap.shopId); continue;
       }
+      if (state.round === 1) break;
       const rerollCost = abilityRerollCost(player);
       if (hasRerollableSlot() && (player.rerollsUsed ?? 0) < abilityRerollLimit(player, state.round, state) && player.stackBB >= rerollCost + 20 && baseline.equity < 0.58) { reroll(); continue; }
       break;

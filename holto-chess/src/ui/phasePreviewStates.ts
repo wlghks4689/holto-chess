@@ -1,4 +1,4 @@
-import { createAbilityGame, createGame, finishAbilityDeal, finishAbilitySelection } from "../game/engine";
+import { createAbilityGame, createGame, finishAbilityDeal, finishAbilitySelection, prepareShowdown } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
 import { autoStep } from "../tutorial/practiceState";
 import { settleFinalAuction } from "../game/finalAuction";
@@ -20,6 +20,12 @@ export function phasePreviewStates(sixRounds = true): PorenaGameState[] {
           ? settleFinalAuction(game, game.finalAuction!.endsAt) : autoStep(game);
       if (step === 399) throw new Error("페이즈 미리보기 생성이 완료되지 않았습니다.");
     }
+  }
+  if (sixRounds && ![...states.values()].some(game => game.round === 6 && game.phase === "RUN_LOADOUT")) {
+    // The sample viewer may have been eliminated. Use an actual finalist's legal hand to show this conditional screen.
+    const shop = [...states.values()].find(game => game.round === 6 && game.phase === "SHOP");
+    const finalist = shop?.players.find(player => !player.eliminated && player.ownedCardIds.length > 5);
+    if (shop && finalist) states.set("6:RUN_LOADOUT:finalist", prepareShowdown(shop, [finalist.id]));
   }
   if (!sixRounds && ![...states.values()].some(game => game.phase === "SURVIVAL_READY")) {
     // shortcut: a fixed legacy tie fixture; use a recorded match when reproducing a specific tiebreak bug.

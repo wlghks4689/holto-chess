@@ -1,15 +1,19 @@
 import { makeDeck, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha, type HandCategory, type HandValue } from "../core/poker/evaluate";
-import { BALANCE, handLimitFor, rerollLimitFor, TRIPLE_RUN, type RuleContext } from "./config";
+import { BALANCE, handLimitFor, purchaseLimitFor, TRIPLE_RUN, type RuleContext } from "./config";
 import type { PlayerState, Round } from "./types";
 import { omahaPreflopStrength, strategicCardValue, type PreflopStrength } from "./preflopStrength";
 import { scoreSeven, scoreUnrestricted } from "./showdownEquity";
+
+import { abilityRerollLimit } from './abilities';
+import { r1AbilityValue, r1ExpectedHandScore, r1PreflopStats } from './r1Preflop';
 
 type PricedCard = { card: Card; price: number };
 export type BotPlanScore = {
   equity: number;
   expectedHandScore: number;
   potential: number;
+  abilityValue?: number;
   currentRoundStrength?: PreflopStrength;
   futureAssetValue: number;
   poolDenialValue: number;
@@ -18,6 +22,8 @@ export type BotPlanScore = {
 export type BotPlanOptions = {
   /** R5 auction uses R4 sampling with rank-only evaluation to avoid blocking live bids. */
   fastUnrestricted?: boolean;
+  /** R1 reward preferences never inspect another seat or unrevealed cards. */
+  player?: Pick<PlayerState, "abilityId" | "firstCardId" | "winStreak">;
   /** Version 2 plays R2 as [anchor, run-1 secondary] and [anchor, run-2 secondary]. */
   rulesVersion?: 1 | 2;
   /** Six rounds: R5 plays three two-card RUNs, R6 plays a chosen five on one community board. */
@@ -305,6 +311,17 @@ export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: n
   const sixRounds = !!options.sixRounds;
   const limit = handLimitFor(round, { rulesVersion, sixRounds });
   if (cards.length > limit) throw new Error("Bot plan exceeds the round hand limit");
+  if (round === 1 && cards.length === 2) {
+    const stats = r1PreflopStats(cards);
+    const expectedHandScore = r1ExpectedHandScore(stats);
+    const strategic = strategicCardValue(round, cards);
+    const abilityValue = r1AbilityValue(cards, stackAfter, stats, options.player);
+    // Draw outcomes are already in the stable table; adding drawPotential would count them twice.
+    const utility = stats.equity * 100 + expectedHandScore * .45 + Math.max(0, stackAfter) * .035
+      + (strategic.currentRoundStrength?.score ?? 0) * .02
+      + strategic.futureAssetValue * .015 + strategic.poolDenialValue * .01 + abilityValue;
+    return { equity: stats.equity, expectedHandScore, potential: 0, ...strategic, abilityValue, utility };
+  }
   const final = ["final", "lineup"].includes(String(planMode(round, sixRounds)));
   // Deriving the deck from the shared baseline rather than from `cards` is what
   // makes candidates comparable: identical boards and opponents every sample, so
@@ -364,7 +381,7 @@ export function r5MatchupEquity(hero: readonly Card[], opponent: readonly Card[]
 export function rankBotPurchases(round: Round, player: PlayerState, ownedCards: readonly Card[], options: readonly PricedCard[], context: BotPlanOptions = {}): (PricedCard & { plan: BotPlanScore })[] {
   const seedKey = `${player.id}:${player.points}:${player.stackBB}`;
   const sharedKnown = [...ownedCards, ...options.map((option) => option.card)];
-  return options.map((option) => ({ ...option, plan: scoreBotPlan(round, [...ownedCards, option.card], player.stackBB - option.price, seedKey, { ...context, sharedKnown }) }))
+  return options.map((option) => ({ ...option, plan: scoreBotPlan(round, [...ownedCards, option.card], player.stackBB - option.price, seedKey, { ...context, sharedKnown, player }) }))
     .sort((a, b) => b.plan.utility - a.plan.utility || a.price - b.price || b.card.rank - a.card.rank);
 }
 
@@ -379,7 +396,7 @@ export function rankBotPairs(round: Round, player: PlayerState, ownedCards: read
   options.forEach((first, i) => options.slice(i + 1).forEach((second) => {
     const price = first.price + second.price;
     if (price > player.stackBB) return;
-    pairs.push({ cards: [first, second], price, plan: scoreBotPlan(round, [...ownedCards, first.card, second.card], player.stackBB - price, seedKey, { ...context, sharedKnown }) });
+    pairs.push({ cards: [first, second], price, plan: scoreBotPlan(round, [...ownedCards, first.card, second.card], player.stackBB - price, seedKey, { ...context, sharedKnown, player }) });
   }));
   return pairs.sort((a, b) => b.plan.utility - a.plan.utility || a.price - b.price);
 }
@@ -434,11 +451,12 @@ export function bestTripleRunLoadout(player: Pick<PlayerState, "id">, cards: rea
 }
 
 export function shouldBotReroll(round: Round, player: PlayerState, best: { price: number; plan: BotPlanScore } | undefined, rerollCost: number, rules: RuleContext = { rulesVersion: 2 }): boolean {
-  if ((player.rerollsUsed ?? 0) >= rerollLimitFor(round, rules) || player.stackBB < rerollCost + 5) return false;
+  if (player.purchasesThisRound >= purchaseLimitFor(round, rules)
+    || (player.rerollsUsed ?? 0) >= abilityRerollLimit(player, round, rules) || player.stackBB < rerollCost + 5) return false;
   if (!best) return true;
   const targetEquity: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5, 6: 0.5 };
   const behind = player.points < 8 * (round - 1) || player.stackBB < 35;
-  return best.plan.equity < targetEquity[round] - (behind ? 0.025 : 0) && best.price >= 10;
+  return best.plan.equity < targetEquity[round] - (behind ? 0.025 : 0);
 }
 
 export function bestBotSelection(round: Round, cards: readonly Card[]): string[] {

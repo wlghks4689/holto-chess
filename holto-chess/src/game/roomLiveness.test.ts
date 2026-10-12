@@ -54,7 +54,8 @@ describe("barrier liveness", () => {
     expect(barrierDeadline(bothDone)).toBe(T0 + 50_000 + BARRIER_TIMEOUT_MS.MATCH_SETUP);
 
     let finished = bothDone;
-    for (let step = 0; step < 40 && finished.game.phase !== "GAME_RESULT"; step++) {
+    // Auction bot wake-ups and conditional reveal barriers vary with AI decisions.
+    for (let step = 0; step < 100 && finished.game.phase !== "GAME_RESULT"; step++) {
       finished = forceBarrier(finished, barrierDeadline(finished) ?? T0) ?? finished;
       if (finished.game.phase === "GAME_RESULT") break;
     }
