@@ -1,7 +1,8 @@
-import { Fragment, useMemo, type CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import type { ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { CardBack, CardView } from "./CardView";
-import { showdownEquity, r4ThreeWayEquity } from "./showdownEquity";
+import { useDisplayEquity } from "./useDisplayEquity";
+import type { EquityJob } from "./displayEquity";
 import { abilityIconUrl } from "./abilityArtworkLoader";
 import "./showdown-prep.css";
 import { useTranslation } from "../i18n";
@@ -48,14 +49,12 @@ function StandardShowdownPrepPanel({ round, playerName, seconds, secondary = fal
   const multiway = opponents.length > 1;
   const matchNumber = matchup?.matchNumber ?? (secondary ? 2 : 1);
   const duration = Math.max(1, seconds ?? 3);
-  const equity = useMemo(() => {
-    if (round === 4 && matchup?.opponents?.length === 2) {
-      return r4ThreeWayEquity([matchup.viewer.cards, ...matchup.opponents.map(seat => seat.cards)]);
-    }
-    const opponent = matchup?.opponents?.length === 1 ? matchup.opponents[0] : matchup?.opponent;
-    return !final && matchup && opponent && (!matchup.opponents || matchup.opponents.length === 1)
-      ? showdownEquity(round as 1 | 2 | 3 | 4 | 5, matchup.viewer.cards, opponent.cards) : null;
-  }, [round, matchup, final]);
+  const opponent = matchup?.opponents?.length === 1 ? matchup.opponents[0] : matchup?.opponent;
+  const jobs: EquityJob[] = round === 4 && matchup?.opponents?.length === 2
+    ? [{ kind: "threeWay", hands: [matchup.viewer.cards, ...matchup.opponents.map(seat => seat.cards)] }]
+    : !final && matchup && opponent && (!matchup.opponents || matchup.opponents.length === 1)
+      ? [{ kind: "headsUp", round: round as 1 | 2 | 3 | 4 | 5, hands: [matchup.viewer.cards, opponent.cards], dead: [] }] : [];
+  const equity = useDisplayEquity(jobs)?.[0];
   return <section className={`showdown-prep match-loading ${final ? "final-match-loading" : ""}`} data-round={round} aria-label={t("showdown.matchLoadingAria")} style={{ "--prep-duration": `${duration}s` } as CSSProperties}>
     <header className="showdown-prep-heading"><small>ROUND {String(round).padStart(2, "0")} · MATCH {matchNumber}</small><h1>{roundTitle(round, round === 6 ? 6 : 5)}</h1></header>
     <div className={`showdown-prep-stage ${multiway ? `is-multiway is-${opponents.length + 1}-way` : ""}`}>
@@ -78,14 +77,8 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
   const viewer = matchup?.viewer;
   const opponents = matchup?.opponents ?? (matchup?.opponent ? [matchup.opponent] : []);
   const opponent = opponents.length === 1 ? opponents[0] : undefined;
-  const equities = useMemo(() => {
-    if (!viewer?.runCards || !opponent?.runCards) return [[null, null], [null, null]] as const;
-    const deadCards = [...viewer.cards, ...opponent.cards];
-    return [0, 1].map((run) => {
-      const left = viewer.runCards![run]!, right = opponent.runCards![run]!;
-      return left.length === 2 && right.length === 2 ? showdownEquity(2, left, right, deadCards) ?? [null, null] : [null, null];
-    }) as [[number | null, number | null], [number | null, number | null]];
-  }, [viewer, opponent]);
+  const equities = useDisplayEquity([0, 1].map(run => ({ kind: "headsUp", round: 2,
+    hands: [viewer?.runCards?.[run] ?? [], opponent?.runCards?.[run] ?? []], dead: [...(viewer?.cards ?? []), ...(opponent?.cards ?? [])] })));
   const seats = [viewer, opponent] as const;
   const names = [viewer?.name ?? playerName, opponent?.name ?? t("showdown.findingOpponent")] as const;
   return <section className="showdown-prep match-loading r2-match-prep" aria-label={t("showdown.matchLoadingAria")}>
@@ -96,7 +89,7 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
           <header className="r2-match-identity"><PrepAvatar className="r2-match-avatar" seat={seat} fallback={seat ? [...seat.name][0] ?? "P" : "?"} /><div><b title={names[index]}>{names[index]}</b><small>{seat ? t("showdown.points", { points: seat.points }) : "—"}</small></div></header>
           <div className="r2-run-list">{([0, 1] as const).map((run) => {
             const cards = seat?.runCards?.[run] ?? [];
-            const percent = equities[run][index] ?? null;
+            const percent = equities?.[run]?.[index] ?? null;
             return <section className="r2-run-preview" key={run} aria-label={`RUN ${run + 1}`}>
               <h2>RUN {run + 1}</h2>
               <div className="r2-run-preview-body"><div className="r2-run-cards">{cards.slice(0, 2).map((card) => <CardView key={card.id} card={card} compact />)}{Array.from({ length: Math.max(0, 2 - cards.length) }, (_, i) => <span className="r2-run-card-placeholder" key={`empty-${i}`} />)}</div><div className="r2-run-equity"><small>{t("showdown.equityLabel")}</small><strong>{percent === null ? "--" : `${percent}%`}</strong></div></div>
@@ -115,10 +108,8 @@ function TripleRunPrepPanel({ playerName, matchup }: { playerName: string; match
   const { t } = useTranslation();
   const viewer = matchup?.viewer;
   const opponent = matchup?.opponent ?? matchup?.opponents?.[0];
-  const equities = useMemo(() => [0, 1, 2].map(run => {
-    const left = viewer?.runCards?.[run] ?? [], right = opponent?.runCards?.[run] ?? [];
-    return showdownEquity(2, left, right, [...(viewer?.cards ?? []), ...(opponent?.cards ?? [])]);
-  }), [viewer, opponent]);
+  const equities = useDisplayEquity([0, 1, 2].map(run => ({ kind: "headsUp", round: 2,
+    hands: [viewer?.runCards?.[run] ?? [], opponent?.runCards?.[run] ?? []], dead: [...(viewer?.cards ?? []), ...(opponent?.cards ?? [])] })));
   const seats = [viewer, opponent] as const;
   const names = [viewer?.name ?? playerName, opponent?.name ?? t("showdown.findingOpponent")] as const;
   return <section className="showdown-prep match-loading r2-match-prep r5-match-prep" aria-label={t("showdown.matchLoadingAria")}>
@@ -132,7 +123,7 @@ function TripleRunPrepPanel({ playerName, matchup }: { playerName: string; match
             return <section className="r2-run-preview" key={run} aria-label={`RUN ${run + 1}`}>
               <h2>RUN {run + 1}</h2>
               <div className="r2-run-preview-body"><div className="r2-run-cards">{cards ? cards.map((card) => <CardView key={card.id} card={card} compact />)
-                : [0, 1].map((slot) => <CardBack key={slot} compact />)}</div><div className="r2-run-equity"><small>{t("showdown.equityLabel")}</small><strong>{equities[run]?.[index] === undefined ? "--" : `${equities[run]![index]}%`}</strong></div></div>
+                : [0, 1].map((slot) => <CardBack key={slot} compact />)}</div><div className="r2-run-equity"><small>{t("showdown.equityLabel")}</small><strong>{equities?.[run]?.[index] === undefined ? "--" : `${equities[run]![index]}%`}</strong></div></div>
             </section>;
           })}</div>
         </article>

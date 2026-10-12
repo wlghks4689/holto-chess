@@ -5,7 +5,7 @@ import { makeDeck } from "../core/poker/cards";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 
 describe("showdown preparation presentation", () => {
-  it("shows both R5 players' three RUN pairs with odds for each independent board", () => {
+  it("shows all R5 RUN pairs immediately while independent odds are pending", () => {
     const deck = makeDeck();
     const seats = [0, 1].map(index => {
       const cards = deck.slice(index * 6, index * 6 + 6);
@@ -17,7 +17,7 @@ describe("showdown preparation presentation", () => {
     expect(html.match(/aria-label="RUN [123]"/g)).toHaveLength(6);
     expect(html.match(/class="playing-card[^"]* compact/g)).toHaveLength(12);
     expect(html).not.toContain("card-back");
-    expect(html.match(/class="r2-run-equity"><small>예상 승률<\/small><strong>\d+%<\/strong>/g)).toHaveLength(6);
+    expect(html.match(/class="r2-run-equity"><small>예상 승률<\/small><strong>--<\/strong>/g)).toHaveLength(6);
     expect(html).toContain("각 RUN 승률은 개별 보드 기준 예상치입니다.");
   });
   it.each([1,2])("uses the same skill icon component for both seats in round %i", (round) => {
@@ -82,7 +82,7 @@ describe("showdown preparation presentation", () => {
     expect(html.indexOf('class="r2-match-vs"')).toBeLessThan(html.indexOf('class="r2-match-player is-opponent'));
     expect(html.match(/aria-label="RUN [12]"/g)).toHaveLength(4);
     expect(html.match(/class="playing-card[^"]* compact/g)).toHaveLength(8);
-    expect(html.match(/class="r2-run-equity"><small>예상 승률<\/small><strong>\d+%<\/strong>/g)).toHaveLength(4);
+    expect(html.match(/class="r2-run-equity"><small>예상 승률<\/small><strong>--<\/strong>/g)).toHaveLength(4);
     expect(html).toContain("각 RUN 승률은 개별 보드 기준 예상치입니다.");
     for (const removed of ["SAME HAND", "보유 카드", "READY", "SYNC"]) expect(html).not.toContain(removed);
   });
@@ -99,7 +99,7 @@ describe("showdown preparation presentation", () => {
     expect(html).not.toContain('role="timer"');
   });
 
-  it("shows rounded odds below each complete pair of cards", () => {
+  it("renders complete hands without waiting synchronously for heads-up odds", () => {
     const deck = makeDeck();
     const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, {
       round: 1, playerName: "나", seconds: 3, matchup: {
@@ -109,17 +109,19 @@ describe("showdown preparation presentation", () => {
       },
     }));
     expect(html).toContain("MATCH 2");
-    expect(html.match(/예상 승률 <strong>\d+%<\/strong>/g)).toHaveLength(2);
-    expect(html.indexOf('aria-label="나 출전 카드"')).toBeLessThan(html.indexOf('aria-label="나 예상 승률'));
+    expect(html).toContain('aria-label="나 출전 카드"');
+    expect(html).toContain('aria-label="상대 출전 카드"');
+    expect(html).not.toContain("showdown-prep-equity");
   });
 
-  it("shows three-way R4 match 2 equity below all three complete hands", () => {
+  it("renders three-way R4 match 2 before the expensive odds job completes", () => {
     const deck = makeDeck();
     const seats = [0, 1, 2].map(index => ({ playerId: `p${index}`, name: `선수 ${index}`, points: 0, cards: deck.slice(index * 5, index * 5 + 5) }));
     const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round: 4, playerName: seats[0]!.name, seconds: 3,
       matchup: { matchNumber: 2, viewer: seats[0]!, opponents: seats.slice(1) } }));
     expect(html).toContain("MATCH 2");
-    expect(html.match(/예상 승률 <strong>\d+%<\/strong>/g)).toHaveLength(3);
+    expect(html.match(/class="showdown-prep-hand"/g)).toHaveLength(3);
+    expect(html).not.toContain("showdown-prep-equity");
   });
 
   it("centers the R4 three-player matchup around one VS without character art", () => {

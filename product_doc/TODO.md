@@ -4,6 +4,12 @@
 
 ## 운영 후속 확인
 
+### 쇼다운 전환 정지 방지
+
+#### 운영 적용 및 실기기 확인
+
+- [ ] SD-FREEZE-001-RELEASE | 담당 Codex·사용자 | 상태 REVIEW | 의존 별도 main 반영/운영 배포 승인(commit/push는 2026-10-12 승인) | 완료 조건: 승률 표시 Worker 분리·로딩 승률 재사용·공개 스트리트 선계산을 운영 적용하고 실제 PC/iOS/Android에서 싱글·멀티의 로딩→쇼다운→결과를 확인한다. 로컬 93회귀·Workers 17회귀·8개 제한 CPU 브라우저 전환·3개 Worker 실패·실제 빌드 3탭 R1 검증 완료. 기존 openDraft 실패 1개는 별도 공개 정책 검토 대상으로 남긴다. 상세 [QA](qa/2026-10-12-showdown-transition-freeze.md).
+
 ### Google 로그인 — 공개 전 Gate
 
 - [ ] AUTH-GOOGLE-001-LEGAL | 담당 사용자·Codex | 상태 TODO | 운영 공개 전 개인정보처리방침·이용약관의 계정 미지원 문구 개정, 계정 보존·탈퇴 정책과 시행일 결정. 초기 session 30일을 제품 정책으로 확정할지 확인.

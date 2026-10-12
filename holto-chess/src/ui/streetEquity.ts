@@ -8,6 +8,17 @@ export const EQUITY_DELAY_MS = 300;
 export const CARD_FLIP_MS = 420;
 export const RIVER_FLIP_MS = 600;
 
+/** Start calculation as the public street is released, while the card flip supplies its read time. */
+export function releasedEquityBoardCount(frames: readonly CinematicFrame[], boardIndex: number, elapsed: number): number {
+  let count = 0;
+  for (const frame of frames) {
+    if (frame.boardIndex !== boardIndex || elapsed < frame.at) continue;
+    const cards = frame.phase === "FLOP_3" ? 3 : frame.phase === "TURN" ? 4 : frame.phase === "RIVER" ? 5 : 0;
+    if (cards) count = cards;
+  }
+  return count;
+}
+
 /** Presentation clock only: never select a street merely because its data arrived. */
 export function equityBoardCount(frames: readonly CinematicFrame[], boardIndex: number, elapsed: number): number {
   let count = 0;
