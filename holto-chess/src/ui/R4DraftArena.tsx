@@ -56,8 +56,8 @@ export function R4DraftArena({ view, send, disabled, seconds }: {
           {draft.cards.map(({card,price,claimedBy},index) => {
             const enabled = view.phase === "OPEN_DRAFT" && myTurn && !disabled && !dealing && !claimedBy && view.me.stackBB >= price;
             const pick = () => { if (enabled) send({ type: "DRAFT_PICK", cardId: card.id }); };
-            return <div key={card.id} className={`r2-card-slot ${claimedBy ? "is-claimed" : ""}`} style={{ "--deal-delay": `${150 + index * 55}ms` } as CSSProperties}>
-              <div className="r2-offer"><CardView card={card} onClick={enabled ? pick : undefined} /><button type="button" className="r2-price" disabled={!enabled} onClick={pick} aria-label={t("draft.buyAria", { card: card.id, price })}>{price} BB</button>{!ordering && !dealing && <small className="r2-card-status">{claimedBy ? t("draft.claimedBy", { player: name(claimedBy) }) : t(view.me.stackBB < price ? "draft.insufficientBB" : myTurn && !disabled ? "draft.pickable" : "draft.waitTurn")}</small>}</div>
+            return <div key={card.id} className={`r2-card-slot ${claimedBy ? "is-claimed" : view.me.stackBB < price ? "is-unaffordable" : ""}`} style={{ "--deal-delay": `${150 + index * 55}ms` } as CSSProperties}>
+              <div className="r2-offer"><CardView card={card} onClick={enabled ? pick : undefined} /><button type="button" className="r2-price" disabled={!enabled} onClick={pick} aria-label={claimedBy ? t("draft.soldTo", { card: card.id, player: name(claimedBy) }) : t("draft.buyAria", { card: card.id, price })}>{claimedBy ? t("draft.sold") : `${price} BB`}</button></div>
             </div>;
           })}
         </div>

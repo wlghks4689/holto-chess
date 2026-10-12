@@ -47,7 +47,6 @@
 .tutorial-arena .r2-draft .r2-card-slot{transform:none;min-width:0}
 .tutorial-arena .r2-draft .r2-offer .playing-card{width:56px;height:78px;max-width:none;min-height:0}
 .tutorial-arena .r2-draft .r2-price{min-height:32px;font-size:11px}
-.tutorial-arena .r2-draft .r2-card-status{font-size:10px;min-height:14px}
 .tutorial-arena .r2-draft .draft-private-hand{margin:8px 0 0;padding-top:8px}
 .tutorial-arena .r2-draft .draft-private-cards .playing-card{width:48px;height:68px;min-height:0}
 .tutorial-arena .run-loadout-slots>label{padding:10px 4px;gap:8px}

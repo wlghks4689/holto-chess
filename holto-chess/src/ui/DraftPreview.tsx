@@ -14,6 +14,10 @@ import { ShopCard } from "./ShopCard";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
 import type { GameAction } from "../shared/protocol";
 import type { FinalStandingView } from "../shared/protocol";
+import { ArenaBrand } from "./ArenaBrand";
+import { RoundProgress } from "./PrepPhase";
+import { roundTitle } from "./roundTitles";
+import { useTranslation } from "../i18n";
 
 /** Development-only fixture gallery; never connected to a real room. */
 function fixture(round: 2 | 4) {
@@ -104,31 +108,46 @@ function DraftFixturePreview() {
     {game.phase==="SHOP" && <p>상점 준비 완료 · 보유 {view.me.ownedCards.length}장 · 진열 {view.me.shopCards.length}장</p>}
   </main>;
 }
+/**
+ * The live game page around a draft: the online nav (brand, round steps, connection, leave) and the centred
+ * round header with its rules button, plus an ability for every seat, so heights match a real phone.
+ * `?picks=N` plays N picks first to show sold cards.
+ */
+function draftFixture(round: 2 | 4) {
+  let game = openDraft(fixture(round));
+  const picks = Number(new URLSearchParams(location.search).get("picks") ?? 0);
+  for (let i = 0; i < picks && game.phase === "OPEN_DRAFT"; i += 1) game = autoPickDraft(game, true);
+  game.players.forEach((player) => { player.abilityId = "capitalism"; });
+  return game;
+}
+function DraftGameShell({ round, children }: { round: 2 | 4; children: ReactNode }) {
+  const { t } = useTranslation();
+  return <main className="game-arena"><nav><button className="brand brand-home" type="button"><ArenaBrand /></button><RoundProgress round={round} prep={null} lastRound={6} />
+    <div className="nav-status"><div className="survivors"><small>CONNECTION</small><b className="conn-connected">{t("connection.connected")}</b></div><div className="nav-actions"><button type="button" className="secondary nav-exit">{t("exit.leave")}</button></div></div></nav>
+    <div className="page-shell" id="top">
+      <header className="round-header is-centered-phase-header"><div><span className="round-number">ROUND {round} · DRAFT PHASE</span><div className="round-title-row"><h1>{roundTitle(round, 6)}</h1><button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label="rules">?</button></div></div><div className="phase-badge"><b>{t("draft.title")}</b></div></header>
+      {children}
+    </div></main>;
+}
 function R2ArenaStylePreview() {
-  const [game, setGame] = useState(() => openDraft(fixture(2)));
+  const [game, setGame] = useState(() => draftFixture(2));
   const viewer = game.draft?.order[0]?.playerId ?? "p1";
   const view = createPlayerView({ schema:1, roomId:"PREVIEW", revision:0, status:"PLAYING", game,
     sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
   const send = (action: GameAction) => {
     if (action.type === "DRAFT_PICK") setGame((state) => pickDraftCard(state,viewer,action.cardId));
   };
-  return <main className="game-arena"><div className="page-shell">
-    <header className="round-header"><div><span className="round-number">ROUND 2 · DRAFT PHASE</span><h1>RUN IT TWICE</h1></div><div className="phase-badge"><b>공개 드래프트</b></div></header>
-    {game.phase === "OPEN_DRAFT" && <OpenDraftPanel view={view} send={send} disabled={false} seconds={20} />}
-  </div></main>;
+  return <DraftGameShell round={2}>{game.phase === "OPEN_DRAFT" && <OpenDraftPanel view={view} send={send} disabled={false} seconds={20} />}</DraftGameShell>;
 }
 function R4DraftConceptPreview() {
-  const [game, setGame] = useState(() => openDraft(fixture(4)));
+  const [game, setGame] = useState(() => draftFixture(4));
   const viewer = game.draft?.order[game.draft.picks.length]?.playerId ?? "p1";
   const view = createPlayerView({ schema:1, roomId:"R4-CONCEPT", revision:0, status:"PLAYING", game,
     sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
   const send = (action: GameAction) => {
     if (action.type === "DRAFT_PICK") setGame((state) => pickDraftCard(state, viewer, action.cardId));
   };
-  return <main className="game-arena"><div className="page-shell">
-    <header className="round-header"><div><span className="round-number">ROUND 4 · DRAFT PHASE</span><h1>BEST FIVE</h1></div><div className="phase-badge"><b>공개 드래프트</b></div></header>
-    {game.phase === "OPEN_DRAFT" ? <OpenDraftPanel view={view} send={send} disabled={false} seconds={20} /> : <p>드래프트 완료</p>}
-  </div></main>;
+  return <DraftGameShell round={4}>{game.phase === "OPEN_DRAFT" ? <OpenDraftPanel view={view} send={send} disabled={false} seconds={20} /> : <p>드래프트 완료</p>}</DraftGameShell>;
 }
 export function DraftPreview() {
   const params = new URLSearchParams(location.search);
