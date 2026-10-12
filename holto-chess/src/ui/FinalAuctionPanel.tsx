@@ -70,6 +70,18 @@ export function FinalAuctionPanel({ view, send, clock, disabled = false }: { vie
   const gesture = useRef({ x: 0, y: 0, moved: false });
   const pendingCard = useRef<{ id: string; until: number } | null>(null);
   useEffect(() => { const timer = setInterval(() => setNow(clock?.now() ?? Date.now()), 100); return () => clearInterval(timer); }, [clock]);
+  // Outbid on a card: open its raise sheet at the new minimum at once, so a human can answer a late bot
+  // bid inside the extension. Only a new outbid opens it, never the one already standing when the panel mounts.
+  const outbid = view.finalAuction?.outbid;
+  const [seenOutbid, setSeenOutbid] = useState(outbid?.sequence);
+  if (outbid && outbid.sequence !== seenOutbid) {
+    setSeenOutbid(outbid.sequence);
+    const offer = view.finalAuction!.cards.find(o => o.card.id === outbid.cardId);
+    if (!disabled && view.me.alive && offer && !offer.isMine && offer.highestAmount !== null) {
+      setSelected(null);
+      setSheet({ id: offer.card.id, expected: offer.highestAmount, input: String(offer.minNextBid) });
+    }
+  }
   const a = view.finalAuction;
   if (!a) return null;
   // Six-round R3 runs this auction before the Omaha matches; it has no loadout after it.

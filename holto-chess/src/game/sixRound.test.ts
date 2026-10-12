@@ -103,13 +103,13 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     expect(auction.cardIds).toHaveLength(R3_AUCTION.cardCount);
     expect(auction.startedAt - 1_000_000).toBe(R3_AUCTION.introMs);
     expect(auction.maxWins).toBe(1);
-    expect(auction.minRaiseBB).toBe(3);
+    expect(auction.minRaiseBB).toBe(5);
     expect(alive(state).every((p) => p.shopCardIds.length === 0)).toBe(true);
     const card = auction.cardIds[0]!;
     expect(() => bidFinalAuction(state, "p1", { cardId: card, expectedHighestAmount: null }, auction.startedAt - 1)).toThrow("AUCTION_CLOSED");
   });
 
-  it("allows one leading card per seat and a 3BB minimum raise", () => {
+  it("allows one leading card per seat and a 5BB minimum raise", () => {
     let state = toR3(42);
     const auction = state.finalAuction!; const [first, second] = auction.cardIds;
     const open = auction.startedAt;
@@ -121,9 +121,20 @@ describe("R3 card auction", { timeout: 60_000 }, () => {
     expect(Object.values(moved.finalAuction!.bids).filter((bid) => bid.playerId === "p1")).toHaveLength(1);
     expect(() => bidFinalAuction(moved, "p2", { cardId: first!, expectedHighestAmount: null }, open)).not.toThrow();
     const base = cardPrice(getCard(state, first!).rank);
-    expect(() => bidFinalAuction(state, "p2", { cardId: first!, expectedHighestAmount: base, amount: base + 2 }, open)).toThrow("BELOW_MIN_RAISE");
-    state = bidFinalAuction(state, "p2", { cardId: first!, expectedHighestAmount: base, amount: base + 3 }, open);
+    expect(() => bidFinalAuction(state, "p2", { cardId: first!, expectedHighestAmount: base, amount: base + 4 }, open)).toThrow("BELOW_MIN_RAISE");
+    state = bidFinalAuction(state, "p2", { cardId: first!, expectedHighestAmount: base, amount: base + 5 }, open);
     expect(state.finalAuction!.bids[first!]!.playerId).toBe("p2");
+  });
+
+  it("pushes the end to five seconds after a bid in the last five seconds", () => {
+    const state = toR3(44);
+    const auction = state.finalAuction!; const card = auction.cardIds[0]!;
+    const early = bidFinalAuction(state, "p1", { cardId: card, expectedHighestAmount: null }, auction.endsAt - 6_000);
+    expect(early.finalAuction!.endsAt).toBe(auction.endsAt);
+    const base = cardPrice(getCard(state, card).rank);
+    const late = bidFinalAuction(early, "p2", { cardId: card, expectedHighestAmount: base, amount: base + R3_AUCTION.minRaiseBB }, auction.endsAt - 1_000);
+    expect(late.finalAuction!.endsAt).toBe(auction.endsAt - 1_000 + R3_AUCTION.snipeWindowMs);
+    expect(R3_AUCTION.snipeWindowMs).toBe(5_000);
   });
 
   it("sells unsold cards at double price, in draft order, to seats that won nothing", () => {

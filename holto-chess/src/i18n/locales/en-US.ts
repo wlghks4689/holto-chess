@@ -850,7 +850,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "round.six.r3.kicker": "CARD AUCTION · OMAHA SWISS",
   "round.six.r3.title": "Auction & Omaha",
   "round.six.r3.summary": "R3 has no shop: a 16-card auction gives you your fourth card, then you play Omaha Swiss.",
-  "round.six.r3.step1": "Win at most one of the 16 auction cards. A competing bid must beat the current price by at least 3BB.",
+  "round.six.r3.step1": "Win at most one of the 16 auction cards. A competing bid must beat the current price by at least 5BB.",
   "round.six.r3.step2": "Won nothing? Buy one leftover card at double price, in draft order.",
   "round.six.r3.step3": "Play three Swiss matches with four hole cards. The two lowest totals are eliminated.",
   "round.six.r3.scoring": "Match win +4P · Split +2P · up to +12P for three wins",

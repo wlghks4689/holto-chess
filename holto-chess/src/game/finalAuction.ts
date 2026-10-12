@@ -98,7 +98,8 @@ export function bidFinalAuction(source: PorenaGameState, playerId: string, bid: 
     // A bot cannot retaliate in the same tick, even if its old deadline was overdue.
     auction.botNextAt[current.playerId] = now + botReaction(sequence);
   }
-  if (auction.endsAt - now <= FINAL_AUCTION_SNIPE_WINDOW_MS) auction.endsAt = Math.min(now + FINAL_AUCTION_SNIPE_WINDOW_MS, auction.hardEndsAt);
+  const snipeWindow = isAuctionRound(state.round, state) ? R3_AUCTION.snipeWindowMs : FINAL_AUCTION_SNIPE_WINDOW_MS;
+  if (auction.endsAt - now <= snipeWindow) auction.endsAt = Math.min(now + snipeWindow, auction.hardEndsAt);
   return state;
 }
 

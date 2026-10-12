@@ -848,7 +848,7 @@ export const koKR = {
   "round.six.r3.kicker": "CARD AUCTION · OMAHA SWISS",
   "round.six.r3.title": "Auction & Omaha",
   "round.six.r3.summary": "R3는 상점 대신 16장 카드 옥션으로 4번째 카드를 확보한 뒤 Omaha Swiss를 치릅니다.",
-  "round.six.r3.step1": "16장 경매에서 1인당 1장만 낙찰받습니다. 경쟁 입찰은 현재가 +3BB 이상입니다.",
+  "round.six.r3.step1": "16장 경매에서 1인당 1장만 낙찰받습니다. 경쟁 입찰은 현재가 +5BB 이상입니다.",
   "round.six.r3.step2": "낙찰받지 못하면 드래프트 순서대로 남은 카드 1장을 2배 가격에 구매합니다.",
   "round.six.r3.step3": "홀카드 4장으로 Swiss 3경기를 치르고, 누적 승점 하위 2명이 탈락합니다.",
   "round.six.r3.scoring": "매치 승리 +4P · Split +2P · 3승 시 최대 +12P",
