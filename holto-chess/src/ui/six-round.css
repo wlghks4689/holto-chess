@@ -121,7 +121,11 @@
 .cinema-board.has-run-detail .playing-card{pointer-events:none}
 .cinema-board.has-run-detail.is-detail-open>:not(.cinema-run-detail){visibility:hidden}
 @media(hover:hover){.cinema-board.has-run-detail:hover>:not(.cinema-run-detail){visibility:hidden}}
-.cinema-run-detail{position:absolute;inset:-1px;z-index:5;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;align-items:center;column-gap:12px;row-gap:4px;padding:10px 14px;box-sizing:border-box;overflow:hidden;border:1px solid var(--run-tone);border-radius:12px;background:#06131b;box-shadow:0 10px 30px #000a;opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s}
+/* One card width controls both rows, their typography and the minimum space the RUN box reserves.
+   It depends on the viewport, not the changing live/completed row height. */
+.cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(30px,min(3vw,4.8dvh),52px);--run-detail-pad-y:10px;--run-detail-row-gap:4px;--run-detail-card-gap:4px;--run-detail-height:calc(var(--run-detail-card-width) * 75 / 53 * 2 + var(--run-detail-row-gap) + var(--run-detail-pad-y) * 2 + 2px)}
+.cinema-board-stack:is(.run-it-twice,.run-it-three-times)>.cinema-run-board{min-height:var(--run-detail-height);box-sizing:border-box}
+.cinema-run-detail{position:absolute;inset:0;block-size:var(--run-detail-height);z-index:5;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;align-items:center;column-gap:12px;row-gap:var(--run-detail-row-gap);padding:var(--run-detail-pad-y) 14px;box-sizing:border-box;overflow:hidden;border:1px solid var(--run-tone);border-radius:12px;background:#06131b;box-shadow:0 10px 30px #000a;opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s}
 .cinema-board.has-run-detail.is-detail-open .cinema-run-detail{opacity:1;visibility:visible}
 @media(hover:hover){.cinema-board.has-run-detail:hover .cinema-run-detail{opacity:1;visibility:visible}}
 /* A finished RUN's detail, the same size as its RUN box: the two hands (viewer's left) over the RUN's one
@@ -137,24 +141,17 @@
 .cinema-run-detail-side.is-split>span{color:#c4ced5}
 .cinema-run-detail-side.is-loss,.cinema-run-detail-hole.is-loss{opacity:.42;filter:saturate(.55)}
 .cinema-run-detail-hands{grid-column:2;grid-row:1;display:flex;justify-content:center;gap:12px}
-.cinema-run-detail-hole,.cinema-run-detail-board{display:flex;gap:3px}
-.cinema-run-detail-board{grid-column:2;grid-row:2;justify-content:center;gap:5px}
-:is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-board .cinema-run-detail .playing-card.compact{width:30px;height:42px;min-width:0;padding:2px}
-:is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-rank{font-size:12px}
-:is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-suit{font-size:14px}
-/* Two card rows need about 92px: R2's RUN boxes match R5's so the detail fits the box. R2's board-card
-   size must not reach the detail's cards (the landscape PC frame sizes those from the box itself). */
-.cinema-board-stack.run-it-twice .cinema-board.cinema-run-board{min-height:92px;box-sizing:border-box}
-.cinema[data-round="2"] .cinema-board-stack.run-it-twice .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact{width:25px;height:auto;aspect-ratio:var(--card-ratio);padding:2px}
+.cinema-run-detail-hole,.cinema-run-detail-board{display:flex;gap:var(--run-detail-card-gap)}
+.cinema-run-detail-board{grid-column:2;grid-row:2;justify-content:center}
+.cinema .cinema-board-stack:is(.run-it-twice,.run-it-three-times) .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact{width:var(--run-detail-card-width);height:auto;aspect-ratio:var(--card-ratio);min-width:0;padding:2px;transform:none}
+.cinema .cinema-board-stack:is(.run-it-twice,.run-it-three-times) .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact .card-rank{font-size:calc(var(--run-detail-card-width) * .44);line-height:1;transform:none}
+.cinema .cinema-board-stack:is(.run-it-twice,.run-it-three-times) .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact .card-suit{font-size:calc(var(--run-detail-card-width) * .58);line-height:1}
 @media(max-width:700px){
   .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-cards .playing-card.compact{width:35px;height:51px}
-  .cinema-run-detail{padding:8px 10px;gap:6px}
-  .cinema-run-detail{column-gap:8px;row-gap:3px}
+  .cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(28px,8vw,36px);--run-detail-pad-y:8px}
+  .cinema-run-detail{padding-inline:10px;column-gap:8px}
   .cinema-run-detail-side{font-size:10px}.cinema-run-detail-side>small{font-size:9px}
   .cinema-run-detail-hands{gap:8px}
-  :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-board .cinema-run-detail .playing-card.compact{width:25px;height:35px}
-  :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-rank{font-size:10px}
-  :is(.run-it-twice,.run-it-three-times).cinema-board-stack .cinema-run-detail .card-suit{font-size:12px}
 }
 
 /* Match seats: the ability icon sits level with the centred name instead of on a row of its own. */
@@ -390,6 +387,12 @@
   .cinema.cinema-headsup.cinema-table .cinema-seat :is(.cinema-made,.cinema-street-made){min-height:0;margin:clamp(8px,calc(var(--r5-h) * 1.4 / 100),16px) 0 0}
   .cinema.cinema-headsup.cinema-table .cinema-seat :is(.cinema-made,.cinema-street-made) strong{font-size:clamp(18px,calc(var(--r5-w) * 1.6 / 100),28px);line-height:1.25}
   .cinema.cinema-headsup.cinema-table .cinema-seat :is(.cinema-made,.cinema-street-made) small{font-size:clamp(11px,calc(var(--r5-w) * .8 / 100),13px)}
+  /* R1: cards end at the top of the lower reading space; centre the hand label in that space.
+     Keep the result footer out of the flex calculation so reveals do not move the cards/hand label. */
+  .cinema.cinema-headsup.cinema-table[data-round="1"]{min-height:640px}
+  .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-seat .cinema-hole-cards{flex:3 1 0;align-items:flex-end;align-content:flex-end}
+  .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-seat :is(.cinema-made,.cinema-street-made){flex:2 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0;translate:0 calc((var(--r5-seat-pad) + 1px) / 2)}
+  .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-seat .cinema-result-footer{position:absolute;inset-inline:var(--r5-seat-pad);bottom:var(--r5-seat-pad);margin:0}
   .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-result-footer,
   .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-run-live{min-height:62px;margin-top:clamp(10px,calc(var(--r5-h) * 1.6 / 100),18px);padding-top:clamp(8px,calc(var(--r5-h) * 1.2 / 100),12px);border-top:1px solid #ffffff1f;box-sizing:border-box}
   .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-run-live{display:grid;align-content:start;justify-items:center;gap:6px}
@@ -442,8 +445,13 @@
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-match-profile{grid-template-rows:var(--seat-icon) auto;gap:2px;margin-top:0}
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-profile-identity{display:flex;align-items:center;justify-content:center;padding-inline:calc(var(--seat-icon) + 8px)}
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-profile-identity b{overflow:hidden;font-size:17px;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal}
+    .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-seat .cinema-result-footer{bottom:8px;min-height:0;padding-top:4px}
+    .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-profile-outcome{min-height:18px}
+    .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-profile-outcome .cinema-victory{font-size:13px;line-height:18px}
+    .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-seat .cinema-reward{min-height:20px}
+    .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-reward strong{font-size:12px;line-height:20px}
   }
-  .cinema.cinema-headsup.cinema-table .cinema-run-detail{padding:10px 18px}
-  /* Two card rows (hands, then the board) share the RUN box's height; the names sit at the sides. */
-  .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact{width:clamp(22px,calc((100cqh - 28px) / 2 * 53 / 75),64px);height:auto;aspect-ratio:var(--card-ratio)}
+  .cinema.cinema-headsup.cinema-table .cinema-run-detail{padding-inline:18px}
+  /* Completed RUNs reserve the same two-row height throughout the rest of the match. */
+  .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.has-run-detail{flex:0 0 var(--run-detail-height);min-height:var(--run-detail-height)}
 }
