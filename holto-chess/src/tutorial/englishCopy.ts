@@ -1,4 +1,5 @@
 import type { ChapterId, StepText, TutorialStep } from "./tutorialTypes";
+import { FINAL_AUCTION_DURATION_MS, FINAL_AUCTION_HARD_CAP_MS, R3_AUCTION } from "../game/config";
 
 export const EN_CHAPTERS: Record<ChapterId, { title: string; summary: string }> = {
   1: { title: "Your first match", summary: "Buy two cards → ready up → watch → review" },
@@ -6,7 +7,7 @@ export const EN_CHAPTERS: Record<ChapterId, { title: string; summary: string }> 
   3: { title: "Auction and Omaha", summary: "Card auction · double-price buy · Omaha 2+3 · survival" },
   4: { title: "Your BEST 5", summary: "Unrestricted BEST 5 · winner and survival brackets" },
   5: { title: "Three hands, three runs", summary: "Leader picks an opponent · six cards · three RUNs · one out" },
-  6: { title: "The three-way final", summary: "Boardless BEST 5 · five to seven cards · final score" },
+  6: { title: "The three-way final", summary: "Five selected cards + community board · final score" },
 };
 
 type Copy = { title: string; body: StepText; more?: StepText; goal?: string; next?: string };
@@ -23,7 +24,7 @@ const EN_STEPS: Record<string, Copy> = {
   "r2-run1": { title: "First board result", next: "Watch RUN 2", body: ["Your lead and RUN 1 support were used. Next, the support card and board change while the lead stays."] },
   "r2-run2": { title: "Both RUNs count", next: "View round standings", body: ["A RUN win is +2P and a split +1P. Win both RUNs of a match for a +2P sweep bonus.", "The same lineup then plays one more match against a new opponent. Practice settles that second match automatically."] },
   "r2-round-result": { title: "Nobody is eliminated in R2", next: "Finish practice", body: ["Review the Points earned across both matches, four RUNs in all. Survival becomes part of the next round."] },
-  "r3-auction": { title: "A card auction instead of a shop", goal: "Try a bid, then close the auction (bidding is optional)", body: ["R3 has no personal shop. In a 16-card auction each player wins at most one card, their fourth.", "Tap a card to select it, then tap again to bid its base price. On a card that already has a bid, bid at least 3BB above it."], more: ["A live auction opens after a 10-second intro and runs 40 seconds; bids in the last three seconds extend it up to 55 seconds. Practice closes it by button.", "Bidding on another card cancels your current bid and frees that card; only cards you win cost BB."] },
+  "r3-auction": { title: "A card auction instead of a shop", goal: "Try a bid, then close the auction (bidding is optional)", body: ["R3 has no personal shop. Each player can win at most one of the 16 auction cards to complete their four-card hand.", `Tap a card to select it, then tap again to bid its base price. On a card that already has a bid, raise by at least ${R3_AUCTION.minRaiseBB}BB.`], more: [`A live auction opens after a ${R3_AUCTION.introMs / 1000}-second intro and runs for ${FINAL_AUCTION_DURATION_MS / 1000} seconds. Bids in the last ${R3_AUCTION.snipeWindowMs / 1000} seconds can extend bidding to a maximum of ${FINAL_AUCTION_HARD_CAP_MS / 1000} seconds. In practice, use the button to close the auction.`, "Bidding on another card cancels your current bid and frees that card; you only spend BB on cards you win."] },
   "r3-buyback": { title: "No win? Double price", goal: "Buy one leftover card (continues on its own if you won)", body: (game) => game.players[0]!.ownedCardIds.length >= 4
     ? ["You won a card at auction. Players who won nothing buy one leftover card at double price."]
     : ["Players who won nothing buy one leftover card at double price, in draft order. Pick one."], more: ["Lower total points pick first, then more BB. No ability discount applies, and selling the card later uses its base price."] },
@@ -39,7 +40,7 @@ const EN_STEPS: Record<string, Copy> = {
     : ["The points leader chooses who to face. The other two play each other."], more: ["Every survivor's cards are shown on this screen. In a live game, 4th place is picked if no choice is made in 15 seconds."] },
   "r5-shop": { title: "Collect six cards", goal: "Own six cards", body: ["Your shop offers three cards and up to three buys, with two rerolls.", "R5 needs exactly six cards. In a live game, missing cards are bought from your own shop when time runs out."] },
   "r5-commit": { title: "Now split them into three hands", goal: "Press Ready", body: ["Press Ready to place two cards in each of RUN 1, 2 and 3."] },
-  "r5-loadout": { title: "Which two cards play each RUN?", goal: "Lock RUN 1, 2 and 3", body: ["A recommended split is already in place. Tap a card, then the card it should trade places with.", "Each RUN's cards are revealed only when that RUN starts. Stack your strength or spread it: that is this round's strategy."], more: ["A RUN win pays +5P and a split +2P. Win all three RUNs with no split for +15P more."] },
+  "r5-loadout": { title: "Which two cards play each RUN?", goal: "Lock RUN 1, 2 and 3", body: ["A recommended split is already in place. Tap a card, then the card it should trade places with.", "Both players' RUN cards are revealed on the match loading screen after placement is locked. Concentrate your strength in one RUN or spread it across all three."], more: ["A RUN win pays +5P and a split +2P. Win all three RUNs with no split for +15P more."] },
   "r5-run1": { title: "A new board every RUN", next: "Watch the next RUN", body: ["RUN 1's two cards played a fresh five-card board. Next RUN, both cards change and a new board opens."] },
   "r5-runs": { title: "Three RUNs add up", next: "View round standings", body: ["A RUN win pays +5P and a split +2P. Win all three RUNs with no split for +15P more."] },
   "r5-elimination": { title: "The lowest total is eliminated", next: "Finish practice", body: ["Equal points go to BB: fewer BB is out. Equal BB too means a tiebreak with RUN 1, 2, then 3 hands, then a high-card draw."] },

@@ -44,3 +44,34 @@ There are **56 Korean-containing TSX lines** under `src/ui` after migration (dow
 ## Terminology and review
 
 See `LOCALIZATION_GLOSSARY.md` for fixed terms and `TRANSLATION_REVIEW_REQUIRED.md` for remaining product/natural-language decisions. Internal poker enums and card IDs remain unchanged. Augment is historical only and was not reintroduced.
+
+## Home language buttons and copy audit — 2026-10-13
+
+Base checkout for implementation QA: `main` at `781e141`. No commit, push or deployment had been performed at that point. The historical 2026-09-26 evidence above remains a separate run.
+
+- Replaced the settings language select with always-visible `한국어 / English` buttons at the top of `StartScreen`. They appear during account loading, anonymous/unavailable sign-in, initial nickname setup, guest home and authenticated home. Native language names, `lang`, keyboard-operable buttons and `aria-pressed` communicate the current selection. Existing browser detection, persistence and document language remain in use.
+- The account controls stay beside the language buttons when space permits and wrap on smaller screens. On short phones the title/menu use normal vertical layout so all six menu buttons and legal links remain separate; scrolling is allowed when content is taller than the viewport.
+- Fixed the R5 `OPPONENT_CHOSEN` log's untranslated built-in opponent name. The presentation helper now translates `params.opponent` as well as `params.player`, without changing the saved game state.
+- Reviewed the English resources, tutorial and guide against current implementation. Corrected obsolete ability-card notes (R3 auction, no shops in R2/R3, interest through R6), Target Sniper's BEST 5 requirement and resale behavior, per-RUN reward notes, and Protector's percentage ranges. Corrected tutorial auction increments/timing from current configuration and R5 card reveal timing, removed the obsolete boardless R6 summary, and aligned the guide's English lead-card term. Korean copy was corrected alongside English where it described the same obsolete rules. Guide BB income copy now describes match rewards rather than claiming ordinary wins earn BB.
+- Current resources have **952 keys per locale**. Parity, nonempty English values, matching placeholders, server error coverage and English resource leakage checks pass. An AST audit of production TSX (excluding administrator/dev-preview/test files) found only the two intentional `한국어` button labels and the internal `몰수패` sentinel outside explicit bilingual branches. This does not prove every dynamic runtime payload is translated. English guide and tutorial coverage tests also pass.
+
+### Validation
+
+- `npm test -- src/i18n src/ui/AccountLogin.test.ts src/ui/botNames.test.ts src/tutorial`: **10 files / 43 tests passed**, including locale-neutral tournament simulation.
+- Follow-up `npm test -- src/ui/guide/guideRules.test.ts src/tutorial/englishCopy.test.ts src/ui/botNames.test.ts src/i18n/i18n.test.ts src/ui/AccountLogin.test.ts`: **5 files / 22 tests passed**. These overlap the earlier run and are not counted as 65 unique tests.
+- TypeScript, ESLint for all changed TS/TSX files, production `npm run build` and `git diff --check`: passed. Build warns about missing local auth/admin secrets and the existing large client chunk.
+- Browser: English non-login screen and Korean/English guest home at **375×667, 390×844, 768×1024, 1280×720, 1440×900**. Read back actual `innerWidth/innerHeight`; no horizontal overflow. Both home locales had no topbar/title/menu/footer overlap. English selection survived reload; button selection and `document.lang` changed immediately. Settings no longer contain the language select.
+- English game-guide chooser rendered in English; its only Korean body text was the intentional native language-button label in the inert home underneath. All 12 English ability reverse faces were checked at 390×844; no list item exceeded its text area. Development-preview controls/captions remain Korean by design.
+- Browser captures: `language-home-desktop.jpg`, `language-home-mobile.jpg`, `language-login-desktop.jpg` in the chat's visualization output directory.
+
+### Remaining limitations
+
+The sandboxed Worker startup and Vitest temp-file rename initially failed with permission errors. The supported frontend-only server and permitted local test/build execution completed the UI checks; a subsequent Worker server could start, but local account verification remained unavailable. Actual Google sign-in, authenticated-home visual inspection and initial nickname setup in a live authenticated session were **not** exercised; the latter two states are covered by component rendering tests. No credentials or database configuration were changed.
+
+Human nicknames are user content and may remain Korean. Persisted legacy message-only logs and unknown future server error payloads retain their original fallback text; they are not retroactively translated by this change. Full online R1–R6 playthrough in both locales, all error/tiebreak branches and independent native-speaker review remain open. The five-size pass here is scoped to entry/home, not every game screen.
+
+### Main delivery validation — 2026-10-13
+
+The user authorized committing and pushing this work to `main`. A fresh fetch found five newer commits ending at `32cd8ee`; the language change was rebased onto them without conflicts. The newer game-introduction link, search metadata and solo-RP policy were preserved. Only this feature's 13 source/test/document files are included; pre-existing untracked `assets/` and `product_doc/crowdfunding/` remain outside the commit.
+
+After integration, `npm test -- src/i18n src/ui/AccountLogin.test.ts src/ui/botNames.test.ts src/tutorial src/ui/guide/guideRules.test.ts src/shared/searchMetadata.test.ts` passed **12 files / 54 tests**. Changed-file ESLint, `git diff --check` and a fresh production build passed. The English login screen was rechecked at a measured 375×667 viewport with the new About link retained: document width 375px, footer width 335.8px, and no horizontal overflow. This integration check does not replace the remaining full-flow/native-speaker gates. No manual Worker deployment is part of the delivery; automatic deployment status is checked separately after the push.

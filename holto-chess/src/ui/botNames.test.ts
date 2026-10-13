@@ -25,4 +25,12 @@ describe("seat name localization", () => {
     expect(localizeSeatNames(localizeSeatNames(view, en), ko)).toEqual(view);
     expect(localizeSeatNames(localizeSeatNames(view, en), en)).toEqual(localizeSeatNames(view, en));
   });
+
+  it("translates both participants in the R5 opponent-choice log without mutating saved names", () => {
+    const log = { event: "OPPONENT_CHOSEN", params: { player: "나", opponent: "리버 폭스" } };
+    const english = localizeSeatNames(log, en);
+    expect(english.params).toEqual({ player: "You", opponent: "River Fox" });
+    expect(localizeSeatNames(english, ko)).toEqual(log);
+    expect(log.params.opponent).toBe("리버 폭스");
+  });
 });

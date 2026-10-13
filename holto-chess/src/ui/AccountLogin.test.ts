@@ -33,6 +33,17 @@ it("unlocks the home menu only after explicit guest choice or a complete account
   expect(render(signedIn)).not.toContain("private-user-id");
 });
 
+it("offers language buttons above login, nickname setup and the home menu", () => {
+  for (const state of [guest, incomplete, signedIn]) {
+    const html = render(state);
+    expect(html).toContain('class="start-language" role="group"');
+    expect(html).toContain('lang="ko" aria-pressed="true"');
+    expect(html).toContain('lang="en" aria-pressed="false"');
+    expect(html.indexOf('class="start-language"')).toBeLessThan(html.indexOf('class="start-main"'));
+    expect(html).not.toContain('class="locale-setting"');
+  }
+});
+
 it("requires a blank nickname form before the home menu for a first login", () => {
   const html = render(incomplete, true);
   expect(html).toContain('id="account-nickname"');

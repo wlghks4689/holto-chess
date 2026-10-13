@@ -14,8 +14,8 @@ const NAME_KEYS: Record<string, TranslationKey> = {
   "다이아 바이퍼": "botName.diamondViper", "Diamond Viper": "botName.diamondViper",
   "올인 베어": "botName.allInBear", "All-in Bear": "botName.allInBear",
 };
-/** Fields that carry a seat name: player/profile `name`, and log `params.player`. */
-const NAME_FIELDS = new Set(["name", "player"]);
+/** Fields that carry a seat name: player/profile `name`, and log participants. */
+const NAME_FIELDS = new Set(["name", "player", "opponent"]);
 
 /**
  * Returns a copy of a game state or player view with built-in seat names in the current language.

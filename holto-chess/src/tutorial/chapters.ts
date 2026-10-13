@@ -1,4 +1,4 @@
-import { handLimitFor } from "../game/config";
+import { FINAL_AUCTION_DURATION_MS, FINAL_AUCTION_HARD_CAP_MS, handLimitFor, R3_AUCTION } from "../game/config";
 import { autoChooseOpponent, autoPickDraft, leaveRoundResult, openDraft, resolveSurvival } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
 import type { TutorialChapter, TutorialStep } from "./tutorialTypes";
@@ -99,8 +99,8 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
     steps: [
       {
         id: "r3-auction", kind: "ACT", focus: "auction", goal: "입찰해 본 뒤 경매 마감 (입찰 없이도 진행 가능)", title: "상점 대신 카드 옥션",
-        body: ["R3에는 개인 상점이 없습니다. 16장 경매에서 한 사람당 1장만 낙찰받아 네 번째 카드를 얻습니다.", "카드를 한 번 눌러 고르고, 다시 누르면 기본가로 입찰합니다. 이미 입찰이 있는 카드는 현재가보다 3BB 이상 높게 입찰하세요."],
-        more: ["실전에서는 10초 안내 뒤 40초 동안 경매가 열리고, 마지막 3초의 입찰은 최대 55초까지 연장됩니다. 연습은 버튼으로 마감합니다.", "다른 카드에 입찰하면 기존 입찰은 취소되고 그 카드는 입찰 없는 상태로 돌아갑니다. 낙찰한 카드만 BB를 냅니다."],
+        body: ["R3에는 개인 상점이 없습니다. 16장 경매에서 한 사람당 1장만 낙찰받아 네 번째 카드를 얻습니다.", `카드를 한 번 눌러 고르고, 다시 누르면 기본가로 입찰합니다. 이미 입찰이 있는 카드는 현재가보다 ${R3_AUCTION.minRaiseBB}BB 이상 높게 입찰하세요.`],
+        more: [`실전에서는 ${R3_AUCTION.introMs / 1000}초 안내 뒤 ${FINAL_AUCTION_DURATION_MS / 1000}초 동안 경매가 열리고, 마지막 ${R3_AUCTION.snipeWindowMs / 1000}초의 입찰은 최대 ${FINAL_AUCTION_HARD_CAP_MS / 1000}초까지 연장됩니다. 연습은 버튼으로 마감합니다.`, "다른 카드에 입찰하면 기존 입찰은 취소되고 그 카드는 입찰 없는 상태로 돌아갑니다. 낙찰한 카드만 BB를 냅니다."],
         done: (game) => game.phase !== "FINAL_AUCTION",
       },
       {
@@ -157,7 +157,7 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
       { id: "r5-commit", kind: "ACT", focus: "action-bar", goal: "준비 완료 누르기", title: "이제 세 핸드로 나눕니다", body: ["준비 완료를 누르면 6장을 2장씩 RUN 1·2·3에 배치하는 단계로 넘어갑니다."], done: ready },
       {
         id: "r5-loadout", kind: "ACT", focus: "run-loadout", goal: "RUN 1·2·3 배치 확정", title: "어느 RUN에 어떤 두 장을 낼까요",
-        body: ["추천 배치가 미리 채워져 있습니다. 카드를 누른 뒤 바꿀 카드를 누르면 두 장의 자리가 바뀝니다.", "각 RUN의 카드는 그 RUN이 시작될 때 공개됩니다. 강한 핸드를 한곳에 모을지, 고르게 나눌지가 이 라운드의 전략입니다."],
+        body: ["추천 배치가 미리 채워져 있습니다. 카드를 누른 뒤 바꿀 카드를 누르면 두 장의 자리가 바뀝니다.", "배치 확정 후 매치 로딩 화면에서 양쪽의 RUN 카드가 모두 공개됩니다. 강한 핸드를 한곳에 모을지, 고르게 나눌지가 이 라운드의 전략입니다."],
         more: ["RUN 승리 +5P, Split +2P입니다. Split 없이 세 RUN을 모두 이기면 +15P를 더 받습니다."],
         done: (game) => game.phase === "SHOWDOWN_PRIMARY" || game.roundResults.length > 0,
       },

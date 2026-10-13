@@ -55,7 +55,13 @@ export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMo
 
   return <main className={`start-screen${account.canEnter ? "" : " start-auth-screen"}${entering ? " is-entering" : ""}`} aria-busy={entering}>
     <div className="start-content" inert={overlay !== null || entering}>
-      {account.canEnter && <AccountLogin onProfile={() => setOverlay("profile")} />}
+      <div className="start-topbar">
+        <div className="start-language" role="group" aria-label={t("language.label")}>
+          <button type="button" lang="ko" aria-pressed={locale === "ko-KR"} onClick={() => setLocale("ko-KR")}>한국어</button>
+          <button type="button" lang="en" aria-pressed={locale === "en-US"} onClick={() => setLocale("en-US")}>English</button>
+        </div>
+        {account.canEnter && <AccountLogin onProfile={() => setOverlay("profile")} />}
+      </div>
       <div className="start-main">
         <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="포레나 PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p></header>
         {account.canEnter ? <div className="start-menu" aria-label={t("home.menu")}>
@@ -90,7 +96,6 @@ export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMo
         overlay === "profile" ? <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title"><header><h2 id="profile-edit-title">{t("profile.edit")}</h2><button type="button" aria-label={t("common.close")} onClick={() => setOverlay(null)}>×</button></header><ProfileForm onSaved={() => setOverlay(null)} onCancel={() => setOverlay(null)} /></section></div> :
         <div className="start-settings-backdrop"><section className="start-settings" role="dialog" aria-modal="true" aria-labelledby="start-settings-title">
           <header><div><small>PREFERENCES</small><h2 id="start-settings-title">{t("settings.title")}</h2></div><button type="button" aria-label={`${t("settings.title")} · ${t("common.close")}`} onClick={() => setOverlay(null)}>×</button></header>
-          <label className="locale-setting"><span>{t("language.label")}</span><select aria-label={t("language.label")} value={locale} onChange={(event) => setLocale(event.target.value as typeof locale)}><option value="ko-KR">한국어</option><option value="en-US">English</option></select></label>
           <fieldset><legend>{t("settings.visuals")}</legend><label>{t("settings.motion")}<input type="checkbox" role="switch" checked={motion.enabled} onChange={(event) => motion.setEnabled(event.target.checked)} /></label><p className="start-settings-note">{t("settings.motionHelp")}</p></fieldset>
           <fieldset><legend>{t("settings.help")}</legend><label>{t("settings.autoGuide")}<input type="checkbox" role="switch" checked={roundGuides.autoEnabled} onChange={(event) => setAutoRoundGuides(event.target.checked)} /></label><p className="start-settings-note">{t("settings.autoGuideHelp")}</p><button className="secondary" type="button" onClick={() => resetSeenRoundGuides()}>{t("settings.resetGuides")}</button></fieldset>
           <fieldset><legend>{t("settings.madeSound")}</legend><label>{t("settings.soundEnabled")}<input type="checkbox" role="switch" checked={sounds.enabled} onChange={(event) => writeMadeSoundPreferences({ ...sounds, enabled: event.target.checked })} /></label><label>{t("settings.soundVolume")}<input type="range" min="0" max="100" value={Math.round(sounds.volume * 100)} onChange={(event) => writeMadeSoundPreferences({ ...sounds, volume: Number(event.target.value) / 100 })} /></label><p className="start-settings-note">{t("settings.soundHelp")}</p></fieldset>
