@@ -1,8 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
+import { koKR } from '../i18n/locales/ko-KR';
+import { enUS } from '../i18n/locales/en-US';
 
 const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 const meta = (key: string) => html.match(new RegExp(`<meta (?:name|property)="${key}" content="([^"]+)"`))?.[1];
+
+it('preserves the improved description when the language initializes', () => {
+  expect(koKR['document.description']).toBe(meta('description'));
+  for (const word of ['PORENA', '포레나', 'poker', 'deck-building', 'six rounds']) {
+    expect(enUS['document.description']).toContain(word);
+  }
+});
 
 it('includes the Korean brand and accurate game description in initial HTML', () => {
   const title = '포레나 PORENA | 포커 덱빌딩 오토배틀 전략 게임';

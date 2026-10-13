@@ -109,7 +109,7 @@ export const koKR = {
   "botName.clubRaven": "클럽 레이븐",
   "botName.diamondViper": "다이아 바이퍼",
   "botName.allInBear": "올인 베어",
-  "document.description": "PORENA — 52장 공용 카드 풀을 사용하는 전술 포커 오토배틀러",
+  "document.description": "포레나(PORENA)는 포커와 덱빌딩, 오토배틀을 결합한 웹 전략 카드 게임입니다. 52장 공용 덱에서 카드를 구매·판매·선택하고, 어빌리티와 BB를 관리하며 6라운드 승부를 펼치세요. AI와 싱글 플레이 또는 멀티플레이로 즐길 수 있습니다.",
   "home.tagline": "최강의 패를 조합하여 아레나에서 승리하라",
   "home.menu": "메인 메뉴",
   "home.start": "시작하기",

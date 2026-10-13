@@ -111,7 +111,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "botName.clubRaven": "Club Raven",
   "botName.diamondViper": "Diamond Viper",
   "botName.allInBear": "All-in Bear",
-  "document.description": "PORENA — Tactical poker autobattler with a shared 52-card pool",
+  "document.description": "PORENA (포레나) is a web strategy card game combining poker, deck-building, and autobattles. Buy, sell, and select cards from a shared 52-card deck, manage abilities and BB across six rounds, and play solo against AI or in multiplayer.",
   "home.tagline": "Build the strongest hand and conquer the arena",
   "home.menu": "Main menu",
   "home.start": "Play",
