@@ -56,7 +56,7 @@ export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMo
     <div className="start-content" inert={overlay !== null || entering}>
       {account.canEnter && <AccountLogin onProfile={() => setOverlay("profile")} />}
       <div className="start-main">
-        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p></header>
+        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="포레나 PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p></header>
         {account.canEnter ? <div className="start-menu" aria-label={t("home.menu")}>
           <button type="button" className="start-menu-primary" onClick={() => setOverlay("mode")}><span>{t("home.start")}</span></button>
           <button type="button" onClick={() => onStart("tutorial")}><span>{t("home.tutorial")}</span></button>
