@@ -8,6 +8,7 @@ const meta = (key: string) => html.match(new RegExp(`<meta (?:name|property)="${
 
 it('preserves the improved description when the language initializes', () => {
   expect(koKR['document.description']).toBe(meta('description'));
+  expect(koKR['document.description'].length).toBeLessThanOrEqual(80);
   for (const word of ['PORENA', '포레나', 'poker', 'deck-building', 'six rounds']) {
     expect(enUS['document.description']).toContain(word);
   }
@@ -22,6 +23,7 @@ it('includes the Korean brand and accurate game description in initial HTML', ()
     expect(meta('description')).toContain(word);
   }
   expect(meta('naver-site-verification')).toBeTruthy();
+  expect(meta('msvalidate.01')).toMatch(/^[A-F0-9]{32}$/);
   expect(html).not.toMatch(/name="robots"[^>]*noindex/);
 });
 
@@ -38,4 +40,6 @@ it('provides valid site-name structured data without invented search or rating c
 it('keeps the displayed main heading discoverable under both brand names', () => {
   const screen = readFileSync(new URL('../ui/StartScreen.tsx', import.meta.url), 'utf8');
   expect(screen).toMatch(/<h1><img[^>]+alt="포레나 PORENA"/);
+  expect(screen).toContain('GAME_INTRO[locale].summary');
+  expect(screen).toContain('href="/about"');
 });

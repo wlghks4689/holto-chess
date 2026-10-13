@@ -9,6 +9,7 @@ import { AccountLogin, ProfileForm } from "./AccountLogin";
 import { useAccount } from "./useAccount";
 import { shouldPlayEntry, useEntryIntent } from "./entryIntent";
 import { EntranceLayer } from "./EntranceLayer";
+import { GAME_INTRO } from "../shared/gameIntroduction";
 
 // The guide carries its own copy, examples and styles, so it loads only when opened.
 const GameOverviewGuide = lazy(() => import("./GameOverviewGuide").then((module) => ({ default: module.GameOverviewGuide })));
@@ -56,7 +57,7 @@ export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMo
     <div className="start-content" inert={overlay !== null || entering}>
       {account.canEnter && <AccountLogin onProfile={() => setOverlay("profile")} />}
       <div className="start-main">
-        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="포레나 PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p></header>
+        <header className="start-title"><p>POKER STRATEGY · AUTO BATTLER</p><h1><img src="/assets/start/porena-wordmark.webp" alt="포레나 PORENA" /></h1><p className="start-tagline">{t("home.tagline")}</p><p className="start-game-intro">{GAME_INTRO[locale].summary}</p></header>
         {account.canEnter ? <div className="start-menu" aria-label={t("home.menu")}>
           <button type="button" className="start-menu-primary" onClick={() => setOverlay("mode")}><span>{t("home.start")}</span></button>
           <button type="button" onClick={() => onStart("tutorial")}><span>{t("home.tutorial")}</span></button>
@@ -68,6 +69,7 @@ export function StartScreen({ onStart, entryPreview }: { onStart: (mode: StartMo
       </div>
       <footer className="start-footer">
         <nav aria-label={t("legal.nav")}>
+          <a href="/about">{GAME_INTRO[locale].link}</a><span aria-hidden="true">·</span>
           <a href={LEGAL_PATHS.privacy} onClick={followInApp(LEGAL_PATHS.privacy)}>{t("legal.privacy")}</a>
           <span aria-hidden="true">·</span>
           <a href={LEGAL_PATHS.terms} onClick={followInApp(LEGAL_PATHS.terms)}>{t("legal.terms")}</a>

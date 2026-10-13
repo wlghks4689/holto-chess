@@ -1,5 +1,5 @@
 // Public search pages that exist today; private rooms and preview routes never enter this list.
-export const PUBLIC_SEARCH_PATHS = ['/', '/privacy', '/terms', '/ranking'] as const;
+export const PUBLIC_SEARCH_PATHS = ['/', '/about', '/privacy', '/terms', '/ranking'] as const;
 export const SEARCH_ORIGIN = 'https://porena.kr';
 export function sitemapXml(): string {
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

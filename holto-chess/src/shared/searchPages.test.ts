@@ -1,9 +1,10 @@
 import { expect, it } from 'vitest';
 import { canonicalFor, PUBLIC_SEARCH_PATHS, robotsText, sitemapXml } from './searchPages';
 it('lists only implemented public pages with production canonical URLs', () => {
-  expect(sitemapXml().match(/<loc>/g)).toHaveLength(4);
+  expect(sitemapXml().match(/<loc>/g)).toHaveLength(5);
   for (const path of PUBLIC_SEARCH_PATHS) expect(sitemapXml()).toContain(`<loc>https://porena.kr${path}</loc>`);
-  expect(sitemapXml()).not.toMatch(/about|guide|rules|api|ws|admin|room|lastmod/);
+  expect(sitemapXml()).not.toMatch(/guide|rules|api|ws|admin|room|lastmod/);
+  expect(canonicalFor('/about/')).toBe('https://porena.kr/about');
   expect(canonicalFor('/ranking/')).toBe('https://porena.kr/ranking');
   expect(canonicalFor('/fx')).toBeNull();
 });
