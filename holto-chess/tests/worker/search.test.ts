@@ -30,7 +30,8 @@ it('injects canonical before JavaScript without query strings or changes to body
   const body = await response.text();
   expect(body).toContain('<link rel="canonical" href="https://porena.kr/">');
   expect(body).toContain('content="proof"');
-  expect(body).toContain(GAME_INTRO['ko-KR'].summary);
+  expect(body).toContain('<h1>포레나 PORENA</h1>');
+  expect(body).not.toContain(GAME_INTRO['ko-KR'].summary);
   expect(body).toContain('<a href="/about">게임 소개</a>');
   expect(body).not.toMatch(/utm_source|ABC234/);
 });

@@ -9,6 +9,7 @@ const meta = (key: string) => html.match(new RegExp(`<meta (?:name|property)="${
 it('preserves the improved description when the language initializes', () => {
   expect(koKR['document.description']).toBe(meta('description'));
   expect(koKR['document.description'].length).toBeLessThanOrEqual(80);
+  expect(enUS['document.description'].length).toBeLessThanOrEqual(160);
   for (const word of ['PORENA', '포레나', 'poker', 'deck-building', 'six rounds']) {
     expect(enUS['document.description']).toContain(word);
   }
@@ -40,6 +41,6 @@ it('provides valid site-name structured data without invented search or rating c
 it('keeps the displayed main heading discoverable under both brand names', () => {
   const screen = readFileSync(new URL('../ui/StartScreen.tsx', import.meta.url), 'utf8');
   expect(screen).toMatch(/<h1><img[^>]+alt="포레나 PORENA"/);
-  expect(screen).toContain('GAME_INTRO[locale].summary');
+  expect(screen).not.toContain('GAME_INTRO[locale].summary');
   expect(screen).toContain('href="/about"');
 });
