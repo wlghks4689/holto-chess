@@ -9,7 +9,9 @@ describe("localization resources", () => {
     expect(Object.keys(enUS).sort()).toEqual(Object.keys(koKR).sort());
     for (const [key, value] of Object.entries(enUS)) {
       expect(value.trim(), key).not.toBe("");
-      if (key !== "language.korean") expect(value, key).not.toMatch(/[가-힣]/);
+      // Search metadata intentionally includes the Korean brand, not untranslated English UI copy.
+      const checked = key === "document.description" ? value.replace("(포레나)", "") : value;
+      if (key !== "language.korean") expect(checked, key).not.toMatch(/[가-힣]/);
     }
   });
 

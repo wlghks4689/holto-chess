@@ -36,7 +36,7 @@ export type RoomSnapshot = {
   /** Worker-issued opaque action epoch; internal encounter counts never cross the network. */
   publicTurnKey?: { turn: string; key: string };
   finalResultsReleasedAt?: number;
-  /** Server-authoritative ranked solo: one human, seven bots, no lobby. */
+  /** Server-authoritative solo: one human, seven bots, no lobby. */
   solo?: true;
   rank?: RankGame;
   /** Ranked outcomes not yet written to the account DB. Kept across rematches until D1 confirms them. */
@@ -231,7 +231,7 @@ export type RoomAccountIdentity = { accountUserId: string; displayName: string }
 export function accountUserIdForPlayer(room: RoomSnapshot, playerId: string): string | undefined {
   return room.sessions.find(session => session.playerId === playerId)?.accountUserId;
 }
-/** A ranked solo room starts at once: there is nobody to wait for in a lobby. */
+/** A solo room starts at once: there is nobody to wait for in a lobby. */
 export function startSolo(source: RoomSnapshot, now = Date.now()): RoomSnapshot {
   const room = structuredClone(source);
   room.solo = true;

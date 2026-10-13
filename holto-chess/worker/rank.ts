@@ -10,6 +10,8 @@ type EventRow = { placement: number; final_score: number; forfeited: number; bas
  * Returns `{ skipped: true }` when the account no longer exists (deleted accounts take their rank data with them).
  */
 export async function settleRankObligation(db: D1Database, o: RankObligation, now: number): Promise<RankResult> {
+  // Also suppress persisted solo retries from before the policy change. Historical rows are untouched.
+  if (o.mode === "SOLO") return { skipped: true };
   const previous = await db.prepare("SELECT season_id, rank_points FROM rank_profiles WHERE user_id = ? AND season_id < ? ORDER BY season_id DESC LIMIT 1")
     .bind(o.userId, o.seasonId).first<{ season_id: number; rank_points: number }>();
   const start = startingPoints(previous && { seasonId: previous.season_id, points: previous.rank_points }, o.seasonId);

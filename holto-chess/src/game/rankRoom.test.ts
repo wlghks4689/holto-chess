@@ -111,11 +111,28 @@ describe("RANK-SYSTEM-002 room rank state", { timeout: 120_000 }, () => {
     expect(room.rankPending!.every((entry) => entry.gameId === firstGame)).toBe(true);
   });
 
-  it("starts a ranked solo room at once with one human", () => {
+  it("starts the same solo game without RP, forfeit penalties or ranking UI", () => {
     const room = startSolo(addSession(createRoom("SOLOAB", 5, "seeded", 2, true), "solo", account(9)).room, T0);
     expect(room.status).toBe("PLAYING");
-    expect(room.rank).toMatchObject({ mode: "SOLO", humanCount: 1, seats: { p1: "user-9" } });
+    expect(room.rank).toBeUndefined();
     expect(createPlayerView(room, "p1").solo).toBe(true);
+    expect(createPlayerView(room, "p1").rank).toBeUndefined();
+    expect(() => act(room, "p1", { type: "LEAVE_ROOM" })).not.toThrow();
+    room.game = finished().game;
+    expect(collectRankObligations(room)).toBe(false);
+    expect(room.rankPending).toBeUndefined();
+  });
+
+  it("does not award or penalize an old persisted solo game after the policy change", () => {
+    const room = started([account(1), undefined]);
+    room.solo = true;
+    room.rank!.mode = "SOLO";
+    room.rank!.forfeitIds = ["p1"];
+    expect(createPlayerView(room, "p1").rank).toBeUndefined();
+    expect(collectRankObligations(room)).toBe(false);
+    room.game = finished().game;
+    expect(collectRankObligations(room)).toBe(false);
+    expect(room.rankPending).toBeUndefined();
   });
 
   it("accepts only `confirmForfeit: true` on the wire, and ignores client claims about the outcome", () => {

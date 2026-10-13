@@ -85,6 +85,19 @@ beforeEach(async () => {
 afterEach(() => { for (const ws of sockets.splice(0)) ws.close(1000); });
 
 describe("RANK-SYSTEM-002 D1 settlement", () => {
+  it("ignores solo rewards and forfeits, retaining previously earned points and records", async () => {
+    const user = await account();
+    await settleRankObligation(env.ACCOUNT_DB, obligation(user.id), 1000);
+    const before = await env.ACCOUNT_DB.prepare("SELECT * FROM rank_profiles WHERE user_id = ?").bind(user.id).first();
+    for (const forfeited of [false, true]) {
+      expect(await settleRankObligation(env.ACCOUNT_DB, obligation(user.id, { mode: "SOLO", humanCount: 1, forfeited }), 2000)).toEqual({ skipped: true });
+    }
+    expect(await env.ACCOUNT_DB.prepare("SELECT * FROM rank_profiles WHERE user_id = ?").bind(user.id).first()).toEqual(before);
+    expect(await events(user.id)).toHaveLength(1);
+    const newcomer = await account();
+    expect(await settleRankObligation(env.ACCOUNT_DB, obligation(newcomer.id, { mode: "SOLO" }), 2000)).toEqual({ skipped: true });
+    expect(await points(newcomer.id, 1)).toBeNull();
+  });
   it("writes one event and changes RP once, however often the same game is settled", async () => {
     const user = await account();
     const o = obligation(user.id);
@@ -236,7 +249,7 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
     expect((await env.ACCOUNT_DB.prepare("SELECT COUNT(*) AS n FROM rank_events").first<number>("n"))).toBe(1);
   }, 30_000); // Plays a whole six-round game inside the Durable Object.
 
-  it("creates a ranked solo room only for a signed-in account and starts it at once", async () => {
+  it("creates the same account solo room immediately without ranking", async () => {
     const anonymous = await call("/api/rooms", { method: "POST", headers: { "X-Porena-Mode": "solo" } });
     expect(anonymous.status).toBe(401);
     const forged = await call("/api/rooms", { method: "POST", headers: { "X-Internal-Porena-Solo": "1" } });
@@ -245,13 +258,28 @@ describe("RANK-SYSTEM-002 room forfeit and settlement", () => {
     const user = await account("솔로");
     const solo = await seat(user.cookie, undefined, { "X-Porena-Mode": "solo" });
     const room = await saved(solo.roomId);
-    expect(room).toMatchObject({ status: "PLAYING", solo: true, rank: { mode: "SOLO", humanCount: 1 } });
+    expect(room).toMatchObject({ status: "PLAYING", solo: true });
+    expect(room.rank).toBeUndefined();
     // It skips the lobby, but still gets the in-game lifetime, or an abandoned solo game would never be deleted.
     const expiresAt = await runInDurableObject(stubFor(solo.roomId), (_instance, state) => state.storage.get<number>("expiresAt"));
     expect(expiresAt).toBeGreaterThan(Date.now());
     const client = await connect(solo);
-    expect(client.view()).toMatchObject({ solo: true, rank: { ranked: true, forfeited: false } });
-  });
+    expect(client.view()).toMatchObject({ solo: true });
+    expect(client.view().rank).toBeUndefined();
+    await runInDurableObject(stubFor(solo.roomId), async (instance) => {
+      const state = instance as unknown as { room: RoomSnapshot; commit(next: RoomSnapshot): Promise<void>; rescheduleAlarm(): Promise<void> };
+      let next = state.room;
+      for (let step = 0; step < 300 && next.game.phase !== "GAME_RESULT"; step++) next = forceBarrier(next, barrierDeadline(next)!)!;
+      expect(next.game.phase).toBe("GAME_RESULT");
+      await state.commit(next);
+      await state.rescheduleAlarm();
+    });
+    const finished = await saved(solo.roomId);
+    expect(finished.rankPending).toBeUndefined();
+    expect(finalStandings(finished.game)).toHaveLength(8);
+    expect(await events(user.id)).toEqual([]);
+    expect(await points(user.id, seasonAt(Date.now()).id)).toBeNull();
+  }, 30_000);
 });
 
 describe("RANK-SYSTEM-002 rankings API", () => {

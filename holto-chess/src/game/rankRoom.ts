@@ -19,6 +19,7 @@ export type RankResult = RankDelta & { seasonId: number; placement: number; fina
 /** Every human still seated counts toward the human bonus, guests included; only account seats are ranked. */
 export function beginRankGame(room: RoomSnapshot, now: number): void {
   delete room.rank;
+  if (room.solo) return;
   const seated = room.sessions.filter((session) => !session.departed);
   const seats = Object.fromEntries(seated.filter((session) => session.accountUserId).map((session) => [session.playerId, session.accountUserId!]));
   if (!Object.keys(seats).length) return;
@@ -31,14 +32,14 @@ export function beginRankGame(room: RoomSnapshot, now: number): void {
 /** Leaving now would cost this seat a ranked forfeit: an account seat, still alive, before the final result. */
 export function leaveForfeits(room: RoomSnapshot, playerId: string): boolean {
   const rank = room.rank;
-  return room.status === "PLAYING" && !!rank && !!rank.seats[playerId] && room.game.phase !== "GAME_RESULT"
+  return !room.solo && rank?.mode !== "SOLO" && room.status === "PLAYING" && !!rank && !!rank.seats[playerId] && room.game.phase !== "GAME_RESULT"
     && !room.game.players.find((player) => player.id === playerId)?.eliminated && !rank.forfeitIds.includes(playerId) && !rank.recordedIds.includes(playerId);
 }
 
 /** Queues each ranked outcome once: forfeits at once, everyone else at GAME_RESULT. Returns true when it queued any. */
 export function collectRankObligations(room: RoomSnapshot): boolean {
   const rank = room.rank;
-  if (!rank) return false;
+  if (!rank || room.solo || rank.mode === "SOLO") return false;
   const queue = (playerId: string, outcome: RankOutcome) => {
     rank.recordedIds.push(playerId);
     (room.rankPending ??= []).push({ ...outcome, gameId: rank.gameId, seasonId: rank.seasonId, startedAt: rank.startedAt, mode: rank.mode, playerId, userId: rank.seats[playerId]! });
@@ -64,6 +65,7 @@ export type RankView = { ranked: boolean; forfeited: boolean; leaveForfeits: boo
  */
 export function rankViewFor(room: RoomSnapshot, playerId: string, resultsRevealed: boolean): RankView | undefined {
   const rank = room.rank;
+  if (room.solo || rank?.mode === "SOLO") return undefined;
   const result = rank?.results[playerId];
   // An account deleted before settlement has no ranking left to show.
   if (!rank?.seats[playerId] || (result && "skipped" in result)) return undefined;
