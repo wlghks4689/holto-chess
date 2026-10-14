@@ -1,0 +1,308 @@
+import { env, exports } from "cloudflare:workers";
+import { createExecutionContext, runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
+import { afterEach, describe, expect, it } from "vitest";
+import { base64url } from "jose";
+import worker from "../../worker/index";
+import type { RoomSnapshot } from "../../src/game/room";
+import type { GameAction, PlayerView, ServerMessage } from "../../src/shared/protocol";
+
+// Account seats need the configured auth origin (AUTH_ORIGIN in vitest.workers.config.ts).
+const origin = "https://porena.kr";
+const sockets: WebSocket[] = [];
+afterEach(() => { for (const ws of sockets.splice(0)) ws.close(1000); });
+type Credential = { roomId: string; playerId: string; token: string; instanceId: string; reservedUntil?: number };
+type Internal = { room: RoomSnapshot; expiresAt: number };
+
+const sha = async (value: string) => base64url.encode(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))));
+function call(path: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Origin")) headers.set("Origin", origin);
+  headers.set("CF-Connecting-IP", crypto.randomUUID());
+  return exports.default.fetch(new Request(`${origin}${path}`, { ...init, headers }));
+}
+let accounts = 0;
+async function account() {
+  const id = crypto.randomUUID(), token = base64url.encode(crypto.getRandomValues(new Uint8Array(32)));
+  await env.ACCOUNT_DB.batch([
+    env.ACCOUNT_DB.prepare("INSERT INTO users (id, display_name, created_at, last_login_at) VALUES (?, ?, ?, ?)").bind(id, `공개${++accounts}`, Date.now(), Date.now()),
+    env.ACCOUNT_DB.prepare("INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)").bind(await sha(token), id, Date.now(), Date.now() + 3600_000),
+  ]);
+  return { id, cookie: `__Host-porena_session=${token}` };
+}
+const accountsOf = (n: number) => Promise.all(Array.from({ length: n }, account));
+const post = (path: string, cookie: string, body: unknown) => call(path, { method: "POST", headers: { Cookie: cookie, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const createPublic = (cookie: string, requestId: string = crypto.randomUUID()) => post("/api/public-rooms", cookie, { requestId });
+const joinPublic = (room: Credential, cookie: string, requestId: string = crypto.randomUUID(), instanceId = room.instanceId) =>
+  post(`/api/public-rooms/${room.roomId}/join`, cookie, { requestId, instanceId });
+async function created(cookie: string): Promise<Credential> {
+  const response = await createPublic(cookie);
+  expect(response.status).toBe(201);
+  return response.json();
+}
+async function joined(room: Credential, cookie: string): Promise<Credential> {
+  const response = await joinPublic(room, cookie);
+  expect(response.status).toBe(201);
+  return response.json();
+}
+const stubFor = (roomId: string) => env.GAME_ROOM.getByName(`room:${roomId}`);
+const saved = async (roomId: string) => (await runInDurableObject(stubFor(roomId), (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1")))!;
+/** Moves room clocks without waiting: the next alarm or request sees the deadline as passed. */
+const edit = (roomId: string, change: (internal: Internal) => void) => runInDurableObject(stubFor(roomId), instance => {
+  const internal = instance as unknown as Internal;
+  internal.room = structuredClone(internal.room);
+  change(internal);
+});
+async function until<T>(read: () => Promise<T>, done: (value: T) => boolean): Promise<T> {
+  for (let i = 0; i < 100; i++) { const value = await read(); if (done(value)) return value; await new Promise(resolve => setTimeout(resolve, 20)); }
+  throw new Error("Condition not reached");
+}
+const errorOf = async (response: Response) => (await response.json() as { error: string }).error;
+
+async function connect(credential: Credential) {
+  const response = await call(`/ws/rooms/${credential.roomId}`, { headers: { Upgrade: "websocket" } });
+  expect(response.status).toBe(101);
+  const ws = response.webSocket!;
+  ws.accept(); sockets.push(ws);
+  const messages: ServerMessage[] = [];
+  const closed: { code?: number } = {};
+  const waiters = new Set<() => void>();
+  ws.addEventListener("message", event => { messages.push(JSON.parse(event.data as string)); for (const waiter of waiters) waiter(); });
+  ws.addEventListener("close", event => { closed.code = event.code; for (const waiter of waiters) waiter(); });
+  const wait = (predicate: (message: ServerMessage) => boolean): Promise<ServerMessage> => new Promise((resolve, reject) => {
+    const check = () => { const found = messages.find(predicate); if (found) { clearTimeout(timeout); waiters.delete(check); resolve(found); } };
+    const timeout = setTimeout(() => { waiters.delete(check); reject(new Error(`Room message timeout: ${JSON.stringify(messages.slice(-2))}`)); }, 5000);
+    waiters.add(check); check();
+  });
+  const view = () => (messages.filter(message => message.type === "PLAYER_VIEW").at(-1) as { type: "PLAYER_VIEW"; payload: PlayerView }).payload;
+  const send = async (action: GameAction) => {
+    const requestId = crypto.randomUUID();
+    ws.send(JSON.stringify({ ...action, requestId, turnKey: view().turnKey }));
+    return wait(message => (message.type === "ACK" || message.type === "ERROR") && message.requestId === requestId);
+  };
+  ws.send(JSON.stringify({ type: "JOIN_ROOM", token: credential.token }));
+  await wait(message => message.type === "PLAYER_VIEW" || message.type === "ERROR");
+  return { ws, messages, closed, wait, view, send };
+}
+
+describe("public room seats (PUB)", () => {
+  it("PUB-01: 100 accounts joining at once take exactly the seven free seats", async () => {
+    const [host, ...others] = await accountsOf(101);
+    const room = await created(host!.cookie);
+    const responses = await Promise.all(others.map(user => joinPublic(room, user.cookie)));
+    const codes = await Promise.all(responses.map(async response => response.status === 201 ? "OK" : `${response.status}:${await errorOf(response)}`));
+    expect(codes.filter(code => code === "OK")).toHaveLength(7);
+    expect(new Set(codes.filter(code => code !== "OK"))).toEqual(new Set(["409:ROOM_FULL"]));
+    const snapshot = await saved(room.roomId);
+    expect(snapshot.sessions).toHaveLength(8);
+    expect(new Set(snapshot.sessions.map(session => session.playerId)).size).toBe(8);
+  });
+
+  it("PUB-02: 100 accounts racing for the last seat seat exactly one", async () => {
+    const [host, ...rest] = await accountsOf(107);
+    const room = await created(host!.cookie);
+    for (const user of rest.slice(0, 6)) await joined(room, user.cookie);
+    const responses = await Promise.all(rest.slice(6).map(user => joinPublic(room, user.cookie)));
+    expect(responses.filter(response => response.status === 201)).toHaveLength(1);
+    expect((await saved(room.roomId)).sessions).toHaveLength(8);
+  });
+
+  it("PUB-04/06: retries of one create or join return one credential; another key cannot double-seat the account", async () => {
+    const [host, guest] = await accountsOf(2);
+    const requestId = crypto.randomUUID();
+    const creates = await Promise.all(Array.from({ length: 20 }, () => createPublic(host!.cookie, requestId)));
+    const bodies = await Promise.all(creates.map(response => { expect(response.status).toBe(201); return response.json() as Promise<Credential>; }));
+    expect(new Set(bodies.map(body => `${body.roomId}:${body.token}:${body.instanceId}`)).size).toBe(1);
+    expect(Object.keys(bodies[0]!).sort()).toEqual(["instanceId", "playerId", "reservedUntil", "roomId", "token"]);
+    const room = bodies[0]!;
+    expect((await saved(room.roomId)).sessions).toHaveLength(1);
+
+    const joinKey = crypto.randomUUID();
+    const joins = await Promise.all(Array.from({ length: 20 }, () => joinPublic(room, guest!.cookie, joinKey)));
+    const seats = await Promise.all(joins.map(response => { expect(response.status).toBe(201); return response.json() as Promise<Credential>; }));
+    expect(new Set(seats.map(seat => seat.token)).size).toBe(1);
+    expect((await saved(room.roomId)).sessions).toHaveLength(2);
+    // A different key is a new request: the account already holds a seat.
+    const other = await joinPublic(room, guest!.cookie);
+    expect(other.status).toBe(409);
+    expect(await errorOf(other)).toBe("ACCOUNT_ALREADY_SEATED");
+  });
+
+  it("PUB-05: a key reused for another room instance is refused, and malformed requests never reach a room", async () => {
+    const [host, guest] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    const mismatch = await joinPublic(room, guest!.cookie, crypto.randomUUID(), "b".repeat(32));
+    expect(mismatch.status).toBe(410);
+    expect(await errorOf(mismatch)).toBe("INCARNATION_MISMATCH");
+    expect((await post("/api/public-rooms", guest!.cookie, { requestId: "not-a-uuid" })).status).toBe(400);
+    expect((await post(`/api/public-rooms/${room.roomId}/join`, guest!.cookie, { requestId: crypto.randomUUID() })).status).toBe(400);
+  });
+
+  it("PUB-07: an unconnected reservation is given back after 30 seconds and its retry is told so", async () => {
+    const [host, late, next] = await accountsOf(3);
+    const room = await created(host!.cookie);
+    const key = crypto.randomUUID();
+    const reserved = await (await joinPublic(room, late!.cookie, key)).json() as Credential;
+    expect(reserved.reservedUntil! - Date.now()).toBeLessThanOrEqual(30_000);
+    await edit(room.roomId, internal => { internal.room.sessions.find(session => session.playerId === reserved.playerId)!.reservedUntil = Date.now() - 1; });
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    expect((await saved(room.roomId)).sessions.map(session => session.playerId)).toEqual([room.playerId]);
+    const retry = await joinPublic(room, late!.cookie, key);
+    expect(retry.status).toBe(409);
+    expect(await errorOf(retry)).toBe("RESERVATION_EXPIRED");
+    // The late token no longer owns anything; the seat goes to the next person.
+    const stale = await connect(reserved);
+    expect(stale.messages.some(message => message.type === "ERROR" && message.code === "SESSION_INVALID")).toBe(true);
+    expect((await joined(room, next!.cookie)).playerId).toBe(reserved.playerId);
+  });
+
+  it("PUB-03: the last READY and a new join land in one order only", async () => {
+    for (let round = 0; round < 5; round++) {
+      const [host, guest, racer] = await accountsOf(3);
+      const room = await created(host!.cookie);
+      const one = await connect(room), two = await connect(await joined(room, guest!.cookie));
+      await two.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.filter(player => player.connected).length === 2);
+      expect((await one.send({ type: "READY" })).type).toBe("ACK");
+      await two.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.some(player => player.ready));
+      const [, join] = await Promise.all([two.send({ type: "READY" }), joinPublic(room, racer!.cookie)]);
+      const snapshot = await saved(room.roomId);
+      if (snapshot.status === "PLAYING") {
+        expect(join.status).toBe(409);
+        expect(await errorOf(join)).toBe("ROOM_STARTED");
+        expect(snapshot.sessions.some(session => session.reservedUntil !== undefined)).toBe(false);
+      } else {
+        expect(join.status).toBe(201);
+        expect(snapshot.readyIds).toEqual([]);
+      }
+    }
+  });
+});
+
+describe("public room ownership and presence (PUB)", () => {
+  it("PUB-09: a left seat's old socket, token and ticket lose all power over the next owner", async () => {
+    const [host, first, second] = await accountsOf(3);
+    const room = await created(host!.cookie);
+    const hostSocket = await connect(room);
+    const old = await joined(room, first!.cookie);
+    const oldSocket = await connect(old);
+    expect((await oldSocket.send({ type: "LEAVE_ROOM" })).type).toBe("ACK");
+    await until(async () => oldSocket.closed.code, code => code === 4003);
+    expect((await call(`/api/rooms/${room.roomId}/connection-ticket`, { method: "POST", headers: { "X-Porena-Session": old.token } })).status).toBe(401);
+    const fresh = await joined(room, second!.cookie);
+    expect(fresh.playerId).toBe(old.playerId);
+    const replay = await connect(old);
+    expect(replay.messages.some(message => message.type === "ERROR" && message.code === "SESSION_INVALID")).toBe(true);
+    const newSocket = await connect(fresh);
+    expect(newSocket.messages).toContainEqual(expect.objectContaining({ type: "ROOM_JOINED", playerId: fresh.playerId }));
+    expect((await newSocket.send({ type: "READY" })).type).toBe("ACK");
+    await hostSocket.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.some(player => player.playerId === fresh.playerId && player.ready));
+  });
+
+  it("PUB-10/13: a dropped connection loses READY, keeps the seat through the grace and is reclaimed after it", async () => {
+    const [host, guest] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    await connect(room);
+    const seat = await joined(room, guest!.cookie);
+    const firstTab = await connect(seat);
+    expect((await firstTab.send({ type: "READY" })).type).toBe("ACK");
+    // A second tab replaces the first; the replaced tab's close must not start a grace.
+    const secondTab = await connect(seat);
+    await until(async () => firstTab.closed.code, code => code === 4001);
+    const stillHere = await saved(room.roomId);
+    expect(stillHere.sessions.find(session => session.playerId === seat.playerId)!.disconnectedAt).toBeUndefined();
+
+    secondTab.ws.close(1000);
+    const dropped = await until(() => saved(room.roomId), snapshot => snapshot.sessions.find(session => session.playerId === seat.playerId)!.disconnectedAt !== undefined);
+    expect(dropped.readyIds).not.toContain(seat.playerId);
+
+    // Back inside the grace: same seat, READY must be given again.
+    const back = await connect(seat);
+    expect(back.view().players.find(player => player.playerId === seat.playerId)!.ready).toBe(false);
+    const resumed = await saved(room.roomId);
+    expect(resumed.sessions.find(session => session.playerId === seat.playerId)!.disconnectedAt).toBeUndefined();
+
+    back.ws.close(1000);
+    await until(() => saved(room.roomId), snapshot => snapshot.sessions.find(session => session.playerId === seat.playerId)!.disconnectedAt !== undefined);
+    await edit(room.roomId, internal => { internal.room.sessions.find(session => session.playerId === seat.playerId)!.disconnectedAt = Date.now() - 90_000; });
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    const reclaimed = await saved(room.roomId);
+    expect(reclaimed.sessions.map(session => session.playerId)).toEqual([room.playerId]);
+    expect(reclaimed.game.players.find(player => player.id === seat.playerId)!.name).toBe(reclaimed.publicLobby!.botNames[seat.playerId]);
+  });
+
+  it("PUB-12: a started public game refuses new seats and still lets its own seats reconnect", async () => {
+    const [host, guest, late] = await accountsOf(3);
+    const room = await created(host!.cookie);
+    const one = await connect(room);
+    const seat = await joined(room, guest!.cookie);
+    const two = await connect(seat);
+    await one.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.filter(player => player.connected).length === 2);
+    await one.send({ type: "READY" });
+    await two.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.some(player => player.ready));
+    await two.send({ type: "READY" });
+    expect((await saved(room.roomId)).status).toBe("PLAYING");
+    const refused = await joinPublic(room, late!.cookie);
+    expect(refused.status).toBe(409);
+    expect(await errorOf(refused)).toBe("ROOM_STARTED");
+    two.ws.close(1000);
+    const again = await connect(seat);
+    expect(again.messages.some(message => message.type === "ROOM_JOINED")).toBe(true);
+  });
+});
+
+describe("request-time expiry (PUB-11)", () => {
+  it("refuses joins, tickets and sockets of an expired private room before its alarm runs, without reviving it", async () => {
+    const created = await call("/api/rooms", { method: "POST" });
+    const host = await created.json() as Credential;
+    await edit(host.roomId, internal => { internal.expiresAt = Date.now() - 1; });
+    expect((await call(`/api/rooms/${host.roomId}/join`, { method: "POST" })).status).toBe(404);
+    expect((await call(`/api/rooms/${host.roomId}/connection-ticket`, { method: "POST", headers: { "X-Porena-Session": host.token } })).status).toBe(404);
+    expect((await call(`/ws/rooms/${host.roomId}`, { headers: { Upgrade: "websocket" } })).status).toBe(404);
+    const expiresAt = await runInDurableObject(stubFor(host.roomId), instance => (instance as unknown as Internal).expiresAt);
+    expect(expiresAt).toBeLessThan(Date.now());
+    await runDurableObjectAlarm(stubFor(host.roomId));
+    expect(await runInDurableObject(stubFor(host.roomId), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
+  });
+
+  it("answers an expired or over-age public lobby with ROOM_EXPIRED", async () => {
+    const [host, guest] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    await edit(room.roomId, internal => { internal.room.publicLobby!.createdAt = Date.now() - 60 * 60_000; });
+    const late = await joinPublic(room, guest!.cookie);
+    expect(late.status).toBe(410);
+    expect(await errorOf(late)).toBe("ROOM_EXPIRED");
+  });
+});
+
+describe("public room boundaries (REG)", () => {
+  it("is unreachable while PUBLIC_ROOMS_ENABLED is unset", async () => {
+    const user = await account();
+    const request = new Request(`${origin}/api/public-rooms`, { method: "POST", headers: { Origin: origin, Cookie: user.cookie, "CF-Connecting-IP": crypto.randomUUID() }, body: JSON.stringify({ requestId: crypto.randomUUID() }) });
+    const response = await worker.fetch(request, { ...env, PUBLIC_ROOMS_ENABLED: undefined } as unknown as Env, createExecutionContext());
+    expect(response.status).toBe(404);
+  });
+
+  it("seats accounts only, and keeps private rooms out of the public endpoint", async () => {
+    const [host, member] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    for (const response of [await createPublic(""), await joinPublic(room, "")]) {
+      expect(response.status).toBe(401);
+      expect(await errorOf(response)).toBe("ACCOUNT_REQUIRED");
+    }
+    // The invite code of a public room applies the public rules: a guest is refused, an account is reserved.
+    const guestInvite = await call(`/api/rooms/${room.roomId}/join`, { method: "POST" });
+    expect(guestInvite.status).toBe(401);
+    const invite = await call(`/api/rooms/${room.roomId}/join`, { method: "POST", headers: { Cookie: member!.cookie } });
+    expect(invite.status).toBe(201);
+    expect((await invite.json() as Credential).reservedUntil).toBeGreaterThan(Date.now());
+
+    const privateRoom = await (await call("/api/rooms", { method: "POST" })).json() as Credential;
+    const probe = await joinPublic({ ...privateRoom, instanceId: "c".repeat(32) }, member!.cookie);
+    expect(probe.status).toBe(404);
+    expect(await errorOf(probe)).toBe("ROOM_NOT_FOUND");
+    // The private room and its guest invite flow are unchanged.
+    expect((await call(`/api/rooms/${privateRoom.roomId}/join`, { method: "POST" })).status).toBe(201);
+    const snapshot = await saved(privateRoom.roomId);
+    expect(snapshot.visibility).toBeUndefined();
+    expect(snapshot.publicLobby).toBeUndefined();
+  });
+});

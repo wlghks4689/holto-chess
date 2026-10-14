@@ -8,6 +8,8 @@ import { submitFeedback } from "./feedback";
 import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
 import { handleRankings } from "./rank";
+import { PUBLIC_INSTANCE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER } from "./GameRoom";
+import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
 export { GameRoom } from "./GameRoom";
 
 function code(): string {
@@ -48,6 +50,9 @@ export default {
     if (url.pathname.startsWith("/api/auth/") || url.pathname === "/api/profile") return handleAuth(request, env, url);
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
     if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return withSearchMetadata(await serveApp(request, env, url), url);
+    // Public rooms stay unreachable until PUBLIC_ROOMS_ENABLED is set; the private room API is unaffected either way.
+    const publicRoute = url.pathname === "/api/public-rooms" || url.pathname.startsWith("/api/public-rooms/");
+    if (publicRoute && !publicRoomsEnabled(env as PublicRoomEnv)) return new Response("Not found", { status: 404 });
     // Read-only and public: a same-origin GET carries no Origin header, so it is rate-limited instead of origin-checked.
     // The JSON has no CORS headers, so another site can never read /me even with the visitor's cookie.
     if (url.pathname === "/api/rankings" || url.pathname === "/api/rankings/me") {
@@ -60,7 +65,8 @@ export default {
     if (!isAllowedOrigin(request.headers.get("Origin"), url.origin, env.DISCORD_ACTIVITY_CLIENT_IDS)) return new Response("Origin rejected", { status: 403 });
     // All room seats use the Cloudflare-provided IP as a coarse abuse
     // guard, with a generous shared-network connection budget. Never log it.
-    const limiter = url.pathname === "/api/feedback" ? env.FEEDBACK_LIMITER : url.pathname === "/api/rooms" ? env.ROOM_CREATE_LIMITER : env.ROOM_CONNECT_LIMITER;
+    const limiter = url.pathname === "/api/feedback" ? env.FEEDBACK_LIMITER
+      : url.pathname === "/api/rooms" || url.pathname === "/api/public-rooms" ? env.ROOM_CREATE_LIMITER : env.ROOM_CONNECT_LIMITER;
     const { success } = await limiter.limit({ key: request.headers.get("CF-Connecting-IP") ?? "local" });
     if (!success) return new Response("요청이 너무 많습니다. 잠시 후 다시 시도하세요.", {
       status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" },
@@ -68,14 +74,18 @@ export default {
     if (url.pathname === "/api/feedback" && request.method === "POST") return submitFeedback(request, env);
     let identity: RoomAccountIdentity | undefined;
     const solo = url.pathname === "/api/rooms" && request.headers.get("X-Porena-Mode") === "solo";
-    const isNewSeat = request.method === "POST" && (url.pathname === "/api/rooms" || /^\/api\/rooms\/[A-Z2-9]{6}\/join$/.test(url.pathname));
+    const publicJoin = /^\/api\/public-rooms\/([A-Z2-9]{6})\/join$/.exec(url.pathname);
+    const publicSeat = request.method === "POST" && (url.pathname === "/api/public-rooms" || !!publicJoin);
+    const isNewSeat = publicSeat || request.method === "POST" && (url.pathname === "/api/rooms" || /^\/api\/rooms\/[A-Z2-9]{6}\/join$/.test(url.pathname));
+    const fail = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store", "Vary": "Cookie" } });
     if (isNewSeat) {
-      const fail = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store", "Vary": "Cookie" } });
       try {
         const user = await readPorenaSession(request, env);
         if (!user && request.headers.get("X-Porena-Identity") === "account") return fail("ACCOUNT_REQUIRED", 401);
         // Ranked solo is server-authoritative and account-only; guests practise locally.
         if (!user && solo) return fail("ACCOUNT_REQUIRED", 401);
+        // Public rooms seat accounts only; guests keep private invite rooms.
+        if (!user && publicSeat) return fail("ACCOUNT_REQUIRED", 401);
         if (user) {
           if (url.origin !== configuredOrigin(env) || request.headers.get("Origin") !== url.origin || request.headers.get("Sec-Fetch-Site") === "cross-site") return fail("Origin rejected", 403);
           if (request.headers.get("X-Porena-Identity") === "guest") return fail("ACCOUNT_CHANGED", 409);
@@ -85,12 +95,33 @@ export default {
         }
       } catch { return fail("ACCOUNT_UNAVAILABLE", 503); }
     }
-    const forward = (roomId: string, path: string) => {
+    const forward = (roomId: string, path: string, internal: Record<string, string> = {}) => {
       const target = new URL(request.url); target.pathname = path; target.search = "";
       const headers = roomForwardHeaders(request.headers, identity); headers.set("X-Room-Id", roomId);
       if (solo && identity) headers.set("X-Internal-Porena-Solo", "1");
+      // A public seat's JSON body is read here; the room only receives these headers.
+      for (const [name, value] of Object.entries(internal)) { headers.set(name, value); headers.delete("Content-Length"); headers.delete("Content-Type"); }
       return env.GAME_ROOM.getByName(`room:${roomId}`).fetch(new Request(target, { method: request.method, headers }));
     };
+    if (publicSeat) {
+      const secret = (env as PublicRoomEnv).PUBLIC_ROOM_SECRET;
+      if (!secret) return fail("LOBBY_UNAVAILABLE", 503);
+      const body = await request.json().catch(() => null) as { requestId?: unknown; instanceId?: unknown } | null;
+      const requestId = typeof body?.requestId === "string" ? body.requestId : "";
+      if (!PUBLIC_REQUEST_ID.test(requestId)) return fail("INVALID_REQUEST", 400);
+      if (publicJoin) {
+        const instanceId = typeof body?.instanceId === "string" ? body.instanceId : "";
+        if (!PUBLIC_INSTANCE_ID.test(instanceId)) return fail("INVALID_REQUEST", 400);
+        return forward(publicJoin[1]!, "/internal/public-join", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: instanceId });
+      }
+      // Codes derive from the request, so a retried create walks the same candidates and finds the room it made.
+      for (let attempt = 0; attempt < PUBLIC_CREATE_ATTEMPTS; attempt++) {
+        const candidate = await publicCreateCandidate(secret, identity!.accountUserId, requestId, attempt);
+        const response = await forward(candidate.roomId, "/internal/public-create", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: candidate.instanceId });
+        if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return response;
+      }
+      return fail("LOBBY_UNAVAILABLE", 503);
+    }
     if (url.pathname === "/api/rooms" && request.method === "POST") {
       for (let attempt = 0; attempt < 5; attempt++) {
         const response = await forward(code(), "/internal/create");

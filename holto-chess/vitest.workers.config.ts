@@ -22,6 +22,9 @@ export default defineConfig(async () => ({
         ADMIN_SESSION_SECRET: "test-session-secret",
         // A made-up Discord application id: lets the suite exercise the Activity origin allowlist.
         DISCORD_ACTIVITY_CLIENT_IDS: "123456789012345678",
+        // Public rooms are off in production until they ship; the suite exercises them with a test-only secret.
+        PUBLIC_ROOMS_ENABLED: "1",
+        PUBLIC_ROOM_SECRET: "test-public-room-secret",
       },
     },
   })],

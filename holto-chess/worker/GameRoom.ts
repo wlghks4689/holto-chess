@@ -1,5 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
-import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, startSolo, turnKey, type RoomSnapshot } from "../src/game/room";
+import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, startSolo, turnKey, type RoomAccountIdentity, type RoomSnapshot } from "../src/game/room";
+import { confirmPublicSeat, isPublicLobby, makePublicRoom, markPublicSeatDisconnected, PUBLIC_LOBBY_TIMING, publicLobbyClosesAt, publicLobbyDeadline, publicSeatsAwaitingPresence, releasedKey, reservePublicSeat, sweepPublicLobby } from "../src/game/publicRoom";
+import { PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicSeatToken, type PublicRoomEnv } from "./publicRoomKeys";
 import { collectRankObligations } from "../src/game/rankRoom";
 import { settleRankObligation } from "./rank";
 import { createPlayerView } from "../src/game/playerView";
@@ -9,7 +11,14 @@ import { nextDisclosureAt } from "../src/game/disclosure";
 import { FINISHED_ROOM_LIFETIME_MS, LOBBY_IDLE_LIFETIME_MS, ROOM_LIFETIME_MS } from "../src/shared/retention";
 import { roomAccountIdentity } from "./roomIdentity";
 
-type Attachment = { roomId: string; playerId: string | null; verifiedPlayerId?: string; joinedAt: number; windowAt?: number; messages?: number };
+type Attachment = { roomId: string; playerId: string | null; verifiedPlayerId?: string; joinedAt: number; windowAt?: number; messages?: number; seatEpoch?: number };
+type Seat = RoomSnapshot["sessions"][number];
+/** Internal headers the Worker sets for public seats; client copies are stripped by roomForwardHeaders. */
+export const PUBLIC_REQUEST_HEADER = "X-Internal-Porena-Request-Id";
+export const PUBLIC_INSTANCE_HEADER = "X-Internal-Porena-Instance-Id";
+/** Marks a create candidate whose code another room holds; the Worker then tries the next candidate. */
+export const ROOM_TAKEN_HEADER = "X-Porena-Room-Taken";
+const refuse = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
 const SNAPSHOT_KEY = "snapshot:v1";
 const EXPIRY_KEY = "expiresAt";
 const AUTH_TIMEOUT_MS = 15000;
@@ -42,9 +51,13 @@ export class GameRoom extends DurableObject<Env> {
   private tickets: Tickets = {};
   /** Scheduled time of the alarm now executing; a re-armed alarm must land strictly after it. */
   private runningAlarmAt: number | undefined;
+  /** Last public-lobby presence check; the next one is due PRESENCE_SWEEP_MS later. */
+  private presenceCheckedAt = Date.now();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    // Heartbeats are answered without waking the room; the reply time is the seat's application-level liveness.
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("porena-ping", "porena-pong"));
     ctx.blockConcurrencyWhile(async () => {
       const storedRoom = await ctx.storage.get<RoomSnapshot>(SNAPSHOT_KEY);
       this.room = storedRoom ? migrateRoomSnapshot(storedRoom) : undefined;
@@ -76,7 +89,11 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
 
-  private async commit(next: RoomSnapshot): Promise<void> {
+  /**
+   * `activity = false` is for presence-only lobby changes (a reconnect grace starting or ending, a seat given back by
+   * the clock): they must not restart the 30-minute idle lifetime.
+   */
+  private async commit(next: RoomSnapshot, activity = true): Promise<void> {
     if (next.publicTurnKey?.turn !== turnKey(next)) next.publicTurnKey = { turn: turnKey(next), key: token() };
     // The settlement duty is stored with the state change that created it, so a crash cannot lose it.
     // A new duty is flushed at once, unless D1 is already failing: then it joins the running backoff.
@@ -89,8 +106,10 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error("상태를 저장하지 못했습니다. 재접속 후 다시 시도하세요.");
     }
     if (next.status === "LOBBY") {
-      this.expiresAt = Date.now() + LOBBY_IDLE_LIFETIME_MS;
-      await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+      if (activity || this.room?.status !== "LOBBY") {
+        this.expiresAt = Date.now() + LOBBY_IDLE_LIFETIME_MS;
+        await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
+      }
     } else if (!this.room || this.room.status === "LOBBY") {
       // The game started (a ranked solo room starts at creation): it gets the normal in-game lifetime from now.
       this.expiresAt = Date.now() + ROOM_LIFETIME_MS;
@@ -105,6 +124,62 @@ export class GameRoom extends DurableObject<Env> {
       await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
     }
     this.room = next;
+  }
+  /**
+   * Checked on every request, not only by the alarm: an alarm can run late, and a join that slipped in before it
+   * would otherwise restart a dead room's lifetime. A room still owing ranked settlement is kept (see alarm()).
+   */
+  private isExpired(now: number): boolean {
+    if (!this.room || this.room.rankPending?.length) return false;
+    const closesAt = publicLobbyClosesAt(this.room);
+    return (this.expiresAt !== undefined && now >= this.expiresAt) || (closesAt !== undefined && now >= closesAt);
+  }
+  /** The seat this connection owns now. A public seat given back and taken again has a new epoch. */
+  private seatOf(attachment: Attachment | null): Seat | undefined {
+    const seat = attachment?.playerId ? this.room?.sessions.find(session => session.playerId === attachment.playerId) : undefined;
+    return seat && (seat.seatEpoch === undefined || seat.seatEpoch === attachment!.seatEpoch) ? seat : undefined;
+  }
+  private connectedIds(): string[] {
+    return this.ctx.getWebSockets().map(ws => this.seatOf(ws.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id);
+  }
+  /** Closes connections and drops tickets of public seats that were given back, so a later owner of pN is unaffected. */
+  private async dropReleasedSeats(): Promise<void> {
+    if (!this.room) return;
+    for (const ws of this.ctx.getWebSockets()) {
+      const attachment = ws.deserializeAttachment() as Attachment | null;
+      if (attachment?.playerId && !this.seatOf(attachment)) ws.close(4003, "Seat released");
+    }
+    const live = Object.fromEntries(Object.entries(this.tickets).filter(([playerId]) => this.room!.sessions.some(session => session.playerId === playerId)));
+    if (Object.keys(live).length !== Object.keys(this.tickets).length) {
+      await this.ctx.storage.put(TICKET_KEY, live);
+      this.tickets = live;
+    }
+  }
+  /** Public lobby: confirmed seats without an open connection lose READY and enter the reconnect grace. */
+  private async notePublicPresence(now: number): Promise<void> {
+    if (!this.room || !isPublicLobby(this.room)) return;
+    const live = new Set(this.ctx.getWebSockets().filter(ws => ws.readyState === WebSocket.OPEN)
+      .map(ws => this.seatOf(ws.deserializeAttachment() as Attachment | null)?.playerId));
+    const next = markPublicSeatDisconnected(this.room, publicSeatsAwaitingPresence(this.room).filter(id => !live.has(id)), now);
+    if (next) await this.commit(next, false);
+  }
+  /** Reserves a public seat, or returns the credential this same token already holds. */
+  private async joinPublic(roomId: string, identity: RoomAccountIdentity, seatToken: string, now: number): Promise<Response> {
+    const room = this.room!;
+    const digest = await hash(seatToken);
+    const credential = (seat: Seat) => Response.json({ roomId, playerId: seat.playerId, token: seatToken, instanceId: room.publicLobby!.instanceId,
+      ...(seat.reservedUntil !== undefined ? { reservedUntil: seat.reservedUntil } : {}) }, { status: 201, headers: { "Cache-Control": "no-store" } });
+    const held = room.sessions.find(session => session.tokenHash === digest);
+    if (held) return credential(held);
+    // A retry never takes a new seat after its reservation lapsed or the seat was left.
+    const released = releasedKey(room, digest, now);
+    if (released) return refuse(released, 409);
+    const result = reservePublicSeat(room, digest, identity, now);
+    if ("error" in result) return refuse(result.error, 409);
+    await this.commit(result.room);
+    await this.rescheduleAlarm();
+    this.broadcast();
+    return credential(result.room.sessions.find(session => session.playerId === result.playerId)!);
   }
   /**
    * One alarm slot serves authentication, authorized reveal, phase advancement
@@ -122,6 +197,9 @@ export class GameRoom extends DurableObject<Env> {
     const barrier = this.room ? barrierDeadline(this.room) : undefined;
     if (barrier !== undefined) deadlines.push({ at: barrier, reason: "barrier" });
     if (this.room?.rankPending?.length) deadlines.push({ at: this.room.rankRetryAt ?? Date.now(), reason: "rank" });
+    const lobby = this.room ? publicLobbyDeadline(this.room) : undefined;
+    if (lobby !== undefined) deadlines.push({ at: lobby, reason: "public" });
+    if (this.room && publicSeatsAwaitingPresence(this.room).length) deadlines.push({ at: this.presenceCheckedAt + PUBLIC_LOBBY_TIMING.PRESENCE_SWEEP_MS, reason: "presence" });
     // Serialization can cross a reveal boundary. Schedule from the state we
     // actually published, even if its next boundary is now overdue, so a final
     // prefix cannot wait for the later barrier or a client's clock probe.
@@ -179,13 +257,13 @@ export class GameRoom extends DurableObject<Env> {
     if (!this.room) return;
     const now = Date.now();
     const sockets = this.ctx.getWebSockets();
-    const connected = sockets.map((ws) => (ws.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id);
+    const connected = this.connectedIds();
     // Per seat: matches on screen, authorized reveal frames per match and elapsed time of the first one.
     const views: { p: string; m: number; f: (number | null)[]; e?: number }[] = [];
     let failed = 0;
     for (const ws of sockets) {
       const a = ws.deserializeAttachment() as Attachment | null;
-      if (!a?.playerId || a.roomId !== this.room.roomId) continue;
+      if (!a?.playerId || a.roomId !== this.room.roomId || !this.seatOf(a)) continue;
       const payload = createPlayerView(this.room, a.playerId, connected, now);
       if (!this.send(ws, { type: "PLAYER_VIEW", payload })) failed += 1;
       const shown = payload.matches.find((match) => match.disclosure);
@@ -217,7 +295,43 @@ export class GameRoom extends DurableObject<Env> {
         return Response.json({ roomId, playerId, token: secret }, { status: 201, headers: { "Cache-Control": "no-store" } });
       });
     }
+    if (url.pathname === "/internal/public-create" && request.method === "POST") {
+      return this.ctx.blockConcurrencyWhile(async () => {
+        const identity = roomAccountIdentity(request.headers);
+        const secret = (this.env as PublicRoomEnv).PUBLIC_ROOM_SECRET;
+        const instanceId = request.headers.get(PUBLIC_INSTANCE_HEADER) ?? "", requestId = request.headers.get(PUBLIC_REQUEST_HEADER) ?? "";
+        if (!identity || !secret || !PUBLIC_INSTANCE_ID.test(instanceId) || !PUBLIC_REQUEST_ID.test(requestId)) return new Response("Bad public room request", { status: 400 });
+        const now = Date.now();
+        const seatToken = await publicSeatToken(secret, instanceId, identity.accountUserId, requestId);
+        if (this.room) {
+          // A retry of this very create reaches the room it made; any other room just holds the code.
+          if (this.room.publicLobby?.instanceId !== instanceId) return new Response("Room exists", { status: 409, headers: { [ROOM_TAKEN_HEADER]: "1" } });
+          if (this.isExpired(now)) return refuse("ROOM_EXPIRED", 410);
+          return this.joinPublic(roomId, identity, seatToken, now);
+        }
+        const room = makePublicRoom(createRoom(roomId, randomSeed(), "secure", 2, true), instanceId, now);
+        const seated = reservePublicSeat(room, await hash(seatToken), identity, now);
+        if ("error" in seated) return refuse(seated.error, 409);
+        await this.commit(seated.room);
+        await this.rescheduleAlarm();
+        return Response.json({ roomId, playerId: seated.playerId, token: seatToken, instanceId, reservedUntil: seated.room.sessions[0]!.reservedUntil },
+          { status: 201, headers: { "Cache-Control": "no-store" } });
+      });
+    }
     if (!this.room || this.room.roomId !== roomId) return new Response("Room not found", { status: 404 });
+    if (this.isExpired(Date.now())) return url.pathname.startsWith("/internal/public-") ? refuse("ROOM_EXPIRED", 410) : new Response("Room not found", { status: 404 });
+    if (url.pathname === "/internal/public-join" && request.method === "POST") {
+      return this.ctx.blockConcurrencyWhile(async () => {
+        // A private room never answers the public endpoint, so its code cannot be probed through it.
+        if (this.room!.visibility !== "PUBLIC") return refuse("ROOM_NOT_FOUND", 404);
+        if (request.headers.get(PUBLIC_INSTANCE_HEADER) !== this.room!.publicLobby!.instanceId) return refuse("INCARNATION_MISMATCH", 410);
+        const identity = roomAccountIdentity(request.headers);
+        if (!identity) return refuse("ACCOUNT_REQUIRED", 401);
+        const secret = (this.env as PublicRoomEnv).PUBLIC_ROOM_SECRET, requestId = request.headers.get(PUBLIC_REQUEST_HEADER) ?? "";
+        if (!secret || !PUBLIC_REQUEST_ID.test(requestId)) return new Response("Bad public room request", { status: 400 });
+        return this.joinPublic(roomId, identity, await publicSeatToken(secret, this.room!.publicLobby!.instanceId, identity.accountUserId, requestId), Date.now());
+      });
+    }
     if (url.pathname === "/internal/connection-ticket" && request.method === "POST") {
       return this.ctx.blockConcurrencyWhile(async () => {
         const secret = request.headers.get("X-Porena-Session");
@@ -246,6 +360,12 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (url.pathname === "/internal/join" && request.method === "POST") {
       return this.ctx.blockConcurrencyWhile(async () => {
+        if (this.room!.visibility === "PUBLIC") {
+          // An invite code of a public room follows the public seat rules: account only, reserved until connected.
+          const identity = roomAccountIdentity(request.headers);
+          if (!identity) return refuse("ACCOUNT_REQUIRED", 401);
+          return this.joinPublic(roomId, identity, token(), Date.now());
+        }
         if (this.room!.status !== "LOBBY" || this.room!.sessions.length >= 8) return new Response("Room unavailable", { status: 409 });
         const identity = roomAccountIdentity(request.headers);
         if (identity && this.room!.sessions.some(session => session.accountUserId === identity.accountUserId)) return Response.json({ error: "ACCOUNT_ALREADY_SEATED" }, { status: 409, headers: { "Cache-Control": "no-store" } });
@@ -311,11 +431,17 @@ export class GameRoom extends DurableObject<Env> {
         type = message.type;
         const attachment = ws.deserializeAttachment() as Attachment | null;
         if (!this.room || !attachment || attachment.roomId !== this.room.roomId) throw new Error("방 연결이 없습니다.");
+        if (this.isExpired(now)) { ws.close(1008, "Room expired"); return; }
         if (message.type === "JOIN_ROOM") {
           if (attachment.playerId) throw new Error("이미 인증된 연결입니다.");
           const digest = await hash(message.token);
+          // A public reservation that lapsed is given back now rather than confirmed late.
+          const swept = sweepPublicLobby(this.room, Date.now());
+          if (swept) { await this.commit(swept, false); await this.dropReleasedSeats(); await this.rescheduleAlarm(); this.broadcast(); }
           const session = this.room.sessions.find((s) => s.tokenHash === digest);
           if (!session || attachment.verifiedPlayerId && attachment.verifiedPlayerId !== session.playerId) { this.send(ws, { type: "ERROR", code: "SESSION_INVALID", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
+          const confirmed = confirmPublicSeat(this.room, session.playerId);
+          if (confirmed) { await this.commit(confirmed.room, confirmed.activity); await this.rescheduleAlarm(); }
           if (message.nickname && !session.accountUserId && this.room.status === "LOBBY") {
             const next = structuredClone(this.room);
             next.game.players.find((p) => p.id === session.playerId)!.name = message.nickname;
@@ -328,17 +454,20 @@ export class GameRoom extends DurableObject<Env> {
           for (const old of this.ctx.getWebSockets()) {
             if (old !== ws && (old.deserializeAttachment() as Attachment | null)?.playerId === session.playerId) old.close(4001, "Session connected elsewhere");
           }
-          ws.serializeAttachment({ roomId: attachment.roomId, playerId: session.playerId, joinedAt: attachment.joinedAt } satisfies Attachment);
+          ws.serializeAttachment({ roomId: attachment.roomId, playerId: session.playerId, joinedAt: attachment.joinedAt,
+            ...(session.seatEpoch !== undefined ? { seatEpoch: session.seatEpoch } : {}) } satisfies Attachment);
           diag("ws.join", { ...roomFields(this.room), playerId: session.playerId, resumed: !!resumed });
           this.send(ws, { type: "ROOM_JOINED", roomId: this.room.roomId, playerId: session.playerId });
           this.broadcast(); return;
         }
+        // A connection of a public seat that was given back owns nothing any more.
+        if (attachment.playerId && !this.seatOf(attachment)) { this.send(ws, { type: "ERROR", code: "SESSION_INVALID", message: "세션을 복원할 수 없습니다." }); ws.close(4003, "Seat released"); return; }
         if (message.type === "SYNC_CLOCK") {
           if (!attachment.playerId) throw new Error("먼저 세션을 연결하세요.");
           this.send(ws, { type: "CLOCK_SYNC", nonce: message.nonce, receivedAt: now, sentAt: Date.now() });
           // Returning tabs receive the current authorized reveal, never an old replay.
           const disclosedAt = Date.now();
-          this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, attachment.playerId, this.ctx.getWebSockets().map(socket => (socket.deserializeAttachment() as Attachment | null)?.playerId).filter((id): id is string => !!id), disclosedAt) });
+          this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, attachment.playerId, this.connectedIds(), disclosedAt) });
           await this.rescheduleAlarm(disclosedAt);
           return;
         }
@@ -351,12 +480,15 @@ export class GameRoom extends DurableObject<Env> {
         candidate.game.randomMode = "secure";
         if (this.room.publicTurnKey && message.turnKey !== this.room.publicTurnKey.key) throw new Error("단계가 변경되었습니다. 최신 화면에서 다시 시도하세요.");
         const next = applyRoomAction(candidate, session.playerId, message, this.room.publicTurnKey ? turnKey(candidate) : message.turnKey, Date.now());
-        next.sessions.find((s) => s.playerId === session.playerId)!.requests = [...session.requests, requestId].slice(-64);
+        // A public lobby leave gives the seat back, so there is no session left to remember the request on.
+        const own = next.sessions.find((s) => s.playerId === session.playerId);
+        if (own) own.requests = [...session.requests, requestId].slice(-64);
         const fromPhase = roomFields(this.room).phase;
         await this.commit(next);
         await this.rescheduleAlarm();
         diag("action", { ...roomFields(next), playerId: session.playerId, type, ok: true, from: fromPhase, ms: Date.now() - startedAt });
         this.send(ws, { type: "ACK", requestId, revision: next.revision });
+        if (!own) await this.dropReleasedSeats();
         this.broadcast();
       } catch (error) {
         const legacyMessage = error instanceof SyntaxError ? "JSON 메시지가 필요합니다." : error instanceof Error ? error.message : "명령을 처리하지 못했습니다.";
@@ -366,15 +498,26 @@ export class GameRoom extends DurableObject<Env> {
       }
     });
   }
-  webSocketClose(ws: WebSocket, code: number): void {
+  webSocketClose(ws: WebSocket, code: number): void | Promise<void> {
     diag("ws.close", { ...roomFields(this.room), playerId: (ws.deserializeAttachment() as Attachment | null)?.playerId ?? null, code });
     // Peer reports can contain reserved codes such as 1006 that cannot be sent back.
-    ws.close(); this.broadcast();
+    ws.close();
+    if (!this.room || !isPublicLobby(this.room)) { this.broadcast(); return; }
+    return this.publicConnectionLost();
   }
-  webSocketError(ws: WebSocket, error: unknown): void {
+  webSocketError(ws: WebSocket, error: unknown): void | Promise<void> {
     diag("ws.error", { ...roomFields(this.room), playerId: (ws.deserializeAttachment() as Attachment | null)?.playerId ?? null,
       error: error instanceof Error ? error.message : String(error) }, "error");
     ws.close(1011, "Connection error");
+    if (this.room && isPublicLobby(this.room)) return this.publicConnectionLost();
+  }
+  /** Public lobby only: a seat whose last connection closed starts its reconnect grace at once. */
+  private publicConnectionLost(): Promise<void> {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      await this.notePublicPresence(Date.now());
+      await this.rescheduleAlarm();
+      this.broadcast();
+    });
   }
   async alarm(info?: AlarmInvocationInfo): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
@@ -387,7 +530,7 @@ export class GameRoom extends DurableObject<Env> {
         await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
         diag("room.expiryDeferred", { ...roomFields(this.room), pending: this.room.rankPending.length });
       }
-      if (this.expiresAt && now >= this.expiresAt) {
+      if (this.isExpired(now)) {
         diag("room.expired", roomFields(this.room));
         for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");
         await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY, TICKET_KEY]);
@@ -405,6 +548,17 @@ export class GameRoom extends DurableObject<Env> {
       if (Object.keys(activeTickets).length !== Object.keys(this.tickets).length) {
         await this.ctx.storage.put(TICKET_KEY, activeTickets);
         this.tickets = activeTickets;
+      }
+      if (this.room && isPublicLobby(this.room)) {
+        // A heartbeat-enabled connection that stopped answering is treated as gone; plain closes are caught here too.
+        for (const ws of this.ctx.getWebSockets()) {
+          const answeredAt = this.ctx.getWebSocketAutoResponseTimestamp(ws);
+          if (answeredAt && now - answeredAt.getTime() > PUBLIC_LOBBY_TIMING.HEARTBEAT_STALE_MS && ws.readyState === WebSocket.OPEN) ws.close(4002, "Heartbeat timeout");
+        }
+        this.presenceCheckedAt = now;
+        await this.notePublicPresence(now);
+        const swept = sweepPublicLobby(this.room, now);
+        if (swept) { await this.commit(swept, false); await this.dropReleasedSeats(); }
       }
       let disclosedAt: number | undefined;
       const from = this.room && { phase: this.room.game.phase, revision: this.room.revision };
