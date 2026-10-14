@@ -5,6 +5,7 @@ import { base64url } from "jose";
 import worker from "../../worker/index";
 import type { RoomSnapshot } from "../../src/game/room";
 import type { GameAction, PlayerView, ServerMessage } from "../../src/shared/protocol";
+import { publicCreateCandidate } from "../../worker/publicRoomKeys";
 
 // Account seats need the configured auth origin (AUTH_ORIGIN in vitest.workers.config.ts).
 const origin = "https://porena.kr";
@@ -270,6 +271,54 @@ describe("request-time expiry (PUB-11)", () => {
     const late = await joinPublic(room, guest!.cookie);
     expect(late.status).toBe(410);
     expect(await errorOf(late)).toBe("ROOM_EXPIRED");
+  });
+});
+
+describe("late alarms and create retries (review c39a765)", () => {
+  it("applies lapsed reservations before answering a join retry, a new join, a session check or a ticket", async () => {
+    const [host, late, ...others] = await accountsOf(9);
+    const room = await created(host!.cookie);
+    const key = crypto.randomUUID();
+    const reserved = await (await joinPublic(room, late!.cookie, key)).json() as Credential;
+    for (const user of others.slice(0, 6)) await joined(room, user.cookie);
+    // The reservation lapsed but no alarm has run yet.
+    await edit(room.roomId, internal => { internal.room.sessions.find(session => session.playerId === reserved.playerId)!.reservedUntil = Date.now() - 1; });
+    expect((await call(`/api/rooms/${room.roomId}/session`, { method: "POST", headers: { "X-Porena-Session": reserved.token } })).status).toBe(401);
+    expect((await call(`/api/rooms/${room.roomId}/connection-ticket`, { method: "POST", headers: { "X-Porena-Session": reserved.token } })).status).toBe(401);
+    const retry = await joinPublic(room, late!.cookie, key);
+    expect(retry.status).toBe(409);
+    expect(await errorOf(retry)).toBe("RESERVATION_EXPIRED");
+    expect((await joined(room, others[6]!.cookie)).playerId).toBe(reserved.playerId);
+  });
+
+  it("frees a seat whose reconnect grace lapsed before the next join, even without the alarm", async () => {
+    const [host, gone, ...others] = await accountsOf(9);
+    const room = await created(host!.cookie);
+    const seat = await joined(room, gone!.cookie);
+    for (const user of others.slice(0, 6)) await joined(room, user.cookie);
+    await edit(room.roomId, internal => {
+      const target = internal.room.sessions.find(session => session.playerId === seat.playerId)!;
+      delete target.reservedUntil; target.disconnectedAt = Date.now() - 90_000;
+    });
+    expect((await joined(room, others[6]!.cookie)).playerId).toBe(seat.playerId);
+  });
+
+  it("a create retry returns the room it made even after an earlier candidate code became free", async () => {
+    const host = await account();
+    const requestId = crypto.randomUUID();
+    const first = await publicCreateCandidate("test-public-room-secret", host.id, requestId, 0);
+    // Another room holds the first candidate code, so the create lands on the second one.
+    const blocker = await stubFor(first.roomId).fetch("https://room/internal/create", { method: "POST", headers: { "X-Room-Id": first.roomId } });
+    expect(blocker.status).toBe(201);
+    const original = await (await createPublic(host.cookie, requestId)).json() as Credential;
+    expect(original.roomId).not.toBe(first.roomId);
+    // The blocker expires and is deleted; the creator's room is still alive.
+    await edit(first.roomId, internal => { internal.expiresAt = Date.now() - 1; });
+    await runDurableObjectAlarm(stubFor(first.roomId));
+    const retry = await createPublic(host.cookie, requestId);
+    expect(retry.status).toBe(201);
+    expect(await retry.json()).toEqual(original);
+    expect(await runInDurableObject(stubFor(first.roomId), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
   });
 });
 

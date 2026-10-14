@@ -18,6 +18,9 @@ export const PUBLIC_REQUEST_HEADER = "X-Internal-Porena-Request-Id";
 export const PUBLIC_INSTANCE_HEADER = "X-Internal-Porena-Instance-Id";
 /** Marks a create candidate whose code another room holds; the Worker then tries the next candidate. */
 export const ROOM_TAKEN_HEADER = "X-Porena-Room-Taken";
+/** Asks a create candidate only whether it is free or already this request's room; nothing is created. */
+export const PUBLIC_PROBE_HEADER = "X-Internal-Porena-Probe";
+export const ROOM_VACANT_HEADER = "X-Porena-Room-Vacant";
 const refuse = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
 const SNAPSHOT_KEY = "snapshot:v1";
 const EXPIRY_KEY = "expiresAt";
@@ -163,8 +166,21 @@ export class GameRoom extends DurableObject<Env> {
     const next = markPublicSeatDisconnected(this.room, publicSeatsAwaitingPresence(this.room).filter(id => !live.has(id)), now);
     if (next) await this.commit(next, false);
   }
+  /**
+   * Applies public seat deadlines that are already due. Call inside blockConcurrencyWhile before any answer that
+   * depends on a seat: the alarm can run late, and no HTTP answer may rest on a lapsed reservation or grace.
+   */
+  private async settlePublicSeats(now: number): Promise<void> {
+    const swept = this.room && sweepPublicLobby(this.room, now);
+    if (!swept) return;
+    await this.commit(swept, false);
+    await this.dropReleasedSeats();
+    await this.rescheduleAlarm();
+    this.broadcast();
+  }
   /** Reserves a public seat, or returns the credential this same token already holds. */
   private async joinPublic(roomId: string, identity: RoomAccountIdentity, seatToken: string, now: number): Promise<Response> {
+    await this.settlePublicSeats(now);
     const room = this.room!;
     const digest = await hash(seatToken);
     const credential = (seat: Seat) => Response.json({ roomId, playerId: seat.playerId, token: seatToken, instanceId: room.publicLobby!.instanceId,
@@ -309,6 +325,7 @@ export class GameRoom extends DurableObject<Env> {
           if (this.isExpired(now)) return refuse("ROOM_EXPIRED", 410);
           return this.joinPublic(roomId, identity, seatToken, now);
         }
+        if (request.headers.get(PUBLIC_PROBE_HEADER) === "1") return new Response(null, { status: 404, headers: { [ROOM_VACANT_HEADER]: "1" } });
         const room = makePublicRoom(createRoom(roomId, randomSeed(), "secure", 2, true), instanceId, now);
         const seated = reservePublicSeat(room, await hash(seatToken), identity, now);
         if ("error" in seated) return refuse(seated.error, 409);
@@ -336,6 +353,7 @@ export class GameRoom extends DurableObject<Env> {
       return this.ctx.blockConcurrencyWhile(async () => {
         const secret = request.headers.get("X-Porena-Session");
         if (!secret || !/^[a-f0-9]{64}$/.test(secret)) return new Response("Invalid session", { status: 401 });
+        await this.settlePublicSeats(Date.now());
         const digest = await hash(secret);
         const session = this.room!.sessions.find(session => session.tokenHash === digest);
         if (!session) return new Response("Invalid session", { status: 401 });
@@ -352,8 +370,9 @@ export class GameRoom extends DurableObject<Env> {
     if (url.pathname === "/internal/session" && request.method === "POST") {
       const secret = request.headers.get("X-Porena-Session");
       if (!secret || !/^[a-f0-9]{64}$/.test(secret)) return new Response("Invalid session", { status: 401 });
+      if (isPublicLobby(this.room)) await this.ctx.blockConcurrencyWhile(() => this.settlePublicSeats(Date.now()));
       const digest = await hash(secret);
-      const session = this.room.sessions.find((entry) => entry.tokenHash === digest);
+      const session = this.room!.sessions.find((entry) => entry.tokenHash === digest);
       if (!session) return new Response("Invalid session", { status: 401 });
       if (session.departed || this.room.finalResultsReleasedAt) return new Response("Room finished", { status: 410 });
       return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
@@ -436,8 +455,7 @@ export class GameRoom extends DurableObject<Env> {
           if (attachment.playerId) throw new Error("이미 인증된 연결입니다.");
           const digest = await hash(message.token);
           // A public reservation that lapsed is given back now rather than confirmed late.
-          const swept = sweepPublicLobby(this.room, Date.now());
-          if (swept) { await this.commit(swept, false); await this.dropReleasedSeats(); await this.rescheduleAlarm(); this.broadcast(); }
+          await this.settlePublicSeats(Date.now());
           const session = this.room.sessions.find((s) => s.tokenHash === digest);
           if (!session || attachment.verifiedPlayerId && attachment.verifiedPlayerId !== session.playerId) { this.send(ws, { type: "ERROR", code: "SESSION_INVALID", message: "세션을 복원할 수 없습니다." }); ws.close(1008, "Invalid session"); return; }
           const confirmed = confirmPublicSeat(this.room, session.playerId);

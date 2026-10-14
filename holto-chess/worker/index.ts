@@ -8,7 +8,7 @@ import { submitFeedback } from "./feedback";
 import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
 import { handleRankings } from "./rank";
-import { PUBLIC_INSTANCE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER } from "./GameRoom";
+import { PUBLIC_INSTANCE_HEADER, PUBLIC_PROBE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER, ROOM_VACANT_HEADER } from "./GameRoom";
 import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
 export { GameRoom } from "./GameRoom";
 
@@ -114,10 +114,20 @@ export default {
         if (!PUBLIC_INSTANCE_ID.test(instanceId)) return fail("INVALID_REQUEST", 400);
         return forward(publicJoin[1]!, "/internal/public-join", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: instanceId });
       }
-      // Codes derive from the request, so a retried create walks the same candidates and finds the room it made.
-      for (let attempt = 0; attempt < PUBLIC_CREATE_ATTEMPTS; attempt++) {
-        const candidate = await publicCreateCandidate(secret, identity!.accountUserId, requestId, attempt);
-        const response = await forward(candidate.roomId, "/internal/public-create", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: candidate.instanceId });
+      // Codes derive from the request, so a retry walks the same candidates. Every candidate is asked first: an earlier
+      // code that was taken at creation may be free now, and creating there would split the creator from their room.
+      const candidates = await Promise.all(Array.from({ length: PUBLIC_CREATE_ATTEMPTS }, (_, attempt) => publicCreateCandidate(secret, identity!.accountUserId, requestId, attempt)));
+      const createAt = (candidate: typeof candidates[number], probe: boolean) => forward(candidate.roomId, "/internal/public-create",
+        { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: candidate.instanceId, ...(probe ? { [PUBLIC_PROBE_HEADER]: "1" } : {}) });
+      const vacant: typeof candidates = [];
+      for (const candidate of candidates) {
+        const response = await createAt(candidate, true);
+        if (response.headers.get(ROOM_VACANT_HEADER) === "1") vacant.push(candidate);
+        else if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return response; // This request's room: its credential or expiry.
+      }
+      for (const candidate of vacant) {
+        // A concurrent copy of this request lands in the same room and gets the same credential.
+        const response = await createAt(candidate, false);
         if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return response;
       }
       return fail("LOBBY_UNAVAILABLE", 503);

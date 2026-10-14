@@ -61,6 +61,19 @@
 
 신규 테스트와 보고서 ID의 대응: PUB-01·02(동시 100명), 03(READY와 join 경쟁, 5회), 04·06(같은 key 20회 동시 create/join, 응답 유실 재시도), 05(instance 불일치, 잘못된 요청), 07(30초 예약 반환), 08(100회 참가·퇴장, 순수 함수), 09(회수 좌석의 옛 socket·token·ticket), 10·13(유예 89/90초, 다중 탭), 11(private·public 요청 시점 만료), 12(시작 후 참가 거부, 재접속 허용), REG(플래그 off 404, 계정 전용, private 탐침 차단, private 게스트 초대 유지), 상태 모델 1,000 seed.
 
+## Codex 리뷰 대응 (2026-10-14, 대상 `c39a765`)
+
+Codex가 보고한 P2 2건을 코드에서 교차 확인했고, 재현 테스트로 3건이 실패하는 것을 확인한 뒤 수정했다.
+
+| 지적 | 원인 | 수정 |
+| --- | --- | --- |
+| alarm이 늦으면 만료된 예약·유예 좌석이 HTTP 판정에 남음(재시도 201, 신규 409 `ROOM_FULL`, session·ticket 성공) | 회수가 alarm과 WS `JOIN_ROOM`에서만 일어남 | `settlePublicSeats`: 공개방 join·create 재시도·session·ticket 판정 전에, 직렬화된 구간에서 만료된 좌석을 먼저 반영 |
+| 같은 생성 요청의 재시도가 다른 방을 만듦 | 생성 루프가 첫 번째 빈 후보에 바로 생성. 원래 실패했던 앞 후보가 비면 그곳에 새 방이 생김 | 모든 후보를 먼저 조회(probe, 생성하지 않음). 이 요청의 방이 있으면 그 응답을 반환하고, 없을 때만 첫 번째 빈 후보에 생성 |
+
+- 추가 테스트(`tests/worker/publicRoom.test.ts`, "review c39a765"): 예약 만료 후 session·ticket 401, 재시도 409 `RESERVATION_EXPIRED`, 정원이 찬 방에서 신규 참가 성공 / 유예 초과 좌석 회수 후 신규 참가 성공 / 앞 후보 방이 삭제된 뒤 생성 재시도가 원래 방과 같은 credential 반환.
+- 결과: `npm run test:workers` 142/142 통과. `npm test`의 실제 실패는 기존 `openDraft` 1건뿐이다. 그 밖의 실패는 병렬 부하 타임아웃이며 단독 실행 시 통과한다(`releaseAudit`, `phasePreviewStates`, `R2DraftArena`). 1,000 seed 상태 모델 테스트에는 부하 대비 60초 제한을 명시했다.
+- 남은 한계: 생성 재시도가 원래 방이 삭제된 **뒤에** 도착하면 새 방이 생기는 문제는 그대로이며, 2단계 registry 범위다. 생성 1회당 DO 조회가 최대 5회 추가된다.
+
 ## 운영 반영 전 남은 일
 
 - `PUBLIC_ROOM_SECRET` Worker secret 등록과 `PUBLIC_ROOMS_ENABLED` 설정은 배포 승인 범위에서 별도로 진행한다. 둘 다 없으면 공개방 경로는 404/503이고 기존 동작은 영향받지 않는다.

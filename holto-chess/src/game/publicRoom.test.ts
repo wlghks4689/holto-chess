@@ -155,5 +155,5 @@ describe("public lobby seats", () => {
         }
       }
     }
-  });
+  }, 60_000); // About 5s alone; the full parallel suite can be several times slower.
 });
