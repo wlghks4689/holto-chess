@@ -12,6 +12,7 @@ import { finishFinalLoadouts } from "./engine";
 import { bidFinalAuction, setFinalLoadout, settleFinalAuction } from "./finalAuction";
 import { tickAuctionBots } from "./finalAuctionBot";
 import { beginRankGame, leaveForfeits, type RankGame, type RankObligation } from "./rankRoom";
+import { isPublicLobby, releasePublicSeat, type PublicLobby } from "./publicRoom";
 
 // Server-only snapshot. Never use this type as a network payload.
 export type RoomSnapshot = {
@@ -21,7 +22,11 @@ export type RoomSnapshot = {
   /** Distinguishes rematches without invalidating persisted pre-audit snapshots. */
   gameGeneration?: number;
   game: PorenaGameState;
-  sessions: { playerId: string; tokenHash: string; requests: string[]; departed?: boolean; accountUserId?: string }[];
+  sessions: {
+    playerId: string; tokenHash: string; requests: string[]; departed?: boolean; accountUserId?: string;
+    /** Public lobby only (publicRoom.ts): ownership generation, pending reservation and reconnect grace. */
+    seatEpoch?: number; reservedUntil?: number; disconnectedAt?: number;
+  }[];
   readyIds: string[]; endedShopIds: string[];
   loadoutDrafts?: Record<string, (string | null)[]>;
   /** Epoch ms the current barrier began waiting; drives the auto-ready alarm. */
@@ -38,6 +43,9 @@ export type RoomSnapshot = {
   finalResultsReleasedAt?: number;
   /** Server-authoritative solo: one human, seven bots, no lobby. */
   solo?: true;
+  /** Absent means private (invite code only). Clients never set it. */
+  visibility?: "PUBLIC";
+  publicLobby?: PublicLobby;
   rank?: RankGame;
   /** Ranked outcomes not yet written to the account DB. Kept across rematches until D1 confirms them. */
   rankPending?: RankObligation[];
@@ -349,6 +357,8 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
   const room = structuredClone(source);
   const me = room.game.players.find((p) => p.id === playerId)!;
   const allReady = (ids: string[]) => ids.every((id) => room.readyIds.includes(id));
+  // A public lobby frees the seat for someone else instead of keeping a bot-played departure.
+  if (action.type === "LEAVE_ROOM" && isPublicLobby(room)) return releasePublicSeat(room, playerId, now);
   if (action.type === "LEAVE_ROOM") {
     // A live ranked seat forfeits (8th, -8 RP) and must say so explicitly; the warning is the client's job.
     if (leaveForfeits(room, playerId)) {
@@ -365,6 +375,8 @@ export function applyRoomAction(source: RoomSnapshot, playerId: string, action: 
     } else settleBarrier(room, now);
   } else if (room.status === "LOBBY") {
     if (action.type !== "READY") throw new Error("아직 게임이 시작되지 않았습니다.");
+    // Public seats agree only while confirmed and connected (publicRoom.ts).
+    if (isPublicLobby(room) && (current.reservedUntil !== undefined || current.disconnectedAt !== undefined)) throw new Error("먼저 세션을 연결하세요.");
     room.readyIds = [...new Set([...room.readyIds, playerId])];
     const remaining = controlledHumanIds(room);
     if (remaining.length >= 2 && allReady(remaining)) { room.status = "PLAYING"; room.readyIds = []; beginRankGame(room, now); }
