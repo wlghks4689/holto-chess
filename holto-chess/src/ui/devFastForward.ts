@@ -1,5 +1,5 @@
 import {
-  autoChooseOpponent, autoPickDraft, beginSecondary, completeDraft, completeOpponentSelect, finishAbilitySelection,
+  autoChooseOpponent, autoPickDraft, beginSecondary, completeDraft, completeR2Briefing, completeOpponentSelect, finishAbilitySelection,
   finishCardAuctionReveal, finishFinalLoadouts, isDraftRevealing, isOpponentRevealing, leaveRoundResult, lockRunLoadouts, finishAbilityDeal,
   openDraft, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival, startNextRound,
 } from "../game/engine";
@@ -30,6 +30,7 @@ export function fastForwardToRound(start: PorenaGameState, round: Round): Porena
       case "FINAL_LOADOUT": state = finishFinalLoadouts(state, state.finalAuction!.loadoutEndsAt!, []); break;
       case "OPPONENT_SELECT": state = isOpponentRevealing(state) ? completeOpponentSelect(state) : autoChooseOpponent(state); break;
       case "RUN_LOADOUT": state = lockRunLoadouts(state, []); break;
+      case "R2_BRIEFING": state = completeR2Briefing(state); break;
       case "SHOWDOWN_PRIMARY": state = resolvePrimary(state); break;
       case "GROUP_ASSIGNMENT": state = beginSecondary(state); break;
       case "SHOWDOWN_SECONDARY": state = resolveSecondary(state); break;

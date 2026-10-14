@@ -50,7 +50,7 @@ describe.each([
     expect([...rounds]).toEqual(allRounds.slice(0, lastPlayed));
     if (humanAlive) expect(lastPlayed).toBe(allRounds.at(-1));
     expect(phases.has("OPEN_DRAFT")).toBe(true);
-    expect(phases.has("RUN_LOADOUT")).toBe(true);
+    expect(phases.has("R2_BRIEFING")).toBe(true);
     if (sixRounds && lastPlayed >= 3) expect(phases.has("FINAL_AUCTION")).toBe(true);
     if (sixRounds && lastPlayed >= 5) expect(phases.has("OPPONENT_SELECT")).toBe(true);
     expect(room.game.players.filter((p) => !p.eliminated)).toHaveLength(finalists);

@@ -44,7 +44,7 @@ export const GUIDE_RULES = {
   maxSuddenDeathBoards: 2,
   /** Players left after each round; the R6 final keeps its three. */
   alive: [8, 8, 6, 4, 3, 3],
-  timers: { abilityDeal: BARRIER_TIMEOUT_MS.ABILITY_DEAL / 1000, shop: 60, draftPick: 20, runLoadout: 30, auction: 40, auctionIntro: R3_AUCTION.introMs / 1000, opponentPick: 15 },
+  timers: { abilityDeal: BARRIER_TIMEOUT_MS.ABILITY_DEAL / 1000, shop: 60, draftPick: 20, runLoadout: 30, r2Briefing: BARRIER_TIMEOUT_MS.R2_BRIEFING / 1000, auction: 40, auctionIntro: R3_AUCTION.introMs / 1000, opponentPick: 15 },
 } as const;
 
 export const CARD_PRICES = ([14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2] as const).map((rank) => ({ rank, price: BALANCE.rankPrices[rank] }));

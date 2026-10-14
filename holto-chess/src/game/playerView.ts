@@ -1,4 +1,4 @@
-import { handLimitFor, isAuctionRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor, purchaseLimitFor } from "./config";
+import { handLimitFor, isAuctionRound, isBestThreeRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor, purchaseLimitFor } from "./config";
 import { burnCardIds, draftPrice, finalStandings, getCard } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { MatchView, PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
@@ -83,7 +83,9 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
     // Locked R5 RUN pairs are public to both seats in the match loading screen.
     if (tripleRun) return { playerId, name: player.name, points: player.points, abilityId: player.abilityId,
       cards, runCards: Array.from({ length: Math.floor(selected.length / 2) }, (_, run) => selected.slice(run * 2, run * 2 + 2).map((id) => getCard(game, id))) };
-    const runIds = game.round !== 2 ? undefined : game.rulesVersion === 2 && selected.length === 3
+    // R2 BEST FIVE plays all three owned cards on both RUNs.
+    const runIds = game.round !== 2 ? undefined : isBestThreeRound(game.round, game) ? [player.ownedCardIds, player.ownedCardIds] as [string[], string[]]
+      : game.rulesVersion === 2 && selected.length === 3
       ? [[selected[0]!, selected[1]!], [selected[0]!, selected[2]!]] as [string[], string[]]
       : selected.length === 2 ? [selected, selected] as [string[], string[]] : undefined;
     return { playerId, name: player.name, points: player.points, cards: (game.round === 2 ? cards : cards.slice(0, 7)), abilityId: player.abilityId,
@@ -219,6 +221,7 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
       return cards ? { pairedOpponent: { playerId: opponentId!, cards: cards.map((id) => getCard(g, id)) } } : {};
     })(),
     lastRound: lastRoundFor(g),
+    ...(g.r2BestThree ? { r2BestThree: true as const } : {}),
     humanCount: room.sessions.length, capacity: 8,
     barrierEndsAt: complete ? barrierDeadline(room) : undefined, waitingOn: complete ? pendingBarrierIds(room) : [],
     me: privateView(me.id),

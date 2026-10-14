@@ -9,7 +9,8 @@ function draftRoom(round: 2 | 4): RoomSnapshot {
   let room = createRoom("ABCDEF", 303);
   for (let i = 0; i < 2; i++) room = addSession(room, `hash-${i}`).room;
   room.status = "PLAYING";
-  room.game = openDraft(practiceState(303, round));
+  // Seed 304 keeps both human seats alive into R4; with every human out the room would skip to the end.
+  room.game = openDraft(practiceState(round === 4 ? 304 : 303, round));
   room.barrierKey = undefined; room.barrierSince = 1_000;
   return room;
 }
@@ -33,7 +34,7 @@ function playAllPicks(source: RoomSnapshot): { room: RoomSnapshot; now: number }
 }
 
 describe("open draft reveal hold", () => {
-  it.each([[4, "SHOP"], [2, "RUN_LOADOUT"]] as const)("holds the finished R%s draft on screen before %s", (round, next) => {
+  it.each([[4, "SHOP"], [2, "R2_BRIEFING"]] as const)("holds the finished R%s draft on screen before %s", (round, next) => {
     const { room } = playAllPicks(draftRoom(round));
     // Every pick is made and visible, but the round has not moved on.
     expect(room.game.phase).toBe("OPEN_DRAFT");
@@ -46,7 +47,7 @@ describe("open draft reveal hold", () => {
     const after = forceBarrier(room, deadline)!;
     expect(after.game.phase).toBe(next);
     // The next phase's own timer starts after the reveal, so no decision time is lost.
-    if (next === "SHOP") expect(barrierDeadline(after)).toBe(deadline + BARRIER_TIMEOUT_MS.SHOP);
+    expect(barrierDeadline(after)).toBe(deadline + (next === "SHOP" ? BARRIER_TIMEOUT_MS.SHOP : BARRIER_TIMEOUT_MS.R2_BRIEFING));
   });
 
   it("keeps the immediate transition for callers that do not hold the reveal", () => {

@@ -7,7 +7,7 @@ import { BARRIER_TIMEOUT_MS, barrierTimeoutMs } from "../shared/barrierTimeouts"
 import { PRESENTATION_LEAD_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
 import type { PorenaGameState } from "./types";
 import type { GameAction } from "../shared/protocol";
-import { openDraft, autoPickDraft, pickDraftCard, completeDraft, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
+import { openDraft, autoPickDraft, pickDraftCard, completeDraft, completeR2Briefing, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "./engine";
 import { finishFinalLoadouts } from "./engine";
 import { bidFinalAuction, setFinalLoadout, settleFinalAuction } from "./finalAuction";
 import { tickAuctionBots } from "./finalAuctionBot";
@@ -133,7 +133,7 @@ function controlledHumanIds(room: RoomSnapshot): string[] {
 }
 
 /** Phases that hold every surviving human at a barrier before the game advances. */
-const BARRIER_PHASES = ["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
+const BARRIER_PHASES = ["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "R2_BRIEFING", "SURVIVAL_READY", "SHOP", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT", "NEXT_ROUND"];
 const AUTOMATIC_PRESENTATION_PHASES = ["ABILITY_DEAL", "DRAFT_ORDER", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"];
 const SPECTATOR_TIMER_PHASES = ["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "ROUND_RESULT"];
 
@@ -272,6 +272,7 @@ function advanceReadyBarrier(room: RoomSnapshot, now = Date.now()): void {
     case "ABILITY_REVEAL": room.game = finishAbilitySelection(room.game); break;
     case "DRAFT_ORDER": room.game = openDraft(room.game); break;
     case "RUN_LOADOUT": room.game = lockRunLoadouts(room.game, activeHumans(room)); break;
+    case "R2_BRIEFING": room.game = completeR2Briefing(room.game); break;
     case "SURVIVAL_READY": room.game = resolveSurvival(room.game); break;
     case "SHOWDOWN_PRIMARY": room.game = resolvePrimary(room.game); break;
     case "GROUP_ASSIGNMENT": room.game = beginSecondary(room.game); break;

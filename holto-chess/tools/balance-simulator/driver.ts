@@ -3,7 +3,7 @@ import { ABILITY_IDS, abilityRerollCost, abilityRerollLimit, type AbilityId } fr
 import { bestRunLoadout } from "../../src/game/botStrategy";
 import { BALANCE, handLimitFor, minHandFor, purchaseLimitFor } from "../../src/game/config";
 import {
-  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, completeOpponentSelect, createAbilityGame, createGame, draftPrice, finalStandings, finishAbilitySelection,
+  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, completeOpponentSelect, completeR2Briefing, createAbilityGame, createGame, draftPrice, finalStandings, finishAbilitySelection,
   finishCardAuctionReveal, getCard, getCardPrice, isOpponentRevealing, leaveRoundResult, lockRunLoadouts, finishAbilityDeal, openDraft, pickDraftCard,
   prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound,
 } from "../../src/game/engine";
@@ -54,7 +54,8 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
   const sixRounds = !config.fiveRounds;
   const expectedAlive = sixRounds ? EXPECTED_ALIVE_AFTER : FIVE_ROUND_ALIVE_AFTER;
   let state: PorenaGameState = config.abilities ? dealAbilities(createAbilityGame(seed, "seeded", sixRounds), seed) : createGame(seed, "seeded", 2, false, sixRounds);
-  state.players.forEach((p, i) => policies.set(p.id, makePolicy(names[i]!, seed + i, { ability: p.abilityId ?? null, firstCardId: p.firstCardId, sixRounds })));
+  if (config.legacyR2) delete state.r2BestThree;
+  state.players.forEach((p, i) => policies.set(p.id, makePolicy(names[i]!, seed + i, { ability: p.abilityId ?? null, firstCardId: p.firstCardId, sixRounds, r2BestThree: !!state.r2BestThree })));
   const rows = new Map<string, PlayerRow>(state.players.map((p, i) => [p.id, {
     game, seed, playerId: p.id, seat: i + 1, policy: names[i]!, r1: null, r1Rank: 0, draftOrder: { r2: null, r4: null },
     rounds: ROUNDS.filter((round) => round <= finalRoundOf(config)).map(emptyRound), eliminatedRound: null, placement: 0, rankPoints: 0, points: 0, handScore: 0,
@@ -155,6 +156,7 @@ export function playGame(config: SimConfig, game: number): GameOutcome {
         case "SHOP": shopStep(); break;
         case "DRAFT_ORDER": state = openDraft(state); break;
         case "OPEN_DRAFT": draftStep(); if (state.phase !== "OPEN_DRAFT") closeDraft(); break;
+        case "R2_BRIEFING": state = completeR2Briefing(state); break;
         case "RUN_LOADOUT": {
           for (const id of policySeats()) {
             const p = state.players.find((x) => x.id === id)!;

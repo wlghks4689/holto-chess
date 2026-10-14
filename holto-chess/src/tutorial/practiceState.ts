@@ -1,9 +1,9 @@
-import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
-import { BALANCE, handLimitFor, isAuctionRound, isLineupFinal, isTripleRunRound, purchaseLimitFor, rerollLimitFor } from "../game/config";
+import { bestBotSelection } from "../game/botStrategy";
+import { BALANCE, handLimitFor, isAuctionRound, purchaseLimitFor, rerollLimitFor } from "../game/config";
 import {
-  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, completeOpponentSelect, confirmSelection, createGame, finishCardAuctionReveal, getCard, getCardPrice,
+  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, completeOpponentSelect, completeR2Briefing, confirmSelection, createGame, finishCardAuctionReveal, getCard, getCardPrice,
   isOpponentRevealing, leaveRoundResult, lockRunLoadouts, openDraft, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival,
-  setRunLoadout, startNextRound, toggleSelectedCard,
+  startNextRound, toggleSelectedCard,
 } from "../game/engine";
 import type { PorenaGameState, Round } from "../game/types";
 import { tutorialBotPolicy } from "./tutorialBots";
@@ -61,8 +61,9 @@ export function autoStep(source: PorenaGameState): PorenaGameState {
     }
     case "DRAFT_ORDER": return openDraft(source);
     case "OPEN_DRAFT": return autoPickDraft(source);
-    // R5 arrives with the recommended split already placed; R2 solves its anchor here.
-    case "RUN_LOADOUT": return lockRunLoadouts(me.eliminated || isTripleRunRound(source.round, source) || isLineupFinal(source.round, source) ? source : setRunLoadout(source, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(source, id)))));
+    // R5 arrives with the recommended split already placed, R6 with the strongest five.
+    case "RUN_LOADOUT": return lockRunLoadouts(source);
+    case "R2_BRIEFING": return completeR2Briefing(source);
     case "SHOWDOWN_PRIMARY": return resolvePrimary(source);
     case "GROUP_ASSIGNMENT": return beginSecondary(source);
     case "SHOWDOWN_SECONDARY": return resolveSecondary(source);

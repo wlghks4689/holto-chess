@@ -49,8 +49,10 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   } else {
     for (boardIndex = 0; boardIndex < match.boards.length; boardIndex++) {
       revealed = 0;
-      // Every later RUN swaps in its own hand: R2 changes the secondary card, R5 both cards.
-      if (boardIndex >= 1 && match.runCards && Object.values(match.runCards).some((runs) => runs.length > boardIndex)) {
+      // A later RUN that swaps in a different hand plays the switch: legacy R2 changes the secondary card,
+      // R5 both cards. R2 BEST FIVE keeps the same three cards, so it has no switch.
+      if (boardIndex >= 1 && match.runCards && Object.values(match.runCards).some((runs) => runs.length > boardIndex
+        && runs[boardIndex]!.map((card) => card.id).join() !== runs[boardIndex - 1]!.map((card) => card.id).join())) {
         add("CARD_SWITCH_OUT", 450); add("CARD_SWITCH_IN", 450);
         // The incoming hand's 420ms flip completes before the one-second read beat.
         add("CARD_SWITCH_SETTLE", 1000);
@@ -118,7 +120,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 17;
+export const PRESENTATION_VERSION = 18;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */

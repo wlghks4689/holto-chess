@@ -1,11 +1,11 @@
 import { shuffle, type Card } from "../core/poker/cards";
 import { evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
-import { BALANCE, cardPrice, FINAL_LOADOUT_SIZE, finalPlacementPoints, handLimitFor, isAuctionRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, matchLossBB, minHandFor, purchaseLimitFor, R3_AUCTION, TRIPLE_RUN } from "./config";
+import { BALANCE, cardPrice, FINAL_LOADOUT_SIZE, finalPlacementPoints, handLimitFor, isAuctionRound, isBestThreeRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, matchLossBB, minHandFor, purchaseLimitFor, R3_AUCTION, TRIPLE_RUN } from "./config";
 import { bestBotSelection, bestRunLoadout, bestTripleRunLoadout, r5MatchupEquity, rankBotPairs, rankBotPurchases, rankBuybackOptions, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { planR1Shop } from "./r1ShopStrategy";
 import { calculateIcm } from "./icm";
-import { emptySwissRecord, swissPairs } from "./swiss";
+import { avoidingPairs, emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
 import { ABILITY_IDS, abilityPrice, abilityShopSize, abilitySellRate, abilityRerollCost, abilityRerollLimit, abilityLockCost } from "./abilities";
@@ -98,6 +98,8 @@ export function createGame(seed = Date.now(), randomMode: "seeded" | "secure" = 
   };
   // The six-round format builds on the draft rules, so a version 1 game keeps five rounds.
   if (sixRounds && rulesVersion === 2) state.sixRounds = true;
+  // R2-BEST3-001 (approved 2026-10-14): R2 plays all three owned cards, best five of eight per RUN.
+  if (rulesVersion === 2) state.r2BestThree = true;
   if (abilityDraft) {
     // Starting cards are dealt once every seat has seen the abilities (finishAbilitySelection).
     for (const entry of state.ownershipCardPool) { entry.state = "AVAILABLE"; delete entry.ownerPlayerId; delete entry.reservedPlayerId; }
@@ -250,7 +252,7 @@ const POLICY_STEP_LIMIT = 24;
 
 function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"], policy?: BotShopPolicy): void {
   const limit = handLimitFor(state.round, state);
-  const planContext = { rulesVersion: state.rulesVersion ?? 1, sixRounds: !!state.sixRounds } as const;
+  const planContext = { rulesVersion: state.rulesVersion ?? 1, sixRounds: !!state.sixRounds, r2BestThree: !!state.r2BestThree } as const;
   for (const player of state.players.filter((item) => !item.eliminated && !humanIds.includes(item.id))) {
     const ownedCards = () => cardsFor(state, player.ownedCardIds);
     const buy = (cardId: string) => {
@@ -394,7 +396,7 @@ export const assistsShortHands = (state: Pick<PorenaGameState, "sixRounds" | "ro
 function fillShortHand(state: PorenaGameState, player: PlayerState): void {
   const minimum = minHandFor(state.round, state);
   const purchaseLimit = purchaseLimitFor(state.round, state);
-  const context = { rulesVersion: state.rulesVersion ?? 1, sixRounds: !!state.sixRounds } as const;
+  const context = { rulesVersion: state.rulesVersion ?? 1, sixRounds: !!state.sixRounds, r2BestThree: !!state.r2BestThree } as const;
   for (let guard = 0; guard < 8 && player.ownedCardIds.length < minimum && player.purchasesThisRound < purchaseLimit; guard += 1) {
     const needed = Math.min(minimum - player.ownedCardIds.length, purchaseLimit - player.purchasesThisRound);
     const offers = player.shopCardIds.map((id) => ({ card: getCard(state, id), price: abilityPrice(player, getCard(state, id).rank) }));
@@ -490,7 +492,7 @@ function lacksRequiredCards(state: PorenaGameState, playerId: string): boolean {
   return playerById(state, playerId).ownedCardIds.length < minHandFor(state.round, state);
 }
 
-/** The hole cards a complete hand plays: R2 [anchor, run secondary], the R5 RUN's pair, the final loadout, or every owned card. */
+/** The hole cards a complete hand plays: legacy R2 [anchor, run secondary], the R5 RUN's pair, the final loadout, or every owned card. */
 function playedCardIds(state: PorenaGameState, player: PlayerState, gameNumber?: 1 | 2 | 3): string[] {
   if (state.round === 5 && state.finalAuction) return [...(player.finalLoadoutCardIds ?? [])];
   if (isTripleRunRound(state.round, state)) {
@@ -498,7 +500,8 @@ function playedCardIds(state: PorenaGameState, player: PlayerState, gameNumber?:
     const placed = player.selectedCardIds.length === TRIPLE_RUN.runs * 2 ? player.selectedCardIds : player.ownedCardIds;
     const run = (gameNumber ?? 1) - 1; return placed.slice(run * 2, run * 2 + 2);
   }
-  if (state.round === 2) return state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!] : [...player.selectedCardIds];
+  // R2 BEST FIVE plays every owned card on both RUNs; it falls through to the owned cards below.
+  if (state.round === 2 && !isBestThreeRound(state.round, state)) return state.rulesVersion === 2 ? [player.selectedCardIds[0]!, player.selectedCardIds[gameNumber ?? 1]!] : [...player.selectedCardIds];
   if (isLineupFinal(state.round, state) && player.ownedCardIds.length > FINAL_LOADOUT_SIZE) {
     return validLineup(player) ? [...player.selectedCardIds] : bestFinalLoadout(cardsFor(state, player.ownedCardIds), []);
   }
@@ -751,7 +754,23 @@ function freezePrimaryPairings(state: PorenaGameState): void {
   const order = shuffle(state.players.filter((player) => !player.eliminated).map((player) => player.id), () => nextRandom(state));
   state.primaryOrderIds = order;
   const seats = state.round === 3 ? state.r3Seeds ?? seedOmaha(state) : order;
-  state.primaryPairings = isFinalRound(state.round, state) ? [seats] : isTripleRunRound(state.round, state) ? opponentPairings(state) : pair(seats);
+  state.primaryPairings = isFinalRound(state.round, state) ? [seats] : isTripleRunRound(state.round, state) ? opponentPairings(state)
+    : isBestThreeRound(state.round, state) ? r2Pairings(state, order, 1, []) : pair(seats);
+}
+
+/** Every R1 Swiss pairing. R2 runs before any later match is stored, so all recorded matches are R1's. */
+const r1Meetings = (state: PorenaGameState): string[][] => state.matches.filter((match) => match.matchday && !match.runCards).map((match) => match.playerIds);
+
+/**
+ * R2 BEST FIVE pairings. Match 1: a seeded random pairing of seats that did not meet in R1. Match 2: no R1
+ * or match-1 opponent, similar match-1 points first. With eight seats a solution always exists; if one ever
+ * does not, R1 is relaxed before match 1 and a warning is logged.
+ */
+function r2Pairings(state: PorenaGameState, order: string[], matchday: 1 | 2, matchOne: string[][], records?: Record<string, ReturnType<typeof emptySwissRecord>>): string[][] {
+  const scores = records ?? Object.fromEntries(order.map((id) => [id, emptySwissRecord()]));
+  const { pairs, repeats } = avoidingPairs(order, scores, matchday === 1 ? [r1Meetings(state)] : [matchOne, r1Meetings(state)]);
+  if (repeats.some((count) => count > 0)) console.warn(`R2 match ${matchday} pairing relaxed its opponent limits`, { round: state.round, repeats });
+  return pairs;
 }
 
 /** The leader and the chosen opponent, then the other two survivors. */
@@ -854,14 +873,16 @@ function pointSnapshot(state: PorenaGameState): Record<string, number> {
   return Object.fromEntries(state.players.filter((p) => !p.eliminated).map((p) => [p.id, p.points]));
 }
 
-/** R2: two matches against different opponents, each played as RUN 1 + RUN 2 with the same placement. */
+/** R2: two matches against different opponents, each played as RUN 1 + RUN 2 with the same cards (legacy: the same placement). */
 function resolveSplitRuns(state: PorenaGameState, firstPairs: string[][]): PorenaGameState {
   const alive = firstPairs.flat();
   const records = Object.fromEntries(alive.map((id) => [id, emptySwissRecord()]));
   const history: string[][] = []; const all: MatchResult[] = [];
   for (const day of [1, 2] as const) {
     // Match 2 never repeats a match-1 opponent and pairs similar match-1 results, as R1/R3 Swiss does.
-    const pairs = day === 1 ? firstPairs : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
+    const pairs = day === 1 ? firstPairs : isBestThreeRound(state.round, state)
+      ? r2Pairings(state, shuffle(alive, () => nextRandom(state)), 2, history, records)
+      : swissPairs(shuffle(alive, () => nextRandom(state)), records, history);
     const matches = resolveRunMatches(state, pairs, { runs: 2, ...BALANCE.points.r2Run, sweepAfterForfeit: true });
     for (const match of matches) {
       match.matchday = day;
@@ -1243,7 +1264,7 @@ export function autoPickDraft(source: PorenaGameState, holdReveal = false): Pore
     .map((cardId) => ({ card: getCard(source, cardId), price: draftPrice(source, id, cardId) })).filter((o) => o.price <= p.stackBB);
   // The R3 buyback offers up to fifteen cards at once; a sampled Omaha plan for each would stall the room.
   const best = source.draft!.priceMultiplier ? rankBuybackOptions(cardsFor(source, p.ownedCardIds), options)[0]
-    : rankBotPurchases(source.round, p, cardsFor(source, p.ownedCardIds), options, { rulesVersion: source.rulesVersion ?? 2, sixRounds: !!source.sixRounds })[0];
+    : rankBotPurchases(source.round, p, cardsFor(source, p.ownedCardIds), options, { rulesVersion: source.rulesVersion ?? 2, sixRounds: !!source.sixRounds, r2BestThree: !!source.r2BestThree })[0];
   if (!best) {
     const state = structuredClone(source);
     state.draft!.picks.push({ playerId: id, cardId: null, price: 0 });
@@ -1258,7 +1279,7 @@ export function autoPickDraft(source: PorenaGameState, holdReveal = false): Pore
 export const isDraftRevealing = (state: Pick<PorenaGameState, "phase" | "draft">) =>
   state.phase === "OPEN_DRAFT" && !!state.draft && state.draft.picks.length === state.draft.order.length;
 
-/** Ends a draft held with `holdReveal`: R2 goes to RUN placement, the R3 buyback to the matches, R4 to the shop. */
+/** Ends a draft held with `holdReveal`: R2 goes to its briefing (legacy: RUN placement), the R3 buyback to the matches, R4 to the shop. */
 export function completeDraft(source: PorenaGameState): PorenaGameState {
   if (!isDraftRevealing(source)) throw new Error("드래프트 선택이 끝나지 않았습니다.");
   const state = structuredClone(source);
@@ -1269,13 +1290,30 @@ export function completeDraft(source: PorenaGameState): PorenaGameState {
 function finishDraftIfComplete(state: PorenaGameState): void {
   if (state.draft!.picks.length !== state.draft!.order.length) return;
   if (isAuctionRound(state.round, state)) { state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); return; }
+  if (isBestThreeRound(state.round, state)) {
+    // Round income keeps every R2 draft affordable, so each seat holds three cards. A seat that does not
+    // forfeits through the existing short-hand path; nothing is fabricated.
+    const short = state.players.filter((p) => !p.eliminated && p.ownedCardIds.length !== 3).map((p) => p.id);
+    if (short.length) console.warn("R2 BEST FIVE: a seat does not hold three cards", { playerIds: short });
+    state.phase = "R2_BRIEFING"; return;
+  }
   state.phase = state.round === 2 ? "RUN_LOADOUT" : "SHOP";
   // Pre-fill the recommended RUN order so the screen shows exactly what Ready locks in.
   if (state.round === 2) for (const p of state.players.filter((p) => !p.eliminated && p.ownedCardIds.length === 3)) p.selectedCardIds = bestRunLoadout(p, cardsFor(state, p.ownedCardIds));
   if (state.round === 4) for (const p of state.players.filter((p) => !p.eliminated)) reserveShopCards(state, p);
 }
 
-/** Cards a placement orders: R2 three, R5 six, the R6 lineup five. */
+/**
+ * R2 BEST FIVE briefing: rules only, no pairing or cards. Once every connected person confirms (or the
+ * timer ends) the pairing is frozen and the match loading screen opens.
+ */
+export function completeR2Briefing(source: PorenaGameState): PorenaGameState {
+  if (source.phase !== "R2_BRIEFING") throw new Error("R2 안내 단계가 아닙니다.");
+  const state = structuredClone(source);
+  state.phase = "SHOWDOWN_PRIMARY"; freezePrimaryPairings(state); assertPoolIntegrity(state); return state;
+}
+
+/** Cards a placement orders: legacy R2 three, R5 six, the R6 lineup five. */
 export const runLoadoutSize = (state: Pick<PorenaGameState, "round" | "sixRounds">) => isTripleRunRound(state.round, state) ? TRIPLE_RUN.runs * 2
   : isLineupFinal(state.round, state) ? FINAL_LOADOUT_SIZE : 3;
 

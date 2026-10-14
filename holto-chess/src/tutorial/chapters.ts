@@ -73,7 +73,7 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
     ],
   },
   {
-    id: 2, title: "두 번의 승부", round: 2, summary: "공개 카드 선택 · 대표 카드와 RUN 배치",
+    id: 2, title: "두 번의 승부", round: 2, summary: "공개 카드 선택 · 카드 3장 전체로 BEST FIVE",
     steps: [
       {
         id: "r2-wait", kind: "ACT", focus: "draft", goal: "공개 카드 1장 선택",
@@ -83,14 +83,14 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
         onEnter: draftUntilMyTurn, done: (game) => me(game).ownedCardIds.length >= handLimitFor(2, game),
       },
       {
-        id: "r2-anchor", kind: "ACT", focus: "run-loadout", goal: "대표 카드와 보조 카드를 정하고 준비 완료",
-        title: "대표 카드 한 장은 두 번 사용해요",
-        body: ["대표 카드 + RUN 1 보조 카드, 대표 카드 + RUN 2 보조 카드로 같은 상대와 두 번 겨룹니다."],
-        more: ["보조 카드는 서로 달라야 합니다. 확정 전에는 배치를 바꿀 수 있습니다."],
+        id: "r2-briefing", kind: "ACT", focus: "r2-briefing", goal: "R2 진행 안내를 읽고 확인",
+        title: "카드 3장을 모두 사용해요",
+        body: ["RUN마다 내 카드 3장과 보드 5장, 총 8장 중 가장 좋은 5장으로 승부합니다. 내 카드는 0~3장 몇 장이든 쓰일 수 있습니다."],
+        more: ["같은 3장으로 RUN 1, RUN 2 두 보드를 진행합니다. 실전에서는 15초 안에 모두 확인하면 바로 매치가 시작됩니다."],
         onEnter: finishDraft, done: (game) => game.phase === "SHOWDOWN_PRIMARY" || game.roundResults.length > 0,
       },
-      { id: "r2-run1", kind: "REVIEW", hold: { matchIndex: 0, at: "RUN_RESULT" }, next: "RUN 2 보기", title: "첫 번째 보드의 결과", body: ["대표 카드와 RUN 1 보조 카드가 쓰였습니다. 다음에는 대표 카드는 그대로, 보조 카드와 보드가 바뀝니다."] },
-      { id: "r2-run2", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "라운드 순위 보기", title: "두 RUN의 승점을 합산해요", body: ["RUN 승리는 +2P, Split은 +1P입니다. 한 매치의 RUN 2번을 모두 이기면 완승 보너스 +2P를 더 받습니다.", "같은 배치로 상대를 바꿔 한 매치를 더 치릅니다. 체험에서는 두 번째 매치를 자동으로 정산합니다."] },
+      { id: "r2-run1", kind: "REVIEW", hold: { matchIndex: 0, at: "RUN_RESULT" }, next: "RUN 2 보기", title: "첫 번째 보드의 결과", body: ["내 카드 3장과 RUN 1 보드 중 가장 좋은 5장이 쓰였습니다. RUN 2는 같은 3장으로 새 보드에서 겨룹니다."] },
+      { id: "r2-run2", kind: "REVIEW", hold: { matchIndex: 0, at: "COMPLETE" }, next: "라운드 순위 보기", title: "두 RUN의 승점을 합산해요", body: ["RUN 승리는 +2P, Split은 +1P입니다. 한 매치의 RUN 2번을 모두 이기면 완승 보너스 +2P를 더 받습니다.", "같은 3장으로 상대를 바꿔 한 매치를 더 치릅니다. 체험에서는 두 번째 매치를 자동으로 정산합니다."] },
       { id: "r2-round-result", kind: "REVIEW", focus: "round-results", next: "연습 마치기", title: "R2는 탈락 없이 마무리", body: ["두 매치, RUN 4번에서 얻은 승점을 확인하세요. 다음 라운드부터는 생존 경쟁도 시작됩니다."] },
     ],
   },

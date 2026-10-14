@@ -28,6 +28,8 @@ export type BotPlanOptions = {
   rulesVersion?: 1 | 2;
   /** Six rounds: R5 plays three two-card RUNs, R6 plays a chosen five on one community board. */
   sixRounds?: boolean;
+  /** R2 BEST FIVE: each RUN plays all three cards with its own board. Without it, version 2 is anchor + secondary. */
+  r2BestThree?: boolean;
   /**
    * Common-random baseline. Every candidate in one comparison must draw its boards
    * and opponents from the SAME deck, or sampling noise buries the synergy edges
@@ -197,7 +199,7 @@ function heuristicTripleSplit(cards: readonly Card[]): Card[][] {
 }
 
 /** Hole groups the round actually plays, and the board cards that join each one. */
-function potentialFor(round: Round, cards: readonly Card[], rulesVersion: 1 | 2, runOrder?: readonly Card[], sixRounds = false): number {
+function potentialFor(round: Round, cards: readonly Card[], rulesVersion: 1 | 2, runOrder?: readonly Card[], sixRounds = false, bestThree = false): number {
   const mode = planMode(round, sixRounds);
   if (mode === "final") return 0; // No board: the made seven-card hand is already fully measured.
   if (mode === "lineup") return drawPotential(lineupFive(cards), 5);
@@ -211,7 +213,7 @@ function potentialFor(round: Round, cards: readonly Card[], rulesVersion: 1 | 2,
     return Math.max(...cards.flatMap((card, i) => cards.slice(i + 1).map((other) => [card, other])).map((pair) => drawPotential(pair, 3)));
   }
   if (round === 2) {
-    if (cards.length !== 3) return drawPotential(cards, 5);
+    if (cards.length !== 3 || bestThree) return drawPotential(cards, 5);
     if (rulesVersion !== 2) return drawPotential(bestPair(cards), 5);
     const [anchor, ...secondaries] = runOrder ?? heuristicRunOrder(cards);
     return secondaries.reduce((sum, secondary) => sum + drawPotential([anchor!, secondary], 5), 0) / 2;
@@ -233,6 +235,7 @@ function scoreHeadsUp(
   runOrder?: readonly Card[],
   fastUnrestricted = false,
   sixRounds = false,
+  bestThree = false,
 ): { result: number; handScore: number } {
   const mode = planMode(round, sixRounds);
   if (mode === "triple") {
@@ -261,6 +264,16 @@ function scoreHeadsUp(
     const board = deck.slice(0, 5);
     const hero = findBestFive([...lineupFive(heroCards), ...board]); const opponent = findBestFive([...lineupFive(opponentCards), ...board]);
     return { result: compare(hero, opponent), handScore: BALANCE.handScores[hero.category] };
+  }
+  if (round === 2 && bestThree) {
+    // Every card plays both RUNs: the best five of the three cards and that RUN's board.
+    let result = 0; let handScore = 0;
+    for (let run = 0; run < 2; run += 1) {
+      const board = deck.slice(run * 5, run * 5 + 5);
+      const hero = findBestFive([...heroCards, ...board]); const opponent = findBestFive([...opponentCards, ...board]);
+      result += compare(hero, opponent); handScore += BALANCE.handScores[hero.category];
+    }
+    return { result: result / 2, handScore: handScore / 2 };
   }
   if (round === 2) {
     // Version 1 played one chosen pair twice.
@@ -335,11 +348,11 @@ export function scoreBotPlan(round: Round, cards: readonly Card[], stackAfter: n
     const deck = shuffled(unseen, random); let cursor = 0;
     const completedHero = [...cards, ...deck.slice(cursor, cursor += limit - cards.length)];
     const opponent = deck.slice(cursor, cursor += limit);
-    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor), rulesVersion, cards.length === limit ? options.runOrder : undefined, options.fastUnrestricted, sixRounds);
+    const outcome = scoreHeadsUp(round, completedHero, opponent, deck.slice(cursor), rulesVersion, cards.length === limit ? options.runOrder : undefined, options.fastUnrestricted, sixRounds, !!options.r2BestThree);
     equity += outcome.result; expectedHandScore += outcome.handScore;
   }
   equity /= samples; expectedHandScore /= samples;
-  const potential = potentialFor(round, cards, rulesVersion, options.runOrder, sixRounds);
+  const potential = potentialFor(round, cards, rulesVersion, options.runOrder, sixRounds, !!options.r2BestThree);
   const strategic = strategicCardValue(round, cards);
   const stackValue = Math.floor(Math.max(0, stackAfter) / BALANCE.stackScoreUnitBB);
   // Equity remains the primary signal (x100). Preflop and persistent-card value

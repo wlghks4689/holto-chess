@@ -23,6 +23,7 @@ import { ShowdownHand } from "./ShowdownHand";
 import { RunWinner } from "./RunItTwiceResult";
 import { madeTone } from "./madeTone";
 import { RoundGuide } from "./RoundGuide";
+import { R2Briefing } from "./R2Briefing";
 import { RoundResults } from "./RoundResults";
 import { createRoundSummary, roundMatches } from "../game/roundSummary";
 import { PrepRoundHeader, RoundProgress } from "./PrepPhase";
@@ -31,7 +32,7 @@ import { getPrepPresentation } from "./prepPresentation";
 import { preloadFinalArena } from "./finalShowdownPresentation";
 import { ExitGameDialog } from "./ExitGameDialog";
 import { preloadShowdownStage } from "./showdownStage";
-import { openDraft, autoPickDraft, pickDraftCard, completeDraft, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
+import { openDraft, autoPickDraft, pickDraftCard, completeDraft, completeR2Briefing, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { RunLoadoutPanel, TimedOpenDraftPanel } from "./OpenDraft";
 import type { GameAction, ShowdownPrepView } from "../shared/protocol";
@@ -69,7 +70,7 @@ const newLocalGame = () => devStartRound >= 2 && devStartRound <= 6 ? fastForwar
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const PHASE_LABEL: Partial<Record<PorenaGameState["phase"], TranslationKey>> = {
-  OPPONENT_SELECT: "phase.opponentSelect", DRAFT_ORDER: "phase.draftOrder", OPEN_DRAFT: "draft.title", RUN_LOADOUT: "phase.runLoadout", SURVIVAL_READY: "phase.survival",
+  OPPONENT_SELECT: "phase.opponentSelect", DRAFT_ORDER: "phase.draftOrder", OPEN_DRAFT: "draft.title", RUN_LOADOUT: "phase.runLoadout", R2_BRIEFING: "phase.r2Briefing", SURVIVAL_READY: "phase.survival",
   SHOP: "shop.title", DECK_SELECT: "phase.deckSelect", GROUP_ASSIGNMENT: "phase.groupAssignment", ROUND_RESULT: "result.round", GAME_RESULT: "history.finalResult",
 };
 
@@ -80,6 +81,12 @@ function LocalRunLoadoutStage({ view, send, tripleRun, lineup }: {
   if (lineup) return <FinalLineupPanel view={view} send={send} disabled={false} seconds={seconds} />;
   return tripleRun ? <TripleRunLoadoutPanel view={view} send={send} disabled={false} seconds={seconds} />
     : <RunLoadoutPanel view={view} send={send} disabled={false} seconds={seconds} />;
+}
+
+/** The R2 briefing on the local clock; the only person here confirming ends it at once. */
+function LocalR2Briefing({ onConfirm }: { onConfirm: () => void }) {
+  const seconds = useLocalCountdown(BARRIER_TIMEOUT_MS.R2_BRIEFING / 1000);
+  return <R2Briefing seconds={seconds} ready={0} total={1} confirmed={false} disabled={false} onConfirm={onConfirm} />;
 }
 
 function LocalOpponentStage({ view, send }: { view: ReturnType<typeof createPlayerView>; send: (action: GameAction) => void }) {
@@ -218,8 +225,10 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
   const lastRound = lastRoundFor(state);
   // Timed auction rounds skip the automatic guide: the five-round final auction and the six-round R3 auction, which has its own pamphlet.
   const timedAuctionRound = state.sixRounds ? state.round === 3 : state.round === 5;
+  // R2 BEST FIVE has its own briefing step after the draft; the "?" guide stays available.
+  const briefedRound = !!state.r2BestThree && state.round === 2;
   // The R1 guide waits for the shop: the ability deal gives each player only a few seconds to read their card.
-  const guideOpen = manualGuideRound !== null || !preview && !timedAuctionRound && !state.phase.startsWith("ABILITY_") && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
+  const guideOpen = manualGuideRound !== null || !preview && !timedAuctionRound && !briefedRound && !state.phase.startsWith("ABILITY_") && shouldAutoShowRoundGuide(roundGuidePreferences.autoEnabled, roundGuidePreferences.seenRounds, state.round);
   const lineupStep = isLineupFinal(state.round, state);
   const opponentStep = `${state.opponentSelect?.chooserId ?? ""}:${state.opponentSelect?.opponentId ?? ""}`;
   const guideRound = manualGuideRound ?? state.round;
@@ -230,7 +239,7 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
   useEffect(() => {
     const phase = state.phase;
     if (guideOpen || preview) return;
-    if (!["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
+    if (!["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "R2_BRIEFING", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
     const [chooserId, opponentId] = opponentStep.split(":");
     const delay = phase === "OPPONENT_SELECT" ? opponentId ? BARRIER_TIMEOUT_MS.OPPONENT_REVEAL
         : chooserId === "p1" ? BARRIER_TIMEOUT_MS.OPPONENT_SELECT : BARRIER_TIMEOUT_MS.BOT_OPPONENT_SELECT
@@ -238,6 +247,7 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
       : phase === "ABILITY_DEAL" ? BARRIER_TIMEOUT_MS.ABILITY_DEAL
       : phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL
       : phase === "RUN_LOADOUT" ? lineupStep ? BARRIER_TIMEOUT_MS.FINAL_LINEUP : BARRIER_TIMEOUT_MS.RUN_LOADOUT
+      : phase === "R2_BRIEFING" ? BARRIER_TIMEOUT_MS.R2_BRIEFING
       : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
       : draftRevealing ? BARRIER_TIMEOUT_MS.DRAFT_REVEAL
       : draftPickerId === "p1" ? buybackDraft ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
@@ -246,6 +256,7 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
       : phase === "OPPONENT_SELECT" ? isOpponentRevealing(s) ? completeOpponentSelect(s) : autoChooseOpponent(s)
       : advanceLocalNextRound(phase === "DRAFT_ORDER" ? openDraft(s)
       : phase === "RUN_LOADOUT" ? lockRunLoadouts(s)
+      : phase === "R2_BRIEFING" ? completeR2Briefing(s)
       : phase === "SHOWDOWN_PRIMARY" ? resolvePrimary(s)
       : phase === "SHOWDOWN_SECONDARY" ? resolveSecondary(s)
       : isDraftRevealing(s) ? completeDraft(s)
@@ -297,6 +308,7 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.ABILITY_DEAL) / 1000} />}
       {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className={`round-header ${CENTERED_HEADER_PHASES.includes(state.phase) ? "is-centered-phase-header" : ""} ${state.phase === "ROUND_RESULT" ? "is-result-header" : ""}`}><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : roundTitle(state.round, lastRound)}</h1>{/* The rules button would cover the title on the result screens. */}{state.phase !== "GAME_RESULT" && state.phase !== "ROUND_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "SHOP" && state.phase !== "GAME_RESULT" && state.phase !== "RUN_LOADOUT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(state.draft?.priceMultiplier && state.phase === "OPEN_DRAFT" ? "phase.buyback" : PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} tripleRun={isTripleRunRound(state.round, state)} lineup={isLineupFinal(state.round, state)} />}
+      {state.phase === "R2_BRIEFING" && <LocalR2Briefing onConfirm={() => act(completeR2Briefing)} />}
       {!guideOpen && state.phase === "OPPONENT_SELECT" && <LocalOpponentStage key={opponentStep} view={draftView} send={draftAction} />}
       {["FINAL_AUCTION", "FINAL_LOADOUT"].includes(state.phase) && <FinalAuctionPanel view={draftView} send={draftAction} />}
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? (buybackDraft ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : 20_000) / 1000 : 2} />}

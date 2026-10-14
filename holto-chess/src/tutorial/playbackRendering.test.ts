@@ -2,11 +2,11 @@ import { autoStep } from "./practiceState";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
-import { isLineupFinal, isTripleRunRound, minHandFor } from "../game/config";
+import { bestBotSelection } from "../game/botStrategy";
+import { minHandFor } from "../game/config";
 import {
-  beginSecondary, buyCard, confirmSelection, draftPrice, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
-  pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, setRunLoadout,
+  beginSecondary, buyCard, completeR2Briefing, confirmSelection, draftPrice, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
+  pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival,
   startNextRound, toggleSelectedCard,
 } from "../game/engine";
 import { createMatchView } from "../game/matchView";
@@ -38,7 +38,8 @@ function play(game: PorenaGameState): PorenaGameState {
       const open = draft.cardIds.find((id) => !draft.picks.some((pick) => pick.cardId === id) && draftPrice(game, "p1", id) <= me.stackBB);
       return pickDraftCard(game, "p1", open!);
     }
-    case "RUN_LOADOUT": return lockRunLoadouts(isTripleRunRound(game.round, game) || isLineupFinal(game.round, game) ? game : setRunLoadout(game, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(game, id)))));
+    case "RUN_LOADOUT": return lockRunLoadouts(game);
+    case "R2_BRIEFING": return completeR2Briefing(game);
     case "ROUND_RESULT": return leaveRoundResult(game);
     case "GROUP_ASSIGNMENT": return beginSecondary(game);
     case "SHOWDOWN_PRIMARY": return resolvePrimary(game);

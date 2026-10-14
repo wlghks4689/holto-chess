@@ -75,15 +75,12 @@ export function HoldemScene({ labels }: { labels: Labels }) {
     <GCards label={labels.best} codes={best} on={best} /></figure>;
 }
 
+/** R2: all three cards with one RUN's board; the best five of the eight wins, and RUN 2 repeats it on a new board. */
 export function RunScene({ labels }: { labels: Labels }) {
-  return <figure className="pg-scene pg-run" aria-label="K♠ + 10♦ → RUN 1, K♠ + 8♦ → RUN 2">
-    <div className="pg-run-anchor"><GCard code="Ks" on tag={labels.anchor} /></div>
-    <svg className="pg-run-lines" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><path d="M100 0 L40 40 M100 0 L160 40" /></svg>
-    <div className="pg-run-split">
-      <div><GCard code="Td" /><strong>{labels.run} 1</strong><small>K♠ + 10♦</small></div>
-      <div><GCard code="8d" /><strong>{labels.run} 2</strong><small>K♠ + 8♦</small></div>
-    </div>
-  </figure>;
+  const best = ["Kh", "7h", "6h", "5h", "2h"];
+  return <figure className="pg-scene"><GCards label={`${labels.hole} · 3`} codes={["5h", "6h", "7h"]} on={best} /><span className="pg-op">+</span>
+    <GCards label={`${labels.run} 1 · ${labels.board}`} codes={["Kh", "9c", "2h", "Js", "4d"]} on={best} off={["9c", "Js", "4d"]} /><span className="pg-op eq">=</span>
+    <GCards label={labels.best} codes={best} on={best} /></figure>;
 }
 
 export function OmahaScene({ labels }: { labels: Labels }) {

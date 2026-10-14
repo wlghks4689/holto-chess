@@ -62,7 +62,7 @@ function completedCategories(round: Round, cards: readonly Card[], seedKey: stri
       // Six-round R5: three pairs in held order, each on its own board.
       : isTripleRunRound(round, rules) ? [0, 1, 2].map((run) => findBestFive([...usedCards.slice(run * 2, run * 2 + 2), ...board.slice(run * 5, run * 5 + 5)]))
       : round === 3 ? [findBestOmaha(usedCards, board.slice(0, 5))]
-      : round === 2 && usedCards.length === 3 ? (() => {
+      : round === 2 && usedCards.length === 3 && !rules.r2BestThree ? (() => {
         const opts = usedCards.map((anchor, i) => usedCards.filter((_, j) => j !== i).map((other) => findBestFive([anchor, other, ...board.slice(0, 5)])));
         return opts.reduce((a, b) => (fh(b) + st(b) > fh(a) + st(a) ? b : a));
       })()
@@ -126,14 +126,14 @@ function tailoringFor(ability: AbilityId | null, firstCardId: string | undefined
 
 const TARGET_EQUITY: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5, 6: 0.5 };
 
-export function makeAbilityPolicy(kind: "ABILITY_NEUTRAL" | "ABILITY_AWARE", ability: AbilityId | null, firstCardId: string | undefined, sixRounds = true): Policy {
+export function makeAbilityPolicy(kind: "ABILITY_NEUTRAL" | "ABILITY_AWARE", ability: AbilityId | null, firstCardId: string | undefined, sixRounds = true, r2BestThree = true): Policy {
   const aware = kind === "ABILITY_AWARE";
-  const rules: RuleContext = { rulesVersion: 2, sixRounds };
+  const rules: RuleContext = { rulesVersion: 2, sixRounds, r2BestThree };
   const tailoring = aware ? tailoringFor(ability, firstCardId, rules) : { bonus: () => 0 };
   let pendingBuy: string | null = null;
 
   const utility = (round: Round, cards: readonly Card[], stackAfter: number, price: number, key: string, shared: readonly Card[]) => {
-    const base = scoreBotPlan(round, cards, stackAfter, key, { rulesVersion: 2, sixRounds, sharedKnown: shared });
+    const base = scoreBotPlan(round, cards, stackAfter, key, { rulesVersion: 2, sixRounds, r2BestThree, sharedKnown: shared });
     return { base, total: base.utility + tailoring.bonus(round, cards, stackAfter, price, key) };
   };
 

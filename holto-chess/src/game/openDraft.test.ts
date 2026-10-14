@@ -2,18 +2,23 @@ import { autoStep } from "../tutorial/practiceState";
 import { describe, expect, it, vi } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import * as poker from "../core/poker/evaluate";
-import { autoPickDraft, beginSecondary, buyCard, createGame, getCardPrice, leaveRoundResult, lockRunLoadouts, openDraft, pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound } from "./engine";
+import { autoPickDraft, beginSecondary, buyCard, completeR2Briefing, createGame, getCardPrice, leaveRoundResult, lockRunLoadouts, openDraft, pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout, startNextRound } from "./engine";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 import { createPlayerView } from "./playerView";
 import { parseClientMessage } from "../shared/protocol";
 import { createMatchView } from "./matchView";
 import { cinematicTimeline } from "../shared/presentationTimeline";
 
-function r2(seed = 789) {
-  let g = resolvePrimary(prepareShowdown(createGame(seed, "seeded", 2, false, false), []));
+/** `legacy` is a room saved before R2 BEST FIVE: anchor + secondary placement. */
+function r2(seed = 789, legacy = false) {
+  const created = createGame(seed, "seeded", 2, false, false);
+  if (legacy) delete created.r2BestThree;
+  let g = resolvePrimary(prepareShowdown(created, []));
   g = startNextRound(leaveRoundResult(g)); return g;
 }
 function drafted(g = r2()) { g = openDraft(g); while (g.phase === "OPEN_DRAFT") g = autoPickDraft(g); return g; }
+/** Leaves the R2 briefing, or locks a legacy room's placement. */
+const toMatches = (g: ReturnType<typeof createGame>) => g.phase === "R2_BRIEFING" ? completeR2Briefing(g) : lockRunLoadouts(g);
 function next(g: ReturnType<typeof createGame>) {
   g = leaveRoundResult(g);
   if (g.phase === "SURVIVAL_READY") g = leaveRoundResult(resolveSurvival(g));
@@ -22,7 +27,7 @@ function next(g: ReturnType<typeof createGame>) {
 
 describe("open draft rules v2", () => {
   it("awards Split +2 per run with no BB reward and resets both streak counters", () => {
-    const g = lockRunLoadouts(drafted());
+    const g = toMatches(drafted());
     g.players.forEach((p) => { p.winStreak = 3; p.loseStreak = 2; });
     const fixed = poker.findBestFive(g.ownershipCardPool.slice(0,5).map((e)=>e.card));
     const spy = vi.spyOn(poker,"findBestFive").mockReturnValue(fixed);
@@ -32,7 +37,7 @@ describe("open draft rules v2", () => {
     } finally { spy.mockRestore(); }
   });
   it.each([[3,2],[4,2],[8,2],[3,1]])("bounds a %i-way survival tie for %i elimination places using Omaha and multi-survivor high-card draw", (count,eliminateCount) => {
-    let g=next(resolvePrimary(lockRunLoadouts(drafted()))); g=prepareShowdown(g,[]);
+    let g=next(resolvePrimary(toMatches(drafted()))); g=prepareShowdown(g,[]);
     g.phase="SURVIVAL_READY"; g.survival={playerIds:g.players.slice(0,count).map((p)=>p.id),eliminateCount};
     const fixed=poker.findBestOmaha(g.players[0]!.ownedCardIds.map((id)=>g.ownershipCardPool.find((e)=>e.card.id===id)!.card),g.ownershipCardPool.filter((e)=>!g.players[0]!.ownedCardIds.includes(e.card.id)).slice(0,5).map((e)=>e.card));
     const spy=vi.spyOn(poker,"findBestOmaha").mockReturnValue(fixed);
@@ -77,10 +82,10 @@ describe("open draft rules v2", () => {
     expect(() => pickDraftCard(g, g.draft!.order[1]!.playerId, card)).toThrow();
     while (g.phase === "OPEN_DRAFT") g = autoPickDraft(g);
     expect(g.players.every((p) => p.ownedCardIds.length === 3)).toBe(true);
-    expect(g.phase).toBe("RUN_LOADOUT"); expect(assertPoolIntegrity(g)).toBe(true);
+    expect(g.phase).toBe("R2_BRIEFING"); expect(assertPoolIntegrity(g)).toBe(true);
   });
-  it("locks three distinct owned identities, permits swapping secondaries and rejects later changes", () => {
-    let g = drafted(); const [a,b,c] = g.players[0]!.ownedCardIds;
+  it("legacy room: locks three distinct owned identities, permits swapping secondaries and rejects later changes", () => {
+    let g = drafted(r2(789, true)); const [a,b,c] = g.players[0]!.ownedCardIds;
     g = setRunLoadout(g, "p1", [a!,b!,c!]); g = setRunLoadout(g, "p1", [a!,c!,b!]);
     expect(g.players[0]!.selectedCardIds).toEqual([a,c,b]);
     expect(() => setRunLoadout(g, "p1", [a!,b!,b!])).toThrow();
@@ -88,9 +93,9 @@ describe("open draft rules v2", () => {
     g = lockRunLoadouts(g); expect(g.players.every((p) => p.selectedCardIds.length === 3)).toBe(true);
     expect(() => setRunLoadout(g, "p1", [a!,b!,c!])).toThrow();
   });
-  it("shows the recommended RUN order from the start and Ready locks exactly what was shown", () => {
+  it("legacy room: shows the recommended RUN order from the start and Ready locks exactly what was shown", () => {
     for (const seed of [789, 1, 2, 3, 4, 5, 6, 7]) {
-      const g = drafted(r2(seed));
+      const g = drafted(r2(seed, true));
       const room = { ...addSession(createRoom("LOADOUT", seed, "seeded", 2, false, false), "hash-0").room, status: "PLAYING" as const, game: g };
       const shown = createPlayerView(room, "p1").me.selectedCardIds;
       expect(shown).toHaveLength(3);
@@ -98,24 +103,24 @@ describe("open draft rules v2", () => {
     }
   // A full game to R2 under the bot brain; slow when the whole suite runs in parallel.
   }, 60_000);
-  it("resolves each RUN with the manually placed representative and matching secondary", () => {
-    const g = drafted();
+  it("legacy room: resolves each RUN with the manually placed representative and matching secondary", () => {
+    const g = drafted(r2(789, true));
     const [a, b, c] = g.players[0]!.ownedCardIds;
     const placed = setRunLoadout(g, "p1", [c!, a!, b!]);
     const resolved = resolvePrimary(lockRunLoadouts(placed));
     const match = resolved.roundResults.find((entry) => entry.playerIds.includes("p1"))!;
     expect(match.runCards!.p1).toEqual([[c, a], [c, b]]);
   });
-  it("accepts AAA identities rather than banning matching ranks", () => {
-    let g = drafted(); const aces = g.ownershipCardPool.filter((e) => e.card.rank === 14).slice(0,3);
+  it("legacy room: accepts AAA identities rather than banning matching ranks", () => {
+    let g = drafted(r2(789, true)); const aces = g.ownershipCardPool.filter((e) => e.card.rank === 14).slice(0,3);
     for (const p of g.players) { p.ownedCardIds = []; p.selectedCardIds = []; }
     for (const e of g.ownershipCardPool) { e.state = "AVAILABLE"; delete e.ownerPlayerId; delete e.reservedPlayerId; }
     for (const e of aces) { e.state = "OWNED"; e.ownerPlayerId = "p1"; g.players[0]!.ownedCardIds.push(e.card.id); }
     g = setRunLoadout(g, "p1", aces.map((e) => e.card.id)); expect(g.players[0]!.selectedCardIds).toHaveLength(3);
     expect(assertPoolIntegrity(g)).toBe(true);
   });
-  it("uses AB / AC, excludes all six owned identities, shares ten unique board cards and awards each RUN", () => {
-    const prepared = lockRunLoadouts(drafted()); const g = resolvePrimary(prepared);
+  it("legacy room: uses AB / AC, excludes all six owned identities, shares ten unique board cards and awards each RUN", () => {
+    const prepared = lockRunLoadouts(drafted(r2(789, true))); const g = resolvePrimary(prepared);
     expect(g.phase).toBe("ROUND_RESULT"); expect(g.players.every((p) => !p.eliminated)).toBe(true);
     for (const m of g.roundResults) {
       expect(m.boards).toHaveLength(2); expect(m.suddenDeathCount).toBe(0); expect(m.highCardDraw).toBeUndefined();
@@ -139,7 +144,7 @@ describe("open draft rules v2", () => {
   });
   it("plays two R2 matches against different opponents, up to 12P per player", () => {
     for (const seed of [789, 11, 12, 13, 14]) {
-      const before = lockRunLoadouts(drafted(r2(seed))); const g = resolvePrimary(before);
+      const before = toMatches(drafted(r2(seed))); const g = resolvePrimary(before);
       expect(g.roundResults).toHaveLength(8);
       expect(g.roundResults.map((m) => m.matchday)).toEqual([1, 1, 1, 1, 2, 2, 2, 2]);
       for (const p of g.players) {
@@ -157,7 +162,7 @@ describe("open draft rules v2", () => {
     }
   });
   it("marks direct R3 points-cut eliminations in their showdown reward", () => {
-    let g = resolvePrimary(lockRunLoadouts(drafted()));
+    let g = resolvePrimary(toMatches(drafted()));
     g = next(g);
     g.players.forEach((player, index) => { player.points = index < 2 ? -100 + index : 100 + index; });
     g = resolvePrimary(prepareShowdown(g, []));
@@ -172,7 +177,7 @@ describe("open draft rules v2", () => {
     }
   });
   it.each([1,17,303,707,9001])("completes new 8→8→6→4 flow with viable R3 shops and 16-card R4 draft (seed %i)", (seed) => {
-    let g = resolvePrimary(lockRunLoadouts(drafted(r2(seed))));
+    let g = resolvePrimary(toMatches(drafted(r2(seed))));
     g = next(g); expect(g.round).toBe(3);
     expect(g.players.filter((p) => !p.eliminated)).toHaveLength(8);
     expect(g.players.every((p) => p.shopCardIds.length === 2)).toBe(true);
@@ -229,10 +234,10 @@ describe("draft authority, timeouts and privacy", () => {
     expect(barrierDeadline(room)).toBe(22800); expect(forceBarrier(room,22799)).toBeNull();
     room = structuredClone(room);
     while(room.game.phase==="OPEN_DRAFT") room=forceBarrier(room,barrierDeadline(room)!)!;
-    expect(room.game.phase).toBe("RUN_LOADOUT");
-    expect(barrierDeadline(room)!-room.barrierSince!).toBe(30000);
+    expect(room.game.phase).toBe("R2_BRIEFING");
+    expect(barrierDeadline(room)!-room.barrierSince!).toBe(15000);
     room=forceBarrier(room,barrierDeadline(room)!)!; expect(room.game.phase).toBe("SHOWDOWN_PRIMARY");
-    expect(room.game.players.every((p)=>p.selectedCardIds.length===3)).toBe(true);
+    expect(room.game.players.every((p)=>p.ownedCardIds.length===3)).toBe(true);
   });
   it("R2 exposes owned cards; R4 never exposes opponents' old hands, ledger, seed or private sockets", () => {
     const room=roomAtDraft(); const view=createPlayerView(room,"p1");
@@ -243,9 +248,9 @@ describe("draft authority, timeouts and privacy", () => {
     for(const id of room.game.players[1]!.ownedCardIds) expect(json).not.toContain(`"${id}"`);
     for(const word of ["tokenHash","ownershipCardPool","seed"]) expect(json).not.toContain(word);
   });
-  it("validates network commands and prevents changes after loadout commit", () => {
+  it("legacy room: validates network commands and prevents changes after loadout commit", () => {
     expect(()=>parseClientMessage(JSON.stringify({type:"RUN_LOADOUT",requestId:"test-12345",turnKey:"2:RUN_LOADOUT",cardIds:["As","As","Ah"]}))).toThrow();
-    const room=roomAtDraft();room.game=drafted();
+    const room=roomAtDraft();room.game=drafted(r2(789, true));
     let locked=applyRoomAction(room,"p1",{type:"LOCK_RUN_LOADOUT"},turnKey(room),1000);
     expect(()=>applyRoomAction(locked,"p1",{type:"RUN_LOADOUT",cardIds:locked.game.players[0]!.ownedCardIds},turnKey(locked),1001)).toThrow();
     locked=applyRoomAction(locked,"p2",{type:"LOCK_RUN_LOADOUT"},turnKey(locked),1002);

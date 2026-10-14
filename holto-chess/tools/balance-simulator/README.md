@@ -39,6 +39,7 @@ node tools/balance-simulator/run.mjs --games 200 --seed 12345 --jobs 4
 | `--out` | `tools/balance-simulator/output` | 출력 폴더 |
 | `--verbose` | 꺼짐 | 게임별 성공/실패 로그 |
 | `--five-rounds` | 꺼짐 | 5라운드 규칙으로 실행(전후 비교용) |
+| `--legacy-r2` | 꺼짐 | R2를 R2-BEST3-001 이전 규칙(앵커 + 보조 배치, R1 상대를 고려하지 않는 대진)으로 실행(전후 비교용) |
 
 예: rank 14·13 가격을 10BB로 내리는 실험 비교
 

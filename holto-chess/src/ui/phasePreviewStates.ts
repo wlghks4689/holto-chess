@@ -35,7 +35,7 @@ export function phasePreviewStates(sixRounds = true): PorenaGameState[] {
     survival.survival = { playerIds: survival.players.filter(player => !player.eliminated).slice(0, 2).map(player => player.id), eliminateCount: 1 };
     states.set("3:SURVIVAL_READY:fixture", survival);
   }
-  const phases = ["ABILITY_DEAL", "ABILITY_REVEAL", "OPPONENT_SELECT", "FINAL_AUCTION", "FINAL_LOADOUT", "DRAFT_ORDER", "OPEN_DRAFT", "SHOP", "DECK_SELECT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "SURVIVAL_READY", "ROUND_RESULT", "NEXT_ROUND", "GAME_RESULT"];
+  const phases = ["ABILITY_DEAL", "ABILITY_REVEAL", "OPPONENT_SELECT", "FINAL_AUCTION", "FINAL_LOADOUT", "DRAFT_ORDER", "OPEN_DRAFT", "R2_BRIEFING", "SHOP", "DECK_SELECT", "RUN_LOADOUT", "SHOWDOWN_PRIMARY", "GROUP_ASSIGNMENT", "SHOWDOWN_SECONDARY", "SURVIVAL_READY", "ROUND_RESULT", "NEXT_ROUND", "GAME_RESULT"];
   return [...states.values()].sort((a, b) => a.round - b.round || phases.indexOf(a.phase) - phases.indexOf(b.phase)).map(game => {
     const viewer = game.players.find(p => !p.eliminated);
     if (!game.players[0]!.eliminated || !viewer) return game;

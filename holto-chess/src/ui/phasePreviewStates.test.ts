@@ -7,7 +7,7 @@ describe("phase preview states", () => {
     expect(new Set(states.map(s => s.round)).size).toBe(sixRounds ? 6 : 5);
     expect(states[0]!.phase).toBe("ABILITY_DEAL");
     expect(states.at(-1)!.phase).toBe("GAME_RESULT");
-    for (const phase of ["ABILITY_REVEAL", "SHOP", "DRAFT_ORDER", "OPEN_DRAFT", "RUN_LOADOUT", "FINAL_AUCTION", "ROUND_RESULT", "NEXT_ROUND", "SHOWDOWN_PRIMARY"]) {
+    for (const phase of ["ABILITY_REVEAL", "SHOP", "DRAFT_ORDER", "OPEN_DRAFT", "R2_BRIEFING", "FINAL_AUCTION", "ROUND_RESULT", "NEXT_ROUND", "SHOWDOWN_PRIMARY"]) {
       expect(states.some(s => s.phase === phase), phase).toBe(true);
     }
     if (sixRounds) {

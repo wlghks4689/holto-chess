@@ -1,9 +1,9 @@
 import { analytics } from "../../analytics/events";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { localizeSeatNames } from "../botNames";
-import { BALANCE, handLimitFor, isLineupFinal, isTripleRunRound, minHandFor, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
+import { BALANCE, handLimitFor, isLineupFinal, minHandFor, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
 import {
-  beginSecondary, buyCard, chooseOpponent, completeOpponentSelect, finishCardAuctionReveal, getCard, getCardPrice, isOpponentRevealing, lockRunLoadouts, pickDraftCard,
+  beginSecondary, buyCard, chooseOpponent, completeOpponentSelect, completeR2Briefing, finishCardAuctionReveal, getCard, getCardPrice, isOpponentRevealing, lockRunLoadouts, pickDraftCard,
   rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout,
   prepareShowdown, finalStandings,
 } from "../../game/engine";
@@ -31,7 +31,8 @@ import { classifyGameError } from "../../shared/gameErrorCode";
 import { renderGameError } from "../../i18n/gameError";
 import { CardView } from "../CardView";
 import { FinalStandingRow, FinalStandingsHeader } from "../FinalStandingRow";
-import { OpenDraftPanel, RunLoadoutPanel } from "../OpenDraft";
+import { OpenDraftPanel } from "../OpenDraft";
+import { R2Briefing } from "../R2Briefing";
 import { RoundResults } from "../RoundResults";
 import { ShopCard } from "../ShopCard";
 import { ShowdownCinematic } from "../ShowdownCinematic";
@@ -281,9 +282,8 @@ function TutorialArena({ game, act, error, onDismissError }: {
     {["DRAFT_ORDER", "OPEN_DRAFT"].includes(game.phase) ? <div data-tutorial-id="draft"><OpenDraftPanel view={view} send={send} disabled={false} seconds={null} /></div> : null}
     {game.phase === "RUN_LOADOUT" ? <div data-tutorial-id="run-loadout">{isLineupFinal(game.round, game)
       ? <FinalLineupPanel view={view} send={send} disabled={false} seconds={null} />
-      : isTripleRunRound(game.round, game)
-      ? <TripleRunLoadoutPanel view={view} send={send} disabled={false} seconds={null} />
-      : <RunLoadoutPanel view={view} send={send} disabled={false} seconds={null} showTimer={false} />}</div> : null}
+      : <TripleRunLoadoutPanel view={view} send={send} disabled={false} seconds={null} />}</div> : null}
+    {game.phase === "R2_BRIEFING" ? <div data-tutorial-id="r2-briefing"><R2Briefing seconds={null} ready={0} total={1} confirmed={false} disabled={false} onConfirm={() => act(completeR2Briefing)} /></div> : null}
     {game.phase === "OPPONENT_SELECT" ? <div data-tutorial-id="opponent"><OpponentSelectPanel view={view} send={send} disabled={false} seconds={null} />
       {isOpponentRevealing(game) && <div className="action-bar action-only"><button type="button" className="primary" onClick={() => act(completeOpponentSelect)}>{locale === "ko-KR" ? "R5 상점 열기" : "Open the R5 shop"} <span>→</span></button></div>}</div> : null}
 

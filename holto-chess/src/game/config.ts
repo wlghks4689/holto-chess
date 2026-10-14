@@ -72,7 +72,7 @@ export function cardPrice(rank: number): number {
  * The rules a persisted game was created with. Missing fields keep that game's original rules:
  * no `rulesVersion` is the pre-draft ruleset, no `sixRounds` the five-round format.
  */
-export type RuleContext = { rulesVersion?: 1 | 2; sixRounds?: boolean };
+export type RuleContext = { rulesVersion?: 1 | 2; sixRounds?: boolean; r2BestThree?: boolean };
 /** Calls without a context describe a current five-round game. */
 const CURRENT_FIVE_ROUND: RuleContext = { rulesVersion: 2 };
 
@@ -92,6 +92,8 @@ export const lastRoundFor = (rules: RuleContext): Round => rules.sixRounds ? 6 :
 export const isFinalRound = (round: Round, rules: RuleContext): boolean => round === lastRoundFor(rules);
 /** Six-round R3 opens with the card auction instead of a shop. */
 export const isAuctionRound = (round: Round, rules: RuleContext): boolean => !!rules.sixRounds && round === 3;
+/** R2 BEST FIVE: each RUN plays all three owned cards with its board. Older rooms keep anchor + secondary placement. */
+export const isBestThreeRound = (round: Round, rules: RuleContext): boolean => !!rules.r2BestThree && round === 2;
 /** Six-round R5: RUN IT THREE TIMES. */
 export const isTripleRunRound = (round: Round, rules: RuleContext): boolean => !!rules.sixRounds && round === 5;
 /** Six-round R6: each finalist plays five chosen cards on one community board; the rest are burned. */

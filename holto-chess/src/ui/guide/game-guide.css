@@ -108,7 +108,6 @@
 .pg-round.r3 li:last-child::before { background:#ff6b7c; }
 
 .pg-run { flex-direction:column; align-items:center; gap:0; padding-bottom:16px; }
-.pg-run-anchor { padding-bottom:22px; }
 .pg-run-lines { width:180px; height:34px; }
 .pg-run-lines path { fill:none; stroke:var(--pg-accent); stroke-width:1.5; vector-effect:non-scaling-stroke; }
 .pg-run-split { display:flex; gap:56px; }

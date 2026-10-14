@@ -130,6 +130,8 @@ export type PlayerView = {
   pairedOpponent?: { playerId: string; cards: Card[] };
   /** R5 in five-round games, R6 in six-round games. */
   lastRound: Round;
+  /** R2 plays all three owned cards on each RUN board (best five of eight). Missing: a room saved before it, with anchor placement. */
+  r2BestThree?: true;
   gameId: string; roomId: string; revision: number; turnKey: string;
   /** Server epoch ms when this view was built; clients estimate their clock offset from it. */
   serverNow: number;

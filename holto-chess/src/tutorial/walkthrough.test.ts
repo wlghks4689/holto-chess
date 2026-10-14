@@ -1,11 +1,11 @@
 import { autoStep } from "./practiceState";
 import { describe, expect, it } from "vitest";
-import { bestBotSelection, bestRunLoadout } from "../game/botStrategy";
+import { bestBotSelection } from "../game/botStrategy";
 import { assertPoolIntegrity } from "../game/cardPool";
-import { isLineupFinal, isTripleRunRound, minHandFor } from "../game/config";
+import { minHandFor } from "../game/config";
 import {
-  beginSecondary, buyCard, confirmSelection, draftPrice, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
-  pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, setRunLoadout,
+  beginSecondary, buyCard, completeR2Briefing, confirmSelection, draftPrice, getCard, getCardPrice, leaveRoundResult, lockRunLoadouts,
+  pickDraftCard, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, resolveSurvival,
   startNextRound, toggleSelectedCard,
 } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
@@ -42,7 +42,8 @@ function play(game: PorenaGameState): PorenaGameState {
       return pickDraftCard(game, "p1", open);
     }
     // R5 arrives with the recommended split already placed.
-    case "RUN_LOADOUT": return lockRunLoadouts(isTripleRunRound(game.round, game) || isLineupFinal(game.round, game) ? game : setRunLoadout(game, "p1", bestRunLoadout(me, me.ownedCardIds.map((id) => getCard(game, id)))));
+    case "RUN_LOADOUT": return lockRunLoadouts(game);
+    case "R2_BRIEFING": return completeR2Briefing(game);
     case "ROUND_RESULT": return leaveRoundResult(game);
     case "GROUP_ASSIGNMENT": return beginSecondary(game);
     case "SHOWDOWN_PRIMARY": return resolvePrimary(game);

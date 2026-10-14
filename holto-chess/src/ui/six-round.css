@@ -454,4 +454,9 @@
   .cinema.cinema-headsup.cinema-table .cinema-run-detail{padding-inline:18px}
   /* Completed RUNs reserve the same two-row height throughout the rest of the match. */
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.has-run-detail{flex:0 0 var(--run-detail-height);min-height:var(--run-detail-height)}
+  /* R2 final result: both finished RUNs split the board panel in half instead of stacking at its top. */
+  .cinema.cinema-headsup.cinema-table .cinema-board-stack.run-it-twice:not(:has(>.cinema-board:not(.has-run-detail)))>.cinema-board.has-run-detail{flex:1 1 0}
+  .cinema.cinema-headsup.cinema-table .cinema-board-stack.run-it-twice:not(:has(>.cinema-board:not(.has-run-detail)))>.cinema-board>.cinema-run-detail{block-size:auto}
+  /* With the room, the detail view separates the players' cards from the community board. */
+  .cinema.cinema-headsup.cinema-table .cinema-board-stack.run-it-twice:not(:has(>.cinema-board:not(.has-run-detail))){--run-detail-row-gap:clamp(14px,calc(var(--r5-h) * 2.4 / 100),28px)}
 }

@@ -94,7 +94,7 @@ function straightHigh(mask: number): number {
 }
 
 /**
- * Rank-only score of the best five of seven cards, ordered exactly like compareHands on findBestFive:
+ * Rank-only score of the best five of seven (or R2's eight) cards, ordered exactly like compareHands on findBestFive:
  * category first, then kickers. Two-card rounds need 20k of these per preview, which the general
  * evaluator is too slow for on a phone. `showdownEquity.test.ts` checks it against findBestFive.
  */
@@ -128,7 +128,8 @@ export function showdownEquity(round: Round, left: readonly Card[], right: reado
 
 /** Unrounded server eligibility value; the client display rounds this same fixed estimate. */
 export function rawShowdownEquity(round: Round, left: readonly Card[], right: readonly Card[], deadCards: readonly Card[] = []): number | null {
-  const required = REQUIRED_CARDS[round];
+  // R2 BEST FIVE plays all three cards; a legacy R2 RUN (and an R5 RUN, scored as round 2) plays two.
+  const required = round === 2 && left.length === 3 ? 3 : REQUIRED_CARDS[round];
   if (left.length !== required || right.length !== required) return null;
   const shown = [...left, ...right], shownIds = new Set(shown.map((card) => card.id));
   const deadIds = new Set(deadCards.map((card) => card.id));
@@ -159,7 +160,7 @@ export function rawShowdownEquity(round: Round, left: readonly Card[], right: re
       [deck[index], deck[picked]] = [deck[picked]!, deck[index]!];
     }
     const board = deck.slice(0, 5);
-    const comparison = required === 2 ? scoreSeven([...left, ...board]) - scoreSeven([...right, ...board])
+    const comparison = round <= 2 ? scoreSeven([...left, ...board]) - scoreSeven([...right, ...board])
       : compareHands(evaluate(left, board), evaluate(right, board));
     leftShare += comparison > 0 ? 1 : comparison === 0 ? 0.5 : 0;
   }

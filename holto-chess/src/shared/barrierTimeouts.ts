@@ -16,6 +16,8 @@ export const BARRIER_TIMEOUT_MS = {
   MATCH_SETUP: 3_500,
   GROUP_REVIEW: 10_000,
   RUN_LOADOUT: 30_000,
+  /** R2 BEST FIVE: the rules briefing after the draft; everyone confirming ends it early. */
+  R2_BRIEFING: 15_000,
   /** Six-round R6: the strongest five are pre-selected; a player only swaps cards in or out. */
   FINAL_LINEUP: 10_000,
   BOT_DRAFT_PICK: 1_800,
@@ -34,6 +36,7 @@ export function barrierTimeoutMs(phase: string): number {
   if (phase === "ABILITY_DEAL") return BARRIER_TIMEOUT_MS.ABILITY_DEAL;
   if (phase === "ABILITY_REVEAL") return BARRIER_TIMEOUT_MS.ABILITY_REVEAL;
   if (phase === "RUN_LOADOUT") return BARRIER_TIMEOUT_MS.RUN_LOADOUT;
+  if (phase === "R2_BRIEFING") return BARRIER_TIMEOUT_MS.R2_BRIEFING;
   if (phase === "OPPONENT_SELECT") return BARRIER_TIMEOUT_MS.OPPONENT_SELECT;
   if (["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return BARRIER_TIMEOUT_MS.MATCH_SETUP;
   if (phase === "GROUP_ASSIGNMENT") return BARRIER_TIMEOUT_MS.GROUP_REVIEW;

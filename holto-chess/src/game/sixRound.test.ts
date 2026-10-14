@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import { cardPrice, handLimitFor, minHandFor, purchaseLimitFor, R3_AUCTION, regularShopSizeFor, rerollLimitFor, TRIPLE_RUN } from "./config";
 import {
-  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, chooseOpponent, completeDraft, completeOpponentSelect, createAbilityGame, createGame,
+  autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, chooseOpponent, completeDraft, completeOpponentSelect, completeR2Briefing, createAbilityGame, createGame,
   finalStandings, finishAbilitySelection, finishCardAuctionReveal, getCard, isDraftRevealing, isOpponentRevealing, leaveRoundResult,
   lockRunLoadouts, finishAbilityDeal, openDraft, pickDraftCard, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival,
   burnCardIds, sellCard, setRunLoadout, startNextRound,
@@ -32,6 +32,7 @@ function step(state: PorenaGameState): PorenaGameState {
     }
     case "OPPONENT_SELECT": return isOpponentRevealing(state) ? completeOpponentSelect(state) : autoChooseOpponent(state);
     case "RUN_LOADOUT": return lockRunLoadouts(state, []);
+    case "R2_BRIEFING": return completeR2Briefing(state);
     case "SHOWDOWN_PRIMARY": return resolvePrimary(state);
     case "GROUP_ASSIGNMENT": return beginSecondary(state);
     case "SHOWDOWN_SECONDARY": return resolveSecondary(state);

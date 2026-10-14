@@ -24,7 +24,7 @@ export type GuideCopy = {
     bb: Titled & { uses: Row[]; takeaway: string };
     hands: Titled & { low: string; high: string; note: string };
     rounds: Titled & { r1: BeginnerRound; r2: BeginnerRound; r3: BeginnerRound; r4: BeginnerRound; r5: BeginnerRound; r6: BeginnerRound;
-      labels: { hole: string; board: string; best: string; anchor: string; run: string; mine: string; players: string; noBoard: string; lineup: string;
+      labels: { hole: string; board: string; best: string; run: string; mine: string; players: string; noBoard: string; lineup: string;
         primary: string; winnerGroup: string; survivalGroup: string; winnerNote: string; survivalNote: string; draft: string; auction: string; pick: string } };
     survival: Titled & { placements: string[] };
     score: Titled & { blocks: { points: string; pointsNote: string; hand: string; handNote: string; bb: string; bbNote: string }; abilityNote: string; formula: string };

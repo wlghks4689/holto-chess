@@ -83,6 +83,25 @@ describe("fast seven-card scoring", () => {
     }
   });
 
+  it("orders random R2 eight-card hands (three hole cards) exactly like findBestFive + compareHands", () => {
+    let seed = 20261014;
+    const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 0x100000000; };
+    const deck = makeDeck();
+    for (let trial = 0; trial < 20_000; trial += 1) {
+      const d = [...deck];
+      for (let i = 0; i < 11; i += 1) { const j = i + Math.floor(random() * (d.length - i)); [d[i], d[j]] = [d[j]!, d[i]!]; }
+      const board = d.slice(6, 11), a = [...d.slice(0, 3), ...board], b = [...d.slice(3, 6), ...board];
+      const expected = Math.sign(compareHands(findBestFive(a), findBestFive(b)));
+      expect(Math.sign(scoreSeven(a) - scoreSeven(b)), `${a.map((c) => c.id)} vs ${b.map((c) => c.id)}`).toBe(expected);
+    }
+  });
+
+  it("estimates R2 BEST FIVE equity from three-card hands", () => {
+    const result = showdownEquity(2, hand("5h", "6h", "7h"), hand("2c", "8d", "Ks"))!;
+    expect(result[0] + result[1]).toBeGreaterThanOrEqual(99);
+    expect(showdownEquity(2, hand("5h", "6h", "7h"), hand("2c", "8d"))).toBeNull();
+  });
+
   it("handles the edge cases random sampling rarely reaches", () => {
     const cmp = (a: string[], b: string[]) => [Math.sign(scoreSeven(hand(...a)) - scoreSeven(hand(...b))),
       Math.sign(compareHands(findBestFive(hand(...a)), findBestFive(hand(...b))))];

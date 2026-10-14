@@ -12,6 +12,8 @@ export type SimConfig = {
   maxRerolls: number;
   /** Plays the five-round format saved rooms still use; new games have six rounds. */
   fiveRounds?: boolean;
+  /** Plays R2 as rooms saved before R2 BEST FIVE did: anchor + secondary placement, pairings that ignore R1. */
+  legacyR2?: boolean;
   /** Runtime overrides of `BALANCE` / `FINAL_ROUND_PLACEMENT_POINTS`, applied only while the run executes. */
   overrides: Record<string, number>;
   outputPath: string;

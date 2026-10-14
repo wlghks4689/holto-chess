@@ -3,10 +3,11 @@ import type { ReactNode } from "react";
 import { createRoundSummary } from "../game/roundSummary";
 import { RoundResults } from "./RoundResults";
 import { makeDeck } from "../core/poker/cards";
-import { createGame, prepareShowdown, resolvePrimary, startNextRound, leaveRoundResult, autoPickDraft, openDraft, lockRunLoadouts, pickDraftCard, setRunLoadout } from "../game/engine";
+import { createGame, prepareShowdown, resolvePrimary, startNextRound, leaveRoundResult, autoPickDraft, openDraft, completeR2Briefing, pickDraftCard } from "../game/engine";
 import { createPlayerView } from "../game/playerView";
 import { createMatchView } from "../game/matchView";
-import { OpenDraftPanel, TimedOpenDraftPanel, TimedRunLoadoutPanel } from "./OpenDraft";
+import { OpenDraftPanel, TimedOpenDraftPanel } from "./OpenDraft";
+import { R2Briefing } from "./R2Briefing";
 import { ShowdownCinematic } from "./ShowdownCinematic";
 import { FinalRoundTransition, ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { RoundGuide } from "./RoundGuide";
@@ -75,26 +76,23 @@ function FinalResultsPreview() {
 function RunSummaryPreview() {
   let game = openDraft(fixture(2));
   while (game.phase === "OPEN_DRAFT") game = autoPickDraft(game);
-  game = resolvePrimary(lockRunLoadouts(game));
+  game = resolvePrimary(completeR2Briefing(game));
   const match = createMatchView(game, game.roundResults[0]!);
   return <ShowdownCinematic match={match} profiles={game.players.map((player)=>({playerId:player.id,name:player.name,points:player.points,alive:!player.eliminated,abilityId:player.abilityId}))} viewerId="p1" onComplete={()=>undefined} elapsedMs={Number.MAX_SAFE_INTEGER} />;
 }
-function RunLoadoutPreview() {
-  let game = openDraft(fixture(2));
-  while (game.phase === "OPEN_DRAFT") game = autoPickDraft(game);
-  const viewer = "p1";
-  const view = createPlayerView({ schema:1, roomId:"PREVIEW", revision:0, status:"PLAYING", game,
-    sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
-  return <RoundTwoLayout phase="RUN 카드 배치"><TimedRunLoadoutPanel view={view} send={()=>undefined} disabled={false} seconds={null} durationSeconds={30} /></RoundTwoLayout>;
+/** `?r2Briefing` (`&confirmed` for the confirmed state): the R2 rules briefing between the draft and the matches. */
+function R2BriefingPreview() {
+  const confirmed = new URLSearchParams(location.search).has("confirmed");
+  return <RoundTwoLayout phase="R2 규칙 안내"><R2Briefing seconds={12} ready={confirmed ? 2 : 1} total={3} confirmed={confirmed} disabled={false} onConfirm={() => undefined} /></RoundTwoLayout>;
 }
 function RoundTwoLayout({ phase, children }: { phase: string; children: ReactNode }) {
-  const loadout = phase === "RUN 카드 배치";
+  const loadout = phase === "R2 규칙 안내";
   return <main className="game-arena"><nav><div className="brand"><b>PORENA</b></div><span /><div className="nav-status" /></nav><div className="page-shell"><header className={`round-header ${loadout ? "is-centered-phase-header" : ""}`}><div><span className="round-number">ROUND 02</span><div className="round-title-row"><h1>RUN IT TWICE</h1><button className="secondary round-guide-trigger title-guide-trigger">?</button></div></div>{!loadout && <div className="phase-badge"><b>{phase}</b></div>}</header>{children}</div></main>;
 }
 function RoundTwoResultsPreview() {
   let game = openDraft(fixture(2));
   while (game.phase === "OPEN_DRAFT") game = autoPickDraft(game);
-  game = resolvePrimary(lockRunLoadouts(game));
+  game = resolvePrimary(completeR2Briefing(game));
   return <RoundTwoLayout phase="라운드 결과"><RoundResults round={2} rows={createRoundSummary(game)} viewerId="p1" secondsLeft={30}>{null}</RoundResults><div className="action-bar"><button className="primary">라운드 마감 →</button></div></RoundTwoLayout>;
 }
 function DraftFixturePreview() {
@@ -104,13 +102,11 @@ function DraftFixturePreview() {
   const view = createPlayerView({ schema:1, roomId:"PREVIEW", revision:0, status:"PLAYING", game, sessions:[{playerId:viewer,tokenHash:"fixture",requests:[]}], readyIds:[], endedShopIds:[] },viewer);
   const send = (a: GameAction) => {
     if(a.type==="DRAFT_PICK") setGame((s)=>pickDraftCard(s,viewer,a.cardId));
-    if(a.type==="RUN_LOADOUT") setGame((s)=>setRunLoadout(s,viewer,a.cardIds));
-    if(a.type==="LOCK_RUN_LOADOUT") setGame((s)=>resolvePrimary(lockRunLoadouts(s)));
   };
   if(game.phase==="ROUND_RESULT") return <ShowdownCinematic key={game.roundResults[0]!.id} match={createMatchView(game,game.roundResults[0]!)} profiles={game.players.map((p)=>({playerId:p.id,name:p.name,points:p.points,alive:!p.eliminated,abilityId:p.abilityId}))} viewerId={viewer} controls onComplete={()=>setGame(fixture(2))} />;
   return <main className="page-shell"><h1>LOCAL DRAFT PREVIEW</h1><div className="room-controls"><button onClick={()=>setGame(fixture(2))}>R2</button><button onClick={()=>setGame(fixture(4))}>R4</button><button disabled={!["DRAFT_ORDER","OPEN_DRAFT"].includes(game.phase)} onClick={()=>setGame((s)=>s.phase==="DRAFT_ORDER"?openDraft(s):autoPickDraft(s))}>다음 선택</button></div>
     {["DRAFT_ORDER", "OPEN_DRAFT"].includes(game.phase) && <TimedOpenDraftPanel key={`${game.phase}:${draftPickIndex}`} view={view} send={send} disabled={false} seconds={null} durationSeconds={game.phase === "DRAFT_ORDER" ? 3 : 20} />}
-    {game.phase==="RUN_LOADOUT" && <TimedRunLoadoutPanel key={game.phase} view={view} send={send} disabled={false} seconds={null} durationSeconds={30} />}
+    {game.phase==="R2_BRIEFING" && <R2Briefing seconds={null} ready={0} total={1} confirmed={false} disabled={false} onConfirm={()=>setGame((s)=>resolvePrimary(completeR2Briefing(s)))} />}
     {game.phase==="SHOP" && <p>상점 준비 완료 · 보유 {view.me.ownedCards.length}장 · 진열 {view.me.shopCards.length}장</p>}
   </main>;
 }
@@ -162,7 +158,7 @@ export function DraftPreview() {
   if (params.has("showdownPrep")) return <ShowdownPrepPreview />;
   if (params.has("roundGuide")) return <RoundGuide round={params.get("roundGuide") === "1" ? 1 : 2} onClose={() => undefined} />;
   if (params.has("shopStyle")) return <ShopStylePreview />;
-  if (params.has("runLoadout")) return <RunLoadoutPreview />;
+  if (params.has("r2Briefing")) return <R2BriefingPreview />;
   if (params.has("roundResults")) return <RoundTwoResultsPreview />;
   if (params.has("finalResults")) return <FinalResultsPreview />;
   if (params.has("r2Arena")) return <R2ArenaStylePreview />;

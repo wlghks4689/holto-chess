@@ -344,8 +344,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       const runOutcome = multiRun && boardIndex < match.runoutCount && completed
         ? boardWinners.length > 1 ? "split" : !ids.includes(viewerId) ? "decided" : boardWinners.includes(viewerId) ? "win" : "loss" : undefined;
       const toggleDetail = () => setRunDetail((open) => open === boardIndex ? null : boardIndex);
-      // R5: once the match result is out, the last RUN settles to the finished RUN size too.
-      const settled = !current || tripleRun && flags.result;
+      // R2 and R5: once the match result is out, the last RUN settles to the finished RUN size too.
+      const settled = !current || multiRun && flags.result;
       return <div className={`cinema-board ${pending ? "pending" : settled ? "complete" : "active"} ${match.runoutCount === 2 || tripleRun ? "cinema-run-board" : ""} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"} ${runOutcome ? `is-run-${runOutcome} has-run-detail ${runDetail === boardIndex ? "is-detail-open" : ""}` : ""}`} key={boardIndex}
         style={multiRun ? { "--run-order": -boardIndex } as CSSProperties : undefined}
         {...runOutcome ? { role: "button", tabIndex: 0, "aria-expanded": runDetail === boardIndex, "aria-label": t("cinema.runDetailAria", { run: boardIndex + 1 }),

@@ -28,9 +28,26 @@ describe("showdown prep view", () => {
       }
     }
   });
-  it("provides each R2 player's full dead-card hand and the actual split-run pairs", () => {
+  it("R2 BEST FIVE shows each seat's three cards for both RUNs", () => {
+    const room = addSession(createRoom("R2BEST", 20260927, "secure"), "player").room;
+    room.status = "PLAYING";
+    room.game.round = 2;
+    room.game.phase = "SHOWDOWN_PRIMARY";
+    const [p1, p2] = room.game.players;
+    p1!.ownedCardIds = room.game.ownershipCardPool.slice(0, 3).map((entry) => entry.card.id);
+    p2!.ownedCardIds = room.game.ownershipCardPool.slice(3, 6).map((entry) => entry.card.id);
+    room.game.primaryPairings = [["p1", "p2"]];
+    const preview = createPlayerView(room, "p1").showdownPrep!;
+    for (const [seat, player] of [[preview.viewer, p1!], [preview.opponent!, p2!]] as const) {
+      expect(seat.cards.map((card) => card.id)).toEqual(player.ownedCardIds);
+      expect(seat.runCards?.map((run) => run.map((card) => card.id))).toEqual([player.ownedCardIds, player.ownedCardIds]);
+    }
+  });
+
+  it("legacy room: provides each R2 player's full dead-card hand and the actual split-run pairs", () => {
     const room = addSession(createRoom("R2PREP", 20260927, "secure"), "player").room;
     room.status = "PLAYING";
+    delete room.game.r2BestThree;
     room.game.round = 2;
     room.game.rulesVersion = 2;
     room.game.phase = "SHOWDOWN_PRIMARY";

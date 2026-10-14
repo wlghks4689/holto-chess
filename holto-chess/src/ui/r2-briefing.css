@@ -1,0 +1,17 @@
+/* R2 BEST FIVE briefing: the R3 auction pamphlet's look, as the phase's own screen. */
+.r2-briefing{width:min(520px,100%);margin:12px auto 0;padding:22px 22px 18px;border:1px solid #547b9b;border-radius:16px;background:#0b1a2e;color:#d4e3f3;box-shadow:0 20px 70px #000b}
+.r2-briefing>header small{color:#9be7fa;font:700 11px DM Mono;letter-spacing:.12em}
+.r2-briefing>header h2{margin:4px 0 0;font-size:24px}
+.r2-briefing ol{margin:16px 0;padding:0;list-style:none;display:grid;gap:10px}
+.r2-briefing li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:start;font-size:14px;line-height:1.55}
+.r2-briefing li>i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#123a52;color:#9be7fa;font:700 12px DM Mono;font-style:normal}
+.r2-briefing>footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.r2-briefing-status p{margin:0;color:#9fb6c8;font-size:12px}
+.r2-briefing-status .r2-briefing-ready{margin-top:2px;font:700 12px DM Mono;letter-spacing:.04em}
+.r2-briefing-countdown{color:#7ce4ff;font:800 22px DM Mono}
+.r2-briefing>footer .primary{min-width:120px}
+@media(max-width:480px){
+  .r2-briefing{padding:18px 16px 16px}
+  .r2-briefing>header h2{font-size:21px}
+  .r2-briefing li{font-size:13px}
+}

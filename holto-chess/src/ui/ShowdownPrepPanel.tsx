@@ -77,7 +77,11 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
   const viewer = matchup?.viewer;
   const opponents = matchup?.opponents ?? (matchup?.opponent ? [matchup.opponent] : []);
   const opponent = opponents.length === 1 ? opponents[0] : undefined;
-  const equities = useDisplayEquity([0, 1].map(run => ({ kind: "headsUp", round: 2,
+  // R2 BEST FIVE: both RUNs play the same three cards, so one row and one pre-board win chance stand for both.
+  const bestThree = viewer?.runCards?.[0]?.length === 3;
+  const runs = bestThree ? [0] : [0, 1];
+  const holeCount = bestThree ? 3 : 2;
+  const equities = useDisplayEquity(runs.map(run => ({ kind: "headsUp", round: 2,
     hands: [viewer?.runCards?.[run] ?? [], opponent?.runCards?.[run] ?? []], dead: [...(viewer?.cards ?? []), ...(opponent?.cards ?? [])] })));
   const seats = [viewer, opponent] as const;
   const names = [viewer?.name ?? playerName, opponent?.name ?? t("showdown.findingOpponent")] as const;
@@ -87,19 +91,20 @@ function RunTwicePrepPanel({ playerName, matchup }: { playerName: string; matchu
       {seats.map((seat, index) => <Fragment key={seat?.playerId ?? `pending-${index}`}>
         <article className={`r2-match-player ${index === 0 ? "is-viewer" : "is-opponent"} ${seat ? "" : "is-pending"}`}>
           <header className="r2-match-identity"><PrepAvatar className="r2-match-avatar" seat={seat} fallback={seat ? [...seat.name][0] ?? "P" : "?"} /><div><b title={names[index]}>{names[index]}</b><small>{seat ? t("showdown.points", { points: seat.points }) : "—"}</small></div></header>
-          <div className="r2-run-list">{([0, 1] as const).map((run) => {
+          <div className="r2-run-list">{runs.map((run) => {
             const cards = seat?.runCards?.[run] ?? [];
             const percent = equities?.[run]?.[index] ?? null;
-            return <section className="r2-run-preview" key={run} aria-label={`RUN ${run + 1}`}>
-              <h2>RUN {run + 1}</h2>
-              <div className="r2-run-preview-body"><div className="r2-run-cards">{cards.slice(0, 2).map((card) => <CardView key={card.id} card={card} compact />)}{Array.from({ length: Math.max(0, 2 - cards.length) }, (_, i) => <span className="r2-run-card-placeholder" key={`empty-${i}`} />)}</div><div className="r2-run-equity"><small>{t("showdown.equityLabel")}</small><strong>{percent === null ? "--" : `${percent}%`}</strong></div></div>
+            const label = bestThree ? "RUN 1 · RUN 2" : `RUN ${run + 1}`;
+            return <section className={`r2-run-preview ${bestThree ? "is-best-three" : ""}`} key={run} aria-label={label}>
+              {!bestThree && <h2>{label}</h2>}
+              <div className="r2-run-preview-body"><div className="r2-run-cards">{cards.slice(0, holeCount).map((card) => <CardView key={card.id} card={card} compact />)}{Array.from({ length: Math.max(0, holeCount - cards.length) }, (_, i) => <span className="r2-run-card-placeholder" key={`empty-${i}`} />)}</div><div className="r2-run-equity"><small>{t("showdown.equityLabel")}</small><strong>{percent === null ? "--" : `${percent}%`}</strong></div></div>
             </section>;
           })}</div>
         </article>
         {index === 0 && <strong className="r2-match-vs" aria-label={t("showdown.versus")}>VS</strong>}
       </Fragment>)}
     </div>
-    <footer className="showdown-prep-footer r2-match-footer"><strong>SHOWDOWN</strong><small>{t("showdown.runEquityNote")}</small></footer>
+    <footer className="showdown-prep-footer r2-match-footer"><strong>SHOWDOWN</strong><small>{t(bestThree ? "showdown.bestThreeEquityNote" : "showdown.runEquityNote")}</small></footer>
   </section>;
 }
 
