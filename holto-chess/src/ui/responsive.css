@@ -750,7 +750,7 @@ nav .brand{min-width:0;gap:8px}nav .brand .arena-wordmark{display:block;width:15
 /* R2: two stacked runs; each RUN's hands live in the seats and in the finished RUN's detail. */
 .cinema[data-round="2"] .cinema-board-stack.run-it-twice{grid-template-columns:minmax(0,1fr);gap:0;border:1px solid #294839;border-radius:12px;overflow:hidden;background:rgba(4,18,25,.82)}
 .cinema[data-round="2"] .run-it-twice .cinema-run-board{--run-card-width:clamp(30px,4vw,53px);--run-board-gap:5px;--run-hand-gap:3px;--run-matchup-gap:8px;--run-vs-width:18px;display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-areas:"label board";align-items:center;gap:8px 18px;padding:10px 16px}
-.cinema[data-round="2"] .cinema-run-board .cinema-board-label{grid-area:label}
+.cinema[data-round="2"] .cinema-run-board .cinema-board-label{grid-area:label;padding-bottom:0}
 .cinema[data-round="2"] .run-it-twice .cinema-run-board+.cinema-run-board{border-top:1px solid #294839;border-left:0}
 .cinema[data-round="2"] .cinema-run-board .cinema-board-label h3{margin:0;font-size:12px;white-space:nowrap}
 .cinema[data-round="2"] .cinema-run-board .cinema-board-street{font-size:9px;height:14px;line-height:14px}

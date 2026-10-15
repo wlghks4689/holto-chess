@@ -120,9 +120,10 @@ function Scene({ scene }: { scene: Case }) {
   }
   if (screen.startsWith("showdown")) {
     const frames = cinematicTimeline(match);
+    const requestedFrame = frames.find(frame => frame.phase === new URLSearchParams(location.search).get("phase"));
     const switchPhase = screen === "showdown-switch-out" ? "CARD_SWITCH_OUT" : screen === "showdown-switch-in" ? "CARD_SWITCH_IN" : undefined;
     const elapsed = switchPhase ? frames.find(f=>f.phase === switchPhase)!.at + 100 : benefitQa ? frames.find(f=>f.phase === (round === 5 ? "FINAL_WINNER" : round === 2 ? "RUN_RESULT" : "RESULT"))!.at + 250 : screen === "showdown-run1-result" ? frames.find(f=>f.phase === "RUN_RESULT")!.at : screen === "showdown-run2-river" ? frames.find(f=>f.phase === "RIVER_SETTLE" && f.boardIndex === 1)!.at : Number.MAX_SAFE_INTEGER;
-    return <ShowdownCinematic match={match} profiles={profiles} viewerId="p1" onComplete={() => {}} elapsedMs={screen.endsWith("-live") ? livePhaseAt(frames) : elapsed} nextMatchSeconds={screen === "showdown" || screen === "showdown-tiebreak" ? 3 : undefined} catchUp={!screen.endsWith("-live")} />;
+    return <ShowdownCinematic match={match} profiles={profiles} viewerId="p1" onComplete={() => {}} elapsedMs={requestedFrame?.at ?? (screen.endsWith("-live") ? livePhaseAt(frames) : elapsed)} nextMatchSeconds={screen === "showdown" || screen === "showdown-tiebreak" ? 3 : undefined} catchUp={!screen.endsWith("-live")} />;
   }
   if (screen.startsWith("match")) {
     const seats = match.participantIds.map((playerId, i) => ({ playerId, name:QA_NAMES[i]!, points:12345, abilityId:ABILITY_IDS[i], cards:match.revealedCards[playerId]!, ...(round === 2 ? { runCards:[match.revealedCards[playerId]!.slice(0,2),match.revealedCards[playerId]!.slice(-2)] as [typeof qaDeck,typeof qaDeck] } : {}) }));

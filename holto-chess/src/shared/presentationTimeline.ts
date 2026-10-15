@@ -57,9 +57,9 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
         // The incoming hand's 420ms flip completes before the one-second read beat.
         add("CARD_SWITCH_SETTLE", 1000);
       }
-      revealed = 1; add("FLOP_1", 500);
-      revealed = 2; add("FLOP_2", 500);
-      revealed = 3; add("FLOP_3", 500); add("FLOP_SETTLE", 200); add("FLOP_HAND", 900);
+      revealed = 1; add("FLOP_1", 450);
+      revealed = 2; add("FLOP_2", 450);
+      revealed = 3; add("FLOP_3", 450); add("FLOP_SETTLE", 200); add("FLOP_HAND", 900);
       revealed = 4; add("TURN", 720); add("TURN_SETTLE", 200); add("TURN_HAND", 920);
       add("RIVER_SUSPENSE", 250);
       revealed = 5; add("RIVER", 900); add("RIVER_SETTLE", final ? 1200 : 200);
@@ -120,7 +120,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 18;
+export const PRESENTATION_VERSION = 19;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */

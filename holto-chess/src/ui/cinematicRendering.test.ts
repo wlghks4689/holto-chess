@@ -66,15 +66,21 @@ describe("cinematic initial rendering", () => {
     expect(render([completed, { ...completed, id: "next" }])).toContain("다음 매치 →");
     expect(render([completed])).toContain("라운드 결과 확인 →");
   });
-  it("shows streets under the board heading with no narration footer", () => {
+  it("anchors streets inside the shared board card area with no narration footer", () => {
     const view: MatchView = { ...match, round: 1, boards: [deck.slice(10, 15)], runoutCount: 1 };
     for (const phase of ["FLOP_3", "TURN", "RIVER", "MADE_HAND", "RESULT"] as const) {
       const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...view, disclosure: { elapsedMs: 0, frames: [{ at: 0, phase, boardIndex: 0, revealed: 5, finalCards: 2 }] } }, profiles, viewerId: "p1", onComplete: () => {} }));
       expect(html).not.toContain("cinema-footer");
       expect(html).not.toContain("완성된 족보");
       expect(html).not.toContain("매치 결과");
-      if (["FLOP_3", "TURN", "RIVER"].includes(phase)) expect(html).toContain(`<h3>커뮤니티 보드</h3><div class="cinema-board-street" aria-live="polite">${phase.split("_")[0]}</div>`);
+      if (["FLOP_3", "TURN", "RIVER"].includes(phase)) expect(html).toContain(`<div class="cinema-board-cards"><div class="cinema-board-street" aria-live="polite">${phase.split("_")[0]}</div>`);
     }
+  });
+  it("reserves R1's lower hand-read area when a disclosed street has no hand label yet", () => {
+    const view: MatchView = { ...match, round: 1, boards: [deck.slice(10, 15)], runoutCount: 1, streetSnapshots: undefined,
+      disclosure: { elapsedMs: 0, frames: [{ at: 0, phase: "RIVER_SETTLE", boardIndex: 0, revealed: 5, finalCards: 2 }] } };
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: view, profiles, viewerId: "p1", onComplete: () => {} }));
+    expect(html).toContain('cinema-street-made cinema-hand-read-placeholder');
   });
   it("shows the nickname once without appending a self label", () => {
     const namedProfiles = profiles.map((profile) => profile.playerId === "p1" ? { ...profile, name: "나" } : profile);

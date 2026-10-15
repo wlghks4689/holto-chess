@@ -10,10 +10,10 @@ describe("showdown reveal timing", () => {
     expect(timeline.some((frame) => frame.phase === "VS_INTRO" || frame.phase === "PREFLOP_HAND")).toBe(false);
     expect(frameAt(timeline, 399).phase).toBe("TABLE_ENTER");
     expect(frameAt(timeline, 400).phase).toBe("FLOP_1");
-    expect(time("FLOP_2") - time("FLOP_1")).toBe(500);
-    expect(time("FLOP_3") - time("FLOP_2")).toBe(500);
+    expect(time("FLOP_2") - time("FLOP_1")).toBe(450);
+    expect(time("FLOP_3") - time("FLOP_2")).toBe(450);
     expect(time("FLOP_HAND") - time("FLOP_SETTLE")).toBe(200);
-    expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(500);
+    expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(450);
     expect(time("TURN") - time("FLOP_HAND")).toBe(900);
     expect(time("TURN_HAND") - time("TURN_SETTLE")).toBe(200);
     expect(time("RIVER_SUSPENSE") - time("TURN_HAND")).toBe(920);
@@ -40,9 +40,9 @@ describe("showdown reveal timing", () => {
     const timeline = cinematicTimeline({ boards: [deck.slice(0, 5), deck.slice(5, 10), deck.slice(10, 15)], revealedCards: {} });
     for (const boardIndex of [0, 1, 2]) {
       const time = (phase: string) => timeline.find((frame) => frame.boardIndex === boardIndex && frame.phase === phase)!.at;
-      expect(time("FLOP_2") - time("FLOP_1")).toBe(500);
-      expect(time("FLOP_3") - time("FLOP_2")).toBe(500);
-      expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(500);
+      expect(time("FLOP_2") - time("FLOP_1")).toBe(450);
+      expect(time("FLOP_3") - time("FLOP_2")).toBe(450);
+      expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(450);
       expect(time("TURN") - time("FLOP_HAND")).toBe(900);
       expect(time("RIVER_SUSPENSE") - time("TURN_HAND")).toBe(920);
     }
