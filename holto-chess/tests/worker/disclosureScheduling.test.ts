@@ -4,6 +4,31 @@ import { expect, it, vi } from "vitest";
 import type { RoomSnapshot } from "../../src/game/room";
 import type { SessionCredential } from "../../src/shared/protocol";
 import { PRESENTATION_VERSION } from "../../src/shared/presentationTimeline";
+import { barrierDeadline } from "../../src/game/room";
+import { MATCH_PREP_MS, PRESENTATION_LEAD_MS } from "../../src/shared/presentationTimeline";
+
+it("commits a full setup window after slow calculation, stores it, and preserves it on later commits", async () => {
+  const origin = "https://porena.test";
+  const response = await exports.default.fetch(`${origin}/api/rooms`, {
+    method: "POST", headers: { Origin: origin, "CF-Connecting-IP": "192.0.2.239" },
+  });
+  expect(response.status).toBe(201);
+  const credential = await response.json() as SessionCredential;
+  const stub = env.GAME_ROOM.getByName(`room:${credential.roomId}`);
+  const result = await runInDurableObject(stub, async (instance, state) => {
+    const internal = instance as unknown as { room: RoomSnapshot; commit: (next: RoomSnapshot) => Promise<void> };
+    internal.room.status = "PLAYING"; internal.room.game.phase = "SHOP";
+    const next = structuredClone(internal.room); next.game.phase = "SHOWDOWN_PRIMARY";
+    next.barrierSince = Date.now() - 8000; // Clock sampled before an expensive engine transaction.
+    const before = Date.now(); await internal.commit(next);
+    const saved = await state.storage.get<RoomSnapshot>("snapshot:v1");
+    const first = internal.room.barrierSince;
+    await internal.commit(structuredClone(internal.room));
+    return { before, deadline: barrierDeadline(saved!), first, again: internal.room.barrierSince };
+  });
+  expect(result.deadline! - result.before).toBeGreaterThanOrEqual(MATCH_PREP_MS + PRESENTATION_LEAD_MS);
+  expect(result.again).toBe(result.first);
+});
 
 it("does not replace a due broadcast alarm while serving another request", async () => {
   const origin = "https://porena.test";

@@ -6,6 +6,7 @@ import { BALANCE, cardPrice } from "../game/config";
 import { ABILITY_IDS, type AbilityId } from "../game/abilities";
 import type { Round } from "../game/types";
 import { ShopPanel } from "./App";
+import { applyLocalGameCommand } from "./localGameCommand";
 import { ShowdownCinematic } from "./ShowdownCinematic";
 import { ShowdownPrepPanel } from "./ShowdownPrepPanel";
 import { ShowdownHand } from "./ShowdownHand";
@@ -66,7 +67,7 @@ function InteractiveShop() {
     game.players[0]!.abilityId = new URLSearchParams(location.search).get("ability") === "trader" ? "trader" : "first-class";
     return game;
   });
-  return <ShopPanel state={state} act={fn => setState(previous => fn(previous))} />;
+  return <ShopPanel state={state} act={command => setState(previous => applyLocalGameCommand(previous, command))} />;
 }
 
 /** The private deal, then everyone's abilities after the same 5s the server waits. */

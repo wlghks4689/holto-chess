@@ -20,6 +20,20 @@ const match: MatchView = {
 };
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
 
+it("later six-round R5 match prep preserves all three RUN hands instead of the legacy final panel", () => {
+  const triple: MatchView = { ...match, id: "triple", final: false, stage: "primary", participantIds: ["p1", "p2"], runoutCount: 3,
+    boards: [deck.slice(12, 17), deck.slice(17, 22), deck.slice(22, 27)], revealedCards: { p1: deck.slice(0, 6), p2: deck.slice(6, 12) },
+    runCards: { p1: [deck.slice(0, 2), deck.slice(2, 4), deck.slice(4, 6)], p2: [deck.slice(6, 8), deck.slice(8, 10), deck.slice(10, 12)] } };
+  const html = renderToStaticMarkup(createElement(CinematicGate, { matches: [triple], profiles, viewerId: "p1", receivedAt: 100,
+    presentation: { version: PRESENTATION_VERSION, startsAt: 0, endsAt: 30000,
+      matches: [{ matchId: triple.id, offsetMs: 0, durationMs: 30000, prepMs: MATCH_PREP_MS }] },
+    clock: { now: () => 100, offset: () => 0, observe: () => {} }, children: "result" }));
+  expect(html).toContain("RUN IT THREE TIMES");
+  expect(html.match(/aria-label="RUN 3"/g)).toHaveLength(2);
+  expect(html).not.toContain("card-back");
+  expect(html).not.toContain("final-match-loading");
+});
+
 describe("cinematic initial rendering", () => {
   it("colors the R5 visible hand name from trips to full house without revealing the future quads or starting FX", () => {
     const cards = new Map(deck.map(card => [card.id, card]));

@@ -6,6 +6,7 @@ import { EquityMeter } from "./EquityMeter";
 import { equityBoardCount, releasedEquityBoardCount } from "./streetEquity";
 import { streetEquityJob } from "./displayEquity";
 import { useDisplayEquity } from "./useDisplayEquity";
+import { visibleTimeout } from "./visibleTimeout";
 import type { CSSProperties, KeyboardEvent } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, isFinalMatch, revealFlags, type CinematicFrame } from "./cinematicTimeline";
@@ -413,7 +414,7 @@ function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string):
       points: match.standingsBefore?.[id] ?? profile?.points ?? 0,
       cards: runCards ? [...new Map(runCards.flat().map((card) => [card.id, card])).values()] : match.revealedCards[id] ?? [],
       abilityId: profile?.abilityId,
-      runCards: runCards && runCards.length >= 2 ? [runCards[0]!, runCards[1]!] as [Card[], Card[]] : undefined,
+      runCards: runCards && runCards.length >= 2 ? runCards : undefined,
     };
   };
   const opponents = ids.slice(1).map(seat);
@@ -430,7 +431,7 @@ function MatchPrepScreen({ match, profiles, viewerId, seconds, nav }: {
     <RoundProgress round={match.round} prep={null} />
     <div className="nav-status" />
   </nav>}<div className="page-shell" id="top"><GameViewportReset screenKey={`prep:${match.id}`} /><ShowdownPrepPanel round={match.round}
-    playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
+    final={isFinalMatch(match)} playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
     seconds={seconds} matchup={matchPrepView(match, profiles, viewerId)} /></div></main>;
 }
 
@@ -441,10 +442,7 @@ function MatchPrepInterlude({ match, profiles, viewerId, onComplete, nav }: {
   const finish = useRef(onComplete);
   useEffect(() => { finish.current = onComplete; }, [onComplete]);
   useEffect(() => {
-    const started = performance.now();
-    const timer = setInterval(() => setSeconds(Math.max(0, Math.ceil((MATCH_PREP_MS - (performance.now() - started)) / 1000))), 100);
-    const done = setTimeout(() => finish.current(), MATCH_PREP_MS);
-    return () => { clearInterval(timer); clearTimeout(done); };
+    return visibleTimeout(() => finish.current(), MATCH_PREP_MS, remaining => setSeconds(Math.ceil(remaining / 1000)));
   }, []);
   return <MatchPrepScreen match={match} profiles={profiles} viewerId={viewerId} seconds={seconds} nav={nav} />;
 }

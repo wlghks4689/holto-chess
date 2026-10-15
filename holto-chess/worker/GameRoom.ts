@@ -8,6 +8,7 @@ import { createPlayerView } from "../src/game/playerView";
 import { parseClientMessage, type ServerMessage } from "../src/shared/protocol";
 import { classifyGameError } from "../src/shared/gameErrorCode";
 import { nextDisclosureAt } from "../src/game/disclosure";
+import { anchorNewPresentation, needsPresentationAnchor } from "../src/game/presentationCommit";
 import { FINISHED_ROOM_LIFETIME_MS, LOBBY_IDLE_LIFETIME_MS, ROOM_LIFETIME_MS } from "../src/shared/retention";
 import { roomAccountIdentity } from "./roomIdentity";
 
@@ -97,6 +98,12 @@ export class GameRoom extends DurableObject<Env> {
    * the clock): they must not restart the 30-minute idle lifetime.
    */
   private async commit(next: RoomSnapshot, activity = true): Promise<void> {
+    if (needsPresentationAnchor(this.room, next)) {
+      // Workers freezes Date.now during synchronous CPU work. A timer event refreshes
+      // it before we stamp the new viewing window, without adding an external request.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      anchorNewPresentation(this.room, next, Date.now());
+    }
     if (next.publicTurnKey?.turn !== turnKey(next)) next.publicTurnKey = { turn: turnKey(next), key: token() };
     // The settlement duty is stored with the state change that created it, so a crash cannot lose it.
     // A new duty is flushed at once, unless D1 is already failing: then it joins the running backoff.

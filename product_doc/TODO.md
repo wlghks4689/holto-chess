@@ -9,6 +9,7 @@
 #### 운영 적용 및 실기기 확인
 
 - [ ] SD-FREEZE-001-RELEASE | 담당 Codex·사용자 | 상태 REVIEW | 의존 자동 배포 적용 확인 및 실기기 QA(commit/push와 main 머지는 2026-10-12 승인) | 완료 조건: 승률 표시 Worker 분리·로딩 승률 재사용·공개 스트리트 선계산을 운영 적용하고 실제 PC/iOS/Android에서 싱글·멀티의 로딩→쇼다운→결과를 확인한다. 로컬 93회귀·Workers 17회귀·8개 제한 CPU 브라우저 전환·3개 Worker 실패·실제 빌드 3탭 R1 검증 완료. 최신 main 통합 후 관련 93회귀·lint·릴리스 빌드 통과. 기존 openDraft 실패 1개는 별도 공개 정책 검토 대상으로 남긴다. 상세 [QA](qa/2026-10-12-showdown-transition-freeze.md).
+- [ ] SD-FREEZE-002-RELEASE | 담당 Codex·사용자 | 상태 REVIEW | 의존 2026-10-15 수정본 자동 배포 적용 확인 및 실기기 QA(구현·commit/push는 이번 사용자 요청으로 승인) | 완료 조건: 계산 후 준비 시간 기준점 보정·게스트 싱글 엔진 Worker 분리·가시 시간 준비창을 운영에서 확인하고 실제 iOS/Android 및 장시간 싱글·멀티 검증을 완료한다. 로컬 브라우저 18표본 전체 COMPLETE, 최대 계측 간격 103ms, 실제 두 게스트 WebSocket R1→R2→R3 진행, Workers 18회귀 통과. 전체 927통과·기존 공개 정책 불일치 1실패. 상세 [QA](qa/2026-10-15-showdown-prep-timing.md).
 
 ### Google 로그인 — 공개 전 Gate
 
