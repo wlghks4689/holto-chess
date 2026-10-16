@@ -1,0 +1,44 @@
+{
+  "desktop": {
+    "mode": "browser transport + simulated delayed alarm",
+    "fixed": true,
+    "deadlineMs": 3000,
+    "phases": [
+      {
+        "phase": "DRAFT_ORDER",
+        "atMs": 3
+      },
+      {
+        "phase": "OPEN_DRAFT",
+        "atMs": 4002
+      }
+    ],
+    "probes": [
+      1004,
+      4002
+    ],
+    "maxGapMs": 115,
+    "errors": []
+  },
+  "mobile": {
+    "mode": "browser transport + simulated delayed alarm",
+    "fixed": true,
+    "deadlineMs": 3000,
+    "phases": [
+      {
+        "phase": "DRAFT_ORDER",
+        "atMs": 1
+      },
+      {
+        "phase": "OPEN_DRAFT",
+        "atMs": 4013
+      }
+    ],
+    "probes": [
+      1006,
+      4011
+    ],
+    "maxGapMs": 110,
+    "errors": []
+  }
+}

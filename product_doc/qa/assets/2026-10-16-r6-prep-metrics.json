@@ -1,0 +1,301 @@
+{
+  "engine": {
+    "finalEquityMs": 2,
+    "maxProjectionMs": 3.400000000372529,
+    "resolveMs": 9.099999999627471
+  },
+  "transition": {
+    "mode": "online",
+    "round": 6,
+    "maxGapMs": 70,
+    "maxTaskMs": 0,
+    "transitions": [
+      {
+        "phase": "CALCULATING",
+        "at": 40
+      },
+      {
+        "phase": "PREP",
+        "at": 6880
+      },
+      {
+        "phase": "WAITING",
+        "at": 11125
+      },
+      {
+        "phase": "ARENA_ENTER",
+        "at": 11890
+      },
+      {
+        "phase": "TABLE_ENTER",
+        "at": 14361
+      },
+      {
+        "phase": "FLOP_1",
+        "at": 14761
+      },
+      {
+        "phase": "FLOP_2",
+        "at": 15243
+      },
+      {
+        "phase": "FLOP_3",
+        "at": 15656
+      },
+      {
+        "phase": "FLOP_SETTLE",
+        "at": 16091
+      },
+      {
+        "phase": "FLOP_HAND",
+        "at": 16288
+      },
+      {
+        "phase": "TURN",
+        "at": 17247
+      },
+      {
+        "phase": "TURN_SETTLE",
+        "at": 17961
+      },
+      {
+        "phase": "TURN_HAND",
+        "at": 18125
+      },
+      {
+        "phase": "RIVER_SUSPENSE",
+        "at": 19043
+      },
+      {
+        "phase": "RIVER",
+        "at": 19291
+      },
+      {
+        "phase": "RIVER_SETTLE",
+        "at": 20167
+      },
+      {
+        "phase": "BEST5_GLOW",
+        "at": 21367
+      },
+      {
+        "phase": "MADE_HAND",
+        "at": 21880
+      },
+      {
+        "phase": "FINAL_PLACE",
+        "at": 22489
+      },
+      {
+        "phase": "FINAL_WINNER",
+        "at": 24324
+      },
+      {
+        "phase": "REWARD",
+        "at": 25603
+      },
+      {
+        "phase": "COMPLETE",
+        "at": 27161
+      },
+      {
+        "phase": "CALCULATING",
+        "at": 28726
+      }
+    ],
+    "runMoves": [],
+    "prepOdds": [
+      "1%",
+      "99%",
+      "0%"
+    ],
+    "cards": [
+      5,
+      5,
+      5
+    ],
+    "equity": [],
+    "errors": [],
+    "width": 1440,
+    "scrollWidth": 1425
+  },
+  "desktopLayout": {
+    "seats": [
+      {
+        "h": 227,
+        "rows": [
+          {
+            "class": "showdown-prep-hand",
+            "h": 75,
+            "w": 448,
+            "x": 18,
+            "y": 79
+          },
+          {
+            "class": "final-block-cards",
+            "h": 56,
+            "w": 58,
+            "x": 123,
+            "y": 160
+          },
+          {
+            "class": "showdown-prep-equity",
+            "h": 24,
+            "w": 160,
+            "x": 201,
+            "y": 184
+          }
+        ],
+        "w": 484
+      },
+      {
+        "h": 227,
+        "rows": [
+          {
+            "class": "showdown-prep-hand",
+            "h": 75,
+            "w": 448,
+            "x": 18,
+            "y": 78.328125
+          },
+          {
+            "class": "final-block-cards",
+            "h": 56,
+            "w": 58,
+            "x": 123,
+            "y": 160
+          },
+          {
+            "class": "showdown-prep-equity",
+            "h": 24,
+            "w": 160,
+            "x": 201,
+            "y": 184
+          }
+        ],
+        "w": 484
+      },
+      {
+        "h": 227,
+        "rows": [
+          {
+            "class": "showdown-prep-hand",
+            "h": 75,
+            "w": 448,
+            "x": 18,
+            "y": 79
+          },
+          {
+            "class": "final-block-cards",
+            "h": 56,
+            "w": 58,
+            "x": 123,
+            "y": 160
+          },
+          {
+            "class": "showdown-prep-equity",
+            "h": 24,
+            "w": 160,
+            "x": 201,
+            "y": 184
+          }
+        ],
+        "w": 484
+      }
+    ],
+    "viewport": [
+      1440,
+      900
+    ]
+  },
+  "mobileLayout": {
+    "scroll": 393,
+    "seats": [
+      {
+        "h": 211.4375,
+        "rows": [
+          {
+            "h": 45.4375,
+            "kind": "showdown-prep-hand",
+            "w": 172.5,
+            "x": 6,
+            "y": 63
+          },
+          {
+            "h": 56,
+            "kind": "final-block-cards",
+            "w": 58,
+            "x": 63.25,
+            "y": 122.4375
+          },
+          {
+            "h": 18,
+            "kind": "showdown-prep-equity",
+            "w": 70.625,
+            "x": 56.9375,
+            "y": 184.4375
+          }
+        ],
+        "w": 184.5
+      },
+      {
+        "h": 211.4375,
+        "rows": [
+          {
+            "h": 45.4375,
+            "kind": "showdown-prep-hand",
+            "w": 172.5,
+            "x": 6,
+            "y": 63
+          },
+          {
+            "h": 56,
+            "kind": "final-block-cards",
+            "w": 58,
+            "x": 63.25,
+            "y": 122.4375
+          },
+          {
+            "h": 18,
+            "kind": "showdown-prep-equity",
+            "w": 87.421875,
+            "x": 48.53125,
+            "y": 184.4375
+          }
+        ],
+        "w": 184.5
+      },
+      {
+        "h": 211.4375,
+        "rows": [
+          {
+            "h": 45.4375,
+            "kind": "showdown-prep-hand",
+            "w": 172.5,
+            "x": 6,
+            "y": 63
+          },
+          {
+            "h": 56,
+            "kind": "final-block-cards",
+            "w": 58,
+            "x": 63.25,
+            "y": 122.4375
+          },
+          {
+            "h": 18,
+            "kind": "showdown-prep-equity",
+            "w": 70.625,
+            "x": 56.9375,
+            "y": 184.4375
+          }
+        ],
+        "w": 184.5
+      }
+    ],
+    "viewport": [
+      393,
+      852
+    ]
+  }
+}

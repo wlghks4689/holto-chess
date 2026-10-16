@@ -30,6 +30,7 @@ import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
 
 type Case = { id: string; screen: string; round: Round; count: number };
 const cases: Case[] = [];
+cases.push({ id:"match-r6-burn", screen:"match-r6-burn", round:6, count:5 });
 cases.push({ id:"showdown-equity-live", screen:"showdown-equity-live", round:2, count:3 });
 cases.push({ id:"showdown-r6-final-live", screen:"showdown-r6-final-live", round:4, count:5 });
 cases.push({ id: "shop-reroll-interaction", screen: "shop", round: 1, count: 1 });
@@ -78,6 +79,11 @@ function AbilityTransition() {
 }
 
 function Scene({ scene }: { scene: Case }) {
+  if (scene.id === "match-r6-burn") {
+    const seats = [0, 1, 2].map(i => ({ playerId:`p${i + 1}`, name:QA_NAMES[i]!, points:30 - i * 5,
+      abilityId:ABILITY_IDS[i], cards:qaDeck.slice(i * 5, i * 5 + 5), blockCards:qaDeck.slice(30 + i * 2, 30 + i * 2 + i) }));
+    return <ShowdownPrepPanel round={6} final playerName={QA_NAMES[0]!} seconds={3.5} matchup={{ matchNumber:1, viewer:seats[0]!, opponents:seats.slice(1) }} />;
+  }
   if (scene.id === "shop-reroll-interaction") return <InteractiveShop />;
   if (scene.id === "ability-transition") return <AbilityTransition />;
   const { screen, round, count } = scene;

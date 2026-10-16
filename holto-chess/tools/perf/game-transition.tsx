@@ -55,12 +55,14 @@ function Audit() {
   return <details style={{ position: "fixed", zIndex: 1000, bottom: 0, left: 0, maxWidth: "100vw", background: "#071520", fontSize: 10 }}><summary>Transition measurements</summary><output id="transition-report" style={{ display: "block", maxHeight: 150, overflow: "auto", overflowWrap: "anywhere" }}>{report}</output></details>;
 }
 function Harness() {
+  const [metrics, setMetrics] = useState<Record<string, number>>({});
   const local = useLocalGame(() => createGame(789));
   const [loaded, setLoaded] = useState(false); const [view, setView] = useState<PlayerView>(); const [viewer, setViewer] = useState("p1"); const [error, setError] = useState("");
   const { reset, run } = local;
   useEffect(() => {
     const worker = new Worker(new URL("./game-transition.worker.ts", import.meta.url), { type: "module" });
-    worker.onmessage = (event: MessageEvent<{ game?: PorenaGameState; view?: PlayerView; viewer?: string; error?: string }>) => {
+    worker.onmessage = (event: MessageEvent<{ game?: PorenaGameState; view?: PlayerView; viewer?: string; error?: string; metrics?: Record<string, number> }>) => {
+      if (event.data.metrics) setMetrics(event.data.metrics);
       if (event.data.game) { reset(event.data.game); setLoaded(true); }
       if (event.data.view) { setView(event.data.view); setViewer(event.data.viewer!); setLoaded(true); }
       if (event.data.error) setError(event.data.error);
@@ -81,7 +83,7 @@ function Harness() {
   const shown = mode === "online" ? view : local.view;
   const prep = shown?.showdownPrep;
   const profiles = mode === "online" ? view?.players ?? [] : local.game.players;
-  return <><Audit />{error && <p role="alert">{error}</p>}
+  return <><Audit /><details style={{ position:"fixed", top:0, left:0, zIndex:1000, background:"#071520", fontSize:10 }}><summary>Engine measurements</summary><output id="engine-report">{JSON.stringify(metrics)}</output></details>{error && <p role="alert">{error}</p>}
     {local.failure && <p role="alert">Worker failure <button onClick={local.retry}>Retry</button></p>}
     {!loaded ? <p role="status">Preparing real R{round} engine fixture</p> : <CinematicGate matches={mode === "online" ? view?.matches ?? [] : matches}
       profiles={profiles.map(p => ({ playerId: "playerId" in p ? p.playerId : p.id, name: p.name, points: p.points }))} viewerId={viewer}

@@ -11,7 +11,6 @@ import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
 import { auctionBudget, auctionMaxWins, auctionMinRaise } from "./finalAuction";
 import { cardPrice } from "./config";
-import { finalFourWayEquity } from "./showdownEquity";
 import { rankViewFor } from "./rankRoom";
 
 function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow: number): PrivatePlayerView {
@@ -61,10 +60,10 @@ function showdownPrepView(room: RoomSnapshot, viewerPlayerId: string): ShowdownP
       const played = fromLineup.length === p.ownedCardIds.length - burned.length ? fromLineup : p.ownedCardIds.filter(id => !burned.includes(id));
       return { p, cards: played.map(id => getCard(game, id)), blockCards: burned.map(id => getCard(game, id)) };
     });
-    // The same public inputs the showdown's first equity meter uses (cached), so both show the same numbers.
-    const equities = finalFourWayEquity(lineups.map(seat => seat.cards), lineups.flatMap(seat => seat.blockCards));
-    const seats = lineups.map(({ p, cards, blockCards }, index) => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId,
-      cards, blockCards, equity: equities[index] }));
+    // Display-only odds belong in the display Worker, not the room's synchronous broadcast path.
+    // These public inputs are also used by the showdown's first equity meter.
+    const seats = lineups.map(({ p, cards, blockCards }) => ({ playerId: p.id, name: p.name, points: p.points, abilityId: p.abilityId,
+      cards, blockCards }));
     const viewer = seats.find(p => p.playerId === viewerPlayerId) ?? seats[0]!;
     return { matchNumber: 1, viewer, opponents: seats.filter(p => p.playerId !== viewer.playerId) };
   }

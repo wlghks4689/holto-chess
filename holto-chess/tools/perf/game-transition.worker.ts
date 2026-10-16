@@ -6,8 +6,16 @@ import { barrierDeadline, forceBarrier, type RoomSnapshot } from "../../src/game
 import { createPlayerView } from "../../src/game/playerView";
 import { anchorNewPresentation } from "../../src/game/presentationCommit";
 import type { Round } from "../../src/game/types";
+import { finalFourWayEquity } from "../../src/game/showdownEquity";
 let room: RoomSnapshot | undefined;
 let busy = false;
+let metrics: Record<string, number> = {};
+function sendView(viewer: string) {
+  const start = performance.now();
+  const view = createPlayerView(room!, viewer);
+  metrics.maxProjectionMs = Math.max(metrics.maxProjectionMs ?? 0, performance.now() - start);
+  self.postMessage({ view, viewer, metrics });
+}
 self.onmessage = async (event: MessageEvent<{ round?: Round; mode?: string }>) => {
   if (busy) return; // Mirror GameRoom's blockConcurrencyWhile event serialization.
   busy = true;
@@ -26,17 +34,28 @@ self.onmessage = async (event: MessageEvent<{ round?: Round; mode?: string }>) =
       room = { schema: 1, roomId: "PERF", revision: 0, status: "PLAYING", game,
         sessions: game.players.filter(p => !p.eliminated).map(p => ({ playerId: p.id, tokenHash: "test", requests: [] })),
         readyIds: [], endedShopIds: [], barrierSince: Date.now() - 8000 };
+      metrics = {};
+      if (game.round === 6) {
+        const prep = createPlayerView(room, viewer).showdownPrep!;
+        const seats = [prep.viewer, ...prep.opponents!];
+        const start = performance.now();
+        // Diagnostic only: measure the former synchronous dependency off the browser main thread.
+        finalFourWayEquity(seats.map(seat => seat.cards), seats.flatMap(seat => seat.blockCards ?? []));
+        metrics.finalEquityMs = performance.now() - start;
+      }
       await new Promise(resolve => setTimeout(resolve, 0));
       anchorNewPresentation(undefined, room, Date.now());
-      self.postMessage({ view: createPlayerView(room, viewer), viewer }); return;
+      sendView(viewer); return;
     }
     if (room) {
       if (room.game.phase === "SHOWDOWN_PRIMARY" && Date.now() >= barrierDeadline(room)!) {
+        const start = performance.now();
         const next = forceBarrier(room, Date.now());
+        metrics.resolveMs = performance.now() - start;
         if (next) { await new Promise(resolve => setTimeout(resolve, 0)); anchorNewPresentation(room, next, Date.now()); room = next; }
       }
       const viewer = room.game.players.find(p => !p.eliminated)!.id;
-      self.postMessage({ view: createPlayerView(room, viewer), viewer });
+      sendView(viewer);
     }
   } catch (error) { self.postMessage({ error: String(error) }); }
   finally { busy = false; }

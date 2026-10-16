@@ -208,7 +208,7 @@ export class GameRoom extends DurableObject<Env> {
    * One alarm slot serves authentication, authorized reveal, phase advancement
    * and room expiry. Always arm the earliest deadline.
    */
-  private async rescheduleAlarm(disclosedAt = Date.now()): Promise<void> {
+  private async rescheduleAlarm(disclosedAt = Date.now(), recoveredBarrier = false): Promise<void> {
     // Each deadline keeps its reason so the logs show which one armed the alarm.
     const deadlines: { at: number; reason: string }[] = [];
     if (this.expiresAt) deadlines.push({ at: this.expiresAt, reason: "expiry" });
@@ -238,13 +238,32 @@ export class GameRoom extends DurableObject<Env> {
     // response must not cancel that reveal for everybody else. In alarm() the
     // runtime returns null for the alarm currently executing.
     if (scheduled === (next?.at ?? null)) return;
-    if (scheduled !== null && scheduled <= Date.now()) {
+    if (!recoveredBarrier && scheduled !== null && scheduled <= Date.now()) {
       diag("alarm.keep", { ...roomFields(this.room), scheduledAt: scheduled, overdueMs: Date.now() - scheduled, wantedAt: next?.at, wantedReason: next?.reason });
       return;
     }
     if (next === null) await this.ctx.storage.deleteAlarm();
     else await this.ctx.storage.setAlarm(next.at);
     diag("alarm.set", { ...roomFields(this.room), at: next?.at ?? null, inMs: next ? next.at - Date.now() : null, reason: next?.reason ?? "none", replacedAt: scheduled });
+  }
+  /** Called inside the authenticated message gate. Delayed alarm delivery must not strand a live room. */
+  private async recoverOverdueBarrier(now: number): Promise<boolean> {
+    if (!this.room || this.room.status !== "PLAYING") return false;
+    const deadline = barrierDeadline(this.room);
+    if (deadline === undefined || now < deadline) return false;
+    const from = { phase: this.room.game.phase, revision: this.room.revision };
+    // The same authoritative operation used by alarm(): never loop through multiple phases,
+    // shorten a presentation, or trust a time/deadline supplied by the client.
+    const next = forceBarrier(this.room, now);
+    if (!next) return false;
+    await this.commit(next);
+    const disclosedAt = this.broadcast();
+    // The current authorized view was broadcast to all seats, so replacing the stale alarm
+    // cannot suppress a reveal for the other players (unlike an ordinary clock reply).
+    await this.rescheduleAlarm(disclosedAt, true);
+    diag("barrier.recovered", { ...roomFields(this.room), from: from.phase, fromRevision: from.revision,
+      deadline, overdueMs: now - deadline, source: "clock-sync" });
+    return true;
   }
   /**
    * Writes queued ranked outcomes to the account DB. D1 replays are no-ops (worker/rank.ts), so a crash between the
@@ -490,6 +509,7 @@ export class GameRoom extends DurableObject<Env> {
         if (message.type === "SYNC_CLOCK") {
           if (!attachment.playerId) throw new Error("먼저 세션을 연결하세요.");
           this.send(ws, { type: "CLOCK_SYNC", nonce: message.nonce, receivedAt: now, sentAt: Date.now() });
+          if (await this.recoverOverdueBarrier(now)) return;
           // Returning tabs receive the current authorized reveal, never an old replay.
           const disclosedAt = Date.now();
           this.send(ws, { type: "PLAYER_VIEW", payload: createPlayerView(this.room, attachment.playerId, this.connectedIds(), disclosedAt) });

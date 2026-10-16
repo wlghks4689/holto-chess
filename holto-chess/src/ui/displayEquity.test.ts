@@ -56,6 +56,18 @@ describe("display equity worker lifecycle", () => {
 });
 
 describe("display worker parity and disclosure", () => {
+  it("keeps three R6 BURN/equity slots while odds are pending, without running the evaluator in render", () => {
+    const seats = [0, 1, 2].map(i => ({ playerId: `p${i + 1}`, name: `Player ${i}`, points: 30,
+      cards: deck.slice(i * 5, i * 5 + 5), blockCards: deck.slice(30 + i * 2, 30 + i * 2 + i) }));
+    const calculation = vi.spyOn(evaluations, "finalFourWayEquity").mockImplementation(() => { throw Error("Render must not calculate odds"); });
+    const html = renderToStaticMarkup(createElement(ShowdownPrepPanel, { round: 6, final: true, playerName: "p1", seconds: 3.5,
+      matchup: { matchNumber: 1, viewer: seats[0]!, opponents: seats.slice(1) } }));
+    expect(html.match(/class="final-block-cards"/g)).toHaveLength(3);
+    expect(html.match(/class="prep-burn-empty"/g)).toHaveLength(1);
+    expect(html.match(/class="showdown-prep-equity"/g)).toHaveLength(3);
+    expect(html.match(/<strong>--<\/strong>/g)).toHaveLength(3);
+    expect(calculation).not.toHaveBeenCalled();
+  });
   it("renders the loading and cinematic screens without executing any expensive evaluator", () => {
     for (const name of ["showdownEquity", "r4ThreeWayEquity", "finalFourWayEquity"] as const) {
       vi.spyOn(evaluations, name).mockImplementation(() => { throw new Error("Main-thread equity regression"); });

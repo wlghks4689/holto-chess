@@ -2,6 +2,8 @@ import type { PlayerView, ServerMessage } from "../shared/protocol";
 
 export const RESPONSE_TIMEOUT_MS = 15_000;
 export const PROBE_INTERVAL_MS = 10_000;
+export const OVERDUE_PROBE_INTERVAL_MS = 2_000;
+export const DEADLINE_GRACE_MS = 1_000;
 const MAX_RETRIES = 5;
 type Status = "Connecting" | "Connected" | "Reconnecting" | "Disconnected";
 type ViewStamp = Pick<PlayerView, "revision" | "serverNow">;
@@ -18,6 +20,7 @@ type Options = {
   open: (protocols: string[]) => WebSocket;
   join: () => string;
   needsClock: () => boolean;
+  serverNow?: () => number;
   visible: () => boolean;
   onStatus: (status: Status) => void;
   onError: (error: string) => void;
@@ -46,6 +49,8 @@ export function createRoomConnection(options: Options) {
   let awaitingViewSince: number | undefined;
   let retryAt: number | undefined;
   let nextProbe = 0;
+  let nextOverdueProbe = 0;
+  let barrierEndsAt: number | undefined;
   let lastTick = now();
   let previousView: ViewStamp | undefined;
   const probes = new Map<string, number>();
@@ -78,6 +83,7 @@ export function createRoomConnection(options: Options) {
     if (probes.size > 8) probes.delete(probes.keys().next().value!);
     awaitingViewSince ??= now();
     nextProbe = now() + PROBE_INTERVAL_MS;
+    nextOverdueProbe = now() + OVERDUE_PROBE_INTERVAL_MS;
     try { ws.send(JSON.stringify({ type: "SYNC_CLOCK", nonce })); }
     catch { retry("probe-send"); }
   };
@@ -116,6 +122,8 @@ export function createRoomConnection(options: Options) {
             diagnostic("stale-view", { revision: message.payload.revision, serverNow: message.payload.serverNow }); return;
           }
           previousView = { revision: message.payload.revision, serverNow: message.payload.serverNow };
+          barrierEndsAt = message.payload.status === "LOBBY" || message.payload.finalResultsReleased
+            ? undefined : message.payload.barrierEndsAt;
           connectingSince = undefined; awaitingViewSince = undefined;
           if (!connected) {
             connected = true; retries = 0; nextProbe = now();
@@ -171,7 +179,12 @@ export function createRoomConnection(options: Options) {
     if (retryAt !== undefined && time >= retryAt) { void connect(); return; }
     if (connectingSince !== undefined && time - connectingSince >= RESPONSE_TIMEOUT_MS) { retry("handshake-timeout"); return; }
     if (awaitingViewSince !== undefined && time - awaitingViewSince >= RESPONSE_TIMEOUT_MS) { retry("view-timeout"); return; }
-    if (connected && options.needsClock() && time >= nextProbe) sync();
+    const overdue = barrierEndsAt !== undefined && options.serverNow !== undefined
+      && options.serverNow() >= barrierEndsAt + DEADLINE_GRACE_MS;
+    if (connected && options.needsClock() && (time >= nextProbe || overdue && time >= nextOverdueProbe)) {
+      if (overdue) diagnostic("deadline-probe", { deadline: barrierEndsAt! });
+      sync();
+    }
   }, 1000);
   void connect();
   return {

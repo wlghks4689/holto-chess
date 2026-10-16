@@ -49,6 +49,48 @@ async function setup(overrides: Partial<Parameters<typeof createRoomConnection>[
 }
 
 describe("room transport recovery", () => {
+  it("probes an overdue server deadline promptly, throttles retries and stops when the next deadline arrives", async () => {
+    const h = await setup({ serverNow: () => Date.now() + 60_000 }); h.authenticate();
+    const socket = h.sockets[0]!;
+    const sendView = (deadline?: number) => socket.message({ type: "PLAYER_VIEW", payload: {
+      revision: 4, serverNow: Date.now() + 60_000, status: "PLAYING", phase: "DRAFT_ORDER", round: 4, barrierEndsAt: deadline,
+    } as PlayerView });
+    sendView(163_000);
+    await vi.advanceTimersByTimeAsync(1000); // Ordinary initial sync.
+    sendView(163_000);
+    const count = () => socket.sent.filter(raw => JSON.parse(raw).type === "SYNC_CLOCK").length;
+    expect(count()).toBe(1);
+    await vi.advanceTimersByTimeAsync(2000); // Deadline, but grace is still reserved for the alarm.
+    expect(count()).toBe(1);
+    const delivered = vi.mocked(h.options.onMessage).mock.calls.length;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(count()).toBe(2); // Not the ordinary 10-second polling interval.
+    expect(h.options.onMessage).toHaveBeenCalledTimes(delivered); // No fabricated local transition.
+    await vi.advanceTimersByTimeAsync(1000); expect(count()).toBe(2);
+    await vi.advanceTimersByTimeAsync(1000); expect(count()).toBe(3);
+    sendView(200_000);
+    await vi.advanceTimersByTimeAsync(5000); expect(count()).toBe(3);
+    sendView();
+    await vi.advanceTimersByTimeAsync(3000); expect(count()).toBe(3);
+  });
+
+  it("does not run overdue polling while hidden or after a released final result", async () => {
+    const h = await setup({ serverNow: () => Date.now() }); h.authenticate();
+    const socket = h.sockets[0]!;
+    socket.message({ type: "PLAYER_VIEW", payload: { revision: 4, serverNow: Date.now(), status: "PLAYING",
+      phase: "DRAFT_ORDER", round: 4, barrierEndsAt: Date.now() - 5000 } as PlayerView });
+    h.setVisible(false);
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(socket.sent).toHaveLength(1); // JOIN only.
+    h.setVisible(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(socket.sent).toHaveLength(2);
+    socket.message({ type: "PLAYER_VIEW", payload: { revision: 5, serverNow: Date.now(), status: "PLAYING",
+      phase: "GAME_RESULT", round: 6, finalResultsReleased: true, barrierEndsAt: Date.now() - 5000 } as PlayerView });
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(socket.sent).toHaveLength(2);
+  });
+
   it.each([401, 404, 410])("keeps ticket HTTP %i terminal without retrying on resume", async status => {
     const protocols = vi.fn(async () => { throw new Error("Connection ticket unavailable", { cause: status }); });
     const h = await setup({ protocols });

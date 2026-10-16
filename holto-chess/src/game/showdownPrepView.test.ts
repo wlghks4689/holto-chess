@@ -1,9 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as equity from "./showdownEquity";
 import { prepareShowdown, resolvePrimary } from "./engine";
 import { createPlayerView } from "./playerView";
 import { addSession, createRoom } from "./room";
 
 describe("showdown prep view", () => {
+  it("publishes R6 seats without waiting for display equity, including zero, one and two burns", () => {
+    const room = addSession(createRoom("R6PREP", 42), "one").room;
+    room.status = "PLAYING"; room.game.round = 6; room.game.phase = "SHOWDOWN_PRIMARY";
+    room.game.players.forEach((player, index) => {
+      player.eliminated = index >= 3;
+      player.ownedCardIds = index < 3 ? room.game.ownershipCardPool.slice(index * 7, index * 7 + 5 + index).map(entry => entry.card.id) : [];
+      player.selectedCardIds = player.ownedCardIds.slice(0, 5);
+    });
+    const calculation = vi.spyOn(equity, "finalFourWayEquity").mockImplementation(() => { throw Error("Equity must not run in broadcast"); });
+    try {
+      const prep = createPlayerView(room, "p1").showdownPrep!;
+      const seats = [prep.viewer, ...prep.opponents!];
+      expect(seats.map(seat => seat.cards.length)).toEqual([5, 5, 5]);
+      expect(seats.map(seat => seat.blockCards!.length)).toEqual([0, 1, 2]);
+      expect(seats.every(seat => seat.equity === undefined)).toBe(true);
+      expect(calculation).not.toHaveBeenCalled();
+    } finally { calculation.mockRestore(); }
+  });
   it("publishes locked R5 RUN pairs identically to both players", () => {
     const room = addSession(addSession(createRoom("R5PREP", 42), "one").room, "two").room;
     room.status = "PLAYING";

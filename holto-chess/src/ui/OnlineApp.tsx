@@ -197,6 +197,7 @@ export function OnlineApp({ onHome, solo = false }: { onHome: () => void; solo?:
       open: protocols => new WebSocket(roomSocketUrl(credential.roomId), protocols),
       join: () => JSON.stringify({ type: "JOIN_ROOM", token: credential.token, nickname: joinNickname.current }),
       needsClock: () => clockNeededRef.current,
+      serverNow: () => serverClock.now(),
       visible: () => !document.hidden,
       onStatus: value => { setStatus(value); if (value !== "Connected") clearPending(); },
       onError: setError,
