@@ -239,14 +239,17 @@ describe("draft authority, timeouts and privacy", () => {
     room=forceBarrier(room,barrierDeadline(room)!)!; expect(room.game.phase).toBe("SHOWDOWN_PRIMARY");
     expect(room.game.players.every((p)=>p.ownedCardIds.length===3)).toBe(true);
   });
-  it("R2 exposes owned cards; R4 never exposes opponents' old hands, ledger, seed or private sockets", () => {
-    const room=roomAtDraft(); const view=createPlayerView(room,"p1");
-    expect(view.draft!.publicHands!.p2).toHaveLength(2);
-    room.game.round=4; const hidden=createPlayerView(room,"p1");
-    expect(hidden.draft!.publicHands).toBeUndefined();
-    const json=JSON.stringify(hidden);
-    for(const id of room.game.players[1]!.ownedCardIds) expect(json).not.toContain(`"${id}"`);
-    for(const word of ["tokenHash","ownershipCardPool","seed"]) expect(json).not.toContain(word);
+  it.each([2, 4] as const)("R%s exposes owned draft hands without exposing the ledger, seed or private sockets", (round) => {
+    const room = roomAtDraft();
+    room.game.round = round;
+    const view = createPlayerView(room, "p1");
+    const alive = room.game.players.filter(player => !player.eliminated);
+    expect(Object.keys(view.draft!.publicHands!).sort()).toEqual(alive.map(player => player.id).sort());
+    for (const player of alive) {
+      expect(view.draft!.publicHands![player.id].map(card => card.id)).toEqual(player.ownedCardIds);
+    }
+    const json = JSON.stringify(view);
+    for (const word of ["tokenHash", "ownershipCardPool", "seed"]) expect(json).not.toContain(word);
   });
   it("legacy room: validates network commands and prevents changes after loadout commit", () => {
     expect(()=>parseClientMessage(JSON.stringify({type:"RUN_LOADOUT",requestId:"test-12345",turnKey:"2:RUN_LOADOUT",cardIds:["As","As","Ah"]}))).toThrow();
