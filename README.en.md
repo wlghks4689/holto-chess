@@ -63,8 +63,8 @@ Every number comes from the game code (`holto-chess/src/game/config.ts`, `engine
 | Card pool | 52 unique cards, shared |
 | Start | 50BB · no starting cards (buy your two R1 cards in the shop) · one ability |
 | Round income | +30BB to every survivor at the start of R2–R6 |
-| Shop cards | R1 4 · R4 2 · R5 3 · R6 4 (no shop in R2 and R3) |
-| Reroll / lock | 5BB / 3BB |
+| Shop cards | R1 3 · R4 2 · R5 3 · R6 4 (no shop in R2 and R3) |
+| Reroll / lock | 5BB / 3BB (a lock keeps a card through that shop's rerolls only; it never carries into the next round's shop) |
 | Sell refund | 60% of the base price (rounded down) |
 
 | Round | R1 | R2 | R3 | R4 | R5 | R6 |
@@ -105,6 +105,7 @@ Match BB goes only to the loser. Wins pay in points, and a split only shares poi
 | **R5** Run It Three Times | 4 | 6 | Opponent pick → shop → 1:1, 3 runs | Run win +5P · split +2P · 3–0 +15P | Per run: 2 hole + a new 5-card board | Lowest 1 by points |
 | **R6** The Last Hand | 3 | Field 5 of 5–7 | Shop → lineup → three-way | +30 / +10 / +0P | BEST 5 of your five + 5 board · other cards shown as BURN | Final standings |
 
+- **R1** — Once you hold two cards, their rank among all 169 Texas hold'em starting hands shows as **Power rank #N** (eight-handed equity; #1 AA, #169 72o). The higher the rank, the hotter the flame.
 - **R2** — No personal shop. Both runs use all three of your cards; any number of them (0–3) can make the BEST 5. The two runs use different boards. After the draft, a 15-second R2 briefing appears; once everyone confirms, the matches start. Your first opponent is someone you did not meet in R1; your second is a similar-scoring player you met neither in R1 nor in the first match.
 - **R3** — A 16-card auction (40 seconds, extended by bids in the last 5 seconds, 55 seconds at most); each player wins at most one card. The first bid is the base price; a competing bid must beat the current price by 5BB or more. Bidding on another card cancels your previous bid. Players who win nothing buy one leftover card at double price in draft order (no ability discount; it sells at its base price). The first match is seeded by points (BB on ties).
 - **R4** — The three first-match winners form the winner group (1st +10P · 2nd +5P · 3rd +3P; tied seconds get +3P each); the three losers form the survival group (only 1st survives, +0P).

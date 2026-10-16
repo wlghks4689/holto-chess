@@ -1,7 +1,10 @@
+import type { CSSProperties } from "react";
 import type { Card } from "../core/poker/cards";
 import { combinations, compareHands, evaluatePartial, findBestFive, type HandValue } from "../core/poker/evaluate";
 import type { Round } from "../game/types";
 import { isTripleRunRound } from "../game/config";
+import { r1PowerRank } from "../game/r1Preflop";
+import { PREFLOP_POWER_ORDER } from "../game/preflopRankData";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
 import { useTranslation } from "../i18n";
@@ -22,7 +25,22 @@ export function OwnedHandLabel({ round, lastRound, cards }: { round: Round; last
   const hand = isTripleRunRound(round, { sixRounds: lastRound === 6 }) ? null : ownedHand(round, cards);
   if (!hand) return null;
   const label = detailedHandLabel(hand.category, hand.kickers, cards, hand.bestFive.map(card => card.id), t);
-  return <p className={`owned-hand-label made-${madeTone(hand.displayName)}`} aria-live="polite">
-    <small>{t("shop.currentHand")}</small><strong>{label.title}</strong>{label.kicker && <span>({label.kicker})</span>}
+  return <>
+    <p className={`owned-hand-label made-${madeTone(hand.displayName)}`} aria-live="polite">
+      <small>{t("shop.currentHand")}</small><strong>{label.title}</strong>{label.kicker && <span>({label.kicker})</span>}
+    </p>
+    {round === 1 && cards.length === 2 && <PowerRankBadge cards={cards} />}
+  </>;
+}
+
+/** R1 two-card hand's preflop power ranking; the higher it ranks, the hotter it burns. Shown on mobile too. */
+function PowerRankBadge({ cards }: { cards: readonly Card[] }) {
+  const { t } = useTranslation();
+  const rank = r1PowerRank(cards);
+  const tier = rank <= 3 ? "blaze power-inferno" : rank <= 10 ? "blaze" : rank <= 30 ? "hot" : rank <= 70 ? "warm" : "cold";
+  const heat = (PREFLOP_POWER_ORDER.length - rank) / (PREFLOP_POWER_ORDER.length - 1);
+  return <p className={`power-rank power-${tier}`} style={{ "--heat": heat.toFixed(3) } as CSSProperties}
+    title={t("shop.powerRankHint", { total: PREFLOP_POWER_ORDER.length })} aria-live="polite">
+    {t("shop.powerRank", { rank })}
   </p>;
 }

@@ -67,8 +67,7 @@ describe("R1 start: no free card except Royal Blood and Target Sniper", () => {
       expect(player.purchasesThisRound).toBeLessThanOrEqual(BALANCE.purchaseLimits[1]);
       expect(player.stackBB).toBeGreaterThanOrEqual(0);
     }
-    // The free card stays; one purchase fills the hand (a bot may still swap that card for a better one).
-    for (const seat of [0, 1]) expect(game.players[seat]!.ownedCardIds).toContain(start.players[seat]!.firstCardId);
+    // A bot may sell its free card for a better pair, so only the hand size and limits are fixed here.
     expect(assertPoolIntegrity(game)).toBe(true);
   });
 

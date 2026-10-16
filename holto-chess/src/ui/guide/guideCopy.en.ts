@@ -33,7 +33,7 @@ export const guideCopyEn: GuideCopy = {
       kicker: "03 · SHOP", title: "Build your hand in the shop", lead: "In rounds with a shop, spend BB to add cards to your hand.",
       current: "Your card", offer: "Shop",
       tags: ["Highest card", "Makes a pair", "Straight & flush link"],
-      actions: [["Buy", "Pay BB and take the card."], ["Sell", "Sell a card you own for part of its BB back."], ["Reroll", "Pay BB to draw new shop cards."], ["Lock", "Keep a card you like through the next reroll."]],
+      actions: [["Buy", "Pay BB and take the card."], ["Sell", "Sell a card you own for part of its BB back."], ["Reroll", "Pay BB to draw new shop cards."], ["Lock", "Keep a card through your rerolls. It lasts for this shop only and never carries into the next round."]],
       takeaway: "An ace is not always the answer. The best card depends on the hand you are building.",
     },
     bb: {

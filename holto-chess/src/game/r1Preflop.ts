@@ -2,6 +2,7 @@ import { rankToChar, type Card } from '../core/poker/cards';
 import { BALANCE } from './config';
 import { CAPITALISM_INTEREST_PERCENT, TARGET_SNIPER_WIN_BB, predatorStreakReward } from './abilities';
 import { R1_PREFLOP_STATS, type R1PreflopStats } from './r1PreflopData';
+import { PREFLOP_POWER_ORDER } from './preflopRankData';
 import type { PlayerState } from './types';
 
 export function r1HandKey(cards: readonly Card[]): string {
@@ -10,6 +11,11 @@ export function r1HandKey(cards: readonly Card[]): string {
   const key = rankToChar(high!.rank) + rankToChar(low!.rank)
     + (high!.rank === low!.rank ? '' : high!.suit === low!.suit ? 's' : 'o');
   return key;
+}
+
+/** 1 (AA) to 169 (72o): the hand's place among all starting hands. */
+export function r1PowerRank(cards: readonly Card[]): number {
+  return PREFLOP_POWER_ORDER.indexOf(r1HandKey(cards)) + 1;
 }
 
 export function r1PreflopStats(cards: readonly Card[]): R1PreflopStats {

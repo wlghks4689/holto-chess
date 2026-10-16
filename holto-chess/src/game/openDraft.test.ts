@@ -208,7 +208,7 @@ describe("open draft rules v2", () => {
 
 function roomAtDraft() {
   let room = addSession(createRoom("ABCDEF", 303, "seeded", 2, false, false),"one").room;
-  room = addSession(room,"two").room; room.status="PLAYING"; room.game=r2();
+  room = addSession(room,"two").room; room.status="PLAYING"; room.game=r2(792); // a human seat picks first, then a bot
   room.game = openDraft(room.game); room.barrierSince=1000;
   return room;
 }

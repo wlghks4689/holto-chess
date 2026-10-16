@@ -534,6 +534,8 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "shop.myCards": "My Cards",
   "shop.stack": "Stack:",
   "shop.currentHand": "Current hand",
+  "shop.powerRank": "Power rank #{rank}",
+  "shop.powerRankHint": "Rank among all {total} starting hands (eight-handed equity · #1 AA, last 72o)",
   "shop.cannotSell": "Cannot sell",
   "shop.sellConfirm": "Sell {card}?",
   "shop.sellRefund": "Sell for {refund}BB ({percent}% of base price)",

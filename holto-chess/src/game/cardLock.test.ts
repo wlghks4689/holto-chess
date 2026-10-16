@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { buyCard, createGame as createGameCurrent, rerollShop, startNextRound, toggleShopLock } from "./engine";
 import { assertPoolIntegrity, releasePlayerCards } from "./cardPool";
 
-it("charges 3BB per card lock, keeps locked reservations across rerolls and rounds, and unlocks freely", () => {
+it("charges 3BB per card lock, keeps locked reservations across rerolls but not into the next round, and unlocks freely", () => {
   const initial = createGame(42); const id = initial.players[0].shopCardIds[1];
   let state = toggleShopLock(initial, "p1", id);
   expect(initial.players[0].stackBB).toBe(50);
@@ -12,12 +12,15 @@ it("charges 3BB per card lock, keeps locked reservations across rerolls and roun
   expect(state.players[0].shopCardIds).toContain(id);
   expect(state.ownershipCardPool.find((e) => e.card.id === id)).toMatchObject({state:"RESERVED_IN_SHOP",reservedPlayerId:"p1"});
   expect(assertPoolIntegrity(state)).toBe(true);
-  state.phase = "NEXT_ROUND"; state = startNextRound(state);
-  expect(state.players[0].shopCardIds).toContain(id);
   const balance = state.players[0].stackBB;
-  state = toggleShopLock(state, "p1", id);
-  expect(state.players[0].stackBB).toBe(balance);
+  const unlocked = toggleShopLock(state, "p1", id);
+  expect(unlocked.players[0].stackBB).toBe(balance);
+  expect(unlocked.players[0].lockedShopCardIds).toEqual([]);
+  state.phase = "NEXT_ROUND"; state = startNextRound(state);
   expect(state.players[0].lockedShopCardIds).toEqual([]);
+  expect(state.players[0].shopCardIds).not.toContain(id);
+  expect(state.ownershipCardPool.find((e) => e.card.id === id)?.reservedPlayerId).not.toBe("p1");
+  expect(assertPoolIntegrity(state)).toBe(true);
 });
 
 // Regression coverage for persisted games created before the open-draft rules.
@@ -45,7 +48,7 @@ it("rerolls an empty market slot when the remaining offer is locked", () => {
 
   state = rerollShop(state, player.id);
 
-  expect(state.players[0].shopCardIds).toHaveLength(4);
+  expect(state.players[0].shopCardIds).toHaveLength(3);
   for (const id of lockedIds) expect(state.players[0].shopCardIds).toContain(id);
   expect(state.players[0].shopCardIds).not.toContain(purchasedId);
   expect(state.players[0].rerollsUsed).toBe(1);

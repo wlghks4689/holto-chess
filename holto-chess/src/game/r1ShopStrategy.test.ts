@@ -6,6 +6,8 @@ import { purchaseLimitFor } from './config';
 import { createGame, getCard, prepareShowdown, rerollShop } from './engine';
 import { rankBotPairs, scoreBotPlan, shouldBotReroll } from './botStrategy';
 import { R1_PREFLOP_STATS } from './r1PreflopData';
+import { r1PowerRank } from './r1Preflop';
+import { PREFLOP_POWER_ORDER } from './preflopRankData';
 import { r1PreflopStats } from './r1Preflop';
 import { planR1Shop } from './r1ShopStrategy';
 import type { PlayerState, Round } from './types';
@@ -183,5 +185,17 @@ describe('initial ability reward preferences', () => {
     // 25% interest on 20BB of retained cash (ABILITY-PATCH-002).
     expect(capitalism.abilityValue).toBeCloseTo(.175);
     expect(r1PreflopStats(hand).categories[6]).toBeGreaterThan(0);
+  });
+});
+
+describe('R1 power ranking', () => {
+  const card = (id: string) => makeDeck().find((c) => c.id === id)!;
+  it('ranks all 169 starting hands once, AA first, KK second and 72o last', () => {
+    expect(new Set(PREFLOP_POWER_ORDER).size).toBe(169);
+    expect(Object.keys(R1_PREFLOP_STATS).every((key) => PREFLOP_POWER_ORDER.includes(key))).toBe(true);
+    expect(r1PowerRank([card('Ad'), card('As')])).toBe(1);
+    expect(r1PowerRank([card('Kh'), card('Kc')])).toBe(2);
+    expect(r1PowerRank([card('2d'), card('7s')])).toBe(169);
+    expect(r1PowerRank([card('Ks'), card('As')])).toBeLessThan(r1PowerRank([card('Kd'), card('As')]));
   });
 });

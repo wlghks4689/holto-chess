@@ -387,3 +387,17 @@ nav{border-color:var(--line);background:rgba(3,10,20,.78);box-shadow:0 10px 34px
 .owned-hand-label strong{color:var(--made-color,#e6f4ee);font-size:20px;line-height:1.2;text-shadow:0 0 12px color-mix(in srgb,var(--made-color,#7de7ed) 35%,transparent)}
 .owned-hand-label span{color:#9fb8c4;font-size:12px}
 @media(max-width:768px){.owned-hand-label{display:none}}
+/* R1 power ranking: --heat runs 0 (72o) to 1 (AA); the top tiers flicker like flames. */
+.power-rank{position:relative;isolation:isolate;width:fit-content;margin:10px auto 0;padding:6px 16px;border-radius:999px;border:1px solid color-mix(in srgb,#ff7a1a calc(var(--heat) * 100%),#2c5263);background:rgba(4,20,32,.62);color:color-mix(in srgb,#ffd27a calc(var(--heat) * 100%),#9fb8c4);font:800 15px/1.2 Manrope,'Noto Sans KR','Malgun Gothic',sans-serif;letter-spacing:.02em;white-space:nowrap}
+.power-rank::before{content:"";position:absolute;inset:-6px -10px;z-index:-1;border-radius:999px;background:radial-gradient(ellipse at 50% 100%,rgba(255,170,40,.75),rgba(255,70,0,.45) 45%,transparent 72%);filter:blur(6px);opacity:0}
+.power-warm{text-shadow:0 0 8px rgba(255,140,40,.45)}
+.power-warm::before{opacity:.25}
+.power-hot{text-shadow:0 0 6px rgba(255,190,80,.8),0 0 16px rgba(255,90,20,.6);animation:power-flicker 1.6s ease-in-out infinite}
+.power-hot::before{opacity:.55;animation:power-flame 1.3s ease-in-out infinite alternate}
+.power-blaze{color:#fff3c4;font-size:17px;border-color:#ffb347;text-shadow:0 0 4px #fff0b0,0 0 12px rgba(255,170,40,.95),0 0 26px rgba(255,70,0,.85),0 -4px 34px rgba(255,40,0,.6);animation:power-flicker .9s ease-in-out infinite}
+.power-blaze::before{opacity:.9;inset:-12px -16px;animation:power-flame .7s ease-in-out infinite alternate}
+.power-inferno{font-size:19px;padding:7px 20px;color:#fffbe6;border-color:#ffd166;box-shadow:0 0 18px rgba(255,120,20,.55),inset 0 0 10px rgba(255,190,60,.35);animation-duration:.6s}
+.power-inferno::before{inset:-18px -22px;background:radial-gradient(ellipse at 50% 100%,rgba(255,230,120,.9),rgba(255,110,10,.65) 40%,rgba(200,20,0,.35) 62%,transparent 78%);animation-duration:.45s}
+@keyframes power-flicker{0%,100%{filter:brightness(1)}35%{filter:brightness(1.25)}55%{filter:brightness(.92)}75%{filter:brightness(1.15)}}
+@keyframes power-flame{from{transform:scale(1,1) translateY(0)}to{transform:scale(1.08,1.22) translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.power-rank,.power-rank::before{animation:none}}

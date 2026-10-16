@@ -46,7 +46,7 @@ export const BALANCE = {
   startStackBB: 50,
   baseShopSize: 2,
   /** R1 starts with an empty hand, so its shop shows more cards than the two a seat may buy. */
-  r1ShopSize: 4,
+  r1ShopSize: 3,
   rerollCostBB: 5,
   cardLockCostBB: 3,
   roundIncomeBB: 30,

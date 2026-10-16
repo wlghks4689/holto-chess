@@ -532,6 +532,8 @@ export const koKR = {
   "shop.myCards": "내 카드",
   "shop.stack": "스택 :",
   "shop.currentHand": "현재 족보",
+  "shop.powerRank": "파워랭킹 {rank}등",
+  "shop.powerRankHint": "시작 핸드 {total}종 중 순위 (8인 테이블 승률 기준 · 1등 AA, 꼴등 72o)",
   "shop.cannotSell": "판매 불가",
   "shop.sellConfirm": "{card}를 판매합니다.",
   "shop.sellRefund": "판매 BB는 {refund}BB입니다. (원가의 {percent}%)",

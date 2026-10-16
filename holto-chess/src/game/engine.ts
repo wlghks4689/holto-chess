@@ -1113,7 +1113,8 @@ export function startNextRound(source: PorenaGameState, now = Date.now()): Poren
     if (state.sixRounds || state.round !== 5) player.stackBB += BALANCE.roundIncomeBB;
     player.purchasesThisRound = 0; player.rerollsUsed = 0; player.selectedCardIds = [];
     player.loseStreak = 0; // loss BB escalates within a round only
-    if (state.rulesVersion === 2 && (state.round === 2 || state.round === 4)) player.lockedShopCardIds = [];
+    // A lock only keeps a card through this shop's rerolls; it is not a reservation for the next round.
+    player.lockedShopCardIds = [];
     releaseShop(state, player);
   }
   if (state.round === 5 && !state.sixRounds) return beginFinalAuction(state, now);

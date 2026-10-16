@@ -191,5 +191,5 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
 ];
 
 /** A continued practice keeps the player's own cards. */
-// 2634: the practice seat survives every cut through the six-round R6 final.
-export const TUTORIAL_SEED = 2634;
+// 2635 (since the three-card R1 shop): the practice seat survives every cut through the six-round R6 final.
+export const TUTORIAL_SEED = 2635;
