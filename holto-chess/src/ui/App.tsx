@@ -312,7 +312,7 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
       <ActionBar state={state} act={act} reset={reset} />
     </div>
   </main>}</LocalResultWindow></CinematicGate>
-    {game.pending && <div className="local-game-status" role="status"><i aria-hidden="true" />{t("online.processing")}</div>}
+    {game.slowPending && <div className="local-game-status" role="status"><i aria-hidden="true" />{t("online.processing")}</div>}
     {game.failure?.kind === "worker" && <div className="local-game-recovery" role="alert"><p>{t("local.processingFailed")}</p><div><button className="primary" onClick={game.retry}>{t("ranking.retry")}</button><button className="secondary" onClick={onHome}>{t("action.home")}</button></div></div>}
   </>;
 }

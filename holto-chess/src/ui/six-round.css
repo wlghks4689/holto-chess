@@ -147,14 +147,22 @@
 .cinema .cinema-board-stack:is(.run-it-twice,.run-it-three-times) .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact .card-rank{font-size:calc(var(--run-detail-card-width) * .44);line-height:1;transform:none}
 .cinema .cinema-board-stack:is(.run-it-twice,.run-it-three-times) .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact .card-suit{font-size:calc(var(--run-detail-card-width) * .58);line-height:1}
 @media(max-width:700px){
-  /* Finished RUN boards use the same 43px card face as the mobile two-card seat. */
-  .cinema.cinema-multi-run{--run-mobile-card-width:43px}
-  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards{grid-template-columns:repeat(5,var(--run-mobile-card-width));width:max-content;gap:var(--run-board-gap,6px)}
-  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards .playing-card.compact{width:var(--run-mobile-card-width);height:auto;aspect-ratio:var(--card-ratio)}
-  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards .card-rank{font-size:clamp(9px,34cqw,19px)}
-  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards .card-suit{font-size:clamp(11px,44cqw,25px)}
+  /* R5: the live RUN and the finished RUNs share the 43px card face of the mobile two-card seat.
+     R2 keeps its own --run-card-width for every RUN (responsive.css), so its rows match too. */
+  .cinema.cinema-run-three{--run-mobile-card-width:43px}
+  .cinema.cinema-run-three .cinema-board-stack>.cinema-board.cinema-run-board .cinema-board-cards{grid-template-columns:repeat(5,var(--run-mobile-card-width));width:max-content;gap:var(--run-board-gap,6px)}
+  .cinema.cinema-run-three .cinema-board-stack>.cinema-board.cinema-run-board .cinema-board-cards .playing-card.compact{width:var(--run-mobile-card-width);height:auto;aspect-ratio:var(--card-ratio)}
+  .cinema.cinema-run-three .cinema-board-stack>.cinema-board.cinema-run-board .cinema-board-cards .card-rank{font-size:clamp(9px,34cqw,19px)}
+  .cinema.cinema-run-three .cinema-board-stack>.cinema-board.cinema-run-board .cinema-board-cards .card-suit{font-size:clamp(11px,44cqw,25px)}
   .cinema.cinema-multi-run .cinema-seat .cinema-profile-identity b{font-size:12px}
-  .cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(28px,8vw,36px);--run-detail-pad-y:8px;--run-detail-row-gap:12px}
+  /* 375x812 fits the seats and three RUN boxes without a scroll: the RUN title sits right on its board, the live
+     street moves up beside the title, and the detail cards shrink a little so the box (its min-height) does too. */
+  .cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(26px,7.5vw,30px);--run-detail-pad-y:6px;--run-detail-row-gap:8px}
+  .cinema-board-stack.run-it-three-times>.cinema-board.cinema-run-board{padding:6px 8px}
+  .cinema-board-stack.run-it-three-times>.cinema-board.cinema-run-board .cinema-board-label{padding-bottom:0}
+  .cinema-board-stack.run-it-three-times>.cinema-board.cinema-run-board h3{margin:0 0 4px}
+  .cinema-board-stack.run-it-three-times>.cinema-board.cinema-run-board .cinema-board-cards{position:static}
+  .cinema-board-stack.run-it-three-times>.cinema-board.cinema-run-board .cinema-board-cards>.cinema-board-street{top:6px;right:12px;bottom:auto;left:auto;transform:none}
   .cinema-run-detail{padding-inline:10px;column-gap:8px}
   .cinema-run-detail-side{font-size:10px}.cinema-run-detail-side>small{font-size:9px}
   .cinema-run-detail-hands{gap:8px}
