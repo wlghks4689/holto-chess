@@ -1,4 +1,4 @@
-import { handLimitFor, isAuctionRound, isBestThreeRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor, purchaseLimitFor } from "./config";
+import { handLimitFor, isAuctionRound, isBestThreeRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor } from "./config";
 import { burnCardIds, draftPrice, finalStandings, getCard } from "./engine";
 import { barrierDeadline, humanIds, pendingBarrierIds, turnKey, type RoomSnapshot } from "./room";
 import type { MatchView, PlayerView, PrivatePlayerView, ShowdownPrepView } from "../shared/protocol";
@@ -6,7 +6,7 @@ import { createMatchView, normalizeMatchStandings } from "./matchView";
 import { matchesVisible, presentationViewFor, visibleMatchesFor } from "./presentation";
 import { createRoundSummary, roundMatches } from "./roundSummary";
 import { concealedCard, discloseMatch, DISCLOSURE_LEAD_MS, presentationComplete } from "./disclosure";
-import { abilityLockCost, abilityPrice, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
+import { abilityLockCost, abilityPrice, abilityPurchaseLimit, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "./abilities";
 import { isRoundAbilityEvent } from "./abilities";
 import { abilityBenefit, abilityCue, personalAbilityCues, visibleAbilityEvents } from "./abilityVisibility";
 import { auctionBudget, auctionMaxWins, auctionMinRaise } from "./finalAuction";
@@ -35,7 +35,7 @@ function privatePlayerView(room: RoomSnapshot, playerId: string, privateViewNow:
     selectedCardIds: [...player.selectedCardIds],
     handLimit: handLimitFor(g.round, g), minHand: minHandFor(g.round, g), shopSize: abilityShopSize(player, g.round, g),
     shopLocked: false, lockedShopCardIds: [...(player.lockedShopCardIds ?? [])],
-    purchases: player.purchasesThisRound, purchaseLimit: purchaseLimitFor(g.round, g),
+    purchases: player.purchasesThisRound, purchaseLimit: abilityPurchaseLimit(player, g.round, g),
     rerollsUsed: player.rerollsUsed ?? 0, rerollLimit: abilityRerollLimit(player, g.round, g),
     rerollCost: abilityRerollCost(player), lockCost: abilityLockCost(player),
     sellPercent: Math.round(abilitySellRate(player) * 100),
@@ -120,6 +120,8 @@ export function createPlayerView(room: RoomSnapshot, viewerPlayerId: string, con
     if (complete) return [full];
     const entry = room.presentation?.perPlayer[id]?.find(entry => entry.matchId === match.id);
     const disclosed = entry && discloseMatch(full, entry, room.presentation!.startsAt, now + DISCLOSURE_LEAD_MS);
+    // A RUN hand is concealed until its RUN, yet its win chances need every seat's locked cards (see MatchView.deadCards).
+    if (disclosed && full.runCards) disclosed.deadCards = [...new Map(Object.values(full.runCards).flat(2).map(card => [card.id, card])).values()];
     return disclosed ? [disclosed] : [];
   });
   const isEliminated = (id: string) => {

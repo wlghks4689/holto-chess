@@ -1,11 +1,11 @@
 import { makeDeck, type Card } from "../core/poker/cards";
 import { compareHands, findBestFive, findBestOmaha, type HandCategory, type HandValue } from "../core/poker/evaluate";
-import { BALANCE, handLimitFor, purchaseLimitFor, TRIPLE_RUN, type RuleContext } from "./config";
+import { BALANCE, handLimitFor, TRIPLE_RUN, type RuleContext } from "./config";
 import type { PlayerState, Round } from "./types";
 import { omahaPreflopStrength, strategicCardValue, type PreflopStrength } from "./preflopStrength";
 import { scoreSeven, scoreUnrestricted } from "./showdownEquity";
 
-import { abilityRerollLimit } from './abilities';
+import { abilityPurchaseLimit, abilityRerollLimit } from './abilities';
 import { r1AbilityValue, r1ExpectedHandScore, r1PreflopStats } from './r1Preflop';
 
 type PricedCard = { card: Card; price: number };
@@ -464,7 +464,7 @@ export function bestTripleRunLoadout(player: Pick<PlayerState, "id">, cards: rea
 }
 
 export function shouldBotReroll(round: Round, player: PlayerState, best: { price: number; plan: BotPlanScore } | undefined, rerollCost: number, rules: RuleContext = { rulesVersion: 2 }): boolean {
-  if (player.purchasesThisRound >= purchaseLimitFor(round, rules)
+  if (player.purchasesThisRound >= abilityPurchaseLimit(player, round, rules)
     || (player.rerollsUsed ?? 0) >= abilityRerollLimit(player, round, rules) || player.stackBB < rerollCost + 5) return false;
   if (!best) return true;
   const targetEquity: Record<Round, number> = { 1: 0.56, 2: 0.53, 3: 0.52, 4: 0.51, 5: 0.5, 6: 0.5 };

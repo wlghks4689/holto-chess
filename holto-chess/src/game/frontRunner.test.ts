@@ -153,8 +153,8 @@ describe("Front Runner round settlement", () => {
     expect(state.abilityEvents ?? []).toEqual([]);
     state.players[0]!.abilityId = "capitalism"; state.phase = "ROUND_RESULT";
     rewardAbilityInterest(state); rewardRoundLeader(state); rewardAbilityInterest(state);
-    // 20% interest, rounded down: 50BB → +10BB.
-    expect(state.players[0]!.stackBB).toBe(60);
+    // 25% interest, rounded down: 50BB → +12BB.
+    expect(state.players[0]!.stackBB).toBe(62);
     expect(state.abilityEvents!.filter(event => event.reason === "round-interest")).toHaveLength(1);
   });
   it("deals the last catalog ability and restores eight unique abilities in the reveal; the retired pick is rejected", () => {

@@ -1,14 +1,14 @@
 import { shuffle, type Card } from "../core/poker/cards";
 import { evaluateOmahaPreflop, evaluatePartial, findBestFive, findBestOmaha, placeInRanking, rankPlayers, type HandValue } from "../core/poker/evaluate";
 import { assertPoolIntegrity, createOwnershipPool, releasePlayerCards } from "./cardPool";
-import { BALANCE, cardPrice, FINAL_LOADOUT_SIZE, finalPlacementPoints, handLimitFor, isAuctionRound, isBestThreeRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, matchLossBB, minHandFor, purchaseLimitFor, R3_AUCTION, TRIPLE_RUN } from "./config";
+import { BALANCE, cardPrice, FINAL_LOADOUT_SIZE, finalPlacementPoints, handLimitFor, isAuctionRound, isBestThreeRound, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, matchLossBB, minHandFor, R3_AUCTION, TRIPLE_RUN } from "./config";
 import { bestBotSelection, bestRunLoadout, bestTripleRunLoadout, r5MatchupEquity, rankBotPairs, rankBotPurchases, rankBuybackOptions, scoreBotPlan, shouldBotReroll } from "./botStrategy";
 import { planR1Shop } from "./r1ShopStrategy";
 import { calculateIcm } from "./icm";
 import { avoidingPairs, emptySwissRecord, swissPairs } from "./swiss";
 import { createShowdownDeck, drawCommunityBoards } from "./showdownDeck";
 import { canSellWithoutBlocking } from "./shopRules";
-import { ABILITY_IDS, abilityPrice, abilityShopSize, abilitySellRate, abilityRerollCost, abilityRerollLimit, abilityLockCost } from "./abilities";
+import { ABILITY_IDS, abilityPrice, abilityPurchaseLimit, abilityShopSize, abilitySellRefund, abilityRerollCost, abilityRerollLimit, abilityLockCost, ROYAL_BLOOD_MIN_RANK } from "./abilities";
 import { rawShowdownEquity } from "./showdownEquity";
 import { PLACEMENT_RP } from "./rank";
 import { recordAbilityBenefit, recordAbilitySaving, rewardAbilities, rewardAbilityInterest, rewardQuadCorePlacement, rewardRoundLeader } from "./abilityRewards";
@@ -148,7 +148,7 @@ export function finishAbilitySelection(source: PorenaGameState): PorenaGameState
   // Royal Blood's guaranteed starting rank is dealt first so no other seat can consume it.
   const royal = state.players.find(player => player.abilityId === "royal-blood");
   if (royal) {
-    const candidates = state.ownershipCardPool.filter(entry => entry.state === "AVAILABLE" && entry.card.rank >= 10);
+    const candidates = state.ownershipCardPool.filter(entry => entry.state === "AVAILABLE" && entry.card.rank >= ROYAL_BLOOD_MIN_RANK);
     const entry = candidates[Math.floor(nextRandom(state) * candidates.length)]!;
     entry.state = "OWNED"; entry.ownerPlayerId = royal.id; royal.ownedCardIds.push(entry.card.id);
   }
@@ -166,7 +166,7 @@ export function buyCard(source: PorenaGameState, playerId: string, cardId: strin
   if (state.phase !== "SHOP" || player.eliminated) throw new Error("지금은 구매할 수 없습니다.");
   if (!player.shopCardIds.includes(cardId)) throw new Error("내 상점에 예약된 카드가 아닙니다.");
   if (player.ownedCardIds.length >= handLimitFor(state.round, state)) throw new Error("이번 라운드 보유 한도에 도달했습니다.");
-  if (player.purchasesThisRound >= purchaseLimitFor(state.round, state)) throw new Error("이번 라운드 구매 횟수를 모두 사용했습니다.");
+  if (player.purchasesThisRound >= abilityPurchaseLimit(player, state.round, state)) throw new Error("이번 라운드 구매 횟수를 모두 사용했습니다.");
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
   const price = abilityPrice(player, entry.card.rank);
   if (player.stackBB < price) throw new Error("BB가 부족합니다.");
@@ -181,12 +181,11 @@ export function sellCard(source: PorenaGameState, playerId: string, cardId: stri
   const state = structuredClone(source); const player = playerById(state, playerId);
   if (state.phase !== "SHOP" || !player.ownedCardIds.includes(cardId)) throw new Error("판매할 수 없는 카드입니다.");
   if (!canSellWithoutBlocking({ ownedCount: player.ownedCardIds.length, purchases: player.purchasesThisRound,
-    purchaseLimit: purchaseLimitFor(state.round, state), handLimit: minHandFor(state.round, state) })) {
+    purchaseLimit: abilityPurchaseLimit(player, state.round, state), handLimit: minHandFor(state.round, state) })) {
     throw new Error("남은 구매 횟수로 필수 보유 카드를 채울 수 없어 판매할 수 없습니다.");
   }
   const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
-  const rate = abilitySellRate(player);
-  const refund = Math.floor(cardPrice(entry.card.rank) * rate);
+  const refund = abilitySellRefund(player, entry.card.rank);
   recordAbilitySaving(state, player, "sale-premium", refund - Math.floor(cardPrice(entry.card.rank) * BALANCE.sellRate), cardId);
   player.stackBB += refund; player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId); player.selectedCardIds = player.selectedCardIds.filter((id) => id !== cardId);
   entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
@@ -200,7 +199,7 @@ export function rerollShop(source: PorenaGameState, playerId: string): PorenaGam
   const targetSize = abilityShopSize(player, state.round, state);
   const lockedCount = player.shopCardIds.filter((id) => player.lockedShopCardIds?.includes(id)).length;
   if (state.phase !== "SHOP" || player.eliminated || player.stackBB < cost) throw new Error("리롤할 수 없습니다.");
-  if (player.purchasesThisRound >= purchaseLimitFor(state.round, state)) throw new Error("구매 횟수를 모두 사용해 리롤할 수 없습니다.");
+  if (player.purchasesThisRound >= abilityPurchaseLimit(player, state.round, state)) throw new Error("구매 횟수를 모두 사용해 리롤할 수 없습니다.");
   if ((player.rerollsUsed ?? 0) >= abilityRerollLimit(player, state.round, state)) throw new Error("이번 라운드 리롤 횟수를 모두 사용했습니다.");
   if (targetSize > 0 && lockedCount >= targetSize) throw new Error("모든 상점 카드가 잠겨 있어 리롤할 수 없습니다.");
   assertPoolIntegrity(state);
@@ -278,14 +277,14 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
     if (policy) {
       const sell = (cardId: string) => {
         const entry = state.ownershipCardPool.find((item) => item.card.id === cardId)!;
-        const rate = abilitySellRate(player);
-        recordAbilitySaving(state, player, "sale-premium", Math.floor(cardPrice(entry.card.rank) * rate) - Math.floor(cardPrice(entry.card.rank) * BALANCE.sellRate), cardId);
-        player.stackBB += Math.floor(cardPrice(entry.card.rank) * rate);
+        const refund = abilitySellRefund(player, entry.card.rank);
+        recordAbilitySaving(state, player, "sale-premium", refund - Math.floor(cardPrice(entry.card.rank) * BALANCE.sellRate), cardId);
+        player.stackBB += refund;
         player.ownedCardIds = player.ownedCardIds.filter((id) => id !== cardId);
         entry.state = "AVAILABLE"; delete entry.ownerPlayerId;
       };
       for (let step = 0; step < POLICY_STEP_LIMIT; step += 1) {
-        const purchaseLimit = purchaseLimitFor(state.round, state);
+        const purchaseLimit = abilityPurchaseLimit(player, state.round, state);
         const rerollCost = abilityRerollCost(player);
         const shopCards = player.shopCardIds.map((id) => state.ownershipCardPool.find((entry) => entry.card.id === id)!.card)
           .map((card) => ({ card, price: abilityPrice(player, card.rank) }));
@@ -325,7 +324,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       return player.shopCardIds.length < targetSize
         || player.shopCardIds.some((id) => !(player.lockedShopCardIds ?? []).includes(id));
     };
-    while (player.ownedCardIds.length < limit && player.purchasesThisRound < purchaseLimitFor(state.round, state)) {
+    while (player.ownedCardIds.length < limit && player.purchasesThisRound < abilityPurchaseLimit(player, state.round, state)) {
       if (state.round === 1) {
         const decision = planR1Shop(player, ownedCards(), player.shopCardIds.map(id => getCard(state, id)), state);
         if (decision.reroll) {
@@ -339,7 +338,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       const ranked = rankBotPurchases(state.round, player, ownedCards(), options, planContext); const best = ranked[0];
       const rerollCost = abilityRerollCost(player);
       const missing = limit - player.ownedCardIds.length;
-      const pair = missing >= 2 && purchaseLimitFor(state.round, state) - player.purchasesThisRound >= 2
+      const pair = missing >= 2 && abilityPurchaseLimit(player, state.round, state) - player.purchasesThisRound >= 2
         ? rankBotPairs(state.round, player, ownedCards(), options, planContext)[0] : undefined;
       if (hasRerollableSlot() && player.stackBB >= rerollCost + missing * 5 && shouldBotReroll(state.round, player, pair ?? best, rerollCost, state)) { reroll(); continue; }
       if (pair) { buy(pair.cards[0].card.id); buy(pair.cards[1].card.id); continue; }
@@ -348,7 +347,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
     }
 
     // Extra purchase capacity becomes a deliberate upgrade: compare every legal swap by expected match EV.
-    while (player.ownedCardIds.length === limit && player.purchasesThisRound < purchaseLimitFor(state.round, state)) {
+    while (player.ownedCardIds.length === limit && player.purchasesThisRound < abilityPurchaseLimit(player, state.round, state)) {
       // One shared deck for the baseline and every swap: otherwise sampling noise (several points)
       // outweighs the 2.25 bar and the "best" swap is whichever candidate drew lucky boards.
       const swapContext = { ...planContext, player, sharedKnown: [...ownedCards(), ...player.shopCardIds.map((id) => getCard(state, id))] };
@@ -357,8 +356,7 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       for (const ownedId of player.ownedCardIds) for (const shopId of player.shopCardIds) {
         const owned = state.ownershipCardPool.find((entry) => entry.card.id === ownedId)!.card;
         const offered = state.ownershipCardPool.find((entry) => entry.card.id === shopId)!.card;
-        const refundRate = abilitySellRate(player);
-        const refund = Math.floor(cardPrice(owned.rank) * refundRate); const price = abilityPrice(player, offered.rank);
+        const refund = abilitySellRefund(player, owned.rank); const price = abilityPrice(player, offered.rank);
         if (player.stackBB + refund < price) continue;
         const replacement = ownedCards().filter((card) => card.id !== ownedId).concat(offered);
         const plan = scoreBotPlan(state.round, replacement, player.stackBB + refund - price, `${player.id}:upgrade`, swapContext);
@@ -371,9 +369,9 @@ function aiPrepare(state: PorenaGameState, humanIds: readonly string[] = ["p1"],
       }
       if (bestSwap) {
         const oldEntry = state.ownershipCardPool.find((entry) => entry.card.id === bestSwap!.ownedId)!;
-        const refundRate = abilitySellRate(player);
-        recordAbilitySaving(state, player, "sale-premium", Math.floor(cardPrice(oldEntry.card.rank) * refundRate) - Math.floor(cardPrice(oldEntry.card.rank) * BALANCE.sellRate), bestSwap.ownedId);
-        player.stackBB += Math.floor(cardPrice(oldEntry.card.rank) * refundRate); player.ownedCardIds = player.ownedCardIds.filter((id) => id !== bestSwap!.ownedId);
+        const refund = abilitySellRefund(player, oldEntry.card.rank);
+        recordAbilitySaving(state, player, "sale-premium", refund - Math.floor(cardPrice(oldEntry.card.rank) * BALANCE.sellRate), bestSwap.ownedId);
+        player.stackBB += refund; player.ownedCardIds = player.ownedCardIds.filter((id) => id !== bestSwap!.ownedId);
         oldEntry.state = "AVAILABLE"; delete oldEntry.ownerPlayerId; buy(bestSwap.shopId); continue;
       }
       if (state.round === 1) break;
@@ -395,7 +393,7 @@ export const assistsShortHands = (state: Pick<PorenaGameState, "sixRounds" | "ro
  */
 function fillShortHand(state: PorenaGameState, player: PlayerState): void {
   const minimum = minHandFor(state.round, state);
-  const purchaseLimit = purchaseLimitFor(state.round, state);
+  const purchaseLimit = abilityPurchaseLimit(player, state.round, state);
   const context = { rulesVersion: state.rulesVersion ?? 1, sixRounds: !!state.sixRounds, r2BestThree: !!state.r2BestThree } as const;
   for (let guard = 0; guard < 8 && player.ownedCardIds.length < minimum && player.purchasesThisRound < purchaseLimit; guard += 1) {
     const needed = Math.min(minimum - player.ownedCardIds.length, purchaseLimit - player.purchasesThisRound);

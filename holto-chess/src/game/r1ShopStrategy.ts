@@ -1,8 +1,8 @@
 import { makeDeck, type Card } from '../core/poker/cards';
-import { abilityLockCost, abilityPrice, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from './abilities';
+import { abilityLockCost, abilityPrice, abilityPurchaseLimit, abilityRerollCost, abilityRerollLimit, abilitySellRefund, abilityShopSize } from './abilities';
 import { scoreBotPlan } from './botStrategy';
 import { r1HandKey } from './r1Preflop';
-import { cardPrice, purchaseLimitFor, type RuleContext } from './config';
+import { type RuleContext } from './config';
 import type { PlayerState } from './types';
 
 type BuyPlan = { cards: Card[]; price: number; utility: number };
@@ -13,13 +13,13 @@ const SPEND_WEIGHT = .35;
 
 function bestBuy(player: PlayerState, owned: readonly Card[], shop: readonly Card[], stack: number, cache: Map<string, number>): BuyPlan | null {
   const missing = 2 - owned.length;
-  const purchasesLeft = purchaseLimitFor(1) - player.purchasesThisRound;
+  const purchasesLeft = abilityPurchaseLimit(player, 1) - player.purchasesThisRound;
   if (purchasesLeft <= 0 || purchasesLeft < missing) return null;
   if (missing === 0) {
     const baseline = scoreBotPlan(1, owned, stack, 'r1-upgrade', { player }).utility;
     let utility = baseline;
     for (const sold of owned) for (const offered of shop) {
-      const after = stack + Math.floor(cardPrice(sold.rank) * abilitySellRate(player)) - abilityPrice(player, offered.rank);
+      const after = stack + abilitySellRefund(player, sold.rank) - abilityPrice(player, offered.rank);
       if (after < 0) continue;
       const hand = owned.filter(card => card.id !== sold.id).concat(offered);
       const key = `${r1HandKey(hand)}:${after}:${hand.some(card => card.id === player.firstCardId)}`;
@@ -51,7 +51,7 @@ export function planR1Shop(player: PlayerState, owned: readonly Card[], shop: re
   const cache = new Map<string, number>();
   const current = bestBuy(player, owned, shop, player.stackBB, cache);
   const stay: R1ShopDecision = { buyCards: current?.cards ?? [], reroll: false, lockCardIds: [], currentUtility: current?.utility ?? -100 };
-  if (player.purchasesThisRound >= purchaseLimitFor(1, rules)
+  if (player.purchasesThisRound >= abilityPurchaseLimit(player, 1, rules)
     || (player.rerollsUsed ?? 0) >= abilityRerollLimit(player, 1, rules)) return stay;
   // A pocket 88+ already meets the requested premium-hand target; extra/free rerolls are optional.
   const hand = owned.length === 2 ? owned : [...owned, ...(current?.cards ?? [])];

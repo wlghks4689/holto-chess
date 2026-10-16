@@ -1,6 +1,6 @@
 import type { HandCategory } from "../../core/poker/evaluate";
 import { BARRIER_TIMEOUT_MS } from "../../shared/barrierTimeouts";
-import { ABILITY_IDS, CAPITALISM_INTEREST_PERCENT, PREDATOR_BB_PER_STREAK, PROTECTOR_TIERS, TARGET_SNIPER_WIN_BB, type AbilityId } from "../../game/abilities";
+import { ABILITY_IDS, CAPITALISM_INTEREST_PERCENT, PREDATOR_BB_PER_STREAK, PROTECTOR_TIERS, TARGET_SNIPER_WIN_BB, TRADER_EXTRA_PURCHASES, UNDERDOG_POINTS, type AbilityId } from "../../game/abilities";
 import type { TranslationKey } from "../../i18n";
 import { BALANCE, FRONT_RUNNER_POINTS, handLimitFor, minHandFor, purchaseLimitFor, R3_AUCTION, regularShopSizeFor, rerollLimitFor, ROUND_POINTS, SIX_ROUND_FINAL_PLACEMENT_POINTS, TRIPLE_RUN } from "../../game/config";
 import type { Round } from "../../game/types";
@@ -58,12 +58,12 @@ export const handScore = (category: HandCategory) => BALANCE.handScores[category
 
 /** Ability values the copy quotes. Kept beside the ids so a new ability needs one entry here and one copy entry per locale. */
 export const ABILITY_NUMBERS: Record<AbilityId, Record<string, number>> = {
-  "royal-blood": { discountPercent: 50 },
+  "royal-blood": { price: 0 },
   "target-sniper": { bb: TARGET_SNIPER_WIN_BB },
-  underdog: { points: 20 },
+  underdog: { points: UNDERDOG_POINTS },
   "first-class": {},
   "golden-hand": { extraShop: 1, refundPercent: 100 },
-  trader: { extraRerolls: 1 },
+  trader: { extraRerolls: 1, extraBuys: TRADER_EXTRA_PURCHASES },
   predator: { bbPerStreak: PREDATOR_BB_PER_STREAK, fromStreak: 2 },
   architect: { bb: 30 },
   capitalism: { percent: CAPITALISM_INTEREST_PERCENT },

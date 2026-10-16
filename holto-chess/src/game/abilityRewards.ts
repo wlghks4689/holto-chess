@@ -66,6 +66,10 @@ export function rewardAbilities(state: PorenaGameState, match: MatchResult): voi
       const reward = madeAbilityReward(player, result.hand, state.round, state);
       if (reward.bb || reward.points) record(state, player, "made-hand", reward.bb, reward.points, 0, match);
     }
+    // Quad Core: Quads pays the points this match (an R2/R5 RUN, without the sweep bonus) already paid once more.
+    // Nothing for a match that paid no points; the final doubles its placement award in rewardQuadCorePlacement.
+    if (player.abilityId === "quad-core" && result.hand.category === "QUADS" && !isFinalRound(state.round, state))
+      record(state, player, "quad-core-match", 0, Math.max(0, match.pointAwards?.[player.id] ?? 0), 0, match);
     const equity = match.equities?.[player.id];
     if (player.abilityId === "zero-risk" && !isFinalRound(state.round, state) && winners.length === 1 && !won && equity?.insuranceEligible)
       record(state, player, "favored-loss", protectorLossReward(equity.rawPercent), 0, 0, match);

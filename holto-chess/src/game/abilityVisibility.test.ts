@@ -41,13 +41,14 @@ describe("actual economic benefits", () => {
   });
   it("records exact purchase savings and sale premiums without paying them twice", () => {
     let s = createGame(32, "seeded", 2, false, false); const p = s.players[0]!; p.abilityId = "royal-blood";
-    const card = s.ownershipCardPool.find(e => e.state === "AVAILABLE" && e.card.rank >= 10)!;
+    // Royal Blood buys J–A for nothing.
+    const card = s.ownershipCardPool.find(e => e.state === "AVAILABLE" && e.card.rank >= 11)!;
     const price = cardPrice(card.card.rank);
     card.state = "RESERVED_IN_SHOP"; card.reservedPlayerId = p.id; p.shopCardIds.push(card.card.id);
     const before = p.stackBB;
     s = buyCard(s, p.id, card.card.id);
-    expect(s.players[0]!.stackBB).toBe(before - Math.floor(price / 2));
-    expect(s.players[0]!.abilityTotals?.savedBB).toBe(price - Math.floor(price / 2));
+    expect(s.players[0]!.stackBB).toBe(before);
+    expect(s.players[0]!.abilityTotals?.savedBB).toBe(price);
     s.players[0]!.abilityId = "golden-hand";
     s.players[0]!.purchasesThisRound = 0; // R1 needs both buys, so free a purchase to make the sale legal
     const saleBefore = s.players[0]!.stackBB;
@@ -77,10 +78,10 @@ describe("actual economic benefits", () => {
     const s = fixture(1, "architect"); s.phase = "NEXT_ROUND";
     let next = openDraft(startNextRound(s)); const id = next.draft!.order[0]!.playerId;
     const p = next.players.find(p => p.id === id)!; p.abilityId = "royal-blood";
-    const card = next.ownershipCardPool.find(e => next.draft!.cardIds.includes(e.card.id) && e.card.rank >= 10)!;
+    const card = next.ownershipCardPool.find(e => next.draft!.cardIds.includes(e.card.id) && e.card.rank >= 11)!;
     expect(card).toBeDefined(); const base = cardPrice(card.card.rank);
     next = pickDraftCard(next, id, card.card.id);
-    expect(next.abilityEvents!.at(-1)).toMatchObject({ reason: "draft-discount", savedBB: base - Math.floor(base / 2) });
+    expect(next.abilityEvents!.at(-1)).toMatchObject({ reason: "draft-discount", savedBB: base });
   });
 });
 

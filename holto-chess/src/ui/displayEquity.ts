@@ -10,11 +10,24 @@ export type EquityJob =
   | { kind: "street"; hands: readonly (readonly Card[])[]; board: readonly Card[]; omaha: boolean; dead: readonly Card[] };
 export type EquityValues = (number[] | null)[];
 
+/**
+ * Cards no board can contain: every hole card of every seat in every RUN (the real boards are drawn without them), the
+ * shown hands and burn cards. A RUN still concealed from this viewer and absent from `deadCards` cannot be excluded, so the
+ * caller must not show odds then; `deadCardsKnown` says whether it can.
+ */
+function deadCardsOf(match: MatchView): { dead: Card[]; known: boolean } {
+  const runCards = Object.values(match.runCards ?? {}).flat(2);
+  const all = [...Object.values(match.revealedCards).flat(), ...Object.values(match.blockCards ?? {}).flat(), ...runCards, ...(match.deadCards ?? [])];
+  const dead = [...new Map(all.filter(c => !c.hidden).map(c => [c.id, c])).values()];
+  return { dead, known: !!match.deadCards || !runCards.some(c => c.hidden) };
+}
+
 export function streetEquityJob(match: MatchView, run: number, count: number): EquityJob[] {
   if (!match.boards.length) return [];
   const hands = match.participantIds.map(id => match.runCards?.[id]?.[run] ?? match.revealedCards[id] ?? []);
   if (hands.some(h => !h.length || h.some(c => c.hidden))) return [];
-  const dead = [...Object.values(match.revealedCards).flat(), ...Object.values(match.blockCards ?? {}).flat()].filter(c => !c.hidden);
+  const { dead, known } = deadCardsOf(match);
+  if (!known) return [];
   if (count) return [{ kind: "street", hands, board: (match.boards[run] ?? []).slice(0, count), omaha: match.round === 3, dead }];
   if (match.final && match.round === 6) return [{ kind: "final", hands, dead }];
   if (hands.length === 3 && match.round === 4) return [{ kind: "threeWay", hands }];

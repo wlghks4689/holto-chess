@@ -180,7 +180,8 @@ describe('initial ability reward preferences', () => {
     const capitalism = scoreBotPlan(1, hand, 20, 'ability', { player: player({ abilityId: 'capitalism' }) });
     expect(architect.utility).toBeGreaterThan(base.utility);
     expect(sniper.abilityValue).toBeGreaterThan(0);
-    expect(capitalism.abilityValue).toBeCloseTo(.14);
+    // 25% interest on 20BB of retained cash (ABILITY-PATCH-002).
+    expect(capitalism.abilityValue).toBeCloseTo(.175);
     expect(r1PreflopStats(hand).categories[6]).toBeGreaterThan(0);
   });
 });

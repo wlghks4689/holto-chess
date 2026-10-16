@@ -188,9 +188,9 @@ describe("final auction edge cases", () => {
   it("evaluates board-made ability hands without changing their rewards", () => {
     const cards = (ids: string[]) => ids.map(id => makeDeck().find(c => c.id === id)!);
     const p = fixture().players[0]!;
-    p.abilityId = "underdog";
+    p.abilityId = "underdog"; p.ownedCardIds = ["2s"];
     const wheel = findBestFive(cards(["As", "2s", "3d", "4h", "5c", "Kh", "9d", "8c", "7h", "Qs"]));
-    expect(madeAbilityReward(p, wheel, 5).points).toBe(20);
+    expect(madeAbilityReward(p, wheel, 5).points).toBe(2);
     p.abilityId = "quad-core";
     expect(quadCorePlacementBonus(p, findBestFive(cards(["As", "Ah", "Ad", "Ac", "Ks", "2s", "3d", "4h", "5c", "9h"])), 5, 12)).toBe(12);
   });

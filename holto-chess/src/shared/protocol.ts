@@ -39,6 +39,12 @@ export type MatchView = {
   /** Only frames already authorized by server time; hold the latest while awaiting the next packet. */
   disclosure?: { frames: import("./presentationTimeline").CinematicFrame[]; elapsedMs: number; frameDurationMs?: number };
   runCards?: Record<string, Card[][]>;
+  /**
+   * Every hole card both seats hold across all RUNs of a RUN match. A RUN hand stays concealed until its RUN starts,
+   * but win chances must exclude all of them from the unseen deck, as the real boards do and the match loading screen
+   * (which shows every locked RUN) already does. Only the win-chance calculation reads it.
+   */
+  deadCards?: Card[];
   runRewards?: MatchReward[][];
   standingsBefore?: Record<string, number>;
   standingsAfterRuns?: Record<string, number>[];

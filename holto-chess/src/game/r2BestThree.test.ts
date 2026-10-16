@@ -287,3 +287,21 @@ describe("R2 briefing barrier", () => {
     expect(g.phase).toBe("ROUND_RESULT");
   });
 });
+
+describe("RUN match win chances need every locked hole card", () => {
+  it("adds every seat's RUN cards to the match view while a RUN hand is still concealed", () => {
+    let room = createRoom("DEADCARDS", 7, "seeded", 2, false, true);
+    room = addSession(room, "hash-0").room;
+    room.status = "PLAYING";
+    room.game = resolvePrimary(completeR2Briefing(drafted(789)));
+    const match = room.game.roundResults[0]!;
+    room.presentation = { key: "k", version: 99, startsAt: 0, endsAt: 1e12,
+      perPlayer: { p1: [{ matchId: match.id, offsetMs: 0, durationMs: 1e6 }] } } as never;
+    room.game.roundResults = room.game.roundResults.filter((item) => item.playerIds.includes("p1"));
+    const view = createPlayerView(room, "p1", [], 1);
+    const mine = view.matches.find((item) => item.id === room.game.roundResults[0]!.id);
+    expect(mine, "the viewer's own match is disclosed").toBeDefined();
+    const held = new Set(room.game.roundResults[0]!.playerIds.flatMap((id) => owned(room.game, id)));
+    expect(new Set((mine!.deadCards ?? []).map((card) => card.id))).toEqual(held);
+  });
+});

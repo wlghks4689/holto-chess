@@ -1,7 +1,8 @@
 import { analytics } from "../../analytics/events";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { localizeSeatNames } from "../botNames";
-import { BALANCE, handLimitFor, isLineupFinal, minHandFor, purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
+import { BALANCE, handLimitFor, isLineupFinal, minHandFor, regularShopSizeFor, rerollLimitFor } from "../../game/config";
+import { abilityPurchaseLimit } from "../../game/abilities";
 import {
   beginSecondary, buyCard, chooseOpponent, completeOpponentSelect, completeR2Briefing, finishCardAuctionReveal, getCard, getCardPrice, isOpponentRevealing, lockRunLoadouts, pickDraftCard,
   rerollShop, resolvePrimary, resolveSecondary, resolveSurvival, sellCard, setRunLoadout,
@@ -264,12 +265,12 @@ function TutorialArena({ game, act, error, onDismissError }: {
     </section>}
 
     {game.phase === "SHOP" && me.ownedCardIds.length < handLimit ? <section className="panel tutorial-shop" data-tutorial-id="shop">
-      <header><h2>{t("shop.market")}</h2><span>{t("shop.purchases", { used: me.purchasesThisRound, limit: purchaseLimitFor(game.round, game) })}</span></header>
+      <header><h2>{t("shop.market")}</h2><span>{t("shop.purchases", { used: me.purchasesThisRound, limit: abilityPurchaseLimit(me, game.round, game) })}</span></header>
       <div className="card-row market-row">
         {/* No onLock: the guide does not teach locking yet, and a button that silently does nothing
             is worse than no button on the one screen meant to explain the controls. */}
         {me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(game, id)} price={getCardPrice(game, "p1", id)}
-          disabled={me.ownedCardIds.length >= handLimit || me.stackBB < getCardPrice(game, "p1", id) || me.purchasesThisRound >= purchaseLimitFor(game.round, game)}
+          disabled={me.ownedCardIds.length >= handLimit || me.stackBB < getCardPrice(game, "p1", id) || me.purchasesThisRound >= abilityPurchaseLimit(me, game.round, game)}
           onBuy={() => act((state) => buyCard(state, "p1", id))} />)}
         {!me.shopCardIds.length ? <p className="market-empty">{t("shop.soldOut")}</p> : null}
       </div>

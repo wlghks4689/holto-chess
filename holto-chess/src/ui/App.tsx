@@ -5,8 +5,8 @@ import { ShopAbilityPanel } from "./AbilityVisibility";
 import { abilityBenefit, personalAbilityCues } from "../game/abilityVisibility";
 import { finalPrepMatchup } from "./finalPrepMatchup";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cardPrice, handLimitFor, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor, purchaseLimitFor } from "../game/config";
-import { abilityLockCost, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilityShopSize } from "../game/abilities";
+import { handLimitFor, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor } from "../game/config";
+import { abilityLockCost, abilityPurchaseLimit, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilitySellRefund, abilityShopSize } from "../game/abilities";
 import {
   beginSecondary, buyCard, confirmSelection, createAbilityGame, finishAbilityDeal, finishAbilitySelection, finalStandings, leaveRoundResult,
   getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
@@ -114,7 +114,7 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
   const { t } = useTranslation();
   const [pendingSale, setPendingSale] = useState<string | null>(null);
   const me = state.players[0]!; const cap = handLimitFor(state.round, state);
-  const purchaseLimit = purchaseLimitFor(state.round, state); const rerollLimit = abilityRerollLimit(me, state.round, state);
+  const purchaseLimit = abilityPurchaseLimit(me, state.round, state); const rerollLimit = abilityRerollLimit(me, state.round, state);
   const shopSize = abilityShopSize(me, state.round, state);
   const lockedShopCardCount = me.shopCardIds.filter((id) => me.lockedShopCardIds?.includes(id)).length;
   const allShopCardsLocked = shopSize > 0 && lockedShopCardCount >= shopSize;
@@ -126,8 +126,8 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
       <header><div className="shop-heading"><h2>{t("shop.myCards")}</h2><strong className="shop-count">{me.ownedCardIds.length} / {cap}</strong></div><div className="stat-block"><small>{t("shop.stack")}</small><strong>{me.stackBB}<i>BB</i></strong></div></header>
       <div className="card-row owned-row">{me.ownedCardIds.map((id) => {
         const card = getCard(state, id);
-        const sellPercent = Math.round(abilitySellRate(me) * 100);
-        const refund = Math.floor(cardPrice(card.rank) * sellPercent / 100);
+        const refund = abilitySellRefund(me, card.rank);
+        const sellPercent = refund ? Math.round(abilitySellRate(me) * 100) : 0;
         return <div className="owned-card" key={id}><CardView card={card} />
           <button type="button" className="secondary card-sell-button" disabled={!canSell} onClick={() => setPendingSale(id)}>{t(canSell ? "shop.sell" : "shop.cannotSell")}</button>
           {pendingSale === id && <SellCardDialog card={card} refund={refund} sellPercent={sellPercent} onCancel={() => setPendingSale(null)} onConfirm={() => { setPendingSale(null); act((s) => sellCard(s, me.id, id)); }} />}
