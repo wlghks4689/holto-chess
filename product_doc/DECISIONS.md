@@ -638,3 +638,14 @@ Claude가 구현 중 정한 세부(사용자 확인 필요 시 별도 보고):
 - 시드 영향: R1 상점 장수가 바뀌어 같은 시드의 게임 진행이 달라졌다. 튜토리얼 시드 2634 → 2635(연습 좌석이 R6까지 생존하는 조건 유지). 시드에 의존하던 테스트 3건을 의도에 맞게 고쳤다.
 - 검증: 단위 테스트(잠금이 다음 라운드로 넘어가지 않음, 파워랭킹 표), `npm run test:workers` 147건, ESLint, 타입 검사. 전체 `vitest run`에서 기존부터 실패하던 `openDraft.test.ts` 공개 정보 1건이 남고, 병렬 부하 시간 초과 테스트는 단독 실행에서 통과. 브라우저: 싱글 R1 상점 3장, A♦K♠ 구매 시 "파워랭킹 10등"(PC 1280·모바일 375).
 - 브랜치: develop(2026-10-16부터 사용자 지시). main 반영은 사용자 결정.
+
+## TUTORIAL-REMOVAL-001 — 튜토리얼 미운영, main에서 코드 삭제 (2026-10-17)
+
+- 승인 근거: 사용자 지시(2026-10-17). 튜토리얼은 제 기능을 하지 못해 현행 운영하지 않고, 게임 설명 페이지를 보완하는 방향으로 간다. 숨김 플래그가 아니라 코드 삭제로 처리한다. develop에서 작업한 뒤 main에 반영한다(사용자 선택).
+- 복구 지점: 태그 `archive/tutorial-20261017`(annotated, 태그 객체 `22513af818f33e803074ebfd5aaeae7cba5de37c`) → 커밋 `b7b9b86c904d46720ce47f4e4b68caeed6cfc23c`. 브랜치 `archive/tutorial` → 같은 커밋. 이 커밋은 삭제 직전 develop HEAD이며, main(`d923c7f`)에서 fast-forward되는 지점이다.
+- 삭제: `src/tutorial/**`(챕터·컨트롤러·재생·해설·저장·영문 카피와 테스트), `src/ui/tutorial/**`(TutorialApp·챕터 메뉴·코치마크·CSS), 시작 화면 "체험 · 길라잡이" 버튼과 `tutorial` 모드, i18n `tutorial.*`·`home.tutorial`·`mode.tutorial`(언어별 35키), 분석 이벤트 `tutorial_start`·`tutorial_chapter_complete`·`tutorial_complete`, R5 배치 패널의 튜토리얼 전용 `showTimer` 옵션, `.tutorial-screen` CSS, 소개 페이지·개인정보처리방침의 튜토리얼 문구.
+- 공유 코드라 남김: `autoStep`·`practiceState`(게임 테스트 6개와 개발용 미리보기가 사용)와 연습 봇 정책을 `src/game/practiceState.ts`·`src/game/practiceBots.ts`(`practiceBotPolicy`)로 옮겼다. 동작은 바꾸지 않았다. 엔진의 `botPolicy` 인자는 시뮬레이터와 테스트도 쓰므로 유지했다.
+- 첫 실행: 원래부터 튜토리얼로 자동 진입하지 않았다. 신규 유저는 그대로 시작 화면(메인 메뉴)으로 들어간다. 기존 브라우저에 남은 `porena-tutorial-v1` 키는 더 이상 읽지 않으며, 마이그레이션은 하지 않는다.
+- 역사 기록 문서(QA 보고서, OPERATIONS 배포 기록, LOCALIZATION_REPORT, 완료된 TODO, SIX_ROUND_FORMAT 이력, perf 기준 측정값)의 튜토리얼 언급은 과거 사실이라 그대로 둔다.
+- 복구 방법: `git checkout archive/tutorial -- holto-chess/src/tutorial holto-chess/src/ui/tutorial`로 두 폴더를 되살린 뒤, 이 결정의 삭제 커밋(`git show <삭제 커밋>`)에서 바뀐 진입점·i18n·분석 이벤트·CSS·문구를 되돌리고, `practiceState`/`practiceBots`의 새 경로에 맞춰 import를 고친다.
+

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";
 import { buyCard, createGame, getCard, prepareShowdown, type BotShopAction, type BotShopInput } from "./engine";
-import { tutorialBotPolicy } from "../tutorial/tutorialBots";
+import { practiceBotPolicy } from "./practiceBots";
 
 /** R1 starts empty and needs two cards, so buy both for the human before every showdown preparation. */
 function readyHuman() {
@@ -39,8 +39,8 @@ describe("bot shop policy injection", () => {
     expect(assertPoolIntegrity(prepared)).toBe(true);
   });
 
-  it("keeps the tutorial policy inside the real limits", () => {
-    const prepared = prepareShowdown(readyHuman(), ["p1"], tutorialBotPolicy);
+  it("keeps the practice policy inside the real limits", () => {
+    const prepared = prepareShowdown(readyHuman(), ["p1"], practiceBotPolicy);
     for (const bot of prepared.players.slice(1)) {
       expect(bot.ownedCardIds.length).toBe(BALANCE.handLimits[1]);
       expect(bot.purchasesThisRound).toBeLessThanOrEqual(BALANCE.purchaseLimits[1]);
@@ -53,7 +53,7 @@ describe("bot shop policy injection", () => {
   it("prefers a pair, then a shared suit", () => {
     const state = createGame(2052);
     const owned = [getCard(state, "8c")];
-    const pick = (ids: string[]) => tutorialBotPolicy({
+    const pick = (ids: string[]) => practiceBotPolicy({
       round: 1, playerId: "p2", stackBB: 50, handLimit: 2, purchasesLeft: 2, rerollsLeft: 1, rerollCost: 5,
       ownedCards: owned, shopCards: ids.map((id) => ({ card: getCard(state, id), price: 8 })),
     });

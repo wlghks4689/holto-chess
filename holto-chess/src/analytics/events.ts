@@ -1,16 +1,12 @@
 import type { Phase } from '../game/types';
-import type { ChapterId } from '../tutorial/tutorialTypes';
 
 export type GameMode = 'local_practice' | 'ranked_solo' | 'multiplayer';
 type EventParams = {
   landing_view: Record<string, never>;
-  play_cta_click: { selected_mode: 'single' | 'multi' | 'tutorial' };
+  play_cta_click: { selected_mode: 'single' | 'multi' };
   game_start: { game_mode: GameMode };
   round_1_complete: { game_mode: GameMode };
   game_complete: { game_mode: GameMode };
-  tutorial_start: { chapter: ChapterId };
-  tutorial_chapter_complete: { chapter: ChapterId };
-  tutorial_complete: { chapter: 6 };
 };
 type Gtag = (command: 'event', name: string, params: object) => void;
 type Runtime = { enabled: () => boolean; send: () => Gtag | undefined; storage: () => Pick<Storage, 'getItem' | 'setItem'> };
@@ -39,7 +35,6 @@ export function createAnalytics(runtime: Runtime) {
       const safe: Record<string, string | number> = {};
       if ('game_mode' in params) safe.game_mode = String(params.game_mode);
       if ('selected_mode' in params) safe.selected_mode = String(params.selected_mode);
-      if ('chapter' in params) safe.chapter = Number(params.chapter);
       send('event', name, safe);
       if (key) {
         seen.add(key);

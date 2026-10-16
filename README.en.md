@@ -253,7 +253,6 @@ holto-chess/
 │  ├─ game/     # game rules, room state, balance values, bots
 │  ├─ shared/   # client/server protocol and cinematic timeline
 │  ├─ i18n/     # Korean · English text
-│  ├─ tutorial/ # the 6-chapter tutorial
 │  ├─ admin/    # feedback inbox for the operator
 │  └─ ui/       # React screens, showdown cinematics, How to Play
 ├─ worker/      # Cloudflare Worker + Durable Object
@@ -309,7 +308,6 @@ See [tools/balance-simulator/README.md](holto-chess/tools/balance-simulator/READ
 - [x] Spectating after elimination · rematches
 - [x] 12 abilities · dealt at random when the game starts
 - [x] How to Play split into a beginner guide and a rule book
-- [x] Tutorial (6 chapters, practice per round)
 - [x] Korean · English
 - [x] Discord Activity
 - [x] Made-hand sound effects · volume settings

@@ -1,6 +1,6 @@
 import { createAbilityGame, createGame, finishAbilityDeal, finishAbilitySelection, prepareShowdown } from "../game/engine";
 import type { PorenaGameState } from "../game/types";
-import { autoStep } from "../tutorial/practiceState";
+import { autoStep } from "../game/practiceState";
 import { settleFinalAuction } from "../game/finalAuction";
 
 export function phasePreviewStates(sixRounds = true): PorenaGameState[] {

@@ -1,11 +1,11 @@
-import type { BotShopAction, BotShopInput } from "../game/engine";
+import type { BotShopAction, BotShopInput } from "./engine";
 
 /**
- * Practice opponents. They shop by a fixed, readable priority instead of the regular expected-value
- * search, so a first-time player is not out-scaled while reading. They never get extra BB or free
- * purchases: every action still passes the engine's own rule checks.
+ * Practice opponents for autoplay (tests, dev previews). They shop by a fixed, readable priority instead
+ * of the regular expected-value search. They never get extra BB or free purchases: every action still
+ * passes the engine's own rule checks.
  */
-export function tutorialBotPolicy(input: BotShopInput): BotShopAction {
+export function practiceBotPolicy(input: BotShopInput): BotShopAction {
   const { ownedCards, shopCards, stackBB, handLimit, purchasesLeft, rerollsLeft, rerollCost } = input;
   if (ownedCards.length >= handLimit || purchasesLeft <= 0) return { type: "DONE" };
   const affordable = shopCards.filter((entry) => entry.price <= stackBB);

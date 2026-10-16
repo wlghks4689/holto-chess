@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { autoStep } from "../tutorial/practiceState";
+import { autoStep } from "./practiceState";
 import { ABILITY_IDS, TARGET_SNIPER_WIN_BB } from "./abilities";
 import { createAbilityGame, finishAbilityDeal, finishAbilitySelection } from "./engine";
 import type { PorenaGameState } from "./types";

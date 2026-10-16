@@ -31,7 +31,6 @@ npm run build
 | `src/game/config.ts` | 가격·승점·BB·족보 점수 등 밸런스 수치의 단일 출처 |
 | `src/shared` | 클라이언트·서버 공용 프로토콜, 제한 시간, 연출 타임라인 |
 | `src/ui` | React 화면, 쇼다운 시네마틱, 게임 설명(초보자 가이드·규칙서) |
-| `src/tutorial` | 체험 · 길라잡이 5장 |
 | `src/i18n` | 한국어(`ko-KR`)·영어(`en-US`) 문구. 두 파일의 키는 항상 같아야 합니다 |
 | `src/admin` | 제보·문의 관리자 수신함 |
 | `worker/` | Cloudflare Worker와 방 하나당 하나의 `GameRoom` Durable Object |

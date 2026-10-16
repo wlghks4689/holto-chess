@@ -43,8 +43,8 @@ export function TimedOpenDraftPanel({ durationSeconds, ...props }: Parameters<ty
   return <OpenDraftPanel {...props} seconds={seconds} />;
 }
 
-export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = true }: {
-  view: PlayerView; send: (action: GameAction) => void; disabled: boolean; seconds: number | null; showTimer?: boolean;
+export function RunLoadoutPanel({ view, send, disabled, seconds }: {
+  view: PlayerView; send: (action: GameAction) => void; disabled: boolean; seconds: number | null;
 }) {
   const { t } = useTranslation();
   const owned = view.me.ownedCards;
@@ -57,9 +57,9 @@ export function RunLoadoutPanel({ view, send, disabled, seconds, showTimer = tru
     send({ type: "RUN_LOADOUT", cardIds: next });
   };
   return <section className="panel run-loadout">
-    {showTimer && <header className="run-loadout-header">
+    <header className="run-loadout-header">
       <PhaseTimer className="run-loadout-timer" seconds={seconds ?? 30} ariaLabel={t("loadout.timerAria", { seconds: seconds ?? 30 })} />
-    </header>}
+    </header>
     <h2 className="run-loadout-heading">{t("loadout.headingFirst")}<br className="run-loadout-mobile-break" /> {t("loadout.headingSecond")}</h2>
     <div className="run-loadout-content">
       <div className="run-loadout-slots">

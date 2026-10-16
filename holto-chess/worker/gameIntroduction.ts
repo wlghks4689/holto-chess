@@ -34,6 +34,6 @@ export function gameIntroductionHtml(): string {
 <li><strong>RUN IT THREE TIMES</strong> — 카드 6장을 세 핸드로 나누어 겨룹니다.</li>
 <li><strong>THE LAST HAND</strong> — 마지막 출전 카드를 골라 최종 승부와 점수를 결정합니다.</li>
 </ol><p>라운드를 거치며 플레이어가 탈락하고, 마지막까지 남은 플레이어가 최종 순위를 겨룹니다. 상세한 수치와 예외 규칙은 게임 시작 화면의 ‘게임 설명’에서 확인할 수 있습니다.</p></section>
-<section><h2>웹에서 싱글 플레이와 멀티플레이</h2><p>PC와 모바일 브라우저에서 플레이할 수 있습니다. AI와 싱글 플레이로 흐름을 익히거나, 멀티플레이에서 다른 플레이어와 겨뤄 보세요. 처음이라면 시작 화면의 튜토리얼과 초보자 가이드부터 확인할 수 있습니다.</p><a class="play" href="/">포레나 플레이하기</a></section>
+<section><h2>웹에서 싱글 플레이와 멀티플레이</h2><p>PC와 모바일 브라우저에서 플레이할 수 있습니다. AI와 싱글 플레이로 흐름을 익히거나, 멀티플레이에서 다른 플레이어와 겨뤄 보세요. 처음이라면 시작 화면의 게임 설명에서 초보자 가이드부터 확인할 수 있습니다.</p><a class="play" href="/">포레나 플레이하기</a></section>
 </main><footer><a href="/">홈으로</a><a href="/privacy">개인정보처리방침</a><a href="/terms">이용약관</a></footer></body></html>`;
 }

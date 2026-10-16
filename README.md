@@ -253,7 +253,6 @@ holto-chess/
 │  ├─ game/     # 게임 규칙, 방 상태, 밸런스 수치, 봇
 │  ├─ shared/   # 클라이언트·서버 공용 프로토콜과 연출 타임라인
 │  ├─ i18n/     # 한국어 · 영어 문구
-│  ├─ tutorial/ # 체험 · 길라잡이 6장
 │  ├─ admin/    # 제보 · 문의 관리자 수신함
 │  └─ ui/       # React 화면, 쇼다운 시네마틱, 게임 설명
 ├─ worker/      # Cloudflare Worker + Durable Object
@@ -309,7 +308,6 @@ node tools/balance-simulator/run.mjs --games 2000 --abilities --policies ABILITY
 - [x] 탈락자 관전 · 재대결
 - [x] 어빌리티 12종 · 게임 시작 시 무작위 지급
 - [x] 게임 설명: 초보자 가이드 / 규칙서 분리
-- [x] 체험 · 길라잡이 (6장, 라운드별 연습)
 - [x] 한국어 · 영어 지원
 - [x] Discord Activity
 - [x] 메이드 족보 효과음 · 음량 설정

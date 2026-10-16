@@ -1,4 +1,4 @@
-import { autoStep } from "../tutorial/practiceState";
+import { autoStep } from "./practiceState";
 import { describe, expect, it } from "vitest";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE } from "./config";

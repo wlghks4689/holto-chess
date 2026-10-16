@@ -429,7 +429,7 @@ function subsets<T>(items: readonly T[], size: number): T[][] {
   return items.flatMap((item, index) => subsets(items.slice(index + 1), size - 1).map((rest) => [item, ...rest]));
 }
 
-/** `botPolicy` is for practice modes (the tutorial); leaving it out keeps the normal bot brain. */
+/** `botPolicy` is for practice autoplay and simulators; leaving it out keeps the normal bot brain. */
 export function prepareShowdown(source: PorenaGameState, humanIds: readonly string[] = ["p1"], botPolicy?: BotShopPolicy): PorenaGameState {
   if (source.phase !== "SHOP") throw new Error("상점 단계가 아닙니다.");
   const state = structuredClone(source); aiPrepare(state, humanIds, botPolicy);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoStep } from "../tutorial/practiceState";
+import { autoStep } from "./practiceState";
 import { ABILITY_IDS, type AbilityId } from "./abilities";
 import { assertPoolIntegrity } from "./cardPool";
 import { BALANCE, cardPrice, regularShopSizeFor } from "./config";

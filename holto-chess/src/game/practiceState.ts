@@ -1,18 +1,18 @@
-import { bestBotSelection } from "../game/botStrategy";
-import { BALANCE, handLimitFor, isAuctionRound, rerollLimitFor } from "../game/config";
-import { abilityPurchaseLimit } from "../game/abilities";
+import { bestBotSelection } from "./botStrategy";
+import { BALANCE, handLimitFor, isAuctionRound, rerollLimitFor } from "./config";
+import { abilityPurchaseLimit } from "./abilities";
 import {
   autoChooseOpponent, autoPickDraft, beginSecondary, buyCard, completeOpponentSelect, completeR2Briefing, confirmSelection, createGame, finishCardAuctionReveal, getCard, getCardPrice,
   isOpponentRevealing, leaveRoundResult, lockRunLoadouts, openDraft, prepareShowdown, resolvePrimary, resolveSecondary, resolveSurvival,
   startNextRound, toggleSelectedCard,
-} from "../game/engine";
-import type { PorenaGameState, Round } from "../game/types";
-import { tutorialBotPolicy } from "./tutorialBots";
-import { settleFinalAuction } from "../game/finalAuction";
-import { tickAuctionBots } from "../game/finalAuctionBot";
-import { finishFinalLoadouts } from "../game/engine";
+} from "./engine";
+import type { PorenaGameState, Round } from "./types";
+import { practiceBotPolicy } from "./practiceBots";
+import { settleFinalAuction } from "./finalAuction";
+import { tickAuctionBots } from "./finalAuctionBot";
+import { finishFinalLoadouts } from "./engine";
 
-/** Phase a round opens on, so the autopilot knows where a chapter begins. */
+/** Phase a round opens on, so the autopilot knows where to stop. */
 export function roundEntryPhase(round: Round, sixRounds = true): "SHOP" | "DRAFT_ORDER" | "FINAL_AUCTION" | "OPPONENT_SELECT" {
   if (sixRounds) return round === 3 ? "FINAL_AUCTION" : round === 5 ? "OPPONENT_SELECT" : round === 2 || round === 4 ? "DRAFT_ORDER" : "SHOP";
   return round === 5 ? "FINAL_AUCTION" : round === 2 || round === 4 ? "DRAFT_ORDER" : "SHOP";
@@ -25,7 +25,7 @@ function autoShop(source: PorenaGameState): PorenaGameState {
   for (let step = 0; step < 12; step += 1) {
     const player = me();
     if (player.eliminated || player.ownedCardIds.length >= handLimitFor(state.round, state)) break;
-    const action = tutorialBotPolicy({
+    const action = practiceBotPolicy({
       round: state.round, playerId: player.id, stackBB: player.stackBB, handLimit: handLimitFor(state.round, state),
       purchasesLeft: abilityPurchaseLimit(player, state.round, state) - player.purchasesThisRound,
       rerollsLeft: rerollLimitFor(state.round, state) - (player.rerollsUsed ?? 0),
@@ -54,7 +54,7 @@ export function autoStep(source: PorenaGameState): PorenaGameState {
     }
     case "OPPONENT_SELECT": return isOpponentRevealing(source) ? completeOpponentSelect(source) : autoChooseOpponent(source);
     case "FINAL_LOADOUT": return finishFinalLoadouts(source, source.finalAuction!.loadoutEndsAt!, []);
-    case "SHOP": return prepareShowdown(autoShop(source), ["p1"], tutorialBotPolicy);
+    case "SHOP": return prepareShowdown(autoShop(source), ["p1"], practiceBotPolicy);
     case "DECK_SELECT": {
       let state = source;
       for (const id of bestBotSelection(state.round, me.ownedCardIds.map((cardId) => getCard(state, cardId)))) state = toggleSelectedCard(state, "p1", id);
@@ -76,9 +76,9 @@ export function autoStep(source: PorenaGameState): PorenaGameState {
 }
 
 /**
- * Builds the practice hand a later chapter starts from by actually playing the earlier rounds with
- * the real engine and the practice bots. Nothing is hand-placed: the ledger, BB and shop reservations
- * are whatever the rules produced, so a chapter can be entered directly without faking a game.
+ * Builds a game standing at the start of `round` by actually playing the earlier rounds with the real
+ * engine and the practice bots. Nothing is hand-placed: the ledger, BB and shop reservations are
+ * whatever the rules produced.
  */
 export function practiceState(seed: number, round: Round, sixRounds = true): PorenaGameState {
   let state = createGame(seed, "seeded", 2, false, sixRounds);

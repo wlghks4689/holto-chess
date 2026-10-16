@@ -31,7 +31,6 @@ const PhasePreview = import.meta.env.DEV ? lazy(() => import("./PhasePreview").t
 // Privacy policy and terms (/privacy, /terms): public pages, fetched only when visited.
 const LegalPage = lazy(() => import("../legal/LegalPage").then((module) => ({ default: module.LegalPage })));
 const RankingPage = lazy(() => import("./RankingPage").then((module) => ({ default: module.RankingPage })));
-const TutorialApp = lazy(() => import("./tutorial/TutorialApp").then((module) => ({ default: module.TutorialApp })));
 export function ModeApp() {
   return <AccountProvider><ModeContent /></AccountProvider>;
 }
@@ -78,6 +77,5 @@ function ModeContent() {
   if (ResponsivePreview && location.pathname === "/responsive-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><ResponsivePreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
   if (!mode || (!(restoring && mode === "multi") && (!account.canEnter || entryRequested))) return <StartScreen onStart={(selectedMode) => { analytics.track("play_cta_click", { selected_mode: selectedMode }); setMode(selectedMode); }} />;
-  if (mode === "tutorial") return <Suspense fallback={<main className="local-loading-screen"><div><span>TUTORIAL</span><b>{t("common.loading")}</b></div></main>}><TutorialApp onHome={() => setMode(null)} onSinglePlay={() => setMode("single")} /></Suspense>;
   return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>{t("mode.multiplayer")}</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>{t("mode.single")}</button></div>}{mode === "single" && account.status === "authenticated" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("common.loading")}</b></div></main>}><OnlineApp solo onHome={() => setMode(null)} /></Suspense> : mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("home.singleDescription")}</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <Suspense fallback={<main className="local-loading-screen"><div><span>MULTIPLAYER</span><b>{t("common.loading")}</b></div></main>}><OnlineApp onHome={() => setMode(null)} /></Suspense>}</>;
 }

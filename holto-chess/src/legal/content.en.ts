@@ -74,7 +74,6 @@ export const privacyEn: LegalDocument = {
         ["Recent room sessions", `Room codes and reconnection tokens for up to ${MAX_REMEMBERED} recent rooms`],
         ["Room in this tab", "The room code this tab is playing (sessionStorage, cleared when the tab closes)"],
         ["Language", "Korean or English"],
-        ["Tutorial progress", "Steps completed and where you left off"],
         ["Round guides", "Auto-show setting and which guides you have seen"],
         ["Sound", "Sound effects on/off and volume"],
         ["Motion", "Cinematic animations on/off"],
@@ -246,7 +245,7 @@ export const termsEn: LegalDocument = {
       "Game rules, balance, the interface and supported platforms may change as the Service improves. The operator may suspend all or part of the Service for maintenance, outages or operational reasons and will give notice in advance where possible.",
     ] },
     { id: "local-data", title: "10. Data stored in your browser", body: [
-      "Data stored in your browser, such as settings, tutorial progress and match history, can be lost through browser settings, private browsing, changing devices or clearing site data. The operator cannot restore it and does not guarantee that it is kept.",
+      "Data stored in your browser, such as settings and match history, can be lost through browser settings, private browsing, changing devices or clearing site data. The operator cannot restore it and does not guarantee that it is kept.",
     ] },
     { id: "feedback", title: "11. Feedback", body: [
       "Do not include passwords, security tokens, reconnection tokens, payment details, national ID numbers or other sensitive information in the feedback form. We may use your feedback to improve the Service. It is handled as described in the [Privacy Policy](/privacy).",

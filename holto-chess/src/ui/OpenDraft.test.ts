@@ -32,15 +32,6 @@ describe("R2 run loadout presentation", () => {
     expect(html).toContain("배치 확정 · 준비 완료");
   });
 
-  it("can hide the timer for the tutorial while keeping the unchanged loadout control", () => {
-    const html = renderToStaticMarkup(createElement(RunLoadoutPanel, {
-      view: viewFixture(), send: () => {}, disabled: false, seconds: null, showTimer: false,
-    }));
-
-    expect(html).not.toContain('role="timer"');
-    expect(html).toContain("배치 확정 · 준비 완료");
-  });
-
   it("previews the representative card with each RUN's selected auxiliary card", () => {
     const view = viewFixture();
     const [first, second, third] = view.me.ownedCards;

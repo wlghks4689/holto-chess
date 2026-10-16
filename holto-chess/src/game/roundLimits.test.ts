@@ -1,4 +1,4 @@
-import { autoStep } from "../tutorial/practiceState";
+import { autoStep } from "./practiceState";
 import { describe, expect, it } from "vitest";
 import { purchaseLimitFor, regularShopSizeFor, rerollLimitFor } from "./config";
 import { beginSecondary, buyCard, createGame as createGameCurrent, finalStandings, leaveRoundResult, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary, startNextRound } from "./engine";

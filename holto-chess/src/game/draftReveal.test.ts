@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BARRIER_TIMEOUT_MS } from "../shared/barrierTimeouts";
-import { practiceState } from "../tutorial/practiceState";
+import { practiceState } from "./practiceState";
 import { autoPickDraft, completeDraft, getCardPrice, isDraftRevealing, openDraft, pickDraftCard } from "./engine";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, turnKey, type RoomSnapshot } from "./room";
 

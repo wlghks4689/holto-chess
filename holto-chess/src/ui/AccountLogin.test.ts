@@ -14,14 +14,13 @@ const context = (state: AccountSnapshot, guestChosen = false): AccountContextVal
 });
 const render = (state: AccountSnapshot, guestChosen = false) => renderToStaticMarkup(createElement(AccountContext.Provider, { value: context(state, guestChosen) }, createElement(StartScreen, { onStart: () => {} })));
 
-it("shows login choices before any game, tutorial, guide or settings menu", () => {
+it("shows login choices before any game, guide or settings menu", () => {
   const html = renderToStaticMarkup(createElement(StartScreen, { onStart: () => {} }));
   expect(html).toContain('role="status"');
   expect(html).not.toContain("Google로 로그인");
   expect(render(guest)).toContain("게스트로 플레이");
   expect(html).not.toContain('class="start-menu"');
   expect(html).not.toContain("시작하기");
-  expect(html).not.toContain("체험 · 길라잡이");
   expect(html).not.toContain("client_secret");
 });
 
