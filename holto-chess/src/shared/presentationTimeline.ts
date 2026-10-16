@@ -3,7 +3,7 @@ import type { MatchView } from "./protocol";
 export type CinematicPhase = "ARENA_ENTER" | "VS_INTRO" | "TABLE_ENTER" | "PREFLOP_HAND" | "FLOP_1" | "FLOP_2" | "FLOP_3" | "FLOP_SETTLE" | "FLOP_HAND"
   | "TURN" | "TURN_SETTLE" | "TURN_HAND" | "RIVER_SUSPENSE" | "RIVER" | "RIVER_SETTLE" | "RIVER_HAND" | "BEST5_WAIT" | "FINAL_CARDS"
   | "FINAL_FIRST_REVEAL" | "FINAL_FIRST_HAND" | "FINAL_SECOND_REVEAL" | "FINAL_SECOND_HAND" | "FINAL_LAST_REVEAL" | "FINAL_SEVEN_SETTLE"
-  | "CARD_SWITCH_OUT" | "CARD_SWITCH_IN" | "CARD_SWITCH_SETTLE" | "HIGH_CARD_NOTICE" | "HIGH_CARD_DRAW" | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
+  | "RUN_TRANSITION" | "CARD_SWITCH_OUT" | "CARD_SWITCH_IN" | "CARD_SWITCH_SETTLE" | "HIGH_CARD_NOTICE" | "HIGH_CARD_DRAW" | "BEST5_GLOW" | "HOLE_DIM" | "BOARD_DIM" | "PROFILE" | "MADE_HAND" | "RUN_RESULT" | "RESULT" | "FINAL_PLACE" | "FINAL_WINNER" | "REWARD" | "COMPLETE";
 export type CinematicFrame = { at: number; phase: CinematicPhase; boardIndex: number; revealed: number; finalCards: number; finalPlace?: number };
 
 /** The final round's match: R5 in five-round games, R6 in six-round games. Views without the flag are R5 finals. */
@@ -13,6 +13,10 @@ export const isFinalMatch = (match: Pick<MatchView, "round" | "final">): boolean
 export const FINAL_ARENA_HOLD_MS = 400;
 export const FINAL_ARENA_ZOOM_MS = 1800;
 export const FINAL_ARENA_ENTER_MS = FINAL_ARENA_HOLD_MS + FINAL_ARENA_ZOOM_MS + 300;
+
+/** Finish moving the previous board before changing hands or revealing the next RUN. */
+export const RUN_BOARD_MOVE_MS = 560;
+export const RUN_TRANSITION_MS = RUN_BOARD_MOVE_MS + 80;
 
 /** Milliseconds at 1x. Reveal starts are separate from completed flips and pauses. */
 export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCards" | "highCardDraw" | "runCards"> & { round?: number; final?: boolean; results?: Pick<MatchView["results"][number], "place">[] }): CinematicFrame[] {
@@ -49,6 +53,7 @@ export function cinematicTimeline(match: Pick<MatchView, "boards" | "revealedCar
   } else {
     for (boardIndex = 0; boardIndex < match.boards.length; boardIndex++) {
       revealed = 0;
+      if (boardIndex >= 1 && (match.round === 2 || match.runCards)) add("RUN_TRANSITION", RUN_TRANSITION_MS);
       // A later RUN that swaps in a different hand plays the switch: legacy R2 changes the secondary card,
       // R5 both cards. R2 BEST FIVE keeps the same three cards, so it has no switch.
       if (boardIndex >= 1 && match.runCards && Object.values(match.runCards).some((runs) => runs.length > boardIndex
@@ -120,7 +125,7 @@ export function displayedStreetIndex(phase: CinematicPhase): 0 | 1 | 2 | 3 {
  * client targets that clock; network arrival and clock uncertainty can still delay a beat.
  * Bump the version whenever timeline durations change so stale clients can be recognised.
  */
-export const PRESENTATION_VERSION = 19;
+export const PRESENTATION_VERSION = 20;
 /** Head start between commit and playback so every socket has the view before frame 0. */
 export const PRESENTATION_LEAD_MS = 700;
 /** Pause after the last match while the room waits for the shared presentation to finish. */

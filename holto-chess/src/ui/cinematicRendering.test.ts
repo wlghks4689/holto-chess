@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { makeDeck, type Card } from "../core/poker/cards";
+import { cardLabel, makeDeck, type Card } from "../core/poker/cards";
 import { findBestFive } from "../core/poker/evaluate";
 import type { MatchView, PresentationView } from "../shared/protocol";
 import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
@@ -19,6 +19,26 @@ const match: MatchView = {
   revealedCards: Object.fromEntries([1, 2, 3, 4].map((id, index) => [`p${id}`, deck.slice(index * 7, index * 7 + 7)])),
 };
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
+
+it("moves a finished R5 RUN with the outgoing hand held and the incoming board closed", () => {
+  const triple: MatchView = { ...match, id: "run-move", round: 5, final: false, stage: "primary", participantIds: ["p1", "p2"], runoutCount: 3,
+    boards: [deck.slice(12, 17), deck.slice(17, 22), deck.slice(22, 27)], boardWinnerIds: [["p1"], ["p2"], ["p1"]],
+    revealedCards: { p1: deck.slice(0, 6), p2: deck.slice(6, 12) },
+    runCards: { p1: [deck.slice(0, 2), deck.slice(2, 4), deck.slice(4, 6)], p2: [deck.slice(6, 8), deck.slice(8, 10), deck.slice(10, 12)] } };
+  const frames = cinematicTimeline(triple);
+  const render = (phase: string, run: number) => renderToStaticMarkup(createElement(ShowdownCinematic, { match: triple, profiles, viewerId: "p1", onComplete: () => {},
+    elapsedMs: frames.find(frame => frame.phase === phase && frame.boardIndex === run)!.at }));
+  for (const run of [1, 2]) {
+    const html = render("RUN_TRANSITION", run);
+    const liveBoard = html.match(/class="cinema-board active[^>]*>[\s\S]*?(?=<div class="cinema-board (?:pending|complete)|<\/section>)/)![0];
+    expect(liveBoard).not.toContain("is-open");
+    expect(liveBoard).not.toContain("IN PROGRESS");
+    const firstSeat = html.slice(html.indexOf('data-player-id="p1"'), html.indexOf('data-player-id="p2"'));
+    for (const card of triple.runCards!.p1![run - 1]!) expect(firstSeat).toContain(`aria-label="${cardLabel(card)}"`);
+    expect(html).not.toContain("cinema-board-stack is-run-complete");
+  }
+  expect(render("COMPLETE", 2)).toContain("cinema-board-stack is-run-complete");
+});
 
 it("later six-round R5 match prep preserves all three RUN hands instead of the legacy final panel", () => {
   const triple: MatchView = { ...match, id: "triple", final: false, stage: "primary", participantIds: ["p1", "p2"], runoutCount: 3,
@@ -346,6 +366,9 @@ describe("cinematic initial rendering", () => {
     expect(html.match(/cinema-run-detail-hands/g)).toHaveLength(2);
     expect(html).toMatch(/is-run-loss has-run-detail[\s\S]*?cinema-run-detail-side is-loss [\s\S]*?cinema-run-detail-side is-win is-right/);
     expect(html.match(/class="cinema-run-detail-board"/g)).toHaveLength(2);
+    expect(html).toContain('class="cinema-board-caption">WIN</small>');
+    expect(html).toContain('class="cinema-board-caption">LOSS</small>');
+    expect(html).not.toContain("COMPLETED");
     expect(html).toContain("RUN 2");
     expect(html).toContain('aria-label="Run It Twice 스코어"');
     expect(html).toContain('<div class="cinema-run-score"><span>p1</span><strong>1 : 1</strong><span>p2</span></div>');

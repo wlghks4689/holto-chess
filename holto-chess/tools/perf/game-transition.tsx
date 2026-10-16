@@ -23,6 +23,7 @@ function Audit() {
   useEffect(() => {
     const start = performance.now(); let last = start; let maxGapMs = 0; let maxTaskMs = 0; let previous = "";
     const transitions: { phase: string; at: number }[] = []; let prepOdds: string[] = []; let cards: number[] = [];
+    const runMoves: { run: number; at: number; movingAnimations: number; openDuringMove: number; next?: string; nextAt?: number; movingAtNext?: number }[] = [];
     const errors: string[] = []; const onError = (event: ErrorEvent) => errors.push(event.message);
     window.addEventListener("error", onError);
     const observer = new PerformanceObserver(list => { for (const entry of list.getEntries()) maxTaskMs = Math.max(maxTaskMs, entry.duration); });
@@ -31,10 +32,21 @@ function Audit() {
       const now = performance.now(); maxGapMs = Math.max(maxGapMs, now - last); last = now;
       const phase = document.querySelector(".cinema")?.getAttribute("data-phase") || (document.querySelector(".showdown-prep") ? "PREP" : "CALCULATING");
       if (phase !== previous) { transitions.push({ phase, at: Math.round(now - start) }); previous = phase; }
+      const liveBoard = document.querySelector<HTMLElement>(".cinema-board-stack>.cinema-board.active");
+      const boardAnimations = [...document.querySelectorAll(".cinema-board-stack>.cinema-board")].flatMap(board => board.getAnimations()).filter(animation => animation.playState === "running").length;
+      if (phase === "RUN_TRANSITION" && liveBoard) {
+        const run = Number(liveBoard.dataset.runIndex);
+        if (runMoves.at(-1)?.run !== run) runMoves.push({ run, at: Math.round(now - start), movingAnimations: 0, openDuringMove: 0 });
+        const move = runMoves.at(-1)!;
+        move.movingAnimations = Math.max(move.movingAnimations, boardAnimations);
+        move.openDuringMove = Math.max(move.openDuringMove, liveBoard.querySelectorAll('.cinema-board-cards .cinema-flip-slot[data-open="true"]').length);
+      } else if (runMoves.length && !runMoves.at(-1)!.next) {
+        Object.assign(runMoves.at(-1)!, { next: phase, nextAt: Math.round(now - start), movingAtNext: boardAnimations });
+      }
       const odds = [...document.querySelectorAll(".showdown-prep-equity strong,.r2-run-equity strong")].map(el => el.textContent ?? "");
       if (phase === "PREP" && odds.length && odds.every(v => /\d+%/.test(v))) prepOdds = odds;
       if (phase === "PREP") cards = [...document.querySelectorAll(".r2-run-cards,.showdown-prep-hand")].map(el => el.children.length);
-      if (Math.floor(now / 500) !== Math.floor((now - 40) / 500)) setReport(JSON.stringify({ mode, round, maxGapMs: Math.round(maxGapMs), maxTaskMs, transitions, prepOdds, cards,
+      if (Math.floor(now / 500) !== Math.floor((now - 40) / 500)) setReport(JSON.stringify({ mode, round, maxGapMs: Math.round(maxGapMs), maxTaskMs, transitions, runMoves, prepOdds, cards,
         equity: [...document.querySelectorAll(".cinema-equity-meter")].map(el => el.getAttribute("data-equity")), errors,
         width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
     }, 40);

@@ -22,6 +22,22 @@ function game() {
   return room;
 }
 describe("server-authorized disclosure", () => {
+  it("keeps the incoming R5 hand and board concealed throughout the RUN movement", () => {
+    const triple: MatchView = { ...match, round: 5, final: false, runoutCount: 3,
+      boards: [deck.slice(12, 17), deck.slice(17, 22), deck.slice(22, 27)],
+      runCards: { p1: [deck.slice(0, 2), deck.slice(2, 4), deck.slice(4, 6)] } };
+    const frames = cinematicTimeline(triple);
+    for (const run of [1, 2]) {
+      const moveIndex = frames.findIndex(frame => frame.phase === "RUN_TRANSITION" && frame.boardIndex === run);
+      for (const time of [frames[moveIndex]!.at, frames[moveIndex + 1]!.at - 1]) {
+        const safe = discloseMatch(triple, entry, 0, time)!;
+        expect(safe.boards[run]!.every(card => card.hidden)).toBe(true);
+        expect(safe.runCards!.p1![run]!.every(card => card.hidden)).toBe(true);
+        expect(safe.runCards!.p1![run - 1]).toEqual(triple.runCards!.p1![run - 1]);
+        expect(safe.winnerIds).toEqual([]);
+      }
+    }
+  });
   it("does not transmit the next match or undealt board values", () => {
     expect(discloseMatch(match, entry, 1000, 999)).toBeUndefined();
     const view = discloseMatch(match, entry, 1000, 1000 + at("FLOP_1"))!;
