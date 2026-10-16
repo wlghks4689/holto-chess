@@ -1,5 +1,12 @@
 # PORENA 협업 계약
 
+## 현재 게임 기준 (2026-10-16)
+
+- PORENA는 **R1~R6 6라운드** 게임이다. 생존 인원 8 → 8 → 6 → 4 → 3 → 3, R6는 3인 결승이다. R3은 카드 경매 + 오마하 스위스, R5는 RUN IT THREE TIMES이며 둘 다 현행 유지로 확정됐다. R2는 3장 전체 BEST FIVE · RUN IT TWICE다.
+- 규칙 정본: 게임 안 규칙서(`holto-chess/src/ui/guide/`)와 루트 `README.md` 규칙서. 결정 근거: [DECISIONS.md](DECISIONS.md)의 ROUND-FORMAT-001, R2-BEST3-001, DIST-SCOPE-001.
+- 코드·문서·Git 이력에 남은 이전 라운드 구조의 흔적은 현재 규칙이 아니다. 작업 근거나 기억(메모리)으로 삼지 않고, 발견하면 제거 대상으로 보고한다.
+- 출시 플랫폼: Steam(Windows), Discord Activity, 웹(porena.kr). 이 밖의 플랫폼은 다루지 않는다.
+
 ## 역할과 문서 정본
 
 - 사용자: 게임 방향·규칙·밸런스 변경의 최종 승인자.

@@ -11,9 +11,9 @@
 | R3 | `FINAL_AUCTION`(16장 경매, 1인 1장) → 낙찰 공개 → `DRAFT_ORDER` → `OPEN_DRAFT`(낙찰 실패자 2배 구매) → `SHOWDOWN_PRIMARY`(Omaha Swiss) → 필요 시 `SURVIVAL_READY` → `ROUND_RESULT` (8→6) |
 | R4 | `DRAFT_ORDER` → `OPEN_DRAFT`(16장) → `SHOP` → `SHOWDOWN_PRIMARY` → `GROUP_ASSIGNMENT` → `SHOWDOWN_SECONDARY` → `ROUND_RESULT` (6→4) |
 | R5 | `OPPONENT_SELECT` → `SHOP` → `RUN_LOADOUT`(3핸드) → `SHOWDOWN_PRIMARY`(RUN 3번) → 필요 시 `SURVIVAL_READY` → `ROUND_RESULT` (4→3) |
-| R6 | `SHOP` → `SHOWDOWN_PRIMARY`(3인, 보드 없음 BEST 5) → `GAME_RESULT` |
+| R6 | `SHOP` → `RUN_LOADOUT`(출전 5장) → `SHOWDOWN_PRIMARY`(3인, 출전 5장 + 커뮤니티 보드 5장 중 BEST 5) → `GAME_RESULT` |
 
-매 단계 뒤에 카드 원장(`assertPoolIntegrity`)과 라운드 종료 생존 인원(8·8·6·4·3·3)을 검사합니다. `--five-rounds`는 6라운드 이전에 만들어진 방이 끝까지 쓰는 5라운드 규칙(R3 상점, R5 경매 결승, 생존 8·8·6·4·4)으로 돌립니다. 위반하거나 엔진이 예외를 던지면 그 게임만 **실패**로 기록하고 어떤 지표에도 섞지 않습니다.
+매 단계 뒤에 카드 원장(`assertPoolIntegrity`)과 라운드 종료 생존 인원(8·8·6·4·3·3)을 검사합니다.
 
 ## 실행
 
@@ -38,7 +38,6 @@ node tools/balance-simulator/run.mjs --games 200 --seed 12345 --jobs 4
 | `--rows` | 꺼짐 | 플레이어별 `players.jsonl`, 게임별 `games.jsonl` 원자료도 저장 |
 | `--out` | `tools/balance-simulator/output` | 출력 폴더 |
 | `--verbose` | 꺼짐 | 게임별 성공/실패 로그 |
-| `--five-rounds` | 꺼짐 | 5라운드 규칙으로 실행(전후 비교용) |
 | `--legacy-r2` | 꺼짐 | R2를 R2-BEST3-001 이전 규칙(앵커 + 보조 배치, R1 상대를 고려하지 않는 대진)으로 실행(전후 비교용) |
 
 예: rank 14·13 가격을 10BB로 내리는 실험 비교

@@ -50,7 +50,7 @@
 
 - [ ] DIST-DISCORD-001-HEADERS | 담당 Codex | 상태 BLOCKED | 의존 CONFIG 및 실제 Discord 요청 | 완료 조건: 요청의 Origin, Host, CF-Connecting-IP, CF-Ray, X-Forwarded-For, Forwarded, X-Real-IP, X-Forwarded-Proto 존재 여부와 형태를 기록한다. IP 원문은 저장하거나 로그하지 않는다.
 - [ ] DIST-DISCORD-001-RATELIMIT | 담당 Codex | 상태 BLOCKED | 의존 HEADERS 및 사용자 정책 승인 | 완료 조건: CF-Connecting-IP 기반 제한이 Discord 사용자 간 공유되는지 판단하고, 공유 IP 영향에 대한 정책을 별도 결정한다. 결정 전 rate-limit 정책은 변경하지 않는다.
-- [ ] DIST-DISCORD-001-PLAYTEST | 담당 사용자·Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord에서 2인 R1~R5를 Activity↔Activity 및 Activity↔웹 조합으로 완주한다. desktop·mobile, SDK 준비, 대기실 WebSocket 무활동을 확인한다.
+- [ ] DIST-DISCORD-001-PLAYTEST | 담당 사용자·Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord에서 2인 R1~R6를 Activity↔Activity 및 Activity↔웹 조합으로 완주한다. desktop·mobile, SDK 준비, 대기실 WebSocket 무활동을 확인한다.
 
 ## 어빌리티 후속 작업
 
@@ -58,7 +58,7 @@
 
 #### 독주자·쿼드 코어
 
-- [ ] ABILITY-012-LIVE-QA | 담당 Codex | 상태 TODO | 의존 운영 플레이 검증 환경 | 완료 조건: 실제 기기에서 독주자와 쿼드 코어 효과를 포함해 R1~R5 플레이를 검증한다. 기존 배포·에셋 확인 및 자동 테스트와 구분해 기록한다.
+- [ ] ABILITY-012-LIVE-QA | 담당 Codex | 상태 TODO | 의존 운영 플레이 검증 환경 | 완료 조건: 실제 기기에서 독주자와 쿼드 코어 효과를 포함해 R1~R6 플레이를 검증한다. 기존 배포·에셋 확인 및 자동 테스트와 구분해 기록한다.
 
 ### AI 전략
 

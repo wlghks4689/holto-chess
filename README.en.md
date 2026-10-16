@@ -8,11 +8,11 @@
 
 **Design your hand. Rule the arena.**
 
-PORENA is not poker where you wait for good cards. Eight players share **a single 52-card pool**, buying, selling and drafting the cards they need to design their own hand. The poker rules change every round, and the points collected over five rounds decide the winner.
+PORENA is not poker where you wait for good cards. Eight players share **a single 52-card pool**, buying, selling, drafting and bidding for the cards they need to design their own hand. The poker rules change every round, and the points collected over six rounds plus the final decide the winner.
 
 **[▶ Play now](https://porena.kr)** · [GitHub](https://github.com/wlghks4689/holto-chess)
 
-> **Status:** development prototype, playable online
+> **Status:** development prototype, playable online · preparing a full Steam (Windows) release · Discord Activity supported
 > **Players:** 2–8 humans · AI fills empty seats, so every game has eight
 > **Server:** Cloudflare Workers + Durable Objects + WebSocket
 > **Languages:** 한국어 · English (picked from your browser language, changeable in Settings)
@@ -24,26 +24,27 @@ The in-game **How to Play** has two paths: the *Beginner guide* if you are new t
 ## New here? — the 5-minute version
 
 1. **Get an ability.** When the game starts you are dealt one of 12 at random: your own special power.
-2. **Collect cards.** Buy cards from your shop with BB, or take one from the open draft. A card someone owns cannot be owned by anyone else.
+2. **Collect cards.** Buy cards from your shop with BB, or take them from the open draft and the card auction. A card someone owns cannot be owned by anyone else.
 3. **Fight under each round's rules.** Matches are decided by the poker hand of your best five cards (BEST 5).
-4. **Earn points and BB.** In R3 and R4, the two lowest players are eliminated.
-5. **After the R5 final, the final score decides the winner.**
+4. **Earn points and BB.** Two players leave in R3 and in R4, and one more in R5.
+5. **After the R6 final, the final score decides the winner.**
 
 ```text
-R1 8 players ─ R2 8 ─ R3 8 → 6 ─ R4 6 → 4 ─ R5 final standings
-                         ▲ 2 out    ▲ 2 out
+R1 8 ─ R2 8 ─ R3 8→6 ─ R4 6→4 ─ R5 4→3 ─ R6 final standings (three-way final)
+                ▲ 2 out   ▲ 2 out   ▲ 1 out
 ```
 
 | Round | In one line |
 | --- | --- |
-| **R1 CLASSIC HOLD'EM** | Your 2 cards + a 5-card board. Three familiar Hold'em matches |
-| **R2 RUN IT TWICE** | Draft a third card; one lead card plays in both runs · two matches against different opponents |
-| **R3 OMAHA SWISS** | You hold 4 cards but must use exactly 2 of them + 3 board cards. Eliminations begin |
+| **R1 HOLD'EM SWISS** | Your 2 cards + a 5-card board. Three familiar Hold'em matches |
+| **R2 RUN IT TWICE** | Draft a third card; in each run, BEST 5 from all three of your cards + a 5-card board · two matches against different opponents |
+| **R3 AUCTION · OMAHA SWISS** | Win a fourth card in a 16-card auction, then use exactly 2 of your cards + 3 board cards. Eliminations begin |
 | **R4 BEST FIVE OF TEN** | Your 5 cards + a 5-card board. Split into a winner bracket and a survival bracket |
-| **R5 THE LAST HAND** | 40-second public auction → select five → unrestricted BEST 5 with five shared community cards |
+| **R5 RUN IT THREE TIMES** | The leader picks an opponent; split six cards into three two-card hands for three runs. The lowest player leaves |
+| **R6 THE LAST HAND** | Field five of your 5–7 cards; BEST 5 with a five-card community board. The three-way final |
 
 ```text
-Final score = round points + R5 hand score + ⌊remaining BB ÷ 10⌋
+Final score = round points + R6 hand score + ⌊remaining BB ÷ 10⌋
 ```
 
 Points and BB earned from abilities are not added separately; they are already in the formula above.
@@ -58,162 +59,153 @@ Every number comes from the game code (`holto-chess/src/game/config.ts`, `engine
 
 | Item | Value |
 | --- | --- |
-| Players | 8 · empty seats are AI |
+| Players | 8 · AI fills empty seats |
 | Card pool | 52 unique cards, shared |
-| Start | 50BB · no starting card (buy both R1 cards in the shop) · 1 ability |
-| Round income | +30BB to survivors at the start of R2–R4 |
-| Shop cards | R1 4 · R3–R4 2 (no shop in R2) |
+| Start | 50BB · no starting cards (buy your two R1 cards in the shop) · one ability |
+| Round income | +30BB to every survivor at the start of R2–R6 |
+| Shop cards | R1 4 · R4 2 · R5 3 · R6 4 (no shop in R2 and R3) |
 | Reroll / lock | 5BB / 3BB |
 | Sell refund | 60% of the base price (rounded down) |
-| Time limits | Shop 60s · draft 20s per pick · R2 lineup 30s |
 
-| Round | R1 | R2 | R3 | R4 | R5 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Hand size | 2 | 3 | 4 | 5 | Own 5–7, play 5 |
-| Purchase limit | 2 | no shop | 2 | 3 | 3 |
-| Reroll limit | 1 | — | 2 | 2 | 3 |
+| Round | R1 | R2 | R3 | R4 | R5 | R6 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Cards held | 2 | 3 | 4 | 5 | 6 | 5–7 (field 5) |
+| Card source | Shop | Open draft | Card auction | Draft → shop | Shop | Shop |
+| Purchase limit | 2 | — | — | 3 | 3 | 5 |
+| Reroll limit | 1 | — | — | 2 | 2 | 2 |
 
-**Card prices (BB)** — A 20 · K 18 · Q 15 · J 12 · T 10 · 9 to 2 cost their rank (9BB … 2BB)
+**Card prices (BB)** — A 20 · K 18 · Q 15 · J 12 · T 10 · 9 to 2 cost their rank (9BB to 2BB)
 
 ### 2. Shared card pool
 
-- Each of the 52 cards exists once. A card someone owns never appears in another player's shop or draft.
-- A card sitting in your shop is also withheld from everyone else while it is there.
+- Each of the 52 cards exists once. A card someone owns never appears in anyone else's shop, draft or auction.
+- A card in your shop is also unavailable to everyone else while it sits there.
 - Sold cards and the cards of eliminated players return to the pool.
-- Opponents' cards stay hidden until they are revealed at showdown. A board never contains a card owned by that match's players.
+- Opponents' cards stay hidden until a showdown reveals them. Board cards never overlap the cards owned by that match's players.
 
-### 3. Economy (BB rewards for regular matches)
+### 3. Economy (match BB rewards)
 
 | Match | Win | Loss |
 | --- | --- | --- |
 | R1 | 0 | +10 (+5 × losing streak) → 10 · 15 · 20 |
-| R2 RUN | 0 | 0 |
+| R2 run | 0 | 0 |
 | R3 | 0 | +10 (+5 × losing streak) → 10 · 15 · 20 |
-| R4 · R5 | 0 | 0 |
+| R4 · R5 · R6 | 0 | 0 |
 
-Only the losing player earns match BB. A win pays in points only, and a split shares points only. A losing streak counts the losses in a row earlier in the same round and restarts every round. A forfeit for missing cards earns no points and no BB. Round income (+30BB at the start of R2–R4) is unchanged.
+Match BB goes only to the loser. Wins pay in points, and a split only shares points. The losing streak counts losses earlier in the same round and resets every round. A forfeit for lacking cards pays neither points nor BB.
 
 ### 4. Rounds
 
 | Round | Players | Cards | Matches | Points | Rule | Elimination |
 | --- | ---: | ---: | --- | --- | --- | --- |
-| **R1** Hold'em Swiss | 8 | 2 | 1-on-1 Swiss ×3 | Win +3P · Split +1P | BEST 5 from 2 hole + 5 board | None |
-| **R2** Run It Twice | 8 | 3 | Draft → 1-on-1 match ×2 (2 RUNs each) | Per RUN: win +2P · Split +1P · match sweep +2P (up to 12P) | Lead 1 + support 1 + 5 board | None |
-| **R3** Omaha Swiss | 8 | 4 | 1-on-1 Swiss ×3 | Win +4P · Split +2P | Exactly 2 hole + exactly 3 board | Bottom 2 by points |
-| **R4** Best Five of Ten | 6 | 5 | Draft → shop → match 1 → groups of 3 | Match 1 win +6P · Split +3P | BEST 5 from 5 hole + 5 board | 2 from the survival bracket |
-| **R5** The Last Hand | 4 | Own 5–7, play 5 | All four at once | +20 / +12 / +5 / +3P | BEST 5 from selected five + five shared board cards | Final standings |
+| **R1** Hold'em Swiss | 8 | 2 | 1:1 Swiss ×3 | Win +3P · split +1P | BEST 5 of 2 hole + 5 board | None |
+| **R2** Run It Twice | 8 | 3 | Draft → 1:1 match ×2 (2 runs each) | Per run: win +2P · split +1P · match sweep +2P | BEST 5 of your 3 + 5 board | None |
+| **R3** Auction · Omaha Swiss | 8 | 4 | Card auction → 1:1 Swiss ×3 | Win +4P · split +2P | Exactly 2 hole + exactly 3 board | Lowest 2 by points |
+| **R4** Best Five of Ten | 6 | 5 | Draft → shop → first match → 3-player groups | First match win +6P · split +3P | BEST 5 of 5 hole + 5 board | 2 from the survival group |
+| **R5** Run It Three Times | 4 | 6 | Opponent pick → shop → 1:1, 3 runs | Run win +5P · split +2P · 3–0 +15P | Per run: 2 hole + a new 5-card board | Lowest 1 by points |
+| **R6** The Last Hand | 3 | Field 5 of 5–7 | Shop → lineup → three-way | +30 / +10 / +0P | BEST 5 of your five + 5 board · other cards shown as BURN | Final standings |
 
-- **R2** — There is no personal shop. Arrange your 3 cards as `lead 1 + support 2`: RUN 1 plays lead + support 1, RUN 2 plays lead + support 2, each on its own board. The same lineup plays two matches; the second is against a different opponent with a similar result. Winning both RUNs of a match adds a +2P sweep bonus.
-- **R3** — Match 1 pairs players by cumulative points (BB on ties); matches 2 and 3 pair players with similar records.
-- **R4** — The 3 match-1 winners enter the winner bracket (1st +10P · 2nd +5P · 3rd +3P; tied 2nd gets +3P each). The 3 losers enter the survival bracket (only 1st survives, +0P).
-- **R5** — A public auction with no R5 income precedes a five-card loadout and one shared board. Tied places share the combined points of those places, split by remaining BB (ICM).
+- **R2** — No personal shop. Both runs use all three of your cards; any number of them (0–3) can make the BEST 5. The two runs use different boards. After the draft, a 15-second R2 briefing appears; once everyone confirms, the matches start. Your first opponent is someone you did not meet in R1; your second is a similar-scoring player you met neither in R1 nor in the first match.
+- **R3** — A 16-card auction (40 seconds, extended by bids in the last 5 seconds, 55 seconds at most); each player wins at most one card. The first bid is the base price; a competing bid must beat the current price by 5BB or more. Bidding on another card cancels your previous bid. Players who win nothing buy one leftover card at double price in draft order (no ability discount; it sells at its base price). The first match is seeded by points (BB on ties).
+- **R4** — The three first-match winners form the winner group (1st +10P · 2nd +5P · 3rd +3P; tied seconds get +3P each); the three losers form the survival group (only 1st survives, +0P).
+- **R5** — The leader (points, then BB) picks an opponent (15 seconds; 4th place if no pick); the other two face each other. Fill your hand to exactly six cards in the shop and place two per run (30 seconds; a recommended placement on timeout). Any split cancels the 3–0 bonus.
+- **R6** — Reach 5–7 cards in the shop (auto-buy up to five on timeout) and set your five (your strongest five are pre-placed; swap within 10 seconds). Tied places share their points by remaining BB (ICM).
 
-### 5. Open draft (R2 · R4)
+### 5. Open draft (R2 · R4) and the R3 double-price buy
 
-R2 reveals 8 cards and R4 reveals 16. Each player takes one card, paying its price in BB. If nothing is affordable, the turn is skipped.
+R2 reveals 8 cards and R4 reveals 16; each player takes one and pays its price in BB. Players who won nothing in the R3 auction buy their double-price card in the same order.
 
 Pick order:
 
-1. The holder of the **First Class** ability
-2. Players with **fewer** cumulative points
+1. The **First Class** ability holder
+2. Players with **fewer** points
 3. On equal points, players with **more** BB
 4. Still tied: random
 
 ### 6. Elimination
 
-- **R3**: after three matches, the bottom 2 by cumulative points are eliminated. If the cutoff is tied, the tied players play a **survival tiebreak** on a fresh board (no points or BB; BB never breaks the tie). If three boards all tie, a random rank draw decides.
-- **R4**: only the winner of the 3-player survival bracket stays; the other 2 are eliminated.
-- When you are eliminated your cards return to the pool, and your placing is fixed by your points at that moment.
+- **R3**: after three matches, the two lowest by points leave. A tie on the cut line goes to a **survival tiebreak** on fresh boards (no points or BB; BB does not break the tie). If three boards all tie, a random rank draw decides.
+- **R4**: only the winner of the three-player survival group stays; two leave.
+- **R5**: the lowest by points leaves. Equal points: fewer BB leaves; equal BB too: a fresh-board tiebreak with RUN 1→2→3 cards, then a high-card draw.
+- Eliminated players' cards return to the pool, and their placement is fixed by their points at elimination.
 
 ### 7. Final score and standings
 
 ```text
-Final Score = cumulative points + R5 hand score + floor(remaining BB / 10)
+Final Score = round points + R6 Hand Score + floor(remaining BB / 10)
 ```
 
-| Hand | High card | One pair | Two pair | Three of a kind | Straight | Flush | Full house | Four of a kind | Straight flush | Royal flush |
+| Hand | High card | Pair | Two pair | Trips | Straight | Flush | Full house | Quads | Straight flush | Royal flush |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Score | 0 | 1 | 2 | 5 | 8 | 12 | 15 | 20 | 35 | 50 |
 
-- The four R5 finalists are ranked 1st–4th by final score. On equal scores, the better R5 final placing goes first.
-- R4 eliminations take 5th–6th and R3 eliminations take 7th–8th, ordered by points at elimination. BB and hands never move a player out of that band.
-- The **rank points** on the results screen (+8 / +4 / +2 / 0 / −1 / −2 / −4 / −8) only label 1st–8th and are not added to the final score.
+- The three R6 finalists take 1st–3rd by final score. On equal scores, the better R6 final placement ranks higher.
+- The R5 leaver is 4th, R4 leavers 5th–6th, R3 leavers 7th–8th, ordered by points at elimination. BB and hands never move a player across these bands.
+- The **rank points** on the results screen (+8 / +4 / +2 / 0 / −1 / −2 / −4 / −8) only label places 1–8 and are not added to the final score.
 
 ### 8. Abilities
 
-When the game starts each player is dealt one of 12 abilities at random, and no two of the eight share one. For the first 5 seconds you see only your own; then everyone's abilities are revealed. Match-reward abilities trigger only in **regular matches**; tiebreak boards never pay ability rewards.
+When the game starts each player is dealt one of 12 at random, and all eight abilities differ. For the first 5 seconds you see only your own; then everyone's abilities are revealed. Match-reward abilities trigger only in **regulation matches**; tiebreak boards never pay rewards.
 
-| Ability | Effect | Timing · notes |
+| Ability | Effect | When · notes |
 | --- | --- | --- |
-| **Royal Blood** | Unlike everyone else you get a free starting card, an A, K, Q, J or T, and you buy those ranks at 50% (rounded down) in the shop and draft | e.g. Q 15BB → 7BB |
-| **Target Sniper** | Start R1 with one free random card; +15BB for an outright regular-match win with that card in your BEST 5 | No hand requirement · splits and tiebreak wins after a split excluded · R2 per RUN · off while the card is sold, back on if you rebuy it |
-| **Underdog** | +20P if your R5 BEST 5 contains a 2 and is a straight or better | Never triggers in R1–R4 |
-| **First Class** | Always pick first in the R2 and R4 open drafts | Everyone else keeps the usual order |
-| **Golden Hand** | +1 personal shop card; selling refunds 100% of the base price | R2 has no personal shop · five cards in the R1 shop |
-| **Trader** | Free personal-shop rerolls and locks, +1 reroll each shop phase | Not in R2 |
-| **Predator** | Each outright regular-match win adds 1 to your streak; from a 2-win streak each win pays streak × 5BB (2 → 10, 3 → 15, 4 → 20 …) | Streak carries across rounds · a split or loss resets it · tiebreak wins excluded |
-| **Architect** | +30BB when a regular match ends with exactly a full house | Win or lose · R2 per RUN · four of a kind and above excluded |
-| **Capitalism** | At the end of each round you survive, receive 20% of your BB (rounded down) | Once per round · not in the round you are eliminated · also paid after R5 |
-| **Quad Core** | Making four of a kind in the R5 final doubles your R5 placement points | Any four of a kind counts (including ones completed by the board) · only placement points double · R1–R4 quads excluded |
-| **Front Runner** | Lead at the end of a round for bonus points: R1 +3 · R2 +4 · R3 +5 · R4 +6 · R5 +7P | R1–R4: only the single survivor on top of the standings (points → BB → seat) · R5: first in the final match, tied firsts all paid |
-| **Protector** | Lose an R1–R4 one-on-one regular match despite a 60%+ pre-match win chance to earn BB by tier: 60%+ +20 · 70%+ +30 · 80%+ +50 | Uses the win chance shown on the match screen (rounded down) · splits, R5 and tiebreaks excluded |
+| **Royal Blood** | Get one free starting card from A·K·Q·J·T; buy that rank at 50% (rounded down) in shops and drafts | e.g. Q 15BB → 7BB |
+| **Target Sniper** | Get one random free card at the start of R1. Winning a regulation match outright with it in your BEST 5 pays +15BB | Any hand counts · no splits or post-split tiebreak wins · per run in R2 and R5 · off when you sell the card, back on if you buy it again |
+| **Underdog** | In the R6 final, a straight or better whose BEST 5 includes a 2 pays +20P | Win or lose · never triggers in R1–R5 |
+| **First Class** | Always picks first in the R2 and R4 open drafts and the R3 double-price buy | No advantage in R3 auction bidding |
+| **Golden Hand** | +1 personal shop card; selling refunds 100% of the base price | R2 and R3 have no personal shop |
+| **Trader** | Free personal-shop rerolls and locks, +1 reroll each shop phase | Not in R2 and R3 |
+| **Predator** | Each outright regulation win adds 1 to your streak; from a 2-win streak each win pays streak × 5BB (10 · 15 · 20 …) | The streak carries across rounds · resets on a split or loss · tiebreak wins excluded |
+| **Architect** | A regulation match whose final hand is exactly a full house pays +30BB | Win or lose · per run in R2 and R5 · quads or better excluded |
+| **Capitalism** | At the end of each round you survive, get 20% of your BB (rounded down) | Once per round · not in the round you are eliminated · also after R6 |
+| **QUAD CORE** | Quads in the R6 final double your final placement points | Quads from any cards count · only placement points double · quads in R1–R5 excluded |
+| **Front Runner** | Leading at the end of a round pays R1 +3 · R2 +4 · R3 +5 · R4 +6 · R5 +7 · R6 +8P | R1–R5: the single survivor-table leader (points → BB → seat) · R6: final 1st place, all tied firsts paid |
+| **Protector** | Losing an R1–R5 1:1 regulation match you were favored in (60%+) pays by tier: 60%+ +20 · 70%+ +30 · 80%+ +50BB | Uses the win chance shown before the match (rounded down) · per run in R2 and R5 · not splits, R6 or tiebreaks |
 
-### 9. Ties and edge cases
+### 9. Ties · exceptions
 
-- Equal hands compare kickers. Suits never decide a winner; a full tie is a Split.
-- If R4 match 1 is a Split, both players get +3P and a fresh board only decides the bracket (up to twice, then a random rank draw). This decider awards no extra points.
-- A tie in the R4 winner bracket replays only first place. Tied 2nd places get +3P each.
-- A player without the required number of cards forfeits that match (no points or BB). No free cards, forced refills or BB debt are created, and the player enters the next draft short-handed. If both players are short, there is no shared reward; a high-card draw picks who advances only where someone must advance (brackets, survival).
-- When a timer ends, the server completes unfinished actions so the game never stalls.
+- Equal hands compare kickers. Suits never break ties; identical hands split.
+- A split first match in R4 gives both players +3P; only the group assignment is replayed on fresh boards (up to 2, then a random rank draw). That decider pays no extra points.
+- A tie in the R4 winner group replays only first place. Tied seconds get +3P each.
+- A split R5 run gives both players +2P, and any split cancels the 3–0 bonus.
+- Tied R6 places share those places' points by remaining BB (ICM).
+- Lacking the required number of cards forfeits that match (no points or BB). No free cards, forced refills or BB debt. In R5 and R6, a timeout auto-buys the missing cards from your own shop to prevent forfeits.
+- When a time limit ends, the server completes unfinished actions so the game never stalls.
 
 ### 10. Timing (server-synchronized)
 
-These are the maximum waits the server enforces. Some phases move on early once every required player has confirmed, and showdown cinematics run for as long as their matches and tiebreaks need.
+These are the server-managed maximum waits. Some phases advance early once every required player confirms; showdown cinematics run separately depending on the number of matches and tiebreaks.
 
-| Phase | Limit | Behaviour |
+| Phase | Limit | Behavior |
 | --- | ---: | --- |
-| Ability deal | 5s | Each player sees only their own ability (advances automatically) |
-| Ability reveal | 30s | Moves to the shop as soon as everyone is ready |
-| Shop | 60s | Unfinished seats are readied automatically when time runs out |
-| Draft Order · Deal-In | 3s | Every seat watches the same card deal before picks begin |
+| Ability deal | 5s | Each player sees only their own ability (auto-advance) |
+| Ability reveal | 30s | Moves to the shop once everyone is ready |
+| Shop | 60s | Unfinished seats are readied when time runs out |
+| Draft order · deal-in | 3s | Every seat sees the same deal animation before picks start |
 | Open draft pick | 20s per player | AI picks every 1.8s · auto-pick on timeout |
-| Draft result reveal | 3.5s | Shows every pick after the last one, then moves on |
-| R2 RUN lineup | 30s | Incomplete lineups are completed automatically and locked |
-| Showdown matchup sync | 3.5s | Shows the matchup and win chances while syncing screens, then starts |
-| R4 bracket review | 10s | Shows the winner and survival brackets |
-| Round results | 30s | Review results, then move on |
-| Next round · survival tiebreak setup | 30s | The server handles seats that do not respond |
-| Showdown cinematic | varies | Card reveals, BEST 5, results and rewards. Between matches the result stays for 3s, then the next matchup (3.5s) |
-
-R4 runs as `Draft Order 3s → sequential draft (20s each, AI 1.8s) → draft result 3.5s → shop 60s → match 1 setup 3.5s → match 1 cinematic → bracket review 10s → match 2 setup 3.5s → winner and survival bracket cinematics → results 30s → next round`.
+| Draft results | 3.5s | Shows every pick after the last one, then moves on |
+| R2 briefing | 15s | Matches start as soon as everyone confirms |
+| R3 auction | 5s briefing + 40s bidding (max 55s) | 5s results · double-price buy 10s per player |
+| Showdown matchup sync | 3.5s | Shows the matchup and win chances, syncs with the opponent, then starts |
+| R4 bracket review | 10s | Review the winner and survival groups |
+| R5 opponent pick | 15s | 4th place picked on timeout · 3s pairing reveal |
+| R5 run placement | 30s | Unfinished placements use the recommendation |
+| R6 lineup | 10s | Your strongest five are pre-placed |
+| Round results | 30s | Moves on after the results |
+| Next round · survival tiebreak prep | 30s | The server handles seats that do not respond |
+| Showdown cinematic | Varies | Card reveal, BEST 5, results and rewards. Between matches the result stays 3s before the next matchup (3.5s) |
 
 ---
 
 ## Screenshots
 
-**Ability Deal** — When the game starts you are dealt one random ability. Tap the card to flip it and read the detailed rules.
+**Ability Deal** — When the game starts you are dealt one ability at random. Tap the card to flip it and read the full rules.
 
-![Ability Draft](holto-chess/docs/screenshots/en/ability-card.webp)
+![Ability Deal](holto-chess/docs/screenshots/en/ability-card.webp)
 
-**Open Draft** — Players take one revealed card each, lowest points first. Everyone can see who took which card.
+**Open Draft** — Players take the revealed cards one at a time, lowest points first. Everyone can see who took which card.
 
 ![Open Draft](holto-chess/docs/screenshots/en/open-draft.webp)
-
-**Run It Twice** — Right before the showdown: both RUN lineups and the win chance for each RUN.
-
-![Run It Twice](holto-chess/docs/screenshots/en/run-it-twice-prep.webp)
-
-**Showdown** — The board opens card by card, the BEST 5 lights up, and points and BB are settled for each RUN.
-
-![Showdown](holto-chess/docs/screenshots/en/showdown-r2.webp)
-
-**Final Showdown** — The final four share one five-card board and each use their selected five cards for unrestricted BEST 5.
-
-![Final Showdown](holto-chess/docs/screenshots/en/final-table.webp)
-
-**Final Standings** — Cumulative points + hand score + stack score decide 1st through 8th.
-
-![Final Standings](holto-chess/docs/screenshots/en/final-standings.webp)
 
 ---
 
@@ -260,7 +252,7 @@ holto-chess/
 │  ├─ game/     # game rules, room state, balance values, bots
 │  ├─ shared/   # client/server protocol and cinematic timeline
 │  ├─ i18n/     # Korean · English text
-│  ├─ tutorial/ # the 5-chapter tutorial
+│  ├─ tutorial/ # the 6-chapter tutorial
 │  ├─ admin/    # feedback inbox for the operator
 │  └─ ui/       # React screens, showdown cinematics, How to Play
 ├─ worker/      # Cloudflare Worker + Durable Object
@@ -306,18 +298,19 @@ See [tools/balance-simulator/README.md](holto-chess/tools/balance-simulator/READ
 ## Development Status
 
 ### Implemented
-- [x] R1–R5 game loop
+- [x] R1–R6 game loop
 - [x] Shared 52-card pool
 - [x] Multiplayer rooms · invite links · reconnects
 - [x] Open Draft (R2 · R4)
 - [x] Omaha Swiss (R3)
 - [x] Showdown cinematics · server-synchronized presentation
-- [x] Final Table Showdown
+- [x] R3 card auction · R5 opponent pick · R6 three-way final
 - [x] Spectating after elimination · rematches
 - [x] 12 abilities · dealt at random when the game starts
 - [x] How to Play split into a beginner guide and a rule book
-- [x] Tutorial (5 chapters, practice per round)
+- [x] Tutorial (6 chapters, practice per round)
 - [x] Korean · English
+- [x] Discord Activity
 - [x] Made-hand sound effects · volume settings
 - [x] Pre-showdown win chance
 - [x] Feedback form and operator inbox
@@ -328,8 +321,8 @@ See [tools/balance-simulator/README.md](holto-chess/tools/balance-simulator/READ
 - [ ] Balance tuning
 - [ ] Better AI strategy
 - [ ] BGM
-- [ ] Rankings · accounts (not implemented)
-- [ ] Steam build
+- [ ] Rankings · accounts
+- [ ] Steam (Windows) build
 
 ---
 
@@ -360,5 +353,3 @@ This is a private project at the prototype stage. Until a license is granted, al
 
 Bug reports · feedback · questions: **Feedback & Contact** on the game's start screen
 
-
-R5 Final Auction: [implementation and verification](product_doc/R5_FINAL_AUCTION.md).
