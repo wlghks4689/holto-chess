@@ -1,0 +1,2980 @@
+{
+  "date": "2026-10-15",
+  "baselineCommit": "f6493bb7151cca7dcf7a4022d9cba4b859fb5b6f",
+  "harness": "holto-chess/tools/perf/game-transition.html",
+  "note": "Latest complete sample per round/mode/actual width. Excludes pre-fix harness ordering bug and eliminated-p1 fixture. Online here is an authoritative server-clock simulation, not network latency. Separate actual two-browser WebSocket verification is described in the QA report. No CPU throttle or physical mobile device.",
+  "sampleCount": 18,
+  "maxGapMs": 103,
+  "maxTaskMs": 75,
+  "samples": [
+    {
+      "sourceSample": 2,
+      "prepMs": 3658,
+      "mode": "local",
+      "round": 2,
+      "maxGapMs": 66,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 492
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 4150
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 4613
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 5041
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 5531
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 5961
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 6176
+        },
+        {
+          "phase": "TURN",
+          "at": 7087
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 7813
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 8009
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 8968
+        },
+        {
+          "phase": "RIVER",
+          "at": 9201
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 10130
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 10329
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 10980
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 12325
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 12761
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 13207
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 13697
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 13904
+        },
+        {
+          "phase": "TURN",
+          "at": 14846
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 15576
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 15763
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 16689
+        },
+        {
+          "phase": "RIVER",
+          "at": 16924
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 17841
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 18085
+        },
+        {
+          "phase": "RESULT",
+          "at": 18721
+        },
+        {
+          "phase": "REWARD",
+          "at": 19367
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 20493
+        }
+      ],
+      "prepOdds": [
+        "35%",
+        "64%"
+      ],
+      "cards": [
+        3,
+        3
+      ],
+      "equity": [
+        "0",
+        "100"
+      ],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 11,
+      "prepMs": 4242,
+      "mode": "online",
+      "round": 2,
+      "maxGapMs": 73,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 600
+        },
+        {
+          "phase": "WAITING",
+          "at": 4842
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 5601
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 6005
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 6442
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 6886
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 7361
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 7563
+        },
+        {
+          "phase": "TURN",
+          "at": 8441
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 9160
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 9370
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 10286
+        },
+        {
+          "phase": "RIVER",
+          "at": 10521
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 11441
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 11641
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 12288
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 13607
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 14052
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 14485
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 14921
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 15121
+        },
+        {
+          "phase": "TURN",
+          "at": 16042
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 16760
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 16963
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 17885
+        },
+        {
+          "phase": "RIVER",
+          "at": 18120
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 19003
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 19205
+        },
+        {
+          "phase": "RESULT",
+          "at": 19889
+        },
+        {
+          "phase": "REWARD",
+          "at": 20546
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 21640
+        },
+        {
+          "phase": "PREP",
+          "at": 24606
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 28127
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 28520
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 28970
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 29447
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 29881
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 30086
+        },
+        {
+          "phase": "TURN",
+          "at": 30969
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 31681
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 31886
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 32806
+        },
+        {
+          "phase": "RIVER",
+          "at": 33087
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 33960
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 34163
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 34805
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 36120
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 36569
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 37008
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 37481
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 37641
+        },
+        {
+          "phase": "TURN",
+          "at": 38561
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 39280
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 39486
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 40403
+        },
+        {
+          "phase": "RIVER",
+          "at": 40655
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 41560
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 41766
+        },
+        {
+          "phase": "RESULT",
+          "at": 42404
+        },
+        {
+          "phase": "REWARD",
+          "at": 43043
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 44161
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 45651
+        }
+      ],
+      "prepOdds": [
+        "37%",
+        "62%"
+      ],
+      "cards": [
+        3,
+        3
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 0,
+      "prepMs": 3736,
+      "mode": "local",
+      "round": 2,
+      "maxGapMs": 103,
+      "maxTaskMs": 75,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 41
+        },
+        {
+          "phase": "PREP",
+          "at": 577
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 4313
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 4760
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 5244
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 5680
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 6129
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 6327
+        },
+        {
+          "phase": "TURN",
+          "at": 7240
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 8000
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 8207
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 9165
+        },
+        {
+          "phase": "RIVER",
+          "at": 9403
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 10320
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 10562
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 11215
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 12522
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 13010
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 13449
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 13933
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 14129
+        },
+        {
+          "phase": "TURN",
+          "at": 15057
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 15760
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 16004
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 16889
+        },
+        {
+          "phase": "RIVER",
+          "at": 17172
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 18040
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 18254
+        },
+        {
+          "phase": "RESULT",
+          "at": 18926
+        },
+        {
+          "phase": "REWARD",
+          "at": 19572
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 20726
+        }
+      ],
+      "prepOdds": [
+        "35%",
+        "64%"
+      ],
+      "cards": [
+        3,
+        3
+      ],
+      "equity": [
+        "0",
+        "100"
+      ],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "sourceSample": 24,
+      "prepMs": 4276,
+      "mode": "online",
+      "round": 2,
+      "maxGapMs": 71,
+      "maxTaskMs": 51,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 889
+        },
+        {
+          "phase": "WAITING",
+          "at": 5165
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 5889
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 6295
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 6721
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 7162
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 7640
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 7807
+        },
+        {
+          "phase": "TURN",
+          "at": 8722
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 9440
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 9650
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 10566
+        },
+        {
+          "phase": "RIVER",
+          "at": 10803
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 11720
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 11922
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 12565
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 13847
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 14326
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 14765
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 15209
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 15412
+        },
+        {
+          "phase": "TURN",
+          "at": 16322
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 17041
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 17247
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 18177
+        },
+        {
+          "phase": "RIVER",
+          "at": 18408
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 19283
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 19521
+        },
+        {
+          "phase": "RESULT",
+          "at": 20171
+        },
+        {
+          "phase": "REWARD",
+          "at": 20812
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 21920
+        },
+        {
+          "phase": "PREP",
+          "at": 24886
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 28416
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 28810
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 29244
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 29698
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 30162
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 30368
+        },
+        {
+          "phase": "TURN",
+          "at": 31240
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 31964
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 32161
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 33080
+        },
+        {
+          "phase": "RIVER",
+          "at": 33361
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 34242
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 34440
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 35081
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 36401
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 36847
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 37281
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 37765
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 37930
+        },
+        {
+          "phase": "TURN",
+          "at": 38842
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 39561
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 39763
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 40685
+        },
+        {
+          "phase": "RIVER",
+          "at": 40930
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 41840
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 42048
+        },
+        {
+          "phase": "RESULT",
+          "at": 42697
+        },
+        {
+          "phase": "REWARD",
+          "at": 43328
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 44450
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 45922
+        }
+      ],
+      "prepOdds": [
+        "37%",
+        "62%"
+      ],
+      "cards": [
+        3,
+        3
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "sourceSample": 17,
+      "prepMs": 3649,
+      "mode": "local",
+      "round": 3,
+      "maxGapMs": 63,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 641
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 4290
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 4721
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 5208
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 5659
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 6125
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 6322
+        },
+        {
+          "phase": "TURN",
+          "at": 7243
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 8004
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 8206
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 9168
+        },
+        {
+          "phase": "RIVER",
+          "at": 9414
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 10323
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 10548
+        },
+        {
+          "phase": "RESULT",
+          "at": 11174
+        },
+        {
+          "phase": "REWARD",
+          "at": 11845
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 12930
+        }
+      ],
+      "prepOdds": [
+        "38%",
+        "61%"
+      ],
+      "cards": [
+        4,
+        4
+      ],
+      "equity": [
+        "100",
+        "0"
+      ],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 393
+    },
+    {
+      "sourceSample": 19,
+      "prepMs": 4320,
+      "mode": "online",
+      "round": 3,
+      "maxGapMs": 69,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 641
+        },
+        {
+          "phase": "WAITING",
+          "at": 4961
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 5697
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 6089
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 6522
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 6961
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 7445
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 7601
+        },
+        {
+          "phase": "TURN",
+          "at": 8521
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 9241
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 9446
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 10363
+        },
+        {
+          "phase": "RIVER",
+          "at": 10600
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 11521
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 11727
+        },
+        {
+          "phase": "RESULT",
+          "at": 12364
+        },
+        {
+          "phase": "REWARD",
+          "at": 13009
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 14132
+        },
+        {
+          "phase": "PREP",
+          "at": 17128
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 20606
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 21014
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 21483
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 21920
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 22361
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 22561
+        },
+        {
+          "phase": "TURN",
+          "at": 23480
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 24201
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 24363
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 25282
+        },
+        {
+          "phase": "RIVER",
+          "at": 25564
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 26447
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 26647
+        },
+        {
+          "phase": "RESULT",
+          "at": 27327
+        },
+        {
+          "phase": "REWARD",
+          "at": 27983
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 29040
+        },
+        {
+          "phase": "PREP",
+          "at": 32041
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 35563
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 35965
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 36411
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 36847
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 37321
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 37483
+        },
+        {
+          "phase": "TURN",
+          "at": 38400
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 39121
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 39327
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 40241
+        },
+        {
+          "phase": "RIVER",
+          "at": 40481
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 41401
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 41612
+        },
+        {
+          "phase": "RESULT",
+          "at": 42246
+        },
+        {
+          "phase": "REWARD",
+          "at": 42882
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 44001
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 45527
+        }
+      ],
+      "prepOdds": [
+        "40%",
+        "59%"
+      ],
+      "cards": [
+        4,
+        4
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 12,
+      "prepMs": 3632,
+      "mode": "local",
+      "round": 4,
+      "maxGapMs": 71,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 2801
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 6433
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 6883
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 7328
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 7814
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 8241
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 8445
+        },
+        {
+          "phase": "TURN",
+          "at": 9369
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 10080
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 10286
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 11241
+        },
+        {
+          "phase": "RIVER",
+          "at": 11480
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 12407
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 12654
+        },
+        {
+          "phase": "RESULT",
+          "at": 13286
+        },
+        {
+          "phase": "REWARD",
+          "at": 13969
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 15048
+        }
+      ],
+      "prepOdds": [
+        "80%",
+        "19%"
+      ],
+      "cards": [
+        5,
+        5
+      ],
+      "equity": [
+        "100",
+        "0"
+      ],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 393
+    },
+    {
+      "sourceSample": 13,
+      "prepMs": 4236,
+      "mode": "online",
+      "round": 4,
+      "maxGapMs": 66,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 2725
+        },
+        {
+          "phase": "WAITING",
+          "at": 6961
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 7705
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 8145
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 8562
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 9003
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 9448
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 9644
+        },
+        {
+          "phase": "TURN",
+          "at": 10561
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 11285
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 11481
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 12411
+        },
+        {
+          "phase": "RIVER",
+          "at": 12602
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 13566
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 13764
+        },
+        {
+          "phase": "RESULT",
+          "at": 14409
+        },
+        {
+          "phase": "REWARD",
+          "at": 15001
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 16166
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 17641
+        }
+      ],
+      "prepOdds": [
+        "80%",
+        "19%"
+      ],
+      "cards": [
+        5,
+        5
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 14,
+      "prepMs": 3703,
+      "mode": "local",
+      "round": 4,
+      "maxGapMs": 98,
+      "maxTaskMs": 69,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 2880
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 6583
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 7048
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 7485
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 7971
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 8401
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 8607
+        },
+        {
+          "phase": "TURN",
+          "at": 9531
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 10255
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 10450
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 11405
+        },
+        {
+          "phase": "RIVER",
+          "at": 11669
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 12610
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 12802
+        },
+        {
+          "phase": "RESULT",
+          "at": 13459
+        },
+        {
+          "phase": "REWARD",
+          "at": 14127
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 15241
+        }
+      ],
+      "prepOdds": [
+        "80%",
+        "19%"
+      ],
+      "cards": [
+        5,
+        5
+      ],
+      "equity": [
+        "100",
+        "0"
+      ],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1280
+    },
+    {
+      "sourceSample": 15,
+      "prepMs": 4243,
+      "mode": "online",
+      "round": 4,
+      "maxGapMs": 78,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 41
+        },
+        {
+          "phase": "PREP",
+          "at": 2800
+        },
+        {
+          "phase": "WAITING",
+          "at": 7043
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 7801
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 8205
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 8629
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 9040
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 9510
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 9722
+        },
+        {
+          "phase": "TURN",
+          "at": 10641
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 11321
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 11525
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 12489
+        },
+        {
+          "phase": "RIVER",
+          "at": 12683
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 13601
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 13813
+        },
+        {
+          "phase": "RESULT",
+          "at": 14453
+        },
+        {
+          "phase": "REWARD",
+          "at": 15088
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 16241
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 17722
+        }
+      ],
+      "prepOdds": [
+        "80%",
+        "19%"
+      ],
+      "cards": [
+        5,
+        5
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "sourceSample": 7,
+      "prepMs": 3677,
+      "mode": "local",
+      "round": 5,
+      "maxGapMs": 79,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 41
+        },
+        {
+          "phase": "PREP",
+          "at": 6091
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 9768
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 10200
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 10685
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 11121
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 11601
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 11766
+        },
+        {
+          "phase": "TURN",
+          "at": 12690
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 13402
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 13602
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 14570
+        },
+        {
+          "phase": "RIVER",
+          "at": 14812
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 15721
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 15883
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 16560
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 17892
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 18322
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 18807
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 19803
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 20294
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 20721
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 21212
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 21406
+        },
+        {
+          "phase": "TURN",
+          "at": 22290
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 23051
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 23244
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 24170
+        },
+        {
+          "phase": "RIVER",
+          "at": 24440
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 25361
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 25562
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 26241
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 27569
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 28001
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 28482
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 29487
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 29960
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 30416
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 30841
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 31052
+        },
+        {
+          "phase": "TURN",
+          "at": 31968
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 32695
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 32880
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 33803
+        },
+        {
+          "phase": "RIVER",
+          "at": 34093
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 35000
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 35166
+        },
+        {
+          "phase": "RESULT",
+          "at": 35844
+        },
+        {
+          "phase": "REWARD",
+          "at": 36533
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 37602
+        }
+      ],
+      "prepOdds": [
+        "84%",
+        "60%",
+        "43%",
+        "15%",
+        "39%",
+        "56%"
+      ],
+      "cards": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "equity": [
+        "0",
+        "100"
+      ],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 8,
+      "prepMs": 4255,
+      "mode": "online",
+      "round": 5,
+      "maxGapMs": 75,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 44
+        },
+        {
+          "phase": "PREP",
+          "at": 5400
+        },
+        {
+          "phase": "WAITING",
+          "at": 9655
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 10391
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 10762
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 11209
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 11641
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 12121
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 12282
+        },
+        {
+          "phase": "TURN",
+          "at": 13201
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 13920
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 14121
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 15046
+        },
+        {
+          "phase": "RIVER",
+          "at": 15281
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 16201
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 16403
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 17051
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 18389
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 18807
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 19254
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 20249
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 20684
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 21120
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 21600
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 21807
+        },
+        {
+          "phase": "TURN",
+          "at": 22687
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 23401
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 23604
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 24529
+        },
+        {
+          "phase": "RIVER",
+          "at": 24803
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 25684
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 25881
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 26521
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 27885
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 28280
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 28722
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 29734
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 30181
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 30640
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 31087
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 31319
+        },
+        {
+          "phase": "TURN",
+          "at": 32170
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 32881
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 33088
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 34000
+        },
+        {
+          "phase": "RIVER",
+          "at": 34283
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 35170
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 35368
+        },
+        {
+          "phase": "RESULT",
+          "at": 36013
+        },
+        {
+          "phase": "REWARD",
+          "at": 36689
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 37761
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 39321
+        }
+      ],
+      "prepOdds": [
+        "84%",
+        "60%",
+        "43%",
+        "15%",
+        "39%",
+        "56%"
+      ],
+      "cards": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 16,
+      "prepMs": 3652,
+      "mode": "local",
+      "round": 5,
+      "maxGapMs": 69,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 5649
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 9301
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 9763
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 10210
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 10692
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 11121
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 11333
+        },
+        {
+          "phase": "TURN",
+          "at": 12243
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 13002
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 13210
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 14124
+        },
+        {
+          "phase": "RIVER",
+          "at": 14364
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 15294
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 15527
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 16186
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 17501
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 17961
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 18449
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 19451
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 19935
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 20375
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 20840
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 21053
+        },
+        {
+          "phase": "TURN",
+          "at": 21975
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 22681
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 22922
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 23842
+        },
+        {
+          "phase": "RIVER",
+          "at": 24081
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 25016
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 25211
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 25884
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 27160
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 27655
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 28103
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 29161
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 29604
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 30085
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 30485
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 30725
+        },
+        {
+          "phase": "TURN",
+          "at": 31656
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 32360
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 32603
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 33483
+        },
+        {
+          "phase": "RIVER",
+          "at": 33775
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 34689
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 34886
+        },
+        {
+          "phase": "RESULT",
+          "at": 35569
+        },
+        {
+          "phase": "REWARD",
+          "at": 36248
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 37323
+        }
+      ],
+      "prepOdds": [
+        "84%",
+        "60%",
+        "43%",
+        "15%",
+        "39%",
+        "56%"
+      ],
+      "cards": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "equity": [
+        "0",
+        "100"
+      ],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "sourceSample": 18,
+      "prepMs": 4283,
+      "mode": "online",
+      "round": 5,
+      "maxGapMs": 72,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 5760
+        },
+        {
+          "phase": "WAITING",
+          "at": 10043
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 10809
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 11202
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 11643
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 12085
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 12520
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 12775
+        },
+        {
+          "phase": "TURN",
+          "at": 13643
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 14367
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 14564
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 15482
+        },
+        {
+          "phase": "RIVER",
+          "at": 15726
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 16643
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 16844
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 17489
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 18801
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 19244
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 19681
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 20691
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 21125
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 21609
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 22041
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 22241
+        },
+        {
+          "phase": "TURN",
+          "at": 23121
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 23840
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 24042
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 24964
+        },
+        {
+          "phase": "RIVER",
+          "at": 25209
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 26122
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 26320
+        },
+        {
+          "phase": "RUN_RESULT",
+          "at": 26964
+        },
+        {
+          "phase": "CARD_SWITCH_OUT",
+          "at": 28283
+        },
+        {
+          "phase": "CARD_SWITCH_IN",
+          "at": 28727
+        },
+        {
+          "phase": "CARD_SWITCH_SETTLE",
+          "at": 29160
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 30162
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 30649
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 31044
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 31525
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 31732
+        },
+        {
+          "phase": "TURN",
+          "at": 32651
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 33360
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 33533
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 34443
+        },
+        {
+          "phase": "RIVER",
+          "at": 34722
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 35616
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 35801
+        },
+        {
+          "phase": "RESULT",
+          "at": 36490
+        },
+        {
+          "phase": "REWARD",
+          "at": 37130
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 38201
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 39721
+        }
+      ],
+      "prepOdds": [
+        "84%",
+        "60%",
+        "43%",
+        "15%",
+        "39%",
+        "56%"
+      ],
+      "cards": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "sourceSample": 9,
+      "prepMs": 3665,
+      "mode": "local",
+      "round": 6,
+      "maxGapMs": 74,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 41
+        },
+        {
+          "phase": "PREP",
+          "at": 7121
+        },
+        {
+          "phase": "ARENA_ENTER",
+          "at": 10786
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 13328
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 13720
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 14204
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 14640
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 15120
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 15373
+        },
+        {
+          "phase": "TURN",
+          "at": 16282
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 17010
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 17207
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 18120
+        },
+        {
+          "phase": "RIVER",
+          "at": 18360
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 19296
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 20505
+        },
+        {
+          "phase": "MADE_HAND",
+          "at": 21056
+        },
+        {
+          "phase": "FINAL_PLACE",
+          "at": 21651
+        },
+        {
+          "phase": "FINAL_WINNER",
+          "at": 23461
+        },
+        {
+          "phase": "REWARD",
+          "at": 24774
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 26406
+        }
+      ],
+      "prepOdds": [
+        "1%",
+        "99%",
+        "0%"
+      ],
+      "cards": [
+        5,
+        5,
+        5
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 10,
+      "prepMs": 4281,
+      "mode": "online",
+      "round": 6,
+      "maxGapMs": 72,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 6960
+        },
+        {
+          "phase": "WAITING",
+          "at": 11241
+        },
+        {
+          "phase": "ARENA_ENTER",
+          "at": 11986
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 14454
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 14881
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 15323
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 15763
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 16240
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 16449
+        },
+        {
+          "phase": "TURN",
+          "at": 17362
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 18081
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 18243
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 19160
+        },
+        {
+          "phase": "RIVER",
+          "at": 19448
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 20297
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 21534
+        },
+        {
+          "phase": "MADE_HAND",
+          "at": 22043
+        },
+        {
+          "phase": "FINAL_PLACE",
+          "at": 22621
+        },
+        {
+          "phase": "FINAL_WINNER",
+          "at": 24411
+        },
+        {
+          "phase": "REWARD",
+          "at": 25729
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 27290
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 28841
+        }
+      ],
+      "prepOdds": [
+        "1%",
+        "99%",
+        "0%"
+      ],
+      "cards": [
+        5,
+        5,
+        5
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 393,
+      "scrollWidth": 378
+    },
+    {
+      "sourceSample": 20,
+      "prepMs": 3649,
+      "mode": "local",
+      "round": 6,
+      "maxGapMs": 69,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 41
+        },
+        {
+          "phase": "PREP",
+          "at": 7932
+        },
+        {
+          "phase": "ARENA_ENTER",
+          "at": 11581
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 14124
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 14521
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 15005
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 15440
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 15925
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 16121
+        },
+        {
+          "phase": "TURN",
+          "at": 17042
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 17762
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 17966
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 18929
+        },
+        {
+          "phase": "RIVER",
+          "at": 19160
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 20092
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 21296
+        },
+        {
+          "phase": "MADE_HAND",
+          "at": 21816
+        },
+        {
+          "phase": "FINAL_PLACE",
+          "at": 22411
+        },
+        {
+          "phase": "FINAL_WINNER",
+          "at": 24213
+        },
+        {
+          "phase": "REWARD",
+          "at": 25535
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 27130
+        }
+      ],
+      "prepOdds": [
+        "1%",
+        "99%",
+        "0%"
+      ],
+      "cards": [
+        5,
+        5,
+        5
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "sourceSample": 21,
+      "prepMs": 4276,
+      "mode": "online",
+      "round": 6,
+      "maxGapMs": 58,
+      "maxTaskMs": 0,
+      "transitions": [
+        {
+          "phase": "CALCULATING",
+          "at": 40
+        },
+        {
+          "phase": "PREP",
+          "at": 7045
+        },
+        {
+          "phase": "WAITING",
+          "at": 11321
+        },
+        {
+          "phase": "ARENA_ENTER",
+          "at": 12092
+        },
+        {
+          "phase": "TABLE_ENTER",
+          "at": 14563
+        },
+        {
+          "phase": "FLOP_1",
+          "at": 14961
+        },
+        {
+          "phase": "FLOP_2",
+          "at": 15450
+        },
+        {
+          "phase": "FLOP_3",
+          "at": 15885
+        },
+        {
+          "phase": "FLOP_SETTLE",
+          "at": 16321
+        },
+        {
+          "phase": "FLOP_HAND",
+          "at": 16526
+        },
+        {
+          "phase": "TURN",
+          "at": 17441
+        },
+        {
+          "phase": "TURN_SETTLE",
+          "at": 18161
+        },
+        {
+          "phase": "TURN_HAND",
+          "at": 18328
+        },
+        {
+          "phase": "RIVER_SUSPENSE",
+          "at": 19245
+        },
+        {
+          "phase": "RIVER",
+          "at": 19520
+        },
+        {
+          "phase": "RIVER_SETTLE",
+          "at": 20411
+        },
+        {
+          "phase": "BEST5_GLOW",
+          "at": 21614
+        },
+        {
+          "phase": "MADE_HAND",
+          "at": 22124
+        },
+        {
+          "phase": "FINAL_PLACE",
+          "at": 22730
+        },
+        {
+          "phase": "FINAL_WINNER",
+          "at": 24521
+        },
+        {
+          "phase": "REWARD",
+          "at": 25807
+        },
+        {
+          "phase": "COMPLETE",
+          "at": 27405
+        },
+        {
+          "phase": "CALCULATING",
+          "at": 28920
+        }
+      ],
+      "prepOdds": [
+        "1%",
+        "99%",
+        "0%"
+      ],
+      "cards": [
+        5,
+        5,
+        5
+      ],
+      "equity": [],
+      "errors": [],
+      "width": 1280,
+      "scrollWidth": 1265
+    }
+  ]
+}

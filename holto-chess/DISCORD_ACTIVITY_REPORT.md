@@ -168,7 +168,7 @@
 | 다른 앱 ID(`876543210987654321`)의 Activity | `POST /api/rooms` **403**, 화면에는 "방을 사용할 수 없습니다." |
 | 외부 요청 | `www.googletagmanager.com`, `fonts.googleapis.com`, `fonts.gstatic.com` 3개 host뿐. 실제 Activity에서는 CSP로 차단될 대상 |
 
-**시뮬레이션의 한계**: 실제 Discord 프록시의 헤더 처리(Origin 재작성 여부, IP 헤더), CSP, WebSocket 유휴 타임아웃, 모바일 웹뷰는 재현하지 않았다. R1~R5 완주는 UI 자동화로 하지 않았다. 다만 Origin 검사는 연결 시점에만 적용되고, 이후 메시지 처리 경로는 웹과 같다. 게임 진행 자체는 기존 `room.test.ts`의 전체 게임 테스트가 보장한다.
+**시뮬레이션의 한계**: 실제 Discord 프록시의 헤더 처리(Origin 재작성 여부, IP 헤더), CSP, WebSocket 유휴 타임아웃, 모바일 웹뷰는 재현하지 않았다. 전체 라운드 완주는 UI 자동화로 하지 않았다. 다만 Origin 검사는 연결 시점에만 적용되고, 이후 메시지 처리 경로는 웹과 같다. 게임 진행 자체는 기존 `room.test.ts`의 전체 게임 테스트가 보장한다.
 
 ---
 
@@ -177,7 +177,7 @@
 1. **Origin 전달 방식**: 허용 목록이 빈 상태에서 403, ID를 설정하면 201이 나오는지 확인한다. Discord가 Origin을 재작성한다면 allowlist는 필요 없다. 그래도 남겨 두면 무해하다.
 2. **`CF-Connecting-IP`의 실제 값**: 여러 Discord 사용자가 같은 값으로 들어오는지 확인한다. 로그에 IP를 남기지 말고, 429 발생 양상이나 일시적인 "동일 여부" 집계로 확인한다. 이 결과가 blocker 2의 심각도를 정한다.
 3. SDK `ready()` 성공 여부(배너가 뜨지 않아야 함). 데스크톱·웹·iOS·Android 각각 확인한다.
-4. **2인 R1~R5 완주**(Activity↔Activity, Activity↔웹 혼합)와 결과 화면.
+4. **2인 R1~R6 완주**(Activity↔Activity, Activity↔웹 혼합)와 결과 화면.
 5. WebSocket 장시간 유지, 백그라운드·최소화 후 재연결, Discord 모바일에서 앱 전환 후 복귀(세션 복원).
 6. 모바일 Activity 레이아웃: 세로 공간, 하단 버튼 접근성, safe-area, 회전과 viewport 변화.
 7. 폰트 폴백 품질(Manrope·Noto Sans KR 미로드 시 한글 가독성), GA 차단이 다른 오류를 일으키지 않는지.

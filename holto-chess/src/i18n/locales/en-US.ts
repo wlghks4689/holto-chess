@@ -345,6 +345,7 @@ export const enUS: Record<keyof typeof koKR, string> = {
   "online.aiFillHelp": "AI players fill any empty seats when the game starts.",
   "connection.retry": "Reconnect",
   "online.returnLobbyKeepRoom": "Back to lobby · Keep room",
+  "local.processingFailed": "The game could not finish processing. Retry to continue from the current step.",
   "online.processing": "Processing…",
   "online.leaveRoom": "Leave room",
   "card.hidden": "Hidden card",

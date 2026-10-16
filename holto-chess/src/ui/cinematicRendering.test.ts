@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { makeDeck, type Card } from "../core/poker/cards";
+import { cardLabel, makeDeck, type Card } from "../core/poker/cards";
 import { findBestFive } from "../core/poker/evaluate";
 import type { MatchView, PresentationView } from "../shared/protocol";
 import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION, cinematicTimeline, frameAt, presentationDurationMs } from "../shared/presentationTimeline";
@@ -19,6 +19,40 @@ const match: MatchView = {
   revealedCards: Object.fromEntries([1, 2, 3, 4].map((id, index) => [`p${id}`, deck.slice(index * 7, index * 7 + 7)])),
 };
 const profiles = match.participantIds.map((playerId) => ({ playerId, name: playerId }));
+
+it("moves a finished R5 RUN with the outgoing hand held and the incoming board closed", () => {
+  const triple: MatchView = { ...match, id: "run-move", round: 5, final: false, stage: "primary", participantIds: ["p1", "p2"], runoutCount: 3,
+    boards: [deck.slice(12, 17), deck.slice(17, 22), deck.slice(22, 27)], boardWinnerIds: [["p1"], ["p2"], ["p1"]],
+    revealedCards: { p1: deck.slice(0, 6), p2: deck.slice(6, 12) },
+    runCards: { p1: [deck.slice(0, 2), deck.slice(2, 4), deck.slice(4, 6)], p2: [deck.slice(6, 8), deck.slice(8, 10), deck.slice(10, 12)] } };
+  const frames = cinematicTimeline(triple);
+  const render = (phase: string, run: number) => renderToStaticMarkup(createElement(ShowdownCinematic, { match: triple, profiles, viewerId: "p1", onComplete: () => {},
+    elapsedMs: frames.find(frame => frame.phase === phase && frame.boardIndex === run)!.at }));
+  for (const run of [1, 2]) {
+    const html = render("RUN_TRANSITION", run);
+    const liveBoard = html.match(/class="cinema-board active[^>]*>[\s\S]*?(?=<div class="cinema-board (?:pending|complete)|<\/section>)/)![0];
+    expect(liveBoard).not.toContain("is-open");
+    expect(liveBoard).not.toContain("IN PROGRESS");
+    const firstSeat = html.slice(html.indexOf('data-player-id="p1"'), html.indexOf('data-player-id="p2"'));
+    for (const card of triple.runCards!.p1![run - 1]!) expect(firstSeat).toContain(`aria-label="${cardLabel(card)}"`);
+    expect(html).not.toContain("cinema-board-stack is-run-complete");
+  }
+  expect(render("COMPLETE", 2)).toContain("cinema-board-stack is-run-complete");
+});
+
+it("later six-round R5 match prep preserves all three RUN hands instead of the legacy final panel", () => {
+  const triple: MatchView = { ...match, id: "triple", final: false, stage: "primary", participantIds: ["p1", "p2"], runoutCount: 3,
+    boards: [deck.slice(12, 17), deck.slice(17, 22), deck.slice(22, 27)], revealedCards: { p1: deck.slice(0, 6), p2: deck.slice(6, 12) },
+    runCards: { p1: [deck.slice(0, 2), deck.slice(2, 4), deck.slice(4, 6)], p2: [deck.slice(6, 8), deck.slice(8, 10), deck.slice(10, 12)] } };
+  const html = renderToStaticMarkup(createElement(CinematicGate, { matches: [triple], profiles, viewerId: "p1", receivedAt: 100,
+    presentation: { version: PRESENTATION_VERSION, startsAt: 0, endsAt: 30000,
+      matches: [{ matchId: triple.id, offsetMs: 0, durationMs: 30000, prepMs: MATCH_PREP_MS }] },
+    clock: { now: () => 100, offset: () => 0, observe: () => {} }, children: "result" }));
+  expect(html).toContain("RUN IT THREE TIMES");
+  expect(html.match(/aria-label="RUN 3"/g)).toHaveLength(2);
+  expect(html).not.toContain("card-back");
+  expect(html).not.toContain("final-match-loading");
+});
 
 describe("cinematic initial rendering", () => {
   it("colors the R5 visible hand name from trips to full house without revealing the future quads or starting FX", () => {
@@ -66,15 +100,21 @@ describe("cinematic initial rendering", () => {
     expect(render([completed, { ...completed, id: "next" }])).toContain("다음 매치 →");
     expect(render([completed])).toContain("라운드 결과 확인 →");
   });
-  it("shows streets under the board heading with no narration footer", () => {
+  it("anchors streets inside the shared board card area with no narration footer", () => {
     const view: MatchView = { ...match, round: 1, boards: [deck.slice(10, 15)], runoutCount: 1 };
     for (const phase of ["FLOP_3", "TURN", "RIVER", "MADE_HAND", "RESULT"] as const) {
       const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: { ...view, disclosure: { elapsedMs: 0, frames: [{ at: 0, phase, boardIndex: 0, revealed: 5, finalCards: 2 }] } }, profiles, viewerId: "p1", onComplete: () => {} }));
       expect(html).not.toContain("cinema-footer");
       expect(html).not.toContain("완성된 족보");
       expect(html).not.toContain("매치 결과");
-      if (["FLOP_3", "TURN", "RIVER"].includes(phase)) expect(html).toContain(`<h3>커뮤니티 보드</h3><div class="cinema-board-street" aria-live="polite">${phase.split("_")[0]}</div>`);
+      if (["FLOP_3", "TURN", "RIVER"].includes(phase)) expect(html).toContain(`<div class="cinema-board-cards"><div class="cinema-board-street" aria-live="polite">${phase.split("_")[0]}</div>`);
     }
+  });
+  it("reserves R1's lower hand-read area when a disclosed street has no hand label yet", () => {
+    const view: MatchView = { ...match, round: 1, boards: [deck.slice(10, 15)], runoutCount: 1, streetSnapshots: undefined,
+      disclosure: { elapsedMs: 0, frames: [{ at: 0, phase: "RIVER_SETTLE", boardIndex: 0, revealed: 5, finalCards: 2 }] } };
+    const html = renderToStaticMarkup(createElement(ShowdownCinematic, { match: view, profiles, viewerId: "p1", onComplete: () => {} }));
+    expect(html).toContain('cinema-street-made cinema-hand-read-placeholder');
   });
   it("shows the nickname once without appending a self label", () => {
     const namedProfiles = profiles.map((profile) => profile.playerId === "p1" ? { ...profile, name: "나" } : profile);
@@ -326,6 +366,9 @@ describe("cinematic initial rendering", () => {
     expect(html.match(/cinema-run-detail-hands/g)).toHaveLength(2);
     expect(html).toMatch(/is-run-loss has-run-detail[\s\S]*?cinema-run-detail-side is-loss [\s\S]*?cinema-run-detail-side is-win is-right/);
     expect(html.match(/class="cinema-run-detail-board"/g)).toHaveLength(2);
+    expect(html).toContain('class="cinema-board-caption">WIN</small>');
+    expect(html).toContain('class="cinema-board-caption">LOSS</small>');
+    expect(html).not.toContain("COMPLETED");
     expect(html).toContain("RUN 2");
     expect(html).toContain('aria-label="Run It Twice 스코어"');
     expect(html).toContain('<div class="cinema-run-score"><span>p1</span><strong>1 : 1</strong><span>p2</span></div>');

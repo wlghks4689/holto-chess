@@ -92,7 +92,7 @@
 /* R5 cinematic: the newest RUN box sits on top (inline order); finished RUNs shrink below it and
    take the viewer's outcome as their tint. Hover or tap opens that RUN's cards and result. */
 .cinema-board-stack.run-it-three-times{gap:8px}
-.cinema-board-stack.run-it-three-times>.cinema-board{order:var(--run-order,0)}
+.cinema-board-stack:is(.run-it-twice,.run-it-three-times)>.cinema-board{order:var(--run-order,0)}
 /* A finished RUN's detail overlays its own board, so every RUN board anchors it. */
 .cinema-board-stack.run-it-twice>.cinema-board{position:relative}
 .cinema-board-stack.run-it-three-times .cinema-board{position:relative;--run-tone:transparent;border:1px solid var(--run-tone);border-radius:12px;transition:background .35s,border-color .35s,box-shadow .35s}
@@ -123,9 +123,9 @@
 @media(hover:hover){.cinema-board.has-run-detail:hover>:not(.cinema-run-detail){visibility:hidden}}
 /* One card width controls both rows, their typography and the minimum space the RUN box reserves.
    It depends on the viewport, not the changing live/completed row height. */
-.cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(30px,min(3vw,4.8dvh),52px);--run-detail-pad-y:10px;--run-detail-row-gap:4px;--run-detail-card-gap:4px;--run-detail-height:calc(var(--run-detail-card-width) * 75 / 53 * 2 + var(--run-detail-row-gap) + var(--run-detail-pad-y) * 2 + 2px)}
+.cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(30px,min(3vw,4.8dvh),52px);--run-detail-pad-y:10px;--run-detail-row-gap:16px;--run-detail-card-gap:4px;--run-detail-height:calc(var(--run-detail-card-width) * 75 / 53 * 2 + var(--run-detail-row-gap) + var(--run-detail-pad-y) * 2 + 2px)}
 .cinema-board-stack:is(.run-it-twice,.run-it-three-times)>.cinema-run-board{min-height:var(--run-detail-height);box-sizing:border-box}
-.cinema-run-detail{position:absolute;inset:0;block-size:var(--run-detail-height);z-index:5;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;align-items:center;column-gap:12px;row-gap:var(--run-detail-row-gap);padding:var(--run-detail-pad-y) 14px;box-sizing:border-box;overflow:hidden;border:1px solid var(--run-tone);border-radius:12px;background:#06131b;box-shadow:0 10px 30px #000a;opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s}
+.cinema-run-detail{position:absolute;inset:0;block-size:auto;z-index:5;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;align-items:center;column-gap:12px;row-gap:var(--run-detail-row-gap);padding:var(--run-detail-pad-y) 14px;box-sizing:border-box;overflow:hidden;border:1px solid var(--run-tone);border-radius:12px;background:#06131b;box-shadow:0 10px 30px #000a;opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s}
 .cinema-board.has-run-detail.is-detail-open .cinema-run-detail{opacity:1;visibility:visible}
 @media(hover:hover){.cinema-board.has-run-detail:hover .cinema-run-detail{opacity:1;visibility:visible}}
 /* A finished RUN's detail, the same size as its RUN box: the two hands (viewer's left) over the RUN's one
@@ -147,8 +147,14 @@
 .cinema .cinema-board-stack:is(.run-it-twice,.run-it-three-times) .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact .card-rank{font-size:calc(var(--run-detail-card-width) * .44);line-height:1;transform:none}
 .cinema .cinema-board-stack:is(.run-it-twice,.run-it-three-times) .cinema-board.cinema-run-board .cinema-run-detail .playing-card.compact .card-suit{font-size:calc(var(--run-detail-card-width) * .58);line-height:1}
 @media(max-width:700px){
-  .cinema-board-stack.run-it-three-times .cinema-board.complete .cinema-board-cards .playing-card.compact{width:35px;height:51px}
-  .cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(28px,8vw,36px);--run-detail-pad-y:8px}
+  /* Finished RUN boards use the same 43px card face as the mobile two-card seat. */
+  .cinema.cinema-multi-run{--run-mobile-card-width:43px}
+  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards{grid-template-columns:repeat(5,var(--run-mobile-card-width));width:max-content;gap:var(--run-board-gap,6px)}
+  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards .playing-card.compact{width:var(--run-mobile-card-width);height:auto;aspect-ratio:var(--card-ratio)}
+  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards .card-rank{font-size:clamp(9px,34cqw,19px)}
+  .cinema.cinema-multi-run .cinema-board-stack>.cinema-board.cinema-run-board.complete .cinema-board-cards .card-suit{font-size:clamp(11px,44cqw,25px)}
+  .cinema.cinema-multi-run .cinema-seat .cinema-profile-identity b{font-size:12px}
+  .cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-card-width:clamp(28px,8vw,36px);--run-detail-pad-y:8px;--run-detail-row-gap:12px}
   .cinema-run-detail{padding-inline:10px;column-gap:8px}
   .cinema-run-detail-side{font-size:10px}.cinema-run-detail-side>small{font-size:9px}
   .cinema-run-detail-hands{gap:8px}
@@ -343,6 +349,7 @@
 @media(min-width:1200px) and (min-aspect-ratio:4/3){
   /* The frame fills the window up to 1920x1080 and sits centred beyond it (--r5-frame-max-w/-h override the cap); every size inside follows the frame. */
   .cinema.cinema-headsup.cinema-table{
+    --seat-icon:clamp(44px,min(calc(var(--r5-w) * 4.2 / 100),calc(var(--r5-h) * 7 / 100)),72px);
     --r5-h:min(calc(100dvh - 24px),var(--r5-frame-max-h,1080px));
     --r5-w:min(calc(100vw - 32px),max(1200px,calc((var(--r5-h) + 24px) * 1.95)),var(--r5-frame-max-w,1920px));
     --r5-card-gap:clamp(6px,calc(var(--r5-w) * .7 / 100),18px);
@@ -413,10 +420,10 @@
   .cinema-run-history li.is-live>b{color:#8fe9da}.cinema-seat[data-seat-index="1"] .cinema-run-history li.is-live>b{color:#8fb6ff}
   .cinema-run-history li.is-waiting{opacity:.55}.cinema-run-history li.is-waiting>b{color:#7f95a2;font-weight:600}
 
-  /* RUN boards: three rows that never move. The live RUN is the tallest, lit row; dealt-out RUNs shrink. */
+  /* The live RUN stays first; completed boards move into the history below it. */
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board{--r5-board-chrome:44px;flex:1 1 0;container-type:size;display:flex;flex-direction:column;justify-content:center;min-height:0;padding:clamp(6px,calc(var(--r5-h) * 1 / 100),12px) 16px;border-radius:14px}
   .cinema.cinema-multi-run.cinema-table .cinema-board-stack .cinema-board.active{flex-grow:1.55}
-  /* R2 on PC reads like R5: RUN 1 sits at the bottom. */
+  /* Shared RUN order also applies to the PC flex stack. */
   .cinema.cinema-multi-run.cinema-table .cinema-board-stack>.cinema-board{order:var(--run-order,0)}
   .cinema.cinema-multi-run.cinema-table .cinema-board-label{align-self:stretch;width:100%}
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board:is(.active,.pending,.complete):not(.has-run-detail){--run-tone:#2d5a6d;background:rgba(4,16,24,.7)}
@@ -424,9 +431,12 @@
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.pending{opacity:.62}
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.is-placeholder{display:flex}
   .cinema.cinema-headsup.cinema-table .cinema-board-label{position:relative;display:grid;justify-items:center;margin-bottom:clamp(4px,calc(var(--r5-h) * .8 / 100),10px)}
+  /* A full-height community panel shares the neighbouring seats' nickname baseline. */
+  .cinema.cinema-headsup.cinema-table:not(.cinema-multi-run) .cinema-board{position:relative}
+  .cinema.cinema-headsup.cinema-table:not(.cinema-multi-run) .cinema-board-label{position:absolute;top:calc(var(--r5-seat-pad) + var(--seat-icon) + 5px);left:16px;right:16px;margin:0;padding-bottom:0;min-height:calc(clamp(17px,calc(var(--r5-w) * 1.35 / 100),24px) * 1.25);align-items:center}
   .cinema.cinema-headsup.cinema-table .cinema-board h3{margin:0;color:#d9ecf2;font:700 clamp(14px,calc(var(--r5-w) * 1.15 / 100),20px)/1.2 DM Mono;letter-spacing:.18em}
   .cinema.cinema-headsup.cinema-table .cinema-board.complete h3{margin:0;color:#a9c3cf;font-size:clamp(13px,calc(var(--r5-w) * 1 / 100),17px)}
-  .cinema.cinema-headsup.cinema-table .cinema-board .cinema-board-street{position:absolute;left:0;top:50%;height:auto;transform:translateY(-50%);font-size:clamp(10px,calc(var(--r5-w) * .8 / 100),13px);line-height:1.2}
+  .cinema.cinema-headsup.cinema-table .cinema-board .cinema-board-street{font-size:clamp(10px,calc(var(--r5-w) * .8 / 100),13px)}
   .cinema-board-progress{position:absolute;right:0;top:50%;align-items:center;gap:8px;transform:translateY(-50%);color:#7ff0dd;font:700 clamp(10px,calc(var(--r5-w) * .8 / 100),13px)/1 DM Mono;letter-spacing:.1em}
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.active .cinema-board-progress{display:inline-flex}
   .cinema.cinema-headsup.cinema-table .cinema-board .cinema-board-cards{--r5-card-h:clamp(40px,min(calc(100cqh - var(--r5-board-chrome)),calc((100cqw - 4 * var(--r5-card-gap)) / 5 * 75 / 53 * var(--r5-card-scale,1))),260px);grid-template-columns:repeat(5,calc(var(--r5-card-h) * 53 / 75));gap:var(--r5-card-gap);width:auto;justify-content:center}
@@ -438,10 +448,13 @@
   .cinema.cinema-multi-run.cinema-table .cinema-board-stack .cinema-board.complete{--r5-board-chrome:62px;--r5-card-scale:.78}
   .cinema.cinema-multi-run.cinema-table .cinema-board-stack .cinema-board.pending{--r5-card-scale:.78}
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.complete .cinema-board-caption{display:block}
-  .cinema-board-caption{margin-top:clamp(4px,calc(var(--r5-h) * .8 / 100),8px);color:#8aa5b1;font:600 clamp(9px,calc(var(--r5-w) * .7 / 100),11px)/1 DM Mono;letter-spacing:.24em}
+  .cinema-board-caption{margin-top:clamp(4px,calc(var(--r5-h) * .8 / 100),8px);color:#b8c9d2;font:800 12px/1 DM Mono;letter-spacing:.16em}
+  .cinema-board.is-run-win .cinema-board-caption{color:#6fe3a0}
+  .cinema-board.is-run-loss .cinema-board-caption{color:#ff8f8f}
   /* The RUN detail overlay fits the taller PC row. */
   /* Short windows (a 1366x768 screen leaves about 650px): the name shares the icon row and the hole cards keep their size. */
   @media(max-height:760px){
+    .cinema.cinema-headsup.cinema-table:not(.cinema-multi-run) .cinema-board-label{top:calc(var(--r5-seat-pad) + 1px);min-height:var(--seat-icon)}
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-match-profile{grid-template-rows:var(--seat-icon) auto;gap:2px;margin-top:0}
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-profile-identity{display:flex;align-items:center;justify-content:center;padding-inline:calc(var(--seat-icon) + 8px)}
     .cinema.cinema-headsup.cinema-table .cinema-seat .cinema-profile-identity b{overflow:hidden;font-size:17px;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal}
@@ -452,11 +465,14 @@
     .cinema.cinema-headsup.cinema-table[data-round="1"] .cinema-reward strong{font-size:12px;line-height:20px}
   }
   .cinema.cinema-headsup.cinema-table .cinema-run-detail{padding-inline:18px}
+  .cinema.cinema-headsup.cinema-table .cinema-board-stack:is(.run-it-twice,.run-it-three-times){--run-detail-row-gap:clamp(18px,2.6dvh,28px)}
   /* Completed RUNs reserve the same two-row height throughout the rest of the match. */
   .cinema.cinema-headsup.cinema-table .cinema-board-stack .cinema-board.has-run-detail{flex:0 0 var(--run-detail-height);min-height:var(--run-detail-height)}
   /* R2 final result: both finished RUNs split the board panel in half instead of stacking at its top. */
   .cinema.cinema-headsup.cinema-table .cinema-board-stack.run-it-twice:not(:has(>.cinema-board:not(.has-run-detail)))>.cinema-board.has-run-detail{flex:1 1 0}
   .cinema.cinema-headsup.cinema-table .cinema-board-stack.run-it-twice:not(:has(>.cinema-board:not(.has-run-detail)))>.cinema-board>.cinema-run-detail{block-size:auto}
+  /* R5: finished panels share the unused height; details cover their whole RUN box. */
+  .cinema.cinema-headsup.cinema-table .cinema-board-stack.run-it-three-times.is-run-complete>.cinema-board.has-run-detail{flex:1 1 0;min-height:0}
   /* With the room, the detail view separates the players' cards from the community board. */
   .cinema.cinema-headsup.cinema-table .cinema-board-stack.run-it-twice:not(:has(>.cinema-board:not(.has-run-detail))){--run-detail-row-gap:clamp(14px,calc(var(--r5-h) * 2.4 / 100),28px)}
 }

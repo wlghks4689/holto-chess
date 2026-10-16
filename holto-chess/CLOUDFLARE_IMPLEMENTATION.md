@@ -165,7 +165,7 @@ GOOGLE_CLIENT_SECRET=<Console에서 받은 Secret — 본인이 로컬에 직접
 - `src/game/engine.ts`는 React와 분리되어 있었고, 상태를 복제해 액션을 적용한다. 따라서 재작성하지 않고 서버에서도 호출한다.
 - Card Ledger는 52개의 AVAILABLE / RESERVED_IN_SHOP / OWNED 엔트리다. 상점은 전역 풀에서 카드를 예약하며, 판매·리롤·탈락 시 반환한다.
 - `core/poker`는 족보/키커/BEST 5/Omaha 평가를 담당한다. `showdownDeck.ts`는 매치 참가자의 모든 소유 카드를 제외한 임시 덱을 생성한다.
-- R1~R5와 8→8→6→6→4→4 생존 구조는 유지한다. 온라인 방은 인간 2~8명이 참여하고 빈 좌석은 AI로 채우는 8좌석 게임이다. 순수 2인 토너먼트 규칙은 새로 만들지 않았다.
+- 라운드 구조와 생존 인원 규칙은 유지한다. 온라인 방은 인간 2~8명이 참여하고 빈 좌석은 AI로 채우는 8좌석 게임이다. 순수 2인 토너먼트 규칙은 새로 만들지 않았다.
 - 기존 AI는 구매 가능한 높은 랭크를 우선한다. `prepareShowdown`에 humanIds를 주입해 온라인 인간 좌석을 AI가 대신 구매하지 않게 했다.
 - 기존 게임은 localStorage에 의존하지 않았다. 새 UI는 sessionStorage에 임시 방 세션만 저장하며 GameState는 저장하지 않는다.
 - 기존 RNG는 seed 기반 xorshift다. 로컬/단위 테스트는 이 경로를 유지한다. 실제 GameRoom은 `randomMode: secure`로 모든 랜덤 추출에 Workers Web Crypto를 사용한다. seed와 모드는 payload에 포함하지 않는다.
@@ -278,7 +278,7 @@ constructor는 `blockConcurrencyWhile` 안에서 snapshot을 읽는다. WebSocke
 | 기존 포커/덱/엔진 15개 테스트 | 통과 |
 | 추가 순수 room/projection 테스트 8개 | 통과: 총 단위 테스트 23개 |
 | Workers 런타임 통합 테스트 3개 | 통과 |
-| 2명·3명·8명 인간 좌석의 R1~R5 진행 | seeded 엔진 테스트 통과, 생존 8→8→6→6→4→4 유지 |
+| 2명·3명·8명 인간 좌석의 전체 라운드 진행 | seeded 엔진 테스트 통과, 생존 인원 규칙 유지 |
 | 다른 방/개인별 payload | 실제 Workers WebSocket 테스트 통과 |
 | 상대 상점 구매, 위조 playerId/BB, phase/구매 한도 | 거부 확인 |
 | 동시에 두 사용자가 구매 | 둘 다 각각 한 번 저장되는지 확인 |

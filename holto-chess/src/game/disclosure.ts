@@ -28,7 +28,7 @@ export function discloseMatch(view: MatchView, entry: PresentationEntry, startsA
   const boardResultVisible = (index: number) => boardKnown(index) && (index < frame.boardIndex || resultVisible);
   const safe = structuredClone(view);
   const runHandOpen = (run: number) => !view.runCards || view.round === 2
-    || elapsed >= 0 && (run < frame.boardIndex || run === frame.boardIndex && !(run > 0 && frame.phase === "CARD_SWITCH_OUT"));
+    || elapsed >= 0 && (run < frame.boardIndex || run === frame.boardIndex && !(run > 0 && ["RUN_TRANSITION", "CARD_SWITCH_OUT"].includes(frame.phase)));
   safe.abilityCues = (view.abilityCues ?? []).filter(cue => elapsed >= 0 && (final ? finalWinner :
     cue.run ? boardResultVisible(cue.run - 1) : boardResultVisible(0)));
   safe.disclosure = { frames: frames.filter((item, index) => index === 0 || item.at <= elapsed), elapsedMs: elapsed,

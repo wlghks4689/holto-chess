@@ -9,6 +9,7 @@
 #### 운영 적용 및 실기기 확인
 
 - [ ] SD-FREEZE-001-RELEASE | 담당 Codex·사용자 | 상태 REVIEW | 의존 자동 배포 적용 확인 및 실기기 QA(commit/push와 main 머지는 2026-10-12 승인) | 완료 조건: 승률 표시 Worker 분리·로딩 승률 재사용·공개 스트리트 선계산을 운영 적용하고 실제 PC/iOS/Android에서 싱글·멀티의 로딩→쇼다운→결과를 확인한다. 로컬 93회귀·Workers 17회귀·8개 제한 CPU 브라우저 전환·3개 Worker 실패·실제 빌드 3탭 R1 검증 완료. 최신 main 통합 후 관련 93회귀·lint·릴리스 빌드 통과. 기존 openDraft 실패 1개는 별도 공개 정책 검토 대상으로 남긴다. 상세 [QA](qa/2026-10-12-showdown-transition-freeze.md).
+- [ ] SD-FREEZE-002-RELEASE | 담당 Codex·사용자 | 상태 REVIEW | 의존 2026-10-15 수정본 자동 배포 적용 확인 및 실기기 QA(구현·commit/push는 이번 사용자 요청으로 승인) | 완료 조건: 계산 후 준비 시간 기준점 보정·게스트 싱글 엔진 Worker 분리·가시 시간 준비창을 운영에서 확인하고 실제 iOS/Android 및 장시간 싱글·멀티 검증을 완료한다. 로컬 브라우저 18표본 전체 COMPLETE, 최대 계측 간격 103ms, 실제 두 게스트 WebSocket R1→R2→R3 진행, Workers 18회귀 통과. 전체 927통과·기존 공개 정책 불일치 1실패. 상세 [QA](qa/2026-10-15-showdown-prep-timing.md).
 
 ### Google 로그인 — 공개 전 Gate
 
@@ -49,7 +50,7 @@
 
 - [ ] DIST-DISCORD-001-HEADERS | 담당 Codex | 상태 BLOCKED | 의존 CONFIG 및 실제 Discord 요청 | 완료 조건: 요청의 Origin, Host, CF-Connecting-IP, CF-Ray, X-Forwarded-For, Forwarded, X-Real-IP, X-Forwarded-Proto 존재 여부와 형태를 기록한다. IP 원문은 저장하거나 로그하지 않는다.
 - [ ] DIST-DISCORD-001-RATELIMIT | 담당 Codex | 상태 BLOCKED | 의존 HEADERS 및 사용자 정책 승인 | 완료 조건: CF-Connecting-IP 기반 제한이 Discord 사용자 간 공유되는지 판단하고, 공유 IP 영향에 대한 정책을 별도 결정한다. 결정 전 rate-limit 정책은 변경하지 않는다.
-- [ ] DIST-DISCORD-001-PLAYTEST | 담당 사용자·Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord에서 2인 R1~R5를 Activity↔Activity 및 Activity↔웹 조합으로 완주한다. desktop·mobile, SDK 준비, 대기실 WebSocket 무활동을 확인한다.
+- [ ] DIST-DISCORD-001-PLAYTEST | 담당 사용자·Codex | 상태 BLOCKED | 의존 CONFIG | 완료 조건: 실제 Discord에서 2인 R1~R6를 Activity↔Activity 및 Activity↔웹 조합으로 완주한다. desktop·mobile, SDK 준비, 대기실 WebSocket 무활동을 확인한다.
 
 ## 어빌리티 후속 작업
 
@@ -57,7 +58,7 @@
 
 #### 독주자·쿼드 코어
 
-- [ ] ABILITY-012-LIVE-QA | 담당 Codex | 상태 TODO | 의존 운영 플레이 검증 환경 | 완료 조건: 실제 기기에서 독주자와 쿼드 코어 효과를 포함해 R1~R5 플레이를 검증한다. 기존 배포·에셋 확인 및 자동 테스트와 구분해 기록한다.
+- [ ] ABILITY-012-LIVE-QA | 담당 Codex | 상태 TODO | 의존 운영 플레이 검증 환경 | 완료 조건: 실제 기기에서 독주자와 쿼드 코어 효과를 포함해 R1~R6 플레이를 검증한다. 기존 배포·에셋 확인 및 자동 테스트와 구분해 기록한다.
 
 ### AI 전략
 

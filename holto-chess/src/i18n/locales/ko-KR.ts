@@ -343,6 +343,7 @@ export const koKR = {
   "online.aiFillHelp": "게임 시작 시 빈 좌석은 AI 플레이어가 채웁니다.",
   "connection.retry": "연결 다시 시도",
   "online.returnLobbyKeepRoom": "로비로 돌아가기 · 방 유지",
+  "local.processingFailed": "게임 처리를 완료하지 못했습니다. 다시 시도하면 현재 단계에서 계속할 수 있습니다.",
   "online.processing": "처리 중…",
   "online.leaveRoom": "방 나가기",
   "card.hidden": "비공개 카드",

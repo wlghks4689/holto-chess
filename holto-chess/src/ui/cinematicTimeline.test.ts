@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeDeck } from "../core/poker/cards";
-import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags } from "./cinematicTimeline";
+import { cinematicTimeline, displayedStreetIndex, frameAt, revealFlags, RUN_BOARD_MOVE_MS, RUN_TRANSITION_MS } from "./cinematicTimeline";
 
 const deck = makeDeck();
 describe("showdown reveal timing", () => {
@@ -10,10 +10,10 @@ describe("showdown reveal timing", () => {
     expect(timeline.some((frame) => frame.phase === "VS_INTRO" || frame.phase === "PREFLOP_HAND")).toBe(false);
     expect(frameAt(timeline, 399).phase).toBe("TABLE_ENTER");
     expect(frameAt(timeline, 400).phase).toBe("FLOP_1");
-    expect(time("FLOP_2") - time("FLOP_1")).toBe(500);
-    expect(time("FLOP_3") - time("FLOP_2")).toBe(500);
+    expect(time("FLOP_2") - time("FLOP_1")).toBe(450);
+    expect(time("FLOP_3") - time("FLOP_2")).toBe(450);
     expect(time("FLOP_HAND") - time("FLOP_SETTLE")).toBe(200);
-    expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(500);
+    expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(450);
     expect(time("TURN") - time("FLOP_HAND")).toBe(900);
     expect(time("TURN_HAND") - time("TURN_SETTLE")).toBe(200);
     expect(time("RIVER_SUSPENSE") - time("TURN_HAND")).toBe(920);
@@ -40,9 +40,9 @@ describe("showdown reveal timing", () => {
     const timeline = cinematicTimeline({ boards: [deck.slice(0, 5), deck.slice(5, 10), deck.slice(10, 15)], revealedCards: {} });
     for (const boardIndex of [0, 1, 2]) {
       const time = (phase: string) => timeline.find((frame) => frame.boardIndex === boardIndex && frame.phase === phase)!.at;
-      expect(time("FLOP_2") - time("FLOP_1")).toBe(500);
-      expect(time("FLOP_3") - time("FLOP_2")).toBe(500);
-      expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(500);
+      expect(time("FLOP_2") - time("FLOP_1")).toBe(450);
+      expect(time("FLOP_3") - time("FLOP_2")).toBe(450);
+      expect(time("FLOP_SETTLE") - time("FLOP_3")).toBe(450);
       expect(time("TURN") - time("FLOP_HAND")).toBe(900);
       expect(time("RIVER_SUSPENSE") - time("TURN_HAND")).toBe(920);
     }
@@ -59,7 +59,24 @@ describe("showdown reveal timing", () => {
     });
     const runOneResult = timeline.find((frame) => frame.phase === "RUN_RESULT" && frame.boardIndex === 0)!;
     const switchOut = timeline.find((frame) => frame.phase === "CARD_SWITCH_OUT")!;
-    expect(switchOut.at - runOneResult.at).toBe(1300);
+    const move = timeline.find((frame) => frame.phase === "RUN_TRANSITION")!;
+    expect(move.at - runOneResult.at).toBe(1300);
+    expect(switchOut.at - move.at).toBe(RUN_TRANSITION_MS);
+  });
+  it.each([2, 3])("finishes each board move before revealing or switching the next of %i RUNs", count => {
+    const timeline = cinematicTimeline({ round: count === 2 ? 2 : 5, final: false,
+      boards: Array.from({ length: count }, (_, i) => deck.slice(12 + i * 5, 17 + i * 5)),
+      revealedCards: { p1: deck.slice(0, 6) },
+      runCards: { p1: Array.from({ length: count }, (_, i) => count === 2 ? deck.slice(0, 3) : deck.slice(i * 2, i * 2 + 2)) } });
+    expect(timeline.filter(frame => frame.phase === "RUN_TRANSITION")).toHaveLength(count - 1);
+    for (let run = 1; run < count; run++) {
+      const moveIndex = timeline.findIndex(frame => frame.phase === "RUN_TRANSITION" && frame.boardIndex === run);
+      const move = timeline[moveIndex]!;
+      expect(move.revealed).toBe(0);
+      expect(timeline[moveIndex + 1]!.at - move.at).toBeGreaterThan(RUN_BOARD_MOVE_MS);
+      expect(frameAt(timeline, move.at + RUN_TRANSITION_MS - 1)).toMatchObject({ phase: "RUN_TRANSITION", boardIndex: run, revealed: 0 });
+      expect(timeline[moveIndex + 1]!.phase).toBe(count === 2 ? "FLOP_1" : "CARD_SWITCH_OUT");
+    }
   });
   it("finishes the RUN 2 hand flip before holding a one-second board-free pause", () => {
     const timeline = cinematicTimeline({ boards: [deck.slice(0, 5), deck.slice(5, 10), deck.slice(10, 15)], revealedCards: {},

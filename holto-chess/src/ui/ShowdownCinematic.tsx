@@ -6,10 +6,11 @@ import { EquityMeter } from "./EquityMeter";
 import { equityBoardCount, releasedEquityBoardCount } from "./streetEquity";
 import { streetEquityJob } from "./displayEquity";
 import { useDisplayEquity } from "./useDisplayEquity";
+import { visibleTimeout } from "./visibleTimeout";
 import type { CSSProperties, KeyboardEvent } from "react";
 import type { MatchView, PresentationView, RevealedHand, ShowdownPrepSeatView, ShowdownPrepView } from "../shared/protocol";
 import { cinematicTimeline, displayedStreetIndex, frameAt, isFinalMatch, revealFlags, type CinematicFrame } from "./cinematicTimeline";
-import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION } from "../shared/presentationTimeline";
+import { INTER_MATCH_HOLD_MS, MATCH_PREP_MS, PRESENTATION_VERSION, RUN_BOARD_MOVE_MS } from "../shared/presentationTimeline";
 import { FINAL_REVEAL_STAGGER_MS, arenaZoomProgress, finalNextBatch, finalReadStage, finalRevealSlot, ordinalPlace, visibleFinalHand } from "./finalShowdownPresentation";
 import { detailedHandLabel } from "./handLabel";
 import { madeTone } from "./madeTone";
@@ -18,6 +19,7 @@ import { cinemaSeatClass } from "./madeFxClasses";
 import { showdownStage } from "./showdownStage";
 import type { ServerClock } from "./serverClock";
 import { ShowdownCardFlip } from "./ShowdownCardFlip";
+import { runBoardOrder, useRunBoardMotion } from "./useRunBoardMotion";
 import { FinalArenaBackdrop } from "./FinalArenaBackdrop";
 import { CardView } from "./CardView";
 import { FinalPlaceBanner } from "./FinalPlaceBanner";
@@ -121,6 +123,7 @@ function RunTimeline({ match, frame, viewerId, name }: { match: MatchView; frame
 export function ShowdownCinematic({ match, profiles, viewerId, onComplete, controls = false, elapsedMs, catchUp = false, nextMatchSeconds, hasNextMatch = false, soundSessionId = "game" }: Props) {
   const { t, locale } = useTranslation();
   const motion = useCinematicMotion();
+  const boardStack = useRef<HTMLDivElement>(null);
   const synced = elapsedMs !== undefined;
   const [localElapsed, setElapsed] = useState(0);
   const [runDetail, setRunDetail] = useState<number | null>(null);
@@ -196,10 +199,15 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
     : match.boards.length > 1
     ? Array.from({ length: frame.boardIndex + 1 + queuedBoard }, (_, index) => index)
     : [frame.boardIndex];
+  const runMoving = frame.phase === "RUN_TRANSITION";
+  // Late network frames can shorten/skip this motion; never let it overlap a released next RUN.
+  const moveMs = runMoving ? Math.min(RUN_BOARD_MOVE_MS, Math.max(0, frame.at + RUN_BOARD_MOVE_MS - elapsed)) : RUN_BOARD_MOVE_MS;
+  useRunBoardMotion(boardStack, match.id, `${intro}:${frame.boardIndex}:${flags.glow}:${flags.runResult}:${flags.result}:${visibleBoardIndexes.length}`,
+    multiRun && motion.enabled && !catchUp && (runMoving || flags.result), moveMs);
 
   const cardSwitch = frame.phase === "CARD_SWITCH_OUT";
   // The outgoing RUN's hand stays on screen while it flips away.
-  const runIndex = cardSwitch ? Math.max(0, frame.boardIndex - 1) : frame.boardIndex;
+  const runIndex = cardSwitch || runMoving ? Math.max(0, frame.boardIndex - 1) : frame.boardIndex;
   const equityKey = `${match.id}:${runIndex}`;
   const equityCount = Math.min(equityBoardCount(frames, runIndex, elapsed), equityReady[equityKey] ?? 0);
   // Compute only the released prefix during the flip; publish after both clock and DOM reveal gates.
@@ -303,6 +311,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         {read && <div className={`cinema-final-read is-${read.stage === "final" || read.stage === "pending" ? read.stage : "current"}`}>
           <div className="cinema-final-read-copy">{read.tag && <small>{read.tag}</small>}<strong className={"tone" in read && read.tone ? `made-${madeTone(read.tone)}` : readStage.kind === "current" && interimHand ? `made-${madeTone(interimHand.displayName)}` : undefined}>{read.title}</strong>{read.detail && <em>({read.detail})</em>}</div></div>}
         {!intro && !final && (flags.made ? label : streetLabel) && <div className={flags.made ? "cinema-made" : "cinema-street-made"}><strong className={!flags.made && streetResult ? `made-${madeTone(streetResult.displayName)}` : undefined}>{(flags.made ? label : streetLabel)!.title}</strong>{(flags.made ? label : streetLabel)!.kicker && <small>({(flags.made ? label : streetLabel)!.kicker})</small>}</div>}
+        {/* R1's lower read area must exist before its text arrives, or the bottom-aligned cards drop. */}
+        {!intro && !final && match.round === 1 && !(flags.made ? label : streetLabel) && <div className={`${flags.made ? "cinema-made" : "cinema-street-made"} cinema-hand-read-placeholder`} aria-hidden="true" />}
         {!final && (showMatchOutcome || showRewardAmount) && <div className="cinema-result-footer">
           <div className="cinema-profile-outcome">{showMatchOutcome && <span className="cinema-victory" key="outcome">{matchOutcome}{multi && result ? ` · ${t("cinema.place", { rank: result.place })}` : ""}</span>}</div>
           {showRewardAmount && reward && (final || reward.deltaBB !== 0 ? <div className="cinema-reward"><strong>{reward.deltaBB >= 0 ? "+ " : "- "}{Number(Math.abs(reward.deltaBB).toFixed(2))}BB{reward.deltaPoints > 0 && <i>· + {Number(reward.deltaPoints.toFixed(2))}P {t("cinema.earned")}</i>}</strong></div>
@@ -311,8 +321,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
         </div>}
         {/* R5 landscape PC: the live RUN's status holds the result footer's place until the RUN is decided. */}
         {multiRun && !intro && !showMatchOutcome && !showRewardAmount && <div className="cinema-run-live">
-          <span>{t("cinema.runInProgress", { run: frame.boardIndex + 1 })}<i className="cinema-run-spinner" aria-hidden="true" /></span>
-          <small>{t("cinema.runDeciding")}</small></div>}
+          {!runMoving && <><span>{t("cinema.runInProgress", { run: frame.boardIndex + 1 })}<i className="cinema-run-spinner" aria-hidden="true" /></span>
+          <small>{t("cinema.runDeciding")}</small></>}</div>}
         {multiRun && !intro && <RunHistory match={match} playerId={id} played={frame.boardIndex + (showMatchOutcome ? 1 : 0)} />}
         {final && showRewardAmount && reward && match.pointAwards?.[id] !== undefined && <div className="cinema-reward"><strong>{results.filter(r => r.place === result?.place).length > 1 ? `${t("cinema.tied").trim()} ` : ""}{placeText(result?.place)} +{Number(match.pointAwards[id].toFixed(2))}P</strong>{Math.abs(reward.deltaPoints - match.pointAwards[id]) > 0.005 && <small className="final-extra-points">BONUS {reward.deltaPoints - match.pointAwards[id] > 0 ? "+" : ""}{Number((reward.deltaPoints - match.pointAwards[id]).toFixed(2))}P</small>}</div>}
       </div>;
@@ -328,7 +338,7 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           <b>{match.winnerIds.length > 1 ? "CO-CHAMPION" : "CHAMPION"}</b></div>;
         return place ? <FinalPlaceBanner key={`podium-${id}`} column={index + 1} place={place} label={placeText(place)} /> : null;
       })}</div>
-    {!intro && (!final || finalBoard) && <div className={`cinema-board-stack ${finalBoard ? "final-community-board" : ""} ${match.runoutCount === 2 ? "run-it-twice" : ""} ${tripleRun ? "run-it-three-times" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
+    {!intro && (!final || finalBoard) && <div ref={boardStack} className={`cinema-board-stack ${multiRun && flags.result ? "is-run-complete" : ""} ${finalBoard ? "final-community-board" : ""} ${match.runoutCount === 2 ? "run-it-twice" : ""} ${tripleRun ? "run-it-three-times" : ""}`}>{visibleBoardIndexes.map((boardIndex) => {
       const current = boardIndex === frame.boardIndex;
       const pending = boardIndex > frame.boardIndex;
       const shownBoard = match.boards[boardIndex] ?? [];
@@ -347,7 +357,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
       // R2 and R5: once the match result is out, the last RUN settles to the finished RUN size too.
       const settled = !current || multiRun && flags.result;
       return <div className={`cinema-board ${pending ? "pending" : settled ? "complete" : "active"} ${match.runoutCount === 2 || tripleRun ? "cinema-run-board" : ""} made-${completed && boardFocus ? madeTone(boardFocus.displayName) : "default"} ${runOutcome ? `is-run-${runOutcome} has-run-detail ${runDetail === boardIndex ? "is-detail-open" : ""}` : ""}`} key={boardIndex}
-        style={multiRun ? { "--run-order": -boardIndex } as CSSProperties : undefined}
+        data-run-index={multiRun ? boardIndex : undefined}
+        style={multiRun ? { "--run-order": runBoardOrder(boardIndex, frame.boardIndex, settled, match.runoutCount) } as CSSProperties : undefined}
         {...runOutcome ? { role: "button", tabIndex: 0, "aria-expanded": runDetail === boardIndex, "aria-label": t("cinema.runDetailAria", { run: boardIndex + 1 }),
           // Hover opens it on a mouse (CSS); a click or tap toggles it, and tapping elsewhere blurs it closed.
           onClick: toggleDetail,
@@ -355,9 +366,8 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
           onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleDetail(); } } } : {}}>
         {runOutcome && <RunDetail match={match} index={boardIndex} ids={ids} name={name} />}
         <div className="cinema-board-label"><h3>{boardTitle}</h3>
-        <div className="cinema-board-street" aria-live="polite">{current && (frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : "")}</div>
-        {multiRun && current && !settled && <span className="cinema-board-progress" aria-hidden="true">IN PROGRESS<i className="cinema-run-spinner" /></span>}</div>
-        <div className="cinema-board-cards">{shownBoard.map((card, index) => {
+        {multiRun && current && !settled && !runMoving && <span className="cinema-board-progress" aria-hidden="true">IN PROGRESS<i className="cinema-run-spinner" /></span>}</div>
+        <div className="cinema-board-cards"><div className="cinema-board-street" aria-live="polite">{current && (frame.phase.startsWith("FLOP") ? "FLOP" : frame.phase.startsWith("TURN") ? "TURN" : frame.phase.startsWith("RIVER") ? "RIVER" : "")}</div>{shownBoard.map((card, index) => {
           const visible = !pending && (!current || index < frame.revealed);
           const used = boardFocus?.usedCardIds.includes(card.id) ?? false;
           return <ShowdownCardFlip card={card} open={visible} glow={completed && used} dimmed={completed && !used}
@@ -368,13 +378,13 @@ export function ShowdownCinematic({ match, profiles, viewerId, onComplete, contr
             className={`${current && index === 4 ? "cinema-river" : ""} ${current && frame.phase === "RIVER_SUSPENSE" && index === 4 ? "cinema-suspense" : ""}`}
             key={`${boardIndex}-${index}`} />;
         })}</div>
-        {multiRun && settled && <small className="cinema-board-caption" aria-hidden="true">COMPLETED</small>}
+        {multiRun && settled && runOutcome && <small className="cinema-board-caption">{runOutcome === "win" ? "WIN" : runOutcome === "loss" ? "LOSS" : runOutcome === "split" ? "DRAW" : "RESULT"}</small>}
       </div>;
     })}
-      {/* R5 landscape PC: RUNs not dealt yet keep their box, so the three RUN rows never move. */}
+      {/* Undealt RUNs keep their slots between the active RUN and finished history. */}
       {multiRun && Array.from({ length: match.runoutCount }, (_, index) => index).filter((index) => !visibleBoardIndexes.includes(index)).map((index) =>
-        <div className="cinema-board pending cinema-run-board is-placeholder" aria-hidden="true" style={{ "--run-order": -index } as CSSProperties} key={`slot-${index}`}>
-          <div className="cinema-board-label"><h3>RUN {index + 1}</h3><div className="cinema-board-street" /></div>
+        <div className="cinema-board pending cinema-run-board is-placeholder" data-run-index={index} aria-hidden="true" style={{ "--run-order": index + 1 } as CSSProperties} key={`slot-${index}`}>
+          <div className="cinema-board-label"><h3>RUN {index + 1}</h3></div>
           <div className="cinema-board-cards">{Array.from({ length: 5 }, (_, card) => <span className="cinema-card-slot" key={card} />)}</div>
         </div>)}
     </div>}
@@ -408,7 +418,7 @@ function matchPrepView(match: MatchView, profiles: Profile[], viewerId: string):
       points: match.standingsBefore?.[id] ?? profile?.points ?? 0,
       cards: runCards ? [...new Map(runCards.flat().map((card) => [card.id, card])).values()] : match.revealedCards[id] ?? [],
       abilityId: profile?.abilityId,
-      runCards: runCards && runCards.length >= 2 ? [runCards[0]!, runCards[1]!] as [Card[], Card[]] : undefined,
+      runCards: runCards && runCards.length >= 2 ? runCards : undefined,
     };
   };
   const opponents = ids.slice(1).map(seat);
@@ -425,7 +435,7 @@ function MatchPrepScreen({ match, profiles, viewerId, seconds, nav }: {
     <RoundProgress round={match.round} prep={null} />
     <div className="nav-status" />
   </nav>}<div className="page-shell" id="top"><GameViewportReset screenKey={`prep:${match.id}`} /><ShowdownPrepPanel round={match.round}
-    playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
+    final={isFinalMatch(match)} playerName={profiles.find((profile) => profile.playerId === viewerId)?.name ?? viewerId}
     seconds={seconds} matchup={matchPrepView(match, profiles, viewerId)} /></div></main>;
 }
 
@@ -436,10 +446,7 @@ function MatchPrepInterlude({ match, profiles, viewerId, onComplete, nav }: {
   const finish = useRef(onComplete);
   useEffect(() => { finish.current = onComplete; }, [onComplete]);
   useEffect(() => {
-    const started = performance.now();
-    const timer = setInterval(() => setSeconds(Math.max(0, Math.ceil((MATCH_PREP_MS - (performance.now() - started)) / 1000))), 100);
-    const done = setTimeout(() => finish.current(), MATCH_PREP_MS);
-    return () => { clearInterval(timer); clearTimeout(done); };
+    return visibleTimeout(() => finish.current(), MATCH_PREP_MS, remaining => setSeconds(Math.ceil(remaining / 1000)));
   }, []);
   return <MatchPrepScreen match={match} profiles={profiles} viewerId={viewerId} seconds={seconds} nav={nav} />;
 }

@@ -8,9 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { handLimitFor, isFinalRound, isLineupFinal, isTripleRunRound, lastRoundFor, minHandFor } from "../game/config";
 import { abilityLockCost, abilityPurchaseLimit, abilityRerollCost, abilityRerollLimit, abilitySellRate, abilitySellRefund, abilityShopSize } from "../game/abilities";
 import {
-  beginSecondary, buyCard, confirmSelection, createAbilityGame, finishAbilityDeal, finishAbilitySelection, finalStandings, leaveRoundResult,
-  getCard, getCardPrice, prepareShowdown, rerollShop, resolvePrimary, resolveSecondary,
-  sellCard, toggleSelectedCard, toggleShopLock,
+  createAbilityGame, finalStandings, getCard, getCardPrice,
 } from "../game/engine";
 import type { PorenaGameState, MatchResult, Round } from "../game/types";
 import { createMatchView } from "../game/matchView";
@@ -32,13 +30,13 @@ import { getPrepPresentation } from "./prepPresentation";
 import { preloadFinalArena } from "./finalShowdownPresentation";
 import { ExitGameDialog } from "./ExitGameDialog";
 import { preloadShowdownStage } from "./showdownStage";
-import { openDraft, autoPickDraft, pickDraftCard, completeDraft, completeR2Briefing, isDraftRevealing, setRunLoadout, lockRunLoadouts, resolveSurvival } from "../game/engine";
-import { createPlayerView } from "../game/playerView";
+import { isDraftRevealing } from "../game/engine";
+import type { createPlayerView } from "../game/playerView";
 import { RunLoadoutPanel, TimedOpenDraftPanel } from "./OpenDraft";
 import type { GameAction, ShowdownPrepView } from "../shared/protocol";
 import { LocalResultWindow } from "./LocalResultWindow";
 import { classifyGameError } from "../shared/gameErrorCode";
-import { renderGameError, type ReceivedGameError } from "../i18n/gameError";
+import { renderGameError } from "../i18n/gameError";
 import { localizedIcmDetail } from "./rewardDetail";
 import { localizeSeatNames } from "./botNames";
 import { FinalStandingRow, FinalStandingsHeader } from "./FinalStandingRow";
@@ -49,24 +47,22 @@ import { HandScoreDisclosure } from "./HandScoreDisclosure";
 import { SurvivalReadyPanel } from "./SurvivalReadyPanel";
 import { AbilitySelectionPanel } from "./AbilitySelectionPanel";
 import { isSurvivalParticipant } from "./survivalReadyPresentation";
-import { advanceLocalNextRound } from "./localRoundTransition";
+import { useLocalGame } from "./useLocalGame";
+import { localGameStep, type LocalGameCommand } from "./localGameCommand";
+import { visibleTimeout } from "./visibleTimeout";
+import "./local-game.css";
 import { markRoundGuideSeen, shouldAutoShowRoundGuide, useRoundGuidePreferences } from "./roundGuidePreferences";
 import { useTranslation, type TranslationKey } from "../i18n";
 import { SellCardDialog } from "./SellCardDialog";
 import { FinalAuctionPanel } from "./FinalAuctionPanel";
 import { OwnedHandLabel } from "./OwnedHandLabel";
-import { bidFinalAuction, settleFinalAuction, setFinalLoadout } from "../game/finalAuction";
-import { tickAuctionBots } from "../game/finalAuctionBot";
-import { finishFinalLoadouts } from "../game/engine";
-import { autoChooseOpponent, chooseOpponent, completeOpponentSelect, finishCardAuctionReveal, isOpponentRevealing } from "../game/engine";
 import { OpponentSelectPanel, R5OpponentBanner } from "./OpponentSelectPanel";
 import { TripleRunLoadoutPanel } from "./TripleRunLoadoutPanel";
 import { FinalLineupPanel } from "./FinalLineupPanel";
 import { roundTitle } from "./roundTitles";
-import { fastForwardToRound } from "./devFastForward";
 /** Development only: `?devRound=N` lets the bots play the earlier rounds (see fastForwardToRound). */
 const devStartRound = import.meta.env.DEV && typeof location !== "undefined" ? Number(new URLSearchParams(location.search).get("devRound")) : 0;
-const newLocalGame = () => devStartRound >= 2 && devStartRound <= 6 ? fastForwardToRound(createAbilityGame(), devStartRound as Round) : createAbilityGame();
+const newLocalGame = () => createAbilityGame();
 const pauseLocalResultTimer = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pauseRoundResultTimer");
 
 const PHASE_LABEL: Partial<Record<PorenaGameState["phase"], TranslationKey>> = {
@@ -110,7 +106,7 @@ function LocalShowdownPrep({ state, matchup }: { state: PorenaGameState; matchup
   return <ShowdownPrepPanel round={state.round} final={isFinalRound(state.round, state)} playerName={playerName} seconds={seconds} secondary={state.phase === "SHOWDOWN_SECONDARY"} matchup={matchup} />;
 }
 
-export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
+export function ShopPanel({ state, act }: { state: PorenaGameState; act: (command: LocalGameCommand) => void }) {
   const { t } = useTranslation();
   const [pendingSale, setPendingSale] = useState<string | null>(null);
   const me = state.players[0]!; const cap = handLimitFor(state.round, state);
@@ -130,7 +126,7 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
         const sellPercent = refund ? Math.round(abilitySellRate(me) * 100) : 0;
         return <div className="owned-card" key={id}><CardView card={card} />
           <button type="button" className="secondary card-sell-button" disabled={!canSell} onClick={() => setPendingSale(id)}>{t(canSell ? "shop.sell" : "shop.cannotSell")}</button>
-          {pendingSale === id && <SellCardDialog card={card} refund={refund} sellPercent={sellPercent} onCancel={() => setPendingSale(null)} onConfirm={() => { setPendingSale(null); act((s) => sellCard(s, me.id, id)); }} />}
+          {pendingSale === id && <SellCardDialog card={card} refund={refund} sellPercent={sellPercent} onCancel={() => setPendingSale(null)} onConfirm={() => { setPendingSale(null); act({ type: "SELL_CARD", cardId: id }); }} />}
         </div>;
       })}
         {Array.from({ length: Math.max(0, cap - me.ownedCardIds.length) }, (_, i) => <div className="empty-card" key={i}><span>+</span><small>EMPTY</small></div>)}</div>
@@ -138,17 +134,17 @@ export function ShopPanel({ state, act }: { state: PorenaGameState; act: (fn: (s
     </div>
     <div className="market panel">
       <header><div className="shop-heading"><h2>{t("shop.market")}</h2><strong className="shop-count">{me.shopCardIds.length} / {shopSize}</strong></div><span className="purchase-count">{t("shop.purchases", { used: me.purchasesThisRound, limit: purchaseLimit })}</span></header>
-      <div className={`card-row market-row ${(me.rerollsUsed ?? 0) > 0 ? "has-rerolled" : ""} ${me.shopCardIds.length > 1 ? "has-multiple-cards" : ""}`}>{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} lockCost={abilityLockCost(me)} onBuy={() => act((s) => buyCard(s, me.id, id))} onLock={() => act((s) => toggleShopLock(s, me.id, id))} />)}
+      <div className={`card-row market-row ${(me.rerollsUsed ?? 0) > 0 ? "has-rerolled" : ""} ${me.shopCardIds.length > 1 ? "has-multiple-cards" : ""}`}>{me.shopCardIds.map((id, index) => <ShopCard key={id} dealIndex={index} card={getCard(state, id)} price={getCardPrice(state, me.id, id)} locked={me.lockedShopCardIds?.includes(id) ?? false} lockCost={abilityLockCost(me)} onBuy={() => act({ type: "BUY_CARD", cardId: id })} onLock={() => act({ type: "LOCK_SHOP", cardId: id })} />)}
         {!me.shopCardIds.length ? <p className="market-empty">{t("shop.soldOut")}</p> : null}</div>
-      <div className="market-actions"><button className="secondary" disabled={me.purchasesThisRound >= purchaseLimit || allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < abilityRerollCost(me)} onClick={() => act((s) => rerollShop(s, me.id))}>{t("shop.rerollStatus", { cost: abilityRerollCost(me), used: me.rerollsUsed ?? 0, limit: rerollLimit })}</button></div>
+      <div className="market-actions"><button className="secondary" disabled={me.purchasesThisRound >= purchaseLimit || allShopCardsLocked || (me.rerollsUsed ?? 0) >= rerollLimit || me.stackBB < abilityRerollCost(me)} onClick={() => act({ type: "REROLL" })}>{t("shop.rerollStatus", { cost: abilityRerollCost(me), used: me.rerollsUsed ?? 0, limit: rerollLimit })}</button></div>
     </div>
   </section></>;
 }
 
-function SelectPanel({ state, act }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void }) {
+function SelectPanel({ state, act }: { state: PorenaGameState; act: (command: LocalGameCommand) => void }) {
   const { t } = useTranslation();
   const me = state.players[0]!;
-  return <section className="panel select-panel"><span className="eyebrow">ROUND 2 · LOADOUT</span><h2>{t("select.heading")}</h2><p>{t("select.help")}</p><div className="card-row centered">{me.ownedCardIds.map((id) => { const chosen = me.selectedCardIds.includes(id); return <CardView key={id} card={getCard(state, id)} selected={chosen} onClick={() => act((s) => toggleSelectedCard(s, me.id, id))} footer={t(chosen ? "select.chosen" : "select.choose")} />; })}</div></section>;
+  return <section className="panel select-panel"><span className="eyebrow">ROUND 2 · LOADOUT</span><h2>{t("select.heading")}</h2><p>{t("select.help")}</p><div className="card-row centered">{me.ownedCardIds.map((id) => { const chosen = me.selectedCardIds.includes(id); return <CardView key={id} card={getCard(state, id)} selected={chosen} onClick={() => act({ type: "TOGGLE_SELECTED_CARD", cardId: id })} footer={t(chosen ? "select.chosen" : "select.choose")} />; })}</div></section>;
 }
 
 function MatchCard({ state, match, matchNumber }: { state: PorenaGameState; match: MatchResult; matchNumber: number }) {
@@ -187,27 +183,34 @@ function FinalPanel({ state }: { state: PorenaGameState }) {
   return <section className="final-panel"><div className="standings"><FinalStandingsHeader />{standings.map((row) => <FinalStandingRow key={row.playerId} row={{ ...row, displayName: row.hand?.displayName ?? "" }} name={state.players.find((p) => p.id === row.playerId)?.name ?? row.playerId} />)}</div></section>;
 }
 
-function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (fn: (s: PorenaGameState) => PorenaGameState) => void; reset: () => void }) {
+function ActionBar({ state, act, reset }: { state: PorenaGameState; act: (command: LocalGameCommand) => void; reset: () => void }) {
   const { t } = useTranslation();
-  const me = state.players[0]!; let label = t("common.continue"); let fn: ((s: PorenaGameState) => PorenaGameState) | null = null;
-  if (state.phase === "SHOP") { label = t("action.confirmShop", { round: state.round }); fn = prepareShowdown; }
-  if (state.phase === "DECK_SELECT") { label = t("action.confirmSelection", { count: me.selectedCardIds.length }); fn = confirmSelection; }
-  if (state.phase === "GROUP_ASSIGNMENT") { label = t("action.confirmBracket"); fn = beginSecondary; }
-  if (state.phase === "SURVIVAL_READY") { label = t(isSurvivalParticipant(state.survival?.playerIds ?? [], me.id) ? "action.startTiebreak" : "action.spectate"); fn = resolveSurvival; }
-  if (state.phase === "ROUND_RESULT") { label = t("action.closeRound"); fn = leaveRoundResult; }
+  const me = state.players[0]!; let label = t("common.continue"); let canAdvance = false;
+  if (state.phase === "SHOP") { label = t("action.confirmShop", { round: state.round }); canAdvance = true; }
+  if (state.phase === "DECK_SELECT") { label = t("action.confirmSelection", { count: me.selectedCardIds.length }); canAdvance = true; }
+  if (state.phase === "GROUP_ASSIGNMENT") { label = t("action.confirmBracket"); canAdvance = true; }
+  if (state.phase === "SURVIVAL_READY") { label = t(isSurvivalParticipant(state.survival?.playerIds ?? [], me.id) ? "action.startTiebreak" : "action.spectate"); canAdvance = true; }
+  if (state.phase === "ROUND_RESULT") { label = t("action.closeRound"); canAdvance = true; }
   const requiredSelection = 2;
-  if (state.phase === "GAME_RESULT" || state.phase === "NEXT_ROUND" || (!fn && !me.eliminated)) return null;
+  if (state.phase === "GAME_RESULT" || state.phase === "NEXT_ROUND" || (!canAdvance && !me.eliminated)) return null;
   // The match loading screen fills the viewport; an eliminated viewer's new-game bar would sit on its footer.
-  if (!fn && ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return null;
-  return <div className="action-bar action-only">{fn ? <button className="primary" onClick={() => act(fn!)} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>{t("action.newGame")}<span>↻</span></button>}</div>;
+  if (!canAdvance && ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase)) return null;
+  return <div className="action-bar action-only">{canAdvance ? <button className="primary" onClick={() => act({ type: "ADVANCE" })} disabled={state.phase === "DECK_SELECT" && me.selectedCardIds.length !== requiredSelection}>{label}<span>→</span></button> : <button className="primary" onClick={reset}>{t("action.newGame")}<span>↻</span></button>}</div>;
 }
 
 export function App({ onHome, previewState }: { onHome: () => void; previewState?: PorenaGameState }) {
   const preview = import.meta.env.DEV && !!previewState;
   const { locale, t } = useTranslation();
-  const [rawState, setState] = useState(() => preview ? previewState! : newLocalGame());
+  const game = useLocalGame(() => preview ? previewState! : newLocalGame());
+  const rawState = game.game;
+  const gameFailed = game.failure?.kind === "worker";
+  const step = localGameStep(rawState);
+  const { run } = game;
+  useEffect(() => {
+    if (!preview && devStartRound >= 2 && devStartRound <= 6) run({ type: "DEV_ROUND", round: devStartRound as Round });
+  }, [preview, run]);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
-  const state = useMemo(() => localizeSeatNames(rawState, t), [rawState, locale]); const [error, setError] = useState<ReceivedGameError | null>(null);
+  const state = useMemo(() => localizeSeatNames(rawState, t), [rawState, locale]); const error = game.failure?.kind === "command" ? { ...classifyGameError(game.failure.message ?? ""), message: game.failure.message ?? "" } : null;
   const [exiting, setExiting] = useState(false);
   const [gameVersion, setGameVersion] = useState(0);
   const [analyticsRun] = useState(() => crypto.randomUUID());
@@ -217,7 +220,7 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
   }, [state.round, state.phase, analyticsRun, gameVersion, preview]);
   const [manualGuideRound, setManualGuideRound] = useState<Round | null>(null);
   const roundGuidePreferences = useRoundGuidePreferences();
-  const expireResult = useCallback(() => setState((current) => advanceLocalNextRound(current.phase === "ROUND_RESULT" ? leaveRoundResult(current) : current)), []);
+  const expireResult = useCallback(() => { run({ type: "ADVANCE" }, step); }, [run, step]);
   const draftPickIndex = state.draft?.picks.length ?? 0;
   const draftPickerId = state.draft?.order[draftPickIndex]?.playerId;
   const buybackDraft = !!state.draft?.priceMultiplier;
@@ -238,7 +241,7 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
   };
   useEffect(() => {
     const phase = state.phase;
-    if (guideOpen || preview) return;
+    if (guideOpen || preview || gameFailed) return;
     if (!["ABILITY_DEAL", "ABILITY_REVEAL", "DRAFT_ORDER", "OPEN_DRAFT", "OPPONENT_SELECT", "RUN_LOADOUT", "R2_BRIEFING", "SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(phase)) return;
     const [chooserId, opponentId] = opponentStep.split(":");
     const delay = phase === "OPPONENT_SELECT" ? opponentId ? BARRIER_TIMEOUT_MS.OPPONENT_REVEAL
@@ -251,68 +254,54 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
       : phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY" ? BARRIER_TIMEOUT_MS.MATCH_SETUP
       : draftRevealing ? BARRIER_TIMEOUT_MS.DRAFT_REVEAL
       : draftPickerId === "p1" ? buybackDraft ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : 20_000 : BARRIER_TIMEOUT_MS.BOT_DRAFT_PICK;
-    const timer = setTimeout(() => setState((s) => phase === "ABILITY_DEAL" ? finishAbilityDeal(s)
-      : phase === "ABILITY_REVEAL" ? finishAbilitySelection(s)
-      : phase === "OPPONENT_SELECT" ? isOpponentRevealing(s) ? completeOpponentSelect(s) : autoChooseOpponent(s)
-      : advanceLocalNextRound(phase === "DRAFT_ORDER" ? openDraft(s)
-      : phase === "RUN_LOADOUT" ? lockRunLoadouts(s)
-      : phase === "R2_BRIEFING" ? completeR2Briefing(s)
-      : phase === "SHOWDOWN_PRIMARY" ? resolvePrimary(s)
-      : phase === "SHOWDOWN_SECONDARY" ? resolveSecondary(s)
-      : isDraftRevealing(s) ? completeDraft(s)
-      : autoPickDraft(s, true))), delay);
-    return () => clearTimeout(timer);
-  }, [state.phase, draftPickIndex, draftPickerId, buybackDraft, draftRevealing, guideOpen, opponentStep, lineupStep, preview]);
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const advance = () => { if (!run({ type: "ADVANCE" }, step)) retry = setTimeout(advance, 50); };
+    const cancel = phase === "SHOWDOWN_PRIMARY" || phase === "SHOWDOWN_SECONDARY"
+      ? visibleTimeout(advance, delay)
+      : (() => { const timer = setTimeout(advance, delay); return () => clearTimeout(timer); })();
+    return () => { cancel(); clearTimeout(retry); };
+  }, [state.phase, draftPickIndex, draftPickerId, buybackDraft, draftRevealing, guideOpen, opponentStep, lineupStep, preview, run, step, gameFailed]);
   const finalRound = isFinalRound(state.round, state);
   useEffect(() => { if (finalRound) preloadFinalArena(); else preloadShowdownStage(state.round, false); }, [state.round, finalRound]);
   useEffect(() => {
     if (preview || state.phase !== "FINAL_AUCTION" && state.phase !== "FINAL_LOADOUT") return;
-    const timer = setInterval(() => setState(s => {
-      const now = Date.now();
-      if (s.phase === "FINAL_AUCTION") {
-        const auction = s.finalAuction!;
-        // A settled R3 auction holds its result reveal, then moves on to the double-price buyback.
-        if (auction.settledAt !== null) return now >= (auction.loadoutStartsAt ?? auction.settledAt) ? finishCardAuctionReveal(s, now) : s;
-        if (now < auction.endsAt) return tickAuctionBots(s, ["p1"], now);
-        const settled = settleFinalAuction(s, now);
-        return settled.phase === "FINAL_LOADOUT" ? finishFinalLoadouts(settled, now) : settled;
-      }
-      return finishFinalLoadouts(s, now);
-    }), 150);
+    const timer = setInterval(() => run({ type: "AUCTION_TICK" }, step), 150);
     return () => clearInterval(timer);
-  }, [state.phase, preview]);
-  const act = (fn: (s: PorenaGameState) => PorenaGameState) => { try { setState(advanceLocalNextRound(fn(state))); setError(null); } catch (caught) { const message = caught instanceof Error ? caught.message : ""; setError({ ...classifyGameError(message), message }); } };
+  }, [state.phase, preview, run, step]);
+  const act = (command: LocalGameCommand) => { run(command, step); };
   const prep = getPrepPresentation(state.round, state.phase, lastRound);
-  const myMatches = state.roundResults.filter((match) => match.playerIds.includes("p1"));
-  const cinematicMatches = (myMatches.length ? myMatches : state.roundResults).map((match) => { const view = createMatchView(state, match); view.abilityCues = personalAbilityCues(view.abilityCues ?? [], "p1"); return view; });
-  const draftView = createPlayerView({ schema: 1, roomId: "LOCAL", revision: 0, status: "PLAYING", game: state, sessions: [{ playerId: "p1", tokenHash: "local", requests: [] }], readyIds: [], endedShopIds: [] }, "p1");
+  const cinematicMatches = useMemo(() => {
+    const mine = state.roundResults.filter(match => match.playerIds.includes("p1"));
+    return (mine.length ? mine : state.roundResults).map(match => {
+      const view = createMatchView(state, match); view.abilityCues = personalAbilityCues(view.abilityCues ?? [], "p1"); return view;
+    });
+  }, [state]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` changes only with `locale`.
+  const draftView = useMemo(() => localizeSeatNames(game.view, t), [game.view, locale]);
   const isShowdownPrep = ["SHOWDOWN_PRIMARY", "SHOWDOWN_SECONDARY"].includes(state.phase);
   const draftAction = (a: GameAction) => {
-    if (a.type === "FINAL_AUCTION_BID") act(s => bidFinalAuction(s, "p1", a, Date.now()));
-    if (a.type === "FINAL_LOADOUT") act(s => setFinalLoadout(s, "p1", a.cardIds, Date.now()));
-    if (a.type === "LOCK_FINAL_LOADOUT") act(s => finishFinalLoadouts(setFinalLoadout(s, "p1", s.players[0]!.finalLoadoutCardIds ?? [], Date.now(), true), Date.now()));
-    if (a.type === "READY" && state.phase === "ABILITY_REVEAL") act(finishAbilitySelection);
-    if (a.type === "DRAFT_PICK") act((s) => pickDraftCard(s, "p1", a.cardId, true));
-    if (a.type === "CHOOSE_OPPONENT") act((s) => chooseOpponent(s, "p1", a.playerId));
-    if (a.type === "RUN_LOADOUT") act((s) => setRunLoadout(s, "p1", a.cardIds));
-    if (a.type === "LOCK_RUN_LOADOUT") act(lockRunLoadouts);
+    if (a.type === "READY" || a.type === "LOCK_RUN_LOADOUT") act({ type: "ADVANCE" });
+    if (["FINAL_AUCTION_BID", "FINAL_LOADOUT", "LOCK_FINAL_LOADOUT", "DRAFT_PICK", "CHOOSE_OPPONENT", "RUN_LOADOUT"].includes(a.type)) act(a as LocalGameCommand);
   };
-  const reset = () => { setGameVersion((value) => value + 1); setState(newLocalGame()); };
+  const reset = () => {
+    setGameVersion(value => value + 1); game.reset(newLocalGame());
+    if (!preview && devStartRound >= 2 && devStartRound <= 6) run({ type: "DEV_ROUND", round: devStartRound as Round });
+  };
   const nav = <><nav><a className="brand" href="#top"><ArenaBrand /></a><RoundProgress round={state.round} prep={prep} lastRound={lastRound} /><div className="nav-status"><div className="nav-actions"><button type="button" className="secondary nav-exit" onClick={() => setExiting(true)}>{t("exit.leave")}</button></div></div></nav>
       {exiting && <ExitGameDialog mode="single" onCancel={() => setExiting(false)} onConfirm={onHome} />}</>;
-  return <CinematicGate key={gameVersion} nav={nav} soundSessionId={`local:${gameVersion}`} matches={preview ? [] : cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated, abilityId: p.abilityId }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase.startsWith("ABILITY_") ? "ABILITY" : state.phase}`} active={state.phase === "ROUND_RESULT" && !preview && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
+  return <><CinematicGate key={gameVersion} nav={nav} soundSessionId={`local:${gameVersion}`} matches={preview ? [] : cinematicMatches} profiles={state.players.map((p) => ({ playerId: p.id, name: p.name, points: p.points, alive: !p.eliminated, abilityId: p.abilityId }))} viewerId="p1"><LocalResultWindow key={`${state.round}:${state.phase.startsWith("ABILITY_") ? "ABILITY" : state.phase}`} active={state.phase === "ROUND_RESULT" && !preview && !pauseLocalResultTimer && !guideOpen} onExpire={expireResult}>{(resultSecondsLeft) => <main className="game-arena">
     {guideOpen ? <RoundGuide round={guideRound} lastRound={lastRound} onClose={closeGuide} confirmLabel={manualGuideRound === null ? undefined : t("round.returnToGame")} /> : null}
     {nav}
-    <div id="top" data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
+    <div id="top" inert={game.pending || game.failure?.kind === "worker"} aria-busy={game.pending} data-round={state.round} className={`page-shell ${state.phase === "SHOP" ? "shop-page" : ""} ${state.phase === "GAME_RESULT" ? "final-results-page" : ""}`}>
       <GameViewportReset screenKey={`local:${gameVersion}:${state.round}:${state.phase}`} />
       {state.phase.startsWith("ABILITY_") && <LocalAbilityStage view={draftView} send={draftAction} duration={(state.phase === "ABILITY_REVEAL" ? BARRIER_TIMEOUT_MS.ABILITY_REVEAL : BARRIER_TIMEOUT_MS.ABILITY_DEAL) / 1000} />}
       {!isShowdownPrep && !state.phase.startsWith("ABILITY_") && (prep ? <PrepRoundHeader prep={prep} /> : <header className={`round-header ${CENTERED_HEADER_PHASES.includes(state.phase) ? "is-centered-phase-header" : ""} ${state.phase === "ROUND_RESULT" ? "is-result-header" : ""}`}><div>{state.phase !== "GAME_RESULT" && <span className="round-number">{[2, 4].includes(state.round) && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) ? `ROUND ${state.round} · DRAFT PHASE` : `ROUND 0${state.round}`}</span>}<div className="round-title-row"><h1>{state.phase === "GAME_RESULT" ? "FINAL STANDINGS" : roundTitle(state.round, lastRound)}</h1>{/* The rules button would cover the title on the result screens. */}{state.phase !== "GAME_RESULT" && state.phase !== "ROUND_RESULT" && <button type="button" className="secondary round-guide-trigger title-guide-trigger" aria-label={t("nav.roundRulesAria", { round: state.round })} onClick={() => setManualGuideRound(state.round)}>?</button>}</div></div>{state.phase !== "SHOP" && state.phase !== "GAME_RESULT" && state.phase !== "RUN_LOADOUT" && PHASE_LABEL[state.phase] && <div className="phase-badge"><b>{t(state.draft?.priceMultiplier && state.phase === "OPEN_DRAFT" ? "phase.buyback" : PHASE_LABEL[state.phase]!)}</b></div>}</header>)}
       {state.phase === "RUN_LOADOUT" && <LocalRunLoadoutStage key={state.phase} view={draftView} send={draftAction} tripleRun={isTripleRunRound(state.round, state)} lineup={isLineupFinal(state.round, state)} />}
-      {state.phase === "R2_BRIEFING" && <LocalR2Briefing onConfirm={() => act(completeR2Briefing)} />}
+      {state.phase === "R2_BRIEFING" && <LocalR2Briefing onConfirm={() => act({ type: "ADVANCE" })} />}
       {!guideOpen && state.phase === "OPPONENT_SELECT" && <LocalOpponentStage key={opponentStep} view={draftView} send={draftAction} />}
       {["FINAL_AUCTION", "FINAL_LOADOUT"].includes(state.phase) && <FinalAuctionPanel view={draftView} send={draftAction} />}
       {!guideOpen && ["DRAFT_ORDER", "OPEN_DRAFT"].includes(state.phase) && <TimedOpenDraftPanel key={`${state.phase}:${draftPickIndex}`} view={draftView} send={draftAction} disabled={false} seconds={null} durationSeconds={state.phase === "DRAFT_ORDER" ? 3 : draftPickerId === "p1" ? (buybackDraft ? BARRIER_TIMEOUT_MS.BUYBACK_PICK : 20_000) / 1000 : 2} />}
-      {error ? <div className="error-toast" role="alert"><span>!</span>{renderGameError(error, t)}<button onClick={() => setError(null)}>×</button></div> : null}
+      {error ? <div className="error-toast" role="alert"><span>!</span>{renderGameError(error, t)}<button onClick={game.clearError}>×</button></div> : null}
       {state.phase === "SHOP" && <R5OpponentBanner view={draftView} />}
       {state.phase === "SHOP" ? state.players[0]!.eliminated ? <section className="panel transition-panel"><span>OUT</span><h2>{t("spectator.mode")}</h2><p>{t("spectator.cardsReturned")}</p></section> : <ShopPanel state={state} act={act} /> : null}
       {state.phase === "DECK_SELECT" ? <SelectPanel state={state} act={act} /> : null}
@@ -322,5 +311,8 @@ export function App({ onHome, previewState }: { onHome: () => void; previewState
       {state.phase === "GAME_RESULT" && <section className="final-exit-actions" aria-label={t("final.nextActionsAria")}><button className="primary" onClick={reset}>{t("action.startNewGame")} <span>↻</span></button><button className="secondary" onClick={onHome}>{t("action.home")} <span>→</span></button></section>}
       <ActionBar state={state} act={act} reset={reset} />
     </div>
-  </main>}</LocalResultWindow></CinematicGate>;
+  </main>}</LocalResultWindow></CinematicGate>
+    {game.pending && <div className="local-game-status" role="status"><i aria-hidden="true" />{t("online.processing")}</div>}
+    {game.failure?.kind === "worker" && <div className="local-game-recovery" role="alert"><p>{t("local.processingFailed")}</p><div><button className="primary" onClick={game.retry}>{t("ranking.retry")}</button><button className="secondary" onClick={onHome}>{t("action.home")}</button></div></div>}
+  </>;
 }

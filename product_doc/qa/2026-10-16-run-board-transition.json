@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-16",
+  "note": "40ms DOM samples; online is authoritative server-clock simulation, not network load testing.",
+  "samples": [
+    {
+      "mode": "local",
+      "round": 2,
+      "width": 393,
+      "maxGapMs": 71,
+      "maxTaskMs": 0,
+      "runMoves": [
+        {
+          "run": 1,
+          "at": 12329,
+          "movingAnimations": 2,
+          "openDuringMove": 0,
+          "next": "FLOP_1",
+          "nextAt": 13007,
+          "movingAtNext": 0
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mode": "local",
+      "round": 5,
+      "width": 1440,
+      "maxGapMs": 71,
+      "maxTaskMs": 0,
+      "runMoves": [
+        {
+          "run": 1,
+          "at": 17486,
+          "movingAnimations": 3,
+          "openDuringMove": 0,
+          "next": "CARD_SWITCH_OUT",
+          "nextAt": 18161,
+          "movingAtNext": 0
+        },
+        {
+          "run": 2,
+          "at": 27862,
+          "movingAnimations": 3,
+          "openDuringMove": 0,
+          "next": "CARD_SWITCH_OUT",
+          "nextAt": 28560,
+          "movingAtNext": 0
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mode": "online",
+      "round": 5,
+      "width": 393,
+      "maxGapMs": 56,
+      "maxTaskMs": 0,
+      "runMoves": [
+        {
+          "run": 1,
+          "at": 18645,
+          "movingAnimations": 3,
+          "openDuringMove": 0,
+          "next": "CARD_SWITCH_OUT",
+          "nextAt": 19283,
+          "movingAtNext": 0
+        },
+        {
+          "run": 2,
+          "at": 28761,
+          "movingAnimations": 3,
+          "openDuringMove": 0,
+          "next": "CARD_SWITCH_OUT",
+          "nextAt": 29452,
+          "movingAtNext": 0
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mode": "online",
+      "round": 2,
+      "width": 1440,
+      "maxGapMs": 59,
+      "maxTaskMs": 0,
+      "runMoves": [
+        {
+          "run": 1,
+          "at": 13605,
+          "movingAnimations": 2,
+          "openDuringMove": 0,
+          "next": "FLOP_1",
+          "nextAt": 14249,
+          "movingAtNext": 0
+        }
+      ],
+      "errors": []
+    }
+  ]
+}
