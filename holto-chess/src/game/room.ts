@@ -26,6 +26,8 @@ export type RoomSnapshot = {
     playerId: string; tokenHash: string; requests: string[]; departed?: boolean; accountUserId?: string;
     /** Public lobby only (publicRoom.ts): ownership generation, pending reservation and reconnect grace. */
     seatEpoch?: number; reservedUntil?: number; disconnectedAt?: number;
+    /** Public seats only. Derived keys of a guest and of the network the seat joined from; never sent to clients. */
+    guestKey?: string; networkKey?: string;
   }[];
   readyIds: string[]; endedShopIds: string[];
   loadoutDrafts?: Record<string, (string | null)[]>;

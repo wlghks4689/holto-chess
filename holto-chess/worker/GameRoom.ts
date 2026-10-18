@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
-import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, startSolo, turnKey, type RoomAccountIdentity, type RoomSnapshot } from "../src/game/room";
-import { confirmPublicSeat, isPublicLobby, makePublicRoom, markPublicSeatDisconnected, PUBLIC_LOBBY_TIMING, publicLobbyClosesAt, publicLobbyDeadline, publicSeatsAwaitingPresence, releasedKey, reservePublicSeat, sweepPublicLobby } from "../src/game/publicRoom";
+import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, startSolo, turnKey, type RoomSnapshot } from "../src/game/room";
+import { type PublicSeatIdentity, confirmPublicSeat, isPublicLobby, makePublicRoom, markPublicSeatDisconnected, PUBLIC_LOBBY_TIMING, publicLobbyClosesAt, publicLobbyDeadline, publicSeatsAwaitingPresence, releasedKey, reservePublicSeat, sweepPublicLobby } from "../src/game/publicRoom";
 import { PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicSeatToken, type PublicRoomEnv } from "./publicRoomKeys";
 import { collectRankObligations } from "../src/game/rankRoom";
 import { settleRankObligation } from "./rank";
@@ -10,7 +10,7 @@ import { classifyGameError } from "../src/shared/gameErrorCode";
 import { nextDisclosureAt } from "../src/game/disclosure";
 import { anchorNewPresentation, needsPresentationAnchor } from "../src/game/presentationCommit";
 import { FINISHED_ROOM_LIFETIME_MS, LOBBY_IDLE_LIFETIME_MS, ROOM_LIFETIME_MS } from "../src/shared/retention";
-import { roomAccountIdentity } from "./roomIdentity";
+import { publicSeatIdentity, publicSeatOwner, roomAccountIdentity } from "./roomIdentity";
 
 type Attachment = { roomId: string; playerId: string | null; verifiedPlayerId?: string; joinedAt: number; windowAt?: number; messages?: number; seatEpoch?: number };
 type Seat = RoomSnapshot["sessions"][number];
@@ -186,7 +186,7 @@ export class GameRoom extends DurableObject<Env> {
     this.broadcast();
   }
   /** Reserves a public seat, or returns the credential this same token already holds. */
-  private async joinPublic(roomId: string, identity: RoomAccountIdentity, seatToken: string, now: number): Promise<Response> {
+  private async joinPublic(roomId: string, identity: PublicSeatIdentity, seatToken: string, now: number): Promise<Response> {
     await this.settlePublicSeats(now);
     const room = this.room!;
     const digest = await hash(seatToken);
@@ -339,12 +339,12 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (url.pathname === "/internal/public-create" && request.method === "POST") {
       return this.ctx.blockConcurrencyWhile(async () => {
-        const identity = roomAccountIdentity(request.headers);
+        const identity = publicSeatIdentity(request.headers);
         const secret = (this.env as PublicRoomEnv).PUBLIC_ROOM_SECRET;
         const instanceId = request.headers.get(PUBLIC_INSTANCE_HEADER) ?? "", requestId = request.headers.get(PUBLIC_REQUEST_HEADER) ?? "";
         if (!identity || !secret || !PUBLIC_INSTANCE_ID.test(instanceId) || !PUBLIC_REQUEST_ID.test(requestId)) return new Response("Bad public room request", { status: 400 });
         const now = Date.now();
-        const seatToken = await publicSeatToken(secret, instanceId, identity.accountUserId, requestId);
+        const seatToken = await publicSeatToken(secret, instanceId, publicSeatOwner(identity), requestId);
         if (this.room) {
           // A retry of this very create reaches the room it made; any other room just holds the code.
           if (this.room.publicLobby?.instanceId !== instanceId) return new Response("Room exists", { status: 409, headers: { [ROOM_TAKEN_HEADER]: "1" } });
@@ -368,11 +368,11 @@ export class GameRoom extends DurableObject<Env> {
         // A private room never answers the public endpoint, so its code cannot be probed through it.
         if (this.room!.visibility !== "PUBLIC") return refuse("ROOM_NOT_FOUND", 404);
         if (request.headers.get(PUBLIC_INSTANCE_HEADER) !== this.room!.publicLobby!.instanceId) return refuse("INCARNATION_MISMATCH", 410);
-        const identity = roomAccountIdentity(request.headers);
-        if (!identity) return refuse("ACCOUNT_REQUIRED", 401);
+        const identity = publicSeatIdentity(request.headers);
+        if (!identity) return refuse("IDENTITY_REQUIRED", 401);
         const secret = (this.env as PublicRoomEnv).PUBLIC_ROOM_SECRET, requestId = request.headers.get(PUBLIC_REQUEST_HEADER) ?? "";
         if (!secret || !PUBLIC_REQUEST_ID.test(requestId)) return new Response("Bad public room request", { status: 400 });
-        return this.joinPublic(roomId, identity, await publicSeatToken(secret, this.room!.publicLobby!.instanceId, identity.accountUserId, requestId), Date.now());
+        return this.joinPublic(roomId, identity, await publicSeatToken(secret, this.room!.publicLobby!.instanceId, publicSeatOwner(identity), requestId), Date.now());
       });
     }
     if (url.pathname === "/internal/connection-ticket" && request.method === "POST") {
@@ -406,9 +406,10 @@ export class GameRoom extends DurableObject<Env> {
     if (url.pathname === "/internal/join" && request.method === "POST") {
       return this.ctx.blockConcurrencyWhile(async () => {
         if (this.room!.visibility === "PUBLIC") {
-          // An invite code of a public room follows the public seat rules: account only, reserved until connected.
-          const identity = roomAccountIdentity(request.headers);
-          if (!identity) return refuse("ACCOUNT_REQUIRED", 401);
+          // An invite code of a public room follows the public seat rules: an account or a verified guest, reserved until connected.
+          // A guest without a guest identity is sent to the public join endpoint, which issues one.
+          const identity = publicSeatIdentity(request.headers);
+          if (!identity) return refuse("IDENTITY_REQUIRED", 401);
           return this.joinPublic(roomId, identity, token(), Date.now());
         }
         if (this.room!.status !== "LOBBY" || this.room!.sessions.length >= 8) return new Response("Room unavailable", { status: 409 });

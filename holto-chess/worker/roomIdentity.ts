@@ -1,5 +1,6 @@
 import { normalizeNickname } from "../src/shared/nickname";
 import type { RoomAccountIdentity } from "../src/game/room";
+import type { PublicSeatIdentity } from "../src/game/publicRoom";
 
 const USER_HEADER = "X-Internal-Porena-User-Id";
 const NAME_HEADER = "X-Internal-Porena-Display-Name";
@@ -28,4 +29,39 @@ export function roomAccountIdentity(headers: Headers): RoomAccountIdentity | und
   const displayName = decodeURIComponent(encodedName);
   if (normalizeNickname(displayName) !== displayName) throw new Error("Invalid room identity");
   return { accountUserId, displayName };
+}
+
+const GUEST_HEADER = "X-Internal-Porena-Guest-Key";
+const GUEST_NAME_HEADER = "X-Internal-Porena-Guest-Name";
+const NETWORK_HEADER = "X-Internal-Porena-Network-Key";
+
+/**
+ * Public seats only. The Worker derives these keys from a verified guest cookie and the connecting IP and adds them
+ * after roomForwardHeaders has removed every client-sent internal header, so a client cannot claim them.
+ */
+export function publicSeatHeaders(guest?: { key: string; displayName?: string }, networkKey?: string): Record<string, string> {
+  return {
+    ...(guest ? { [GUEST_HEADER]: guest.key, ...(guest.displayName ? { [GUEST_NAME_HEADER]: encodeURIComponent(guest.displayName) } : {}) } : {}),
+    ...(networkKey ? { [NETWORK_HEADER]: networkKey } : {}),
+  };
+}
+
+/** Account first (Worker-verified session), then a Worker-verified guest. Undefined when neither came with the request. */
+export function publicSeatIdentity(headers: Headers): PublicSeatIdentity | undefined {
+  const networkKey = headers.get(NETWORK_HEADER) ?? undefined;
+  if (networkKey !== undefined && !/^[a-f0-9]{64}$/.test(networkKey)) throw new Error("Invalid room identity");
+  const account = roomAccountIdentity(headers);
+  if (account) return { ...account, ...(networkKey ? { networkKey } : {}) };
+  const guestKey = headers.get(GUEST_HEADER);
+  if (guestKey === null) return undefined;
+  if (!/^[a-f0-9]{64}$/.test(guestKey)) throw new Error("Invalid room identity");
+  const encodedName = headers.get(GUEST_NAME_HEADER);
+  const displayName = encodedName === null ? undefined : decodeURIComponent(encodedName);
+  if (displayName !== undefined && normalizeNickname(displayName) !== displayName) throw new Error("Invalid room identity");
+  return { guestKey, ...(displayName ? { displayName } : {}), ...(networkKey ? { networkKey } : {}) };
+}
+
+/** The identity part of a public seat token, so an account and a guest can never derive the same token. */
+export function publicSeatOwner(identity: PublicSeatIdentity): string {
+  return identity.accountUserId ?? `guest:${identity.guestKey}`;
 }

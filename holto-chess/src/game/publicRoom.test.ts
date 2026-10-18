@@ -46,6 +46,25 @@ describe("public lobby seats", () => {
     assertSeats(room);
   });
 
+  it("seats a guest once per room, keeps the bot name until a nickname arrives, and caps one network at three seats", () => {
+    const key = (c: string) => c.repeat(64);
+    let room = lobby();
+    const guest = reservePublicSeat(room, "g-hash", { guestKey: key("a") }, T0);
+    if ("error" in guest) throw new Error(guest.error);
+    expect(guest.room.sessions[0]).toMatchObject({ guestKey: key("a") });
+    expect(guest.room.sessions[0]!.accountUserId).toBeUndefined();
+    expect(guest.room.game.players.find(player => player.id === guest.playerId)!.name).toBe(guest.room.publicLobby!.botNames[guest.playerId]);
+    expect(reservePublicSeat(guest.room, "g-hash-2", { guestKey: key("a"), displayName: "다시" }, T0)).toEqual({ error: "GUEST_ALREADY_SEATED" });
+    room = guest.room;
+    for (const n of [1, 2, 3]) {
+      const seated = reservePublicSeat(room, `n-${n}`, { guestKey: key(String(n)), displayName: `손님${n}`, networkKey: key("e") }, T0);
+      if ("error" in seated) throw new Error(seated.error);
+      room = seated.room;
+    }
+    expect(reservePublicSeat(room, "n-4", { ...account(4), networkKey: key("e") }, T0)).toEqual({ error: "NETWORK_SEAT_LIMIT" });
+    expect("error" in reservePublicSeat(room, "n-5", { ...account(5), networkKey: key("f") }, T0)).toBe(false);
+  });
+
   it("reuses a left seat: 100 join/leave cycles never fill the room by history", () => {
     let room = seat(lobby(), 1).room;
     for (let n = 2; n < 102; n++) {

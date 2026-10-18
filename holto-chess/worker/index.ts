@@ -1,7 +1,8 @@
 import { searchFile, withSearchMetadata } from "./search";
 import { adminRoute, handleAdmin } from "./admin";
 import { configuredOrigin, handleAuth, purgeExpiredAuth, readPorenaSession } from "./auth";
-import { roomForwardHeaders } from "./roomIdentity";
+import { publicSeatHeaders, roomForwardHeaders } from "./roomIdentity";
+import { issuePublicGuest, readPublicGuest, type PublicGuest } from "./publicGuest";
 import { normalizeNickname } from "../src/shared/nickname";
 import type { RoomAccountIdentity } from "../src/game/room";
 import { submitFeedback } from "./feedback";
@@ -9,7 +10,7 @@ import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
 import { handleRankings } from "./rank";
 import { PUBLIC_INSTANCE_HEADER, PUBLIC_PROBE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER, ROOM_VACANT_HEADER } from "./GameRoom";
-import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
+import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicGuestKey, publicNetworkKey, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
 export { GameRoom } from "./GameRoom";
 
 function code(): string {
@@ -84,8 +85,6 @@ export default {
         if (!user && request.headers.get("X-Porena-Identity") === "account") return fail("ACCOUNT_REQUIRED", 401);
         // Ranked solo is server-authoritative and account-only; guests practise locally.
         if (!user && solo) return fail("ACCOUNT_REQUIRED", 401);
-        // Public rooms seat accounts only; guests keep private invite rooms.
-        if (!user && publicSeat) return fail("ACCOUNT_REQUIRED", 401);
         if (user) {
           if (url.origin !== configuredOrigin(env) || request.headers.get("Origin") !== url.origin || request.headers.get("Sec-Fetch-Site") === "cross-site") return fail("Origin rejected", 403);
           if (request.headers.get("X-Porena-Identity") === "guest") return fail("ACCOUNT_CHANGED", 409);
@@ -106,31 +105,47 @@ export default {
     if (publicSeat) {
       const secret = (env as PublicRoomEnv).PUBLIC_ROOM_SECRET;
       if (!secret) return fail("LOBBY_UNAVAILABLE", 503);
-      const body = await request.json().catch(() => null) as { requestId?: unknown; instanceId?: unknown } | null;
+      const body = await request.json().catch(() => null) as { requestId?: unknown; instanceId?: unknown; nickname?: unknown } | null;
       const requestId = typeof body?.requestId === "string" ? body.requestId : "";
       if (!PUBLIC_REQUEST_ID.test(requestId)) return fail("INVALID_REQUEST", 400);
+      // Without an account the visitor plays as a guest: the signed guest cookie is reused, or a new one is issued.
+      let guest: (PublicGuest & { key: string; displayName: string }) | undefined;
+      if (!identity) {
+        const displayName = normalizeNickname(body?.nickname);
+        if (!displayName) return fail("NICKNAME_REQUIRED", 400);
+        const found = await readPublicGuest(request, secret) ?? await issuePublicGuest(request, secret);
+        guest = { ...found, key: await publicGuestKey(secret, found.id), displayName };
+      }
+      const seat = publicSeatHeaders(guest, await publicNetworkKey(secret, request.headers.get("CF-Connecting-IP") ?? "local"));
+      const owner = identity ? identity.accountUserId : `guest:${guest!.key}`;
+      // A newly issued guest cookie rides on whatever the room answers, so a retry after a lost reply is the same guest.
+      const answer = (response: Response) => {
+        if (!guest?.setCookie) return response;
+        const headers = new Headers(response.headers); headers.append("Set-Cookie", guest.setCookie); headers.set("Vary", "Cookie");
+        return new Response(response.body, { status: response.status, headers });
+      };
       if (publicJoin) {
         const instanceId = typeof body?.instanceId === "string" ? body.instanceId : "";
         if (!PUBLIC_INSTANCE_ID.test(instanceId)) return fail("INVALID_REQUEST", 400);
-        return forward(publicJoin[1]!, "/internal/public-join", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: instanceId });
+        return answer(await forward(publicJoin[1]!, "/internal/public-join", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: instanceId, ...seat }));
       }
       // Codes derive from the request, so a retry walks the same candidates. Every candidate is asked first: an earlier
       // code that was taken at creation may be free now, and creating there would split the creator from their room.
-      const candidates = await Promise.all(Array.from({ length: PUBLIC_CREATE_ATTEMPTS }, (_, attempt) => publicCreateCandidate(secret, identity!.accountUserId, requestId, attempt)));
+      const candidates = await Promise.all(Array.from({ length: PUBLIC_CREATE_ATTEMPTS }, (_, attempt) => publicCreateCandidate(secret, owner, requestId, attempt)));
       const createAt = (candidate: typeof candidates[number], probe: boolean) => forward(candidate.roomId, "/internal/public-create",
-        { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: candidate.instanceId, ...(probe ? { [PUBLIC_PROBE_HEADER]: "1" } : {}) });
+        { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: candidate.instanceId, ...seat, ...(probe ? { [PUBLIC_PROBE_HEADER]: "1" } : {}) });
       const vacant: typeof candidates = [];
       for (const candidate of candidates) {
         const response = await createAt(candidate, true);
         if (response.headers.get(ROOM_VACANT_HEADER) === "1") vacant.push(candidate);
-        else if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return response; // This request's room: its credential or expiry.
+        else if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return answer(response); // This request's room: its credential or expiry.
       }
       for (const candidate of vacant) {
         // A concurrent copy of this request lands in the same room and gets the same credential.
         const response = await createAt(candidate, false);
-        if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return response;
+        if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return answer(response);
       }
-      return fail("LOBBY_UNAVAILABLE", 503);
+      return answer(fail("LOBBY_UNAVAILABLE", 503));
     }
     if (url.pathname === "/api/rooms" && request.method === "POST") {
       for (let attempt = 0; attempt < 5; attempt++) {
@@ -140,7 +155,15 @@ export default {
       return new Response("Please retry", { status: 503 });
     }
     const join = /^\/api\/rooms\/([A-Z2-9]{6})\/join$/.exec(url.pathname);
-    if (join && request.method === "POST") return forward(join[1], "/internal/join");
+    if (join && request.method === "POST") {
+      // A guest who already holds a guest identity may take a public room's seat through its invite code. Private rooms
+      // ignore these headers, and nothing is computed while public rooms are off.
+      const secret = (env as PublicRoomEnv).PUBLIC_ROOM_SECRET;
+      if (identity || !secret || !publicRoomsEnabled(env as PublicRoomEnv)) return forward(join[1], "/internal/join");
+      const found = await readPublicGuest(request, secret);
+      return forward(join[1], "/internal/join", publicSeatHeaders(found ? { key: await publicGuestKey(secret, found.id) } : undefined,
+        await publicNetworkKey(secret, request.headers.get("CF-Connecting-IP") ?? "local")));
+    }
     const savedSession = /^\/api\/rooms\/([A-Z2-9]{6})\/session$/.exec(url.pathname);
     if (savedSession && request.method === "POST") return forward(savedSession[1], "/internal/session");
     const connectionTicket = /^\/api\/rooms\/([A-Z2-9]{6})\/connection-ticket$/.exec(url.pathname);

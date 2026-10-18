@@ -18,7 +18,7 @@ const sha = async (value: string) => base64url.encode(new Uint8Array(await crypt
 function call(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   if (!headers.has("Origin")) headers.set("Origin", origin);
-  headers.set("CF-Connecting-IP", crypto.randomUUID());
+  if (!headers.has("CF-Connecting-IP")) headers.set("CF-Connecting-IP", crypto.randomUUID());
   return exports.default.fetch(new Request(`${origin}${path}`, { ...init, headers }));
 }
 let accounts = 0;
@@ -330,16 +330,10 @@ describe("public room boundaries (REG)", () => {
     expect(response.status).toBe(404);
   });
 
-  it("seats accounts only, and keeps private rooms out of the public endpoint", async () => {
+  it("keeps private rooms out of the public endpoint and their guest invite flow unchanged", async () => {
     const [host, member] = await accountsOf(2);
     const room = await created(host!.cookie);
-    for (const response of [await createPublic(""), await joinPublic(room, "")]) {
-      expect(response.status).toBe(401);
-      expect(await errorOf(response)).toBe("ACCOUNT_REQUIRED");
-    }
-    // The invite code of a public room applies the public rules: a guest is refused, an account is reserved.
-    const guestInvite = await call(`/api/rooms/${room.roomId}/join`, { method: "POST" });
-    expect(guestInvite.status).toBe(401);
+    // The invite code of a public room applies the public rules: an account is reserved until it connects.
     const invite = await call(`/api/rooms/${room.roomId}/join`, { method: "POST", headers: { Cookie: member!.cookie } });
     expect(invite.status).toBe(201);
     expect((await invite.json() as Credential).reservedUntil).toBeGreaterThan(Date.now());
@@ -348,10 +342,110 @@ describe("public room boundaries (REG)", () => {
     const probe = await joinPublic({ ...privateRoom, instanceId: "c".repeat(32) }, member!.cookie);
     expect(probe.status).toBe(404);
     expect(await errorOf(probe)).toBe("ROOM_NOT_FOUND");
-    // The private room and its guest invite flow are unchanged.
-    expect((await call(`/api/rooms/${privateRoom.roomId}/join`, { method: "POST" })).status).toBe(201);
+    const privateJoin = await call(`/api/rooms/${privateRoom.roomId}/join`, { method: "POST" });
+    expect(privateJoin.status).toBe(201);
+    expect(privateJoin.headers.get("Set-Cookie")).toBeNull(); // Private rooms never hand out a guest identity.
     const snapshot = await saved(privateRoom.roomId);
     expect(snapshot.visibility).toBeUndefined();
     expect(snapshot.publicLobby).toBeUndefined();
+    expect(snapshot.sessions.every(session => session.guestKey === undefined && session.networkKey === undefined)).toBe(true);
+  });
+});
+
+/** A guest as a browser would be: the cookie the Worker set on the first public request, sent back afterwards. */
+const guestCookieOf = (response: Response) => {
+  const header = response.headers.get("Set-Cookie") ?? "";
+  const match = /(?:__Host-)?porena_guest=[^;]+/.exec(header);
+  return match ? match[0] : "";
+};
+const guestPost = (path: string, body: Record<string, unknown>, cookie = "", ip?: string) =>
+  call(path, { method: "POST", headers: { Cookie: cookie, "Content-Type": "application/json", ...(ip ? { "CF-Connecting-IP": ip } : {}) }, body: JSON.stringify(body) });
+
+describe("guest seats in public rooms (PUBLIC-ROOMS-002 2-B)", () => {
+  it("lets a guest create a public room, remembers the guest by cookie and returns the same seat on retry", async () => {
+    const requestId = crypto.randomUUID();
+    const first = await guestPost("/api/public-rooms", { requestId, nickname: "손님1" });
+    expect(first.status).toBe(201);
+    const cookie = guestCookieOf(first);
+    expect(cookie).toMatch(/^__Host-porena_guest=v1\.[a-f0-9]{32}\.\d+\.[a-f0-9]{64}$/);
+    expect(first.headers.get("Set-Cookie")).toMatch(/HttpOnly; SameSite=Lax; Max-Age=\d+; Secure/);
+    const room = await first.json() as Credential;
+    const retry = await guestPost("/api/public-rooms", { requestId, nickname: "손님1" }, cookie);
+    expect(retry.status).toBe(201);
+    expect(retry.headers.get("Set-Cookie")).toBeNull(); // A known guest gets no new identity.
+    expect(await retry.json()).toEqual(room);
+    const snapshot = await saved(room.roomId);
+    expect(snapshot.sessions).toHaveLength(1);
+    expect(snapshot.sessions[0]!.accountUserId).toBeUndefined();
+    expect(snapshot.sessions[0]!.guestKey).toMatch(/^[a-f0-9]{64}$/);
+    // The room keeps a derived key only, never the id inside the cookie.
+    expect(JSON.stringify(snapshot)).not.toContain(cookie.split(".")[1]!);
+    expect(snapshot.game.players.find(player => player.id === room.playerId)!.name).toBe("손님1");
+  });
+
+  it("requires a valid nickname from a guest and never accepts a forged guest cookie as that guest", async () => {
+    const missing = await guestPost("/api/public-rooms", { requestId: crypto.randomUUID() });
+    expect(missing.status).toBe(400);
+    expect(await errorOf(missing)).toBe("NICKNAME_REQUIRED");
+    expect((await guestPost("/api/public-rooms", { requestId: crypto.randomUUID(), nickname: "<b>x</b>" })).status).toBe(400);
+
+    const requestId = crypto.randomUUID();
+    const owner = await guestPost("/api/public-rooms", { requestId, nickname: "주인" });
+    const room = await owner.json() as Credential;
+    const cookie = guestCookieOf(owner);
+    const [name, value] = cookie.split("=");
+    const parts = value!.split(".");
+    // Same id with a broken signature, and another id under the original signature: both are strangers.
+    for (const forged of [`${name}=${parts[0]}.${parts[1]}.${parts[2]}.${"0".repeat(64)}`, `${name}=${parts[0]}.${"f".repeat(32)}.${parts[2]}.${parts[3]}`]) {
+      const attempt = await guestPost("/api/public-rooms", { requestId, nickname: "주인" }, forged);
+      expect(attempt.status).toBe(201);
+      expect(guestCookieOf(attempt)).not.toBe(""); // Treated as a new guest and given a fresh identity...
+      expect((await attempt.json() as Credential).token).not.toBe(room.token); // ...so it never gets the owner's seat.
+    }
+  });
+
+  it("seats a guest by public join or invite code, once per guest, and keeps guests out of RP", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    const join = await guestPost(`/api/public-rooms/${room.roomId}/join`, { requestId: crypto.randomUUID(), instanceId: room.instanceId, nickname: "손님" });
+    expect(join.status).toBe(201);
+    const cookie = guestCookieOf(join);
+    const seat = await join.json() as Credential;
+    const again = await guestPost(`/api/public-rooms/${room.roomId}/join`, { requestId: crypto.randomUUID(), instanceId: room.instanceId, nickname: "손님" }, cookie);
+    expect(again.status).toBe(409);
+    expect(await errorOf(again)).toBe("GUEST_ALREADY_SEATED");
+    // The invite code needs a guest identity; without one the client must use the public join, which issues it.
+    const bare = await call(`/api/rooms/${room.roomId}/join`, { method: "POST" });
+    expect(bare.status).toBe(401);
+    expect(await errorOf(bare)).toBe("IDENTITY_REQUIRED");
+    const viaInvite = await call(`/api/rooms/${room.roomId}/join`, { method: "POST", headers: { Cookie: cookie } });
+    expect(viaInvite.status).toBe(409);
+    expect(await errorOf(viaInvite)).toBe("GUEST_ALREADY_SEATED");
+
+    const one = await connect(room), two = await connect(seat);
+    await one.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.filter(player => player.connected).length === 2);
+    expect((await one.send({ type: "READY" })).type).toBe("ACK");
+    await two.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.some(player => player.ready));
+    expect((await two.send({ type: "READY" })).type).toBe("ACK");
+    const started = await saved(room.roomId);
+    expect(started.status).toBe("PLAYING");
+    // Only the account seat is ranked; the guest still counts as a human for the bonus (current rule, unchanged).
+    expect(Object.keys(started.rank!.seats)).toEqual([room.playerId]);
+    expect(started.rank!.humanCount).toBe(2);
+  });
+
+  it("lets one network hold at most three seats of one public room", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    const ip = "203.0.113.77";
+    const codes: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const response = await guestPost(`/api/public-rooms/${room.roomId}/join`, { requestId: crypto.randomUUID(), instanceId: room.instanceId, nickname: `게스트${i}` }, "", ip);
+      codes.push(response.status);
+      if (response.status !== 201) expect(await errorOf(response)).toBe("NETWORK_SEAT_LIMIT");
+    }
+    expect(codes).toEqual([201, 201, 201, 409]);
+    // Another network still gets in.
+    expect((await guestPost(`/api/public-rooms/${room.roomId}/join`, { requestId: crypto.randomUUID(), instanceId: room.instanceId, nickname: "다른곳" }, "", "198.51.100.9")).status).toBe(201);
   });
 });

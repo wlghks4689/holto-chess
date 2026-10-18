@@ -70,19 +70,34 @@ export function releasedKey(room: RoomSnapshot, digest: string, now: number): Pu
   return room.publicLobby?.releasedKeys.find(key => key.digest === digest && key.until > now)?.reason;
 }
 
-export type PublicReserveError = "ROOM_STARTED" | "ROOM_FULL" | "ACCOUNT_ALREADY_SEATED";
-export function reservePublicSeat(source: RoomSnapshot, tokenHash: string, identity: RoomAccountIdentity, now: number):
+/** Seats one network (IP) may hold in one public room. Kept above 1 so a family, school or PC-bang can still play. */
+export const PUBLIC_SEATS_PER_NETWORK = 3;
+
+/**
+ * Who takes a public seat: an account (accountUserId) or a guest (guestKey), never both. A guest's name is optional:
+ * without one the seat keeps its bot name until the guest sends a nickname on the WebSocket, as in private rooms.
+ */
+export type PublicSeatIdentity =
+  | (RoomAccountIdentity & { guestKey?: undefined; networkKey?: string })
+  | { accountUserId?: undefined; guestKey: string; displayName?: string; networkKey?: string };
+
+export type PublicReserveError = "ROOM_STARTED" | "ROOM_FULL" | "ACCOUNT_ALREADY_SEATED" | "GUEST_ALREADY_SEATED" | "NETWORK_SEAT_LIMIT";
+export function reservePublicSeat(source: RoomSnapshot, tokenHash: string, identity: PublicSeatIdentity, now: number):
   { room: RoomSnapshot; playerId: string } | { error: PublicReserveError } {
   if (!isPublicLobby(source)) return { error: "ROOM_STARTED" };
-  if (source.sessions.some(session => session.accountUserId === identity.accountUserId)) return { error: "ACCOUNT_ALREADY_SEATED" };
+  if (identity.accountUserId && source.sessions.some(session => session.accountUserId === identity.accountUserId)) return { error: "ACCOUNT_ALREADY_SEATED" };
+  if (identity.guestKey && source.sessions.some(session => session.guestKey === identity.guestKey)) return { error: "GUEST_ALREADY_SEATED" };
   if (source.sessions.length >= PUBLIC_CAPACITY) return { error: "ROOM_FULL" };
+  if (identity.networkKey && source.sessions.filter(session => session.networkKey === identity.networkKey).length >= PUBLIC_SEATS_PER_NETWORK) return { error: "NETWORK_SEAT_LIMIT" };
   const room = structuredClone(source);
   const lobby = room.publicLobby!;
   const taken = new Set(room.sessions.map(session => session.playerId));
   const playerId = room.game.players.map(player => player.id).find(id => !taken.has(id))!;
-  room.sessions.push({ playerId, tokenHash, requests: [], accountUserId: identity.accountUserId,
+  room.sessions.push({ playerId, tokenHash, requests: [],
+    ...(identity.accountUserId ? { accountUserId: identity.accountUserId } : { guestKey: identity.guestKey }),
+    ...(identity.networkKey ? { networkKey: identity.networkKey } : {}),
     seatEpoch: lobby.nextSeatEpoch++, reservedUntil: now + PUBLIC_LOBBY_TIMING.RESERVATION_MS });
-  room.game.players.find(player => player.id === playerId)!.name = identity.displayName;
+  if (identity.displayName) room.game.players.find(player => player.id === playerId)!.name = identity.displayName;
   delete lobby.emptySince;
   room.readyIds = []; // Membership changed: consent must apply to the current lobby.
   room.revision++;

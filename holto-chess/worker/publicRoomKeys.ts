@@ -35,6 +35,15 @@ export async function publicCreateCandidate(secret: string, accountUserId: strin
   return { roomId: Array.from(code.slice(0, 6), n => alphabet[n % alphabet.length]).join(""), instanceId: hex(instance.slice(0, 16)) };
 }
 
+/** What a room stores for a guest: never the cookie id itself, so a leaked snapshot cannot be replayed as that guest. */
+export async function publicGuestKey(secret: string, guestId: string): Promise<string> {
+  return hex(await hmac(secret, `public-guest-key|${guestId}`));
+}
+/** Groups seats coming from one network (IP) without storing the address. */
+export async function publicNetworkKey(secret: string, ip: string): Promise<string> {
+  return hex(await hmac(secret, `public-network|${ip}`));
+}
+
 /** Registry key of a creator. Accounts and guests live in separate namespaces; the raw id never reaches the database. */
 export async function publicCreatorKey(secret: string, kind: "account" | "guest", id: string): Promise<string> {
   return hex(await hmac(secret, `public-creator|${kind}|${id}`));
