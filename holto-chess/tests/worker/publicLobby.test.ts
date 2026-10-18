@@ -113,7 +113,10 @@ describe("public room registry (PUBLIC-ROOMS-002 2-A)", () => {
     await claimPublicSlot(db, a);
     expect(await fenceRoomCreation(db, a.instanceId, "OTHER2")).toBe("moved");
     expect(await fenceRoomCreation(db, a.instanceId, "FEN222")).toBe("won");
-    expect(await fenceRoomCreation(db, a.instanceId, "FEN222")).toBe("closed"); // a second copy can never create again
+    // Asking again at the same code says permission is already out; only the room holding its own note may finish.
+    expect(await fenceRoomCreation(db, a.instanceId, "FEN222")).toBe("fenced_here");
+    // A stale retry at the old code of a claim that moved and was created is told where it went (review R2-001).
+    expect(await fenceRoomCreation(db, a.instanceId, "OLD222")).toBe("moved");
     expect(await moveClaimToCode(db, a.instanceId, "FEN222", "FEN333")).toBe("gone"); // a created room is never moved away
     const b = claim();
     await claimPublicSlot(db, b);

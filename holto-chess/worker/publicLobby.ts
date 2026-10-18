@@ -137,14 +137,19 @@ export async function moveClaimToCode(db: D1Database, instanceId: string, fromCo
  * Everything that could otherwise make a second room is refused here: a retry that lost the race, a claim that moved to
  * another code ("moved"), a create Cron cancelled, or a room that existed and was deleted ("closed").
  */
-export async function fenceRoomCreation(db: D1Database, instanceId: string, roomCode: string): Promise<"won" | "moved" | "closed"> {
+export async function fenceRoomCreation(db: D1Database, instanceId: string, roomCode: string): Promise<"won" | "fenced_here" | "moved" | "closed"> {
   const won = await db.prepare(
     "UPDATE public_rooms SET summary_seq = 1 WHERE instance_id = ? AND room_code = ? AND state = 'PROVISIONING' AND slot_held = 1 AND summary_seq = 0",
   ).bind(instanceId, roomCode).run();
   if (won.meta.changes === 1) return "won";
   const row = await db.prepare("SELECT room_code, state, slot_held, summary_seq FROM public_rooms WHERE instance_id = ?").bind(instanceId)
     .first<{ room_code: string; state: string; slot_held: number; summary_seq: number }>();
-  return row && row.slot_held === 1 && row.state === "PROVISIONING" && row.summary_seq === 0 && row.room_code !== roomCode ? "moved" : "closed";
+  if (!row || row.slot_held !== 1) return "closed";
+  // The live room (or its claim) is at another code: the caller follows it instead of being told it closed.
+  if (row.room_code !== roomCode) return "moved";
+  // Permission was taken at this code but the room never reported in. Only the room that took it, and still holds its
+  // own record of the unfinished create, may finish it (GameRoom); anyone else is refused.
+  return row.state === "PROVISIONING" && row.summary_seq === 1 ? "fenced_here" : "closed";
 }
 
 /** Ends a room's life in the registry and gives its slot back. Repeating it is harmless. */

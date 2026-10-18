@@ -5,7 +5,8 @@ import { base64url } from "jose";
 import worker from "../../worker/index";
 import type { RoomSnapshot } from "../../src/game/room";
 import type { GameAction, PlayerView, ServerMessage } from "../../src/shared/protocol";
-import { publicCreateCandidate } from "../../worker/publicRoomKeys";
+import { publicCreateCandidate, publicCreatorKey } from "../../worker/publicRoomKeys";
+import { claimPublicSlot, fenceRoomCreation } from "../../worker/publicLobby";
 import { freshListing } from "../../worker/publicList";
 import { runPublicLobbyRepair } from "../../worker/publicRepair";
 import type { PublicRoomEnv } from "../../worker/publicRoomKeys";
@@ -66,6 +67,20 @@ async function until<T>(read: () => Promise<T>, done: (value: T) => boolean): Pr
   throw new Error("Condition not reached");
 }
 const errorOf = async (response: Response) => (await response.json() as { error: string }).error;
+/**
+ * Runs the room's alarm, then waits for what the test expects. A room may already be running an alarm of its own (the
+ * runtime fires one right after a change for the registry update), and registry writes finish after the alarm returns,
+ * so one manual run is not always the one that does the work.
+ */
+async function alarmUntil<T>(roomId: string, read: () => Promise<T>, done: (value: T) => boolean): Promise<T> {
+  for (let i = 0; i < 60; i++) {
+    await runDurableObjectAlarm(stubFor(roomId));
+    const value = await read();
+    if (done(value)) return value;
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  throw new Error("Alarm result not reached");
+}
 
 async function connect(credential: Credential) {
   const response = await call(`/ws/rooms/${credential.roomId}`, { headers: { Upgrade: "websocket" } });
@@ -153,7 +168,7 @@ describe("public room seats (PUB)", () => {
     const reserved = await (await joinPublic(room, late!.cookie, key)).json() as Credential;
     expect(reserved.reservedUntil! - Date.now()).toBeLessThanOrEqual(30_000);
     await edit(room.roomId, internal => { internal.room.sessions.find(session => session.playerId === reserved.playerId)!.reservedUntil = Date.now() - 1; });
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, () => saved(room.roomId), snapshot => snapshot.sessions.length === 1);
     expect((await saved(room.roomId)).sessions.map(session => session.playerId)).toEqual([room.playerId]);
     const retry = await joinPublic(room, late!.cookie, key);
     expect(retry.status).toBe(409);
@@ -235,7 +250,7 @@ describe("public room ownership and presence (PUB)", () => {
     back.ws.close(1000);
     await until(() => saved(room.roomId), snapshot => snapshot.sessions.find(session => session.playerId === seat.playerId)!.disconnectedAt !== undefined);
     await edit(room.roomId, internal => { internal.room.sessions.find(session => session.playerId === seat.playerId)!.disconnectedAt = Date.now() - 90_000; });
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, () => saved(room.roomId), snapshot => snapshot.sessions.length === 1);
     const reclaimed = await saved(room.roomId);
     expect(reclaimed.sessions.map(session => session.playerId)).toEqual([room.playerId]);
     expect(reclaimed.game.players.find(player => player.id === seat.playerId)!.name).toBe(reclaimed.publicLobby!.botNames[seat.playerId]);
@@ -271,7 +286,7 @@ describe("request-time expiry (PUB-11)", () => {
     expect((await call(`/ws/rooms/${host.roomId}`, { headers: { Upgrade: "websocket" } })).status).toBe(404);
     const expiresAt = await runInDurableObject(stubFor(host.roomId), instance => (instance as unknown as Internal).expiresAt);
     expect(expiresAt).toBeLessThan(Date.now());
-    await runDurableObjectAlarm(stubFor(host.roomId));
+    await alarmUntil(host.roomId, () => runInDurableObject(stubFor(host.roomId), (_instance, state) => state.storage.get("snapshot:v1")), snapshot => snapshot === undefined);
     expect(await runInDurableObject(stubFor(host.roomId), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
   });
 
@@ -333,7 +348,7 @@ describe("late alarms and create retries (review c39a765)", () => {
     expect(original.roomId).not.toBe(first.roomId);
     // The blocker expires and is deleted; the creator's room is still alive.
     await edit(first.roomId, internal => { internal.expiresAt = Date.now() - 1; });
-    await runDurableObjectAlarm(stubFor(first.roomId));
+    await alarmUntil(first.roomId, () => runInDurableObject(stubFor(first.roomId), (_instance, state) => state.storage.get("snapshot:v1")), snapshot => snapshot === undefined);
     const retry = await createPublic(host.cookie, requestId);
     expect(retry.status).toBe(201);
     expect(await retry.json()).toEqual(original);
@@ -464,7 +479,7 @@ describe("room to registry updates (PUBLIC-ROOMS-002 2-D)", () => {
       next.status = "PLAYING"; next.game.phase = "GAME_RESULT";
       await internal.commit(next, false);
     });
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, async () => (await row(room.instanceId))!, r => r.state === "FINISHED");
     expect(await row(room.instanceId)).toMatchObject({ state: "FINISHED", slot_held: 0, repair_due_at: null });
     await runInDurableObject(stubFor(room.roomId), async instance => {
       const internal = instance as unknown as SyncInternal;
@@ -484,7 +499,7 @@ describe("room to registry updates (PUBLIC-ROOMS-002 2-D)", () => {
     await runInDurableObject(stubFor(room.roomId), instance => { (instance as unknown as SyncInternal).lobbyDb = () => broken; });
     // Seats still work: the room decides on its own and only the listing waits.
     const seat = await joined(room, guest!.cookie);
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, () => saved(room.roomId), snapshot => (snapshot.publicSync!.attempts ?? 0) >= 1);
     const failing = await saved(room.roomId);
     expect(failing.publicSync!.attempts).toBeGreaterThanOrEqual(1);
     expect(failing.publicSync!.retryAt).toBeGreaterThan(Date.now() - 1000);
@@ -496,7 +511,7 @@ describe("room to registry updates (PUBLIC-ROOMS-002 2-D)", () => {
       internal.room = structuredClone(internal.room);
       internal.room.publicSync!.retryAt = Date.now() - 1;
     });
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, async () => (await row(room.instanceId))!, r => r.reserved_count === 2);
     expect((await row(room.instanceId))!.reserved_count).toBe(2);
     const delivered = (await saved(room.roomId)).publicSync!;
     expect(delivered.retryAt).toBeUndefined();
@@ -509,7 +524,7 @@ describe("room to registry updates (PUBLIC-ROOMS-002 2-D)", () => {
     const room = await created(host!.cookie);
     const before = await rowUntil(room.instanceId, r => r.state === "WAITING");
     await edit(room.roomId, internal => { internal.room.publicSync!.sentAt = Date.now() - 31_000; });
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, async () => (await row(room.instanceId))!, r => r.summary_seq > before.summary_seq);
     const after = (await row(room.instanceId))!;
     expect(after.summary_seq).toBeGreaterThan(before.summary_seq);
     expect(after.lease_expires_at).toBeGreaterThanOrEqual(before.lease_expires_at);
@@ -520,7 +535,7 @@ describe("room to registry updates (PUBLIC-ROOMS-002 2-D)", () => {
     const room = await created(host!.cookie);
     await rowUntil(room.instanceId, r => r.state === "WAITING");
     await edit(room.roomId, internal => { internal.expiresAt = Date.now() - 1; });
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, async () => (await row(room.instanceId))!, r => r.state === "CLOSED");
     expect(await row(room.instanceId)).toMatchObject({ state: "CLOSED", slot_held: 0 });
     expect(await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
   });
@@ -656,7 +671,8 @@ describe("minute Cron repair (PUBLIC-ROOMS-002 2-F)", () => {
     expect(after.summary_seq).toBeGreaterThan(before.summary_seq);
     expect(after.lease_expires_at).toBeGreaterThan(Date.now());
     expect(after.repair_due_at).toBeGreaterThan(Date.now());
-    expect(await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.getAlarm())).not.toBeNull();
+    // Re-armed (an alarm that happens to be running at the moment of the check re-arms itself when it ends).
+    expect(await until(() => runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.getAlarm()), at => at !== null)).not.toBeNull();
   });
 
   it("deletes ended rows after two days, keeps recent ones, and does nothing while public rooms are off", async () => {
@@ -822,7 +838,7 @@ describe("Codex review of phase 2 (PR2-001 ~ PR2-009)", () => {
       result.status = "PLAYING"; result.game.phase = "GAME_RESULT";
       await internal.commit(result, false);
     });
-    await runDurableObjectAlarm(stubFor(room.roomId)); // the FINISHED report fails
+    await alarmUntil(room.roomId, () => saved(room.roomId), snapshot => (snapshot.publicSync!.attempts ?? 0) >= 1); // the FINISHED report fails
     await runInDurableObject(stubFor(room.roomId), async instance => {
       const internal = instance as unknown as SyncInternal;
       const rematch = structuredClone(internal.room);
@@ -832,7 +848,7 @@ describe("Codex review of phase 2 (PR2-001 ~ PR2-009)", () => {
       internal.room = structuredClone(internal.room);
       internal.room.publicSync!.retryAt = Date.now() - 1;
     });
-    await runDurableObjectAlarm(stubFor(room.roomId));
+    await alarmUntil(room.roomId, async () => (await rowOf(room.instanceId))!, r => r.state === "FINISHED");
     expect(await rowOf(room.instanceId)).toMatchObject({ state: "FINISHED", slot_held: 0 });
   });
 
@@ -869,21 +885,109 @@ describe("Codex review of phase 2 (PR2-001 ~ PR2-009)", () => {
   it("PR2-007: a slow registry write never holds up seat confirmation", async () => {
     const [host, guest] = await accountsOf(2);
     const room = await created(host!.cookie);
-    await until(async () => (await rowOf(room.instanceId))?.state, state => state === "WAITING");
+    const seat = await joined(room, guest!.cookie);
     const realDb = lobbyDb();
+    await until(async () => (await realDb.prepare("SELECT reserved_count FROM public_rooms WHERE instance_id = ?").bind(room.instanceId).first<{ reserved_count: number }>())?.reserved_count, n => n === 2);
     const slow = { prepare: (sql: string) => {
       const statement = realDb.prepare(sql);
       return { bind: (...args: unknown[]) => ({ run: async () => { await new Promise(resolve => setTimeout(resolve, 2500)); return statement.bind(...args).run(); } }) };
     } } as unknown as D1Database;
-    await runInDurableObject(stubFor(room.roomId), instance => { (instance as unknown as SyncInternal).lobbyDb = () => slow; });
-    const seat = await joined(room, guest!.cookie); // queues a registry update
-    const alarm = runDurableObjectAlarm(stubFor(room.roomId)); // its write now takes 2.5 seconds
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // The runtime runs an alarm whose registry write takes 2.5 seconds; nobody waits for it.
+    const planned = await runInDurableObject(stubFor(room.roomId), async (instance, state) => {
+      const internal = instance as unknown as SyncInternal;
+      internal.lobbyDb = () => slow;
+      internal.room = structuredClone(internal.room);
+      internal.room.publicSync = { ...internal.room.publicSync!, seq: internal.room.publicSync!.seq + 1, retryAt: Date.now() - 1 };
+      await state.storage.setAlarm(Date.now() + 50);
+      return internal.room.publicSync.seq;
+    });
+    await new Promise(resolve => setTimeout(resolve, 250));
     const started = Date.now();
-    const socket = await connect(seat);
+    const socket = await connect(seat); // confirms the reserved seat while the write is in flight
     expect(socket.messages.some(message => message.type === "ROOM_JOINED")).toBe(true);
     expect(Date.now() - started).toBeLessThan(1500);
-    await alarm;
+    // The write the alarm left running still lands after the handler returned. (The seat confirmation queued a newer
+    // update meanwhile, which follows on its own.)
+    await new Promise(resolve => setTimeout(resolve, 2800));
+    expect((await realDb.prepare("SELECT summary_seq FROM public_rooms WHERE instance_id = ?").bind(room.instanceId).first<{ summary_seq: number }>())!.summary_seq).toBeGreaterThanOrEqual(planned);
+    await runInDurableObject(stubFor(room.roomId), instance => { delete (instance as unknown as Partial<SyncInternal>).lobbyDb; });
+  });
+});
+
+describe("Codex review round 2 (R2-001 ~ R2-003)", () => {
+  const lobbyDb = () => (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
+  type SyncInternal = Internal & { lobbyDb: () => D1Database | undefined };
+
+  it("R2-001: a stale retry that reaches the old code is pointed to the live room, not told it closed", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    await until(async () => (await lobbyDb().prepare("SELECT state FROM public_rooms WHERE instance_id = ?").bind(room.instanceId).first<{ state: string }>())?.state, s => s === "WAITING");
+    // A copy of the create that still believed the claim was at another code asks a room there directly.
+    const stale = await stubFor("STALE2").fetch("https://room/internal/public-create", { method: "POST", headers: {
+      "X-Room-Id": "STALE2", "X-Internal-Porena-Instance-Id": room.instanceId, "X-Internal-Porena-Request-Id": uuid7(),
+      "X-Internal-Porena-User-Id": "stale-user", "X-Internal-Porena-Display-Name": encodeURIComponent("늦은요청") } });
+    expect(stale.status).toBe(409);
+    expect(await errorOf(stale)).toBe("CLAIM_MOVED");
+    // No room was made at the stale code.
+    expect(await runInDurableObject(stubFor("STALE2"), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
+  });
+
+  it("R2-002: a create that crashed after permission was granted finishes on retry; a deleted room still never returns", async () => {
+    const [host] = await accountsOf(1);
+    const requestId = uuid7();
+    const secret = "test-public-room-secret";
+    const creatorKey = await publicCreatorKey(secret, "account", host!.id);
+    const candidate = await publicCreateCandidate(secret, host!.id, requestId, 0);
+    // The first attempt claimed the slot, left its note in the room, got permission, then crashed before saving.
+    await claimPublicSlot(lobbyDb(), { instanceId: candidate.instanceId, roomCode: candidate.roomId, creatorKey, requestId, now: Date.now(), cap: 100, rulesVersion: 2, protocolVersion: 1 });
+    expect(await fenceRoomCreation(lobbyDb(), candidate.instanceId, candidate.roomId)).toBe("won");
+    await runInDurableObject(stubFor(candidate.roomId), (_instance, state) => state.storage.put("public-create-intent:v1", candidate.instanceId));
+    const retry = await createPublic(host!.cookie, requestId);
+    expect(retry.status).toBe(201);
+    const room = await retry.json() as Credential;
+    expect(room).toMatchObject({ roomId: candidate.roomId, instanceId: candidate.instanceId });
+    expect(await runInDurableObject(stubFor(candidate.roomId), (_instance, state) => state.storage.get("public-create-intent:v1"))).toBeUndefined();
+
+    // Without the room's own note (a room that existed and was deleted), the same state is refused.
+    const [other] = await accountsOf(1);
+    const otherRequest = uuid7();
+    const otherKey = await publicCreatorKey(secret, "account", other!.id);
+    const otherCandidate = await publicCreateCandidate(secret, other!.id, otherRequest, 0);
+    await claimPublicSlot(lobbyDb(), { instanceId: otherCandidate.instanceId, roomCode: otherCandidate.roomId, creatorKey: otherKey, requestId: otherRequest, now: Date.now(), cap: 100, rulesVersion: 2, protocolVersion: 1 });
+    await fenceRoomCreation(lobbyDb(), otherCandidate.instanceId, otherCandidate.roomId);
+    const refused = await createPublic(other!.cookie, otherRequest);
+    expect(refused.status).toBe(410);
+    expect(await errorOf(refused)).toBe("ROOM_CLOSED");
+    expect(await runInDurableObject(stubFor(otherCandidate.roomId), (_instance, state) => state.storage.list())).toEqual(new Map());
+  });
+
+  it("R2-003: the alarm handler returns at once while a slow registry write goes on, and that write still lands", async () => {
+    const [host, guest] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    await joined(room, guest!.cookie);
+    const realDb = lobbyDb();
+    await until(async () => (await realDb.prepare("SELECT reserved_count FROM public_rooms WHERE instance_id = ?").bind(room.instanceId).first<{ reserved_count: number }>())?.reserved_count, n => n === 2);
+    const slow = { prepare: (sql: string) => {
+      const statement = realDb.prepare(sql);
+      return { bind: (...args: unknown[]) => ({ run: async () => { await new Promise(resolve => setTimeout(resolve, 2500)); return statement.bind(...args).run(); } }) };
+    } } as unknown as D1Database;
+    // One update is due and nothing else runs: the automatic alarm is stopped and the handler is called directly.
+    const took = await runInDurableObject(stubFor(room.roomId), async (instance, state) => {
+      const internal = instance as unknown as SyncInternal & { alarm: () => Promise<void> };
+      await state.storage.deleteAlarm();
+      internal.lobbyDb = () => slow;
+      internal.room = structuredClone(internal.room);
+      internal.room.publicSync = { ...internal.room.publicSync!, seq: internal.room.publicSync!.seq + 1, retryAt: Date.now() - 1 };
+      const started = Date.now();
+      await internal.alarm();
+      return Date.now() - started;
+    });
+    // The next game alarm (a reveal, a barrier) is free to run: the handler did not wait 2.5 seconds for the database.
+    expect(took).toBeLessThan(1500);
+    await new Promise(resolve => setTimeout(resolve, 2800)); // the slow write finishes on its own...
+    const acknowledged = await saved(room.roomId);
+    expect(acknowledged.publicSync!.retryAt).toBeUndefined(); // ...and is acknowledged
+    expect(acknowledged.publicSync!.sentSeq).toBe(acknowledged.publicSync!.seq);
     await runInDurableObject(stubFor(room.roomId), instance => { delete (instance as unknown as Partial<SyncInternal>).lobbyDb; });
   });
 });

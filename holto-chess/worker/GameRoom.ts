@@ -28,6 +28,8 @@ const EXPIRY_KEY = "expiresAt";
 const AUTH_TIMEOUT_MS = 15000;
 const TICKET_KEY = "connection-tickets:v1";
 const TICKET_LIFETIME_MS = 30_000;
+/** Public create in progress here: lets the same create finish after a crash between registry permission and the first save. */
+const CREATE_INTENT_KEY = "public-create-intent:v1";
 const LEGACY_PENDING_LIMIT = 8;
 /** D1 retry backoff for ranked settlement: 5s doubling to 5 minutes, forever. */
 const rankRetryDelay = (attempts: number) => Math.min(5000 * 2 ** attempts, 300_000);
@@ -55,6 +57,8 @@ export class GameRoom extends DurableObject<Env> {
   private tickets: Tickets = {};
   /** Scheduled time of the alarm now executing; a re-armed alarm must land strictly after it. */
   private runningAlarmAt: number | undefined;
+  /** Sequence number of a registry write in flight (memory only). While set, no second send of the same update starts. */
+  private publicSendInFlight: number | undefined;
   /** Last public-lobby presence check; the next one is due PRESENCE_SWEEP_MS later. */
   private presenceCheckedAt = Date.now();
 
@@ -163,7 +167,7 @@ export class GameRoom extends DurableObject<Env> {
    */
   private async planPublicSummary(now: number): Promise<PublicSummaryPlan | undefined> {
     const room = this.room, sync = room?.publicSync;
-    if (!this.lobbyDb() || !room || room.visibility !== "PUBLIC" || !sync || sync.terminalSent) return undefined;
+    if (!this.lobbyDb() || !room || room.visibility !== "PUBLIC" || !sync || sync.terminalSent || this.publicSendInFlight !== undefined) return undefined;
     const queued = sync.retryAt !== undefined;
     const state = this.publicSummaryState(room);
     if (queued ? sync.retryAt! > now : !(state === "WAITING" && (sync.sentAt ?? 0) + LEASE_RENEW_MS <= now)) return undefined;
@@ -173,6 +177,8 @@ export class GameRoom extends DurableObject<Env> {
       next.publicSync = { ...sync, seq, sentAt: now };
       await this.commit(next, false);
     }
+    // Marked in flight from now: the alarm this handler arms next must not wake the room again for the same update.
+    this.publicSendInFlight = seq;
     return { summary: buildSummary(room, seq, now, this.publicRoomExpiresAt(room), state), renewal: !queued };
   }
   /**
@@ -181,13 +187,15 @@ export class GameRoom extends DurableObject<Env> {
    */
   private async deliverPublicSummary(plan: PublicSummaryPlan): Promise<void> {
     const db = this.lobbyDb();
-    if (!db) return;
+    if (!db) { this.publicSendInFlight = undefined; return; }
     let delivered = false;
     try {
       await withTimeout(applySummary(db, plan.summary), SYNC_TIMEOUT_MS);
       delivered = true;
     } catch (error) {
       diag("lobby.syncError", { ...roomFields(this.room), seq: plan.summary.seq, message: error instanceof Error ? error.message : String(error) }, "error");
+    } finally {
+      this.publicSendInFlight = undefined;
     }
     if (delivered && plan.renewal) return; // Its sequence number and time were saved when it was planned.
     await this.ctx.blockConcurrencyWhile(async () => {
@@ -309,7 +317,7 @@ export class GameRoom extends DurableObject<Env> {
     if (lobby !== undefined) deadlines.push({ at: lobby, reason: "public" });
     if (this.room && publicSeatsAwaitingPresence(this.room).length) deadlines.push({ at: this.presenceCheckedAt + PUBLIC_LOBBY_TIMING.PRESENCE_SWEEP_MS, reason: "presence" });
     const sync = this.room?.visibility === "PUBLIC" && this.lobbyDb() ? this.room.publicSync : undefined;
-    if (sync && !sync.terminalSent) {
+    if (sync && !sync.terminalSent && this.publicSendInFlight === undefined) {
       if (sync.retryAt !== undefined) deadlines.push({ at: sync.retryAt, reason: "lobby-sync" });
       else if (summaryState(this.room!) === "WAITING") deadlines.push({ at: (sync.sentAt ?? Date.now()) + LEASE_RENEW_MS, reason: "lobby-lease" });
     }
@@ -446,16 +454,24 @@ export class GameRoom extends DurableObject<Env> {
         // create Cron already cancelled or a room that existed and was deleted can never make another room.
         const db = this.lobbyDb();
         if (!db) return refuse("LOBBY_UNAVAILABLE", 503);
-        let fence: "won" | "moved" | "closed";
+        // Written before asking: if the first save fails or the room crashes after permission was granted, this note lets
+        // the same create finish. Only a note left by an earlier attempt counts, and it is deleted with the room, so a
+        // room that existed and was deleted never comes back.
+        const earlier = await this.ctx.storage.get<string>(CREATE_INTENT_KEY);
+        await this.ctx.storage.put(CREATE_INTENT_KEY, instanceId);
+        let fence: "won" | "fenced_here" | "moved" | "closed";
         try { fence = await fenceRoomCreation(db, instanceId, roomId); } catch { return refuse("LOBBY_UNAVAILABLE", 503); }
-        if (fence === "moved") return refuse("CLAIM_MOVED", 409);
-        if (fence === "closed") return refuse("ROOM_CLOSED", 410);
+        if (fence === "moved" || fence === "closed" || fence === "fenced_here" && earlier !== instanceId) {
+          await this.ctx.storage.delete(CREATE_INTENT_KEY); // Nothing to finish here.
+          return fence === "moved" ? refuse("CLAIM_MOVED", 409) : refuse("ROOM_CLOSED", 410);
+        }
         const room = makePublicRoom(createRoom(roomId, randomSeed(), "secure", 2, true), instanceId, now);
         // The fence used sequence number 1, so the room's first summary is 2 and the registry accepts it.
         room.publicSync = { seq: 1, key: "", sentSeq: 1 };
         const seated = reservePublicSeat(room, await hash(seatToken), identity, now);
         if ("error" in seated) return refuse(seated.error, 409);
         await this.commit(seated.room);
+        await this.ctx.storage.delete(CREATE_INTENT_KEY);
         await this.rescheduleAlarm();
         return Response.json({ roomId, playerId: seated.playerId, token: seatToken, instanceId, reservedUntil: seated.room.sessions[0]!.reservedUntil },
           { status: 201, headers: { "Cache-Control": "no-store" } });
@@ -684,6 +700,7 @@ export class GameRoom extends DurableObject<Env> {
   }
   async alarm(info?: AlarmInvocationInfo): Promise<void> {
     const lobby: { plan?: PublicSummaryPlan; farewell?: PublicSummary } = {};
+    try {
     await this.ctx.blockConcurrencyWhile(async () => {
       const now = Date.now();
       this.runningAlarmAt = Math.max(now, info?.scheduledTime ?? 0);
@@ -698,7 +715,7 @@ export class GameRoom extends DurableObject<Env> {
         diag("room.expired", roomFields(this.room));
         lobby.farewell = this.publicFarewell(now);
         for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");
-        await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY, TICKET_KEY]);
+        await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY, TICKET_KEY, CREATE_INTENT_KEY]);
         this.tickets = {};
         this.room = undefined;
         this.expiresAt = undefined;
@@ -748,8 +765,16 @@ export class GameRoom extends DurableObject<Env> {
         retryCount: info?.retryCount ?? 0, forced, from: from?.phase, fromRevision: from?.revision, ms: Date.now() - now });
       this.runningAlarmAt = undefined;
     });
-    // Registry writes happen here, outside the serialized section: seats, deadlines and the game never wait for them.
-    if (lobby.farewell) await this.sendPublicFarewell(lobby.farewell);
-    if (lobby.plan) await this.deliverPublicSummary(lobby.plan);
+    } catch (error) {
+      this.publicSendInFlight = undefined; // a send planned in this run will not start
+      throw error;
+    }
+    // Registry writes run on their own, after this handler returns: Cloudflare runs one alarm at a time per room, so
+    // waiting here would hold back the next reveal or barrier alarm. waitUntil asks the runtime to keep the write alive
+    // past the handler; one that still never finishes is retried from the saved duty, or for a farewell the minute Cron
+    // closes the listing.
+    if (lobby.farewell) this.ctx.waitUntil(this.sendPublicFarewell(lobby.farewell));
+    if (lobby.plan) this.ctx.waitUntil(this.deliverPublicSummary(lobby.plan).catch(error =>
+      diag("lobby.ackError", { ...roomFields(this.room), message: error instanceof Error ? error.message : String(error) }, "error")));
   }
 }
