@@ -12,9 +12,9 @@ import { handleRankings } from "./rank";
 import { PUBLIC_INSTANCE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER } from "./GameRoom";
 import { handlePublicList } from "./publicList";
 import { PUBLIC_REPAIR_CRON, runPublicLobbyRepair } from "./publicRepair";
-import { claimPublicSlot, moveClaimToCode, PUBLIC_ROOMS_MAX, type RegistryRow } from "./publicLobby";
+import { claimPublicSlot, findByInstance, moveClaimToCode, PUBLIC_ROOMS_MAX, type RegistryRow } from "./publicLobby";
 import { PRESENTATION_VERSION } from "../src/shared/presentationTimeline";
-import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicCreatorKey, publicGuestKey, publicNetworkKey, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
+import { CREATE_REQUEST_MAX_AGE_MS, createRequestAge, PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicCreatorKey, publicGuestKey, publicNetworkKey, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
 export { GameRoom } from "./GameRoom";
 
 function code(): string {
@@ -119,6 +119,13 @@ export default {
       const body = await request.json().catch(() => null) as { requestId?: unknown; instanceId?: unknown; nickname?: unknown } | null;
       const requestId = typeof body?.requestId === "string" ? body.requestId : "";
       if (!PUBLIC_REQUEST_ID.test(requestId)) return fail("INVALID_REQUEST", 400);
+      if (!publicJoin) {
+        // Creates carry their own time (UUIDv7): a retry older than a day is refused, so it can never outlive the
+        // registry row that remembers its room.
+        const age = createRequestAge(requestId, Date.now());
+        if (age === null) return fail("INVALID_REQUEST", 400);
+        if (age > CREATE_REQUEST_MAX_AGE_MS) return fail("REQUEST_EXPIRED", 410);
+      }
       // Without an account the visitor plays as a guest: the signed guest cookie is reused, or a new one is issued.
       let guest: (PublicGuest & { key: string; displayName: string }) | undefined;
       if (!identity) {
@@ -165,13 +172,22 @@ export default {
       if (!row.slotHeld) return answer(fail("ROOM_CLOSED", 410));
       const createIn = (roomCode: string) => forward(roomCode, "/internal/public-create", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: row!.instanceId, ...seat });
       let response = await createIn(row.roomCode);
-      // A private room (not in the registry) may hold the code: move the claim to the next free code and try there.
-      for (const candidate of candidates) {
-        if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") break;
-        if (candidate.roomId === row.roomCode) continue;
-        const moved = await moveClaimToCode(db, row.instanceId, candidate.roomId);
-        if (moved === "gone") return answer(fail("LOBBY_UNAVAILABLE", 503));
-        if (moved === "moved") { row = { ...row, roomCode: candidate.roomId }; response = await createIn(candidate.roomId); }
+      const tried = new Set([row.roomCode]);
+      // A private room (not in the registry) may hold the code: move the claim to the next free code and try there. If
+      // another copy of this request moved it first, follow the registry instead of moving it again.
+      for (let step = 0; step < candidates.length * 2; step++) {
+        const taken = response.headers.get(ROOM_TAKEN_HEADER) === "1";
+        const moved = !taken && response.status === 409 && (await response.clone().json().catch(() => null) as { error?: string } | null)?.error === "CLAIM_MOVED";
+        if (!taken && !moved) break;
+        const target = moved ? undefined : candidates.find(candidate => !tried.has(candidate.roomId));
+        if (!moved && !target) break;
+        const outcome = target ? await moveClaimToCode(db, row.instanceId, row.roomCode, target.roomId) : "gone";
+        if (target) tried.add(target.roomId);
+        if (outcome === "code_taken") continue;
+        if (outcome === "moved") { row = { ...row, roomCode: target!.roomId }; response = await createIn(row.roomCode); continue; }
+        const current = await findByInstance(db, row.instanceId);
+        if (!current?.slotHeld) return answer(fail("ROOM_CLOSED", 410));
+        row = current; tried.add(row.roomCode); response = await createIn(row.roomCode);
       }
       return answer(response.headers.get(ROOM_TAKEN_HEADER) === "1" ? fail("LOBBY_UNAVAILABLE", 503) : response);
     }
@@ -184,11 +200,13 @@ export default {
     }
     const join = /^\/api\/rooms\/([A-Z2-9]{6})\/join$/.exec(url.pathname);
     if (join && request.method === "POST") {
-      // A guest who already holds a guest identity may take a public room's seat through its invite code. Private rooms
-      // ignore these headers, and nothing is computed while public rooms are off.
+      // Private rooms answer at once. Only a public room asks for IDENTITY_REQUIRED; then the network key is derived
+      // (accounts too) and, for a guest, the guest cookie is read. A private join never touches the guest cookie.
+      const plain = await forward(join[1], "/internal/join");
       const secret = (env as PublicRoomEnv).PUBLIC_ROOM_SECRET;
-      if (identity || !secret || !publicRoomsEnabled(env as PublicRoomEnv)) return forward(join[1], "/internal/join");
-      const found = await readPublicGuest(request, secret);
+      if (plain.status !== 401 || !secret || !publicRoomsEnabled(env as PublicRoomEnv)) return plain;
+      if ((await plain.clone().json().catch(() => null) as { error?: string } | null)?.error !== "IDENTITY_REQUIRED") return plain;
+      const found = identity ? null : await readPublicGuest(request, secret);
       return forward(join[1], "/internal/join", publicSeatHeaders(found ? { key: await publicGuestKey(secret, found.id) } : undefined,
         await publicNetworkKey(secret, request.headers.get("CF-Connecting-IP") ?? "local")));
     }

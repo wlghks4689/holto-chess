@@ -52,7 +52,7 @@ export type RoomSnapshot = {
    * Public rooms only: what the room still owes the public registry (worker/publicLobby.ts). Saved with the change
    * that caused it, so a crash cannot lose the update. `seq` orders updates; `key` is the last summary content queued.
    */
-  publicSync?: { seq: number; key: string; sentSeq: number; sentAt?: number; retryAt?: number; attempts?: number; terminalSent?: true };
+  publicSync?: { seq: number; key: string; sentSeq: number; sentAt?: number; retryAt?: number; attempts?: number; finished?: true; terminalSent?: true };
   rank?: RankGame;
   /** Ranked outcomes not yet written to the account DB. Kept across rematches until D1 confirms them. */
   rankPending?: RankObligation[];

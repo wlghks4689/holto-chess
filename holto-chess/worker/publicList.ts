@@ -71,7 +71,8 @@ export async function handlePublicList(request: Request, env: PublicRoomEnv, url
   if (cursorText !== null && !cursor) return json({ error: "INVALID_CURSOR" }, 400);
   // One cache entry per page, whatever else the URL or the cookies say.
   const cacheKey = new Request(`${url.origin}/api/public-rooms${cursorText === null ? "" : `?cursor=${encodeURIComponent(cursorText)}`}`);
-  const seconds = env.PUBLIC_LIST_CACHE_SECONDS === undefined ? LIST_CACHE_SECONDS : Number(env.PUBLIC_LIST_CACHE_SECONDS);
+  // Off unless configured: a cached page could show a room that just filled up or started, for up to its age.
+  const seconds = env.PUBLIC_LIST_CACHE_SECONDS === undefined ? 0 : Number(env.PUBLIC_LIST_CACHE_SECONDS);
   const cache = typeof caches === "undefined" || !(seconds > 0) ? undefined : (caches as unknown as { default: Cache }).default;
   const cached = await cache?.match(cacheKey).catch(() => undefined);
   if (cached) return json(freshListing(await cached.json() as PublicListPage, Date.now()));

@@ -130,7 +130,7 @@ SELECT ... WHERE (SELECT COUNT(*) FROM public_rooms WHERE slot_held = 1) < :cap;
 ## 5. DO → D1 요약 전달
 
 1. GameRoom은 좌석·상태가 바뀔 때마다 **같은 저장(commit)** 에 `publicSync { seq, summary, retryAt, attempts }`를 함께 기록한다. 요약에는 confirmed/reserved 수, lifecycle, 만료 시각만 넣는다(카드·판정·계정 정보 없음).
-2. 전송은 `blockConcurrencyWhile` 밖에서 짧은 제한 시간으로 한다. 최신 요약 하나로 합친다. 성공하면 "전달 완료 seq"를 짧게 기록한다.
+2. 전송은 `blockConcurrencyWhile` 밖에서 짧은 제한 시간으로 한다(구현: 안에서 보낼 내용과 번호를 정하고, 밖에서 보내고, 안에서 결과만 기록). 최신 요약 하나로 합친다. 성공하면 "전달 완료 seq"를 짧게 기록한다.
 3. D1 반영 조건: `WHERE instance_id = ? AND summary_seq < ? AND state NOT IN ('FINISHED','CLOSED','CANCELLED')`. 같은 seq 재전송은 성공으로 본다. 종료 상태는 더 큰 seq로도 WAITING으로 되돌릴 수 없다.
 4. 실패하면 1초부터 시작해 최대 30초 간격으로 지터를 두어 재시도한다. `retryAt`은 저장하고 기존 단일 alarm 슬롯에 `reason: "lobby-sync"`로 합산한다. 카드 공개·barrier 기한을 덮어쓰지 않는다.
 5. 목록 표시 조건인 WAITING 방만 30초마다 lease를 갱신한다. 인원 0, 만원, 시작한 방은 갱신하지 않는다.
@@ -148,7 +148,7 @@ SELECT ... WHERE (SELECT COUNT(*) FROM public_rooms WHERE slot_held = 1) < :cap;
 
 - 조건: `state='WAITING' AND lease_expires_at > :now AND room_expires_at > :now AND confirmed_count + reserved_count < capacity`. 정렬은 `(created_at, instance_id)` keyset.
 - 공개 100개 상한 덕에 전체 목록이 작다. 그래도 20개 단위 페이지 계약은 유지한다.
-- 캐시: Worker Cache API로 최대 5초. 캐시에서 꺼낸 항목도 **응답 시점**에 lease·만료를 다시 검사해 제외한다. 응답에는 개인 정보가 없고 `Vary: Cookie`가 필요 없는 공개 응답만 공유 캐시한다.
+- 캐시: **기본 꺼짐**(Codex 검사 PR2-008, 만원·진행 중 방이 잠깐이라도 보이지 않게). `PUBLIC_LIST_CACHE_SECONDS`로 켤 수 있고, 켜면 Worker Cache API로 그 시간만큼 보관한다. 캐시에서 꺼낸 항목도 **응답 시점**에 lease·만료를 다시 검사해 제외한다. 응답에는 개인 정보가 없고 `Vary: Cookie`가 필요 없는 공개 응답만 공유 캐시한다.
 - 목록은 참가 후보일 뿐이다. 정원·시작 여부의 최종 판단은 참가 요청 시 GameRoom이 한다(1단계 동작).
 - 응답에 `creator_key`, `request_id`, 계정·게스트 식별자, 토큰, 카드·판정 정보는 없다(REG-04 테스트).
 
@@ -204,3 +204,8 @@ SELECT ... WHERE (SELECT COUNT(*) FROM public_rooms WHERE slot_held = 1) < :cap;
 **확정(2026-10-17):** 100개 상한은 진행 중인 방을 포함한다. Human 보너스는 현행 유지(게스트 포함). 게스트도 공개방을 만들 수 있다(4.2의 엄격한 한도 적용).
 
 **아직 미정:** 4.2 한도 수치의 최종값(출시 전 공유망 검증 후 확정), 지역·언어 필터의 노출 범위, Discord Activity에서의 게스트 공개방 동작, 운영 반영 시점.
+
+## 13. 구현 후 변경 (Codex 1차 검사 반영, 2026-10-18)
+
+- 방 생성은 등록부의 1회성 허락(`fenceRoomCreation`)을 받아야 한다. 생성 요청 ID는 UUIDv7이고 24시간이 지나면 거절, 종료 기록 보관은 48시간.
+- 목록 캐시는 기본 꺼짐. 상세: [2단계 QA](qa/2026-10-18-public-rooms-phase2.md).

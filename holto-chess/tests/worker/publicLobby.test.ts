@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  applySummary, claimPublicSlot, countLiveRooms, findByInstance, findByRequest, moveClaimToCode, PUBLIC_ROOMS_MAX, releasePublicSlot, type ClaimInput,
+  applySummary, claimPublicSlot, countLiveRooms, fenceRoomCreation, findByInstance, findByRequest, moveClaimToCode, PUBLIC_ROOMS_MAX, releasePublicSlot, type ClaimInput,
 } from "../../worker/publicLobby";
 
 const db = (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
@@ -108,13 +108,29 @@ describe("public room registry (PUBLIC-ROOMS-002 2-A)", () => {
     expect(await findByInstance(db, input.instanceId)).toMatchObject({ state: "FINISHED", slotHeld: false, summarySeq: 4, closedAt: T0 + 4 });
   });
 
+  it("lets a room come into existence once, only at its claimed code, never after cancellation (review PR2-001/002/003)", async () => {
+    const a = claim({ roomCode: "FEN222" });
+    await claimPublicSlot(db, a);
+    expect(await fenceRoomCreation(db, a.instanceId, "OTHER2")).toBe("moved");
+    expect(await fenceRoomCreation(db, a.instanceId, "FEN222")).toBe("won");
+    expect(await fenceRoomCreation(db, a.instanceId, "FEN222")).toBe("closed"); // a second copy can never create again
+    expect(await moveClaimToCode(db, a.instanceId, "FEN222", "FEN333")).toBe("gone"); // a created room is never moved away
+    const b = claim();
+    await claimPublicSlot(db, b);
+    await releasePublicSlot(db, b.instanceId, "CANCELLED", T0 + 1);
+    expect(await fenceRoomCreation(db, b.instanceId, b.roomCode)).toBe("closed");
+    expect(await fenceRoomCreation(db, "f".repeat(32), "NOROW2")).toBe("closed");
+  });
+
   it("moves a provisioning claim to another code only while that code is free", async () => {
     const a = claim({ roomCode: "AAA222" }), b = claim({ roomCode: "BBB333" });
     await claimPublicSlot(db, a); await claimPublicSlot(db, b);
-    expect(await moveClaimToCode(db, a.instanceId, "BBB333")).toBe("code_taken");
-    expect(await moveClaimToCode(db, a.instanceId, "CCC444")).toBe("moved");
+    expect(await moveClaimToCode(db, a.instanceId, "AAA222", "BBB333")).toBe("code_taken");
+    expect(await moveClaimToCode(db, a.instanceId, "AAA222", "CCC444")).toBe("moved");
+    // A second mover that still saw the old code cannot move the claim again.
+    expect(await moveClaimToCode(db, a.instanceId, "AAA222", "EEE666")).toBe("gone");
     expect((await findByRequest(db, a.creatorKey, a.requestId))!.roomCode).toBe("CCC444");
     await releasePublicSlot(db, a.instanceId, "CANCELLED", T0 + 2);
-    expect(await moveClaimToCode(db, a.instanceId, "DDD555")).toBe("gone");
+    expect(await moveClaimToCode(db, a.instanceId, "CCC444", "DDD555")).toBe("gone");
   });
 });

@@ -35,7 +35,12 @@ async function account() {
 }
 const accountsOf = (n: number) => Promise.all(Array.from({ length: n }, account));
 const post = (path: string, cookie: string, body: unknown) => call(path, { method: "POST", headers: { Cookie: cookie, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-const createPublic = (cookie: string, requestId: string = crypto.randomUUID()) => post("/api/public-rooms", cookie, { requestId });
+/** A UUIDv7 as a client makes it for a create: its first 48 bits are the time in milliseconds. */
+function uuid7(at = Date.now()): string {
+  const hex = at.toString(16).padStart(12, "0") + Array.from(crypto.getRandomValues(new Uint8Array(10)), b => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-7${hex.slice(13, 16)}-${(8 + (parseInt(hex[16]!, 16) & 3)).toString(16)}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+const createPublic = (cookie: string, requestId: string = uuid7()) => post("/api/public-rooms", cookie, { requestId });
 const joinPublic = (room: Credential, cookie: string, requestId: string = crypto.randomUUID(), instanceId = room.instanceId) =>
   post(`/api/public-rooms/${room.roomId}/join`, cookie, { requestId, instanceId });
 async function created(cookie: string): Promise<Credential> {
@@ -79,7 +84,7 @@ async function connect(credential: Credential) {
   });
   const view = () => (messages.filter(message => message.type === "PLAYER_VIEW").at(-1) as { type: "PLAYER_VIEW"; payload: PlayerView }).payload;
   const send = async (action: GameAction) => {
-    const requestId = crypto.randomUUID();
+    const requestId = uuid7();
     ws.send(JSON.stringify({ ...action, requestId, turnKey: view().turnKey }));
     return wait(message => (message.type === "ACK" || message.type === "ERROR") && message.requestId === requestId);
   };
@@ -112,7 +117,7 @@ describe("public room seats (PUB)", () => {
 
   it("PUB-04/06: retries of one create or join return one credential; another key cannot double-seat the account", async () => {
     const [host, guest] = await accountsOf(2);
-    const requestId = crypto.randomUUID();
+    const requestId = uuid7();
     const creates = await Promise.all(Array.from({ length: 20 }, () => createPublic(host!.cookie, requestId)));
     const bodies = await Promise.all(creates.map(response => { expect(response.status).toBe(201); return response.json() as Promise<Credential>; }));
     expect(new Set(bodies.map(body => `${body.roomId}:${body.token}:${body.instanceId}`)).size).toBe(1);
@@ -174,8 +179,11 @@ describe("public room seats (PUB)", () => {
         expect(await errorOf(join)).toBe("ROOM_STARTED");
         expect(snapshot.sessions.some(session => session.reservedUntil !== undefined)).toBe(false);
       } else {
+        // The join came first: its reservation blocks the start. A READY that arrived after it may stand, but only
+        // confirmed seats can hold READY, and the game cannot start while the reservation is open.
         expect(join.status).toBe(201);
-        expect(snapshot.readyIds).toEqual([]);
+        expect(snapshot.sessions.some(session => session.reservedUntil !== undefined)).toBe(true);
+        for (const id of snapshot.readyIds) expect(snapshot.sessions.find(session => session.playerId === id)!.reservedUntil).toBeUndefined();
       }
     }
   });
@@ -316,7 +324,7 @@ describe("late alarms and create retries (review c39a765)", () => {
 
   it("a create retry returns the room it made even after an earlier candidate code became free", async () => {
     const host = await account();
-    const requestId = crypto.randomUUID();
+    const requestId = uuid7();
     const first = await publicCreateCandidate("test-public-room-secret", host.id, requestId, 0);
     // Another room holds the first candidate code, so the create lands on the second one.
     const blocker = await stubFor(first.roomId).fetch("https://room/internal/create", { method: "POST", headers: { "X-Room-Id": first.roomId } });
@@ -387,7 +395,7 @@ describe("registry-backed create (PUBLIC-ROOMS-002 2-C)", () => {
 
   it("answers a retry of an ended room with ROOM_CLOSED instead of making a new room", async () => {
     const [host] = await accountsOf(1);
-    const requestId = crypto.randomUUID();
+    const requestId = uuid7();
     const room = await (await createPublic(host!.cookie, requestId)).json() as Credential;
     await lobbyDb().prepare("UPDATE public_rooms SET state = 'CLOSED', slot_held = 0 WHERE instance_id = ?").bind(room.instanceId).run();
     const retry = await createPublic(host!.cookie, requestId);
@@ -415,7 +423,7 @@ describe("registry-backed create (PUBLIC-ROOMS-002 2-C)", () => {
   it("limits one network to five new rooms per ten minutes", async () => {
     const ip = "203.0.113.200";
     const statuses: number[] = [];
-    for (let i = 0; i < 6; i++) statuses.push((await guestPost("/api/public-rooms", { requestId: crypto.randomUUID(), nickname: `만든이${i}` }, "", ip)).status);
+    for (let i = 0; i < 6; i++) statuses.push((await guestPost("/api/public-rooms", { requestId: uuid7(), nickname: `만든이${i}` }, "", ip)).status);
     expect(statuses).toEqual([201, 201, 201, 201, 201, 429]);
   });
 });
@@ -595,7 +603,7 @@ describe("public room list (PUBLIC-ROOMS-002 2-E)", () => {
     await lobbyDb().prepare("UPDATE public_rooms SET state = 'CLOSED', slot_held = 0 WHERE creator_key LIKE 'pager-%'").run();
   });
 
-  it("serves a cached page for a few seconds, still dropping rooms whose lease ran out", async () => {
+  it("can serve a cached page when the cache is turned on (off by default), still dropping rooms whose lease ran out", async () => {
     const { room } = await waitingWithSomeone();
     const cachedEnv = { ...env, PUBLIC_LIST_CACHE_SECONDS: "5" } as unknown as Env;
     const get = async () => (await worker.fetch(new Request(`${origin}/api/public-rooms`, { headers: { "CF-Connecting-IP": crypto.randomUUID() } }), cachedEnv, createExecutionContext())).json() as Promise<Page>;
@@ -651,8 +659,8 @@ describe("minute Cron repair (PUBLIC-ROOMS-002 2-F)", () => {
     expect(await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.getAlarm())).not.toBeNull();
   });
 
-  it("deletes ended rows after a day, keeps recent ones, and does nothing while public rooms are off", async () => {
-    await fakeRow("2".repeat(32), "OLDOLD", "CLOSED", { slotHeld: 0, closedAt: Date.now() - 25 * 60 * 60_000 });
+  it("deletes ended rows after two days, keeps recent ones, and does nothing while public rooms are off", async () => {
+    await fakeRow("2".repeat(32), "OLDOLD", "CLOSED", { slotHeld: 0, closedAt: Date.now() - 49 * 60 * 60_000 });
     await fakeRow("3".repeat(32), "NEWNEW", "CLOSED", { slotHeld: 0, closedAt: Date.now() - 60_000 });
     await fakeRow("4".repeat(32), "OFFOFF", "PROVISIONING");
     expect(await runPublicLobbyRepair({ ...env, PUBLIC_ROOMS_ENABLED: undefined } as unknown as PublicRoomEnv)).toEqual({ checked: 0, closed: 0, refreshed: 0, unanswered: 0, purged: 0 });
@@ -679,7 +687,7 @@ describe("minute Cron repair (PUBLIC-ROOMS-002 2-F)", () => {
 
 describe("guest seats in public rooms (PUBLIC-ROOMS-002 2-B)", () => {
   it("lets a guest create a public room, remembers the guest by cookie and returns the same seat on retry", async () => {
-    const requestId = crypto.randomUUID();
+    const requestId = uuid7();
     const first = await guestPost("/api/public-rooms", { requestId, nickname: "손님1" });
     expect(first.status).toBe(201);
     const cookie = guestCookieOf(first);
@@ -700,12 +708,12 @@ describe("guest seats in public rooms (PUBLIC-ROOMS-002 2-B)", () => {
   });
 
   it("requires a valid nickname from a guest and never accepts a forged guest cookie as that guest", async () => {
-    const missing = await guestPost("/api/public-rooms", { requestId: crypto.randomUUID() });
+    const missing = await guestPost("/api/public-rooms", { requestId: uuid7() });
     expect(missing.status).toBe(400);
     expect(await errorOf(missing)).toBe("NICKNAME_REQUIRED");
-    expect((await guestPost("/api/public-rooms", { requestId: crypto.randomUUID(), nickname: "<b>x</b>" })).status).toBe(400);
+    expect((await guestPost("/api/public-rooms", { requestId: uuid7(), nickname: "<b>x</b>" })).status).toBe(400);
 
-    const requestId = crypto.randomUUID();
+    const requestId = uuid7();
     const owner = await guestPost("/api/public-rooms", { requestId, nickname: "주인" });
     const room = await owner.json() as Credential;
     const cookie = guestCookieOf(owner);
@@ -763,5 +771,119 @@ describe("guest seats in public rooms (PUBLIC-ROOMS-002 2-B)", () => {
     expect(codes).toEqual([201, 201, 201, 409]);
     // Another network still gets in.
     expect((await guestPost(`/api/public-rooms/${room.roomId}/join`, { requestId: crypto.randomUUID(), instanceId: room.instanceId, nickname: "다른곳" }, "", "198.51.100.9")).status).toBe(201);
+  });
+});
+
+describe("Codex review of phase 2 (PR2-001 ~ PR2-009)", () => {
+  const lobbyDb = () => (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
+  const rowOf = (instanceId: string) => lobbyDb().prepare("SELECT state, slot_held, summary_seq FROM public_rooms WHERE instance_id = ?")
+    .bind(instanceId).first<{ state: string; slot_held: number; summary_seq: number }>();
+  type SyncInternal = Internal & { commit: (next: RoomSnapshot, activity?: boolean) => Promise<void>; lobbyDb: () => D1Database | undefined };
+
+  it("PR2-003: a retry never recreates a room that existed and was deleted without its goodbye", async () => {
+    const [host] = await accountsOf(1);
+    const requestId = uuid7();
+    const room = await (await createPublic(host!.cookie, requestId)).json() as Credential;
+    await until(async () => (await rowOf(room.instanceId))?.state, state => state === "WAITING");
+    await runInDurableObject(stubFor(room.roomId), async (instance, state) => {
+      (instance as unknown as { room?: RoomSnapshot }).room = undefined;
+      await state.storage.deleteAll();
+    });
+    const retry = await createPublic(host!.cookie, requestId);
+    expect(retry.status).toBe(410);
+    expect(await errorOf(retry)).toBe("ROOM_CLOSED");
+    expect(await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
+  });
+
+  it("PR2-002: Cron cannot cancel a create that won the race after Cron saw the room empty", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    await until(async () => (await rowOf(room.instanceId))?.state, state => state === "WAITING");
+    // Cron read the row before the room existed (sequence 0) and the room answered "not found" at that time.
+    const db = lobbyDb();
+    const stale = { prepare: (sql: string) => sql.startsWith("SELECT instance_id, room_code")
+      ? { bind: () => ({ all: async () => ({ results: [{ instance_id: room.instanceId, room_code: room.roomId, state: "PROVISIONING", summary_seq: 0 }] }) }) }
+      : db.prepare(sql) } as unknown as D1Database;
+    const emptyRoom = { getByName: () => ({ fetch: async () => new Response(null, { status: 404 }) }) };
+    const report = await runPublicLobbyRepair({ ...env, PUBLIC_LOBBY_DB: stale, GAME_ROOM: emptyRoom } as unknown as PublicRoomEnv);
+    expect(report).toMatchObject({ checked: 1, closed: 0 });
+    expect(await rowOf(room.instanceId)).toMatchObject({ state: "WAITING", slot_held: 1 });
+  });
+
+  it("PR2-004: the game result releases the slot even if its report failed and a rematch started first", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    await until(async () => (await rowOf(room.instanceId))?.state, state => state === "WAITING");
+    const broken = { prepare() { throw new Error("D1 unavailable"); } } as unknown as D1Database;
+    await runInDurableObject(stubFor(room.roomId), async instance => {
+      const internal = instance as unknown as SyncInternal;
+      internal.lobbyDb = () => broken;
+      const result = structuredClone(internal.room);
+      result.status = "PLAYING"; result.game.phase = "GAME_RESULT";
+      await internal.commit(result, false);
+    });
+    await runDurableObjectAlarm(stubFor(room.roomId)); // the FINISHED report fails
+    await runInDurableObject(stubFor(room.roomId), async instance => {
+      const internal = instance as unknown as SyncInternal;
+      const rematch = structuredClone(internal.room);
+      rematch.game.phase = "ABILITY_DEAL";
+      await internal.commit(rematch, false);
+      delete (internal as Partial<SyncInternal>).lobbyDb;
+      internal.room = structuredClone(internal.room);
+      internal.room.publicSync!.retryAt = Date.now() - 1;
+    });
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    expect(await rowOf(room.instanceId)).toMatchObject({ state: "FINISHED", slot_held: 0 });
+  });
+
+  it("PR2-005/009: invite-code joins of a public room apply the three-seats-per-network limit to accounts too", async () => {
+    const [host, ...members] = await accountsOf(5);
+    const room = await created(host!.cookie);
+    const ip = "203.0.113.150";
+    const statuses: number[] = [];
+    for (const member of members) {
+      const response = await call(`/api/rooms/${room.roomId}/join`, { method: "POST", headers: { Cookie: member.cookie, "CF-Connecting-IP": ip } });
+      statuses.push(response.status);
+      if (response.status === 409) expect(await errorOf(response)).toBe("NETWORK_SEAT_LIMIT");
+    }
+    expect(statuses).toEqual([201, 201, 201, 409]);
+    // A private room's invite path is untouched: it answers at once and its seats carry no public keys.
+    const privateRoom = await (await call("/api/rooms", { method: "POST" })).json() as Credential;
+    const join = await call(`/api/rooms/${privateRoom.roomId}/join`, { method: "POST", headers: { Cookie: "__Host-porena_guest=v1.not.a.cookie" } });
+    expect(join.status).toBe(201);
+    expect((await saved(privateRoom.roomId)).sessions.every(session => !session.networkKey && !session.guestKey)).toBe(true);
+  });
+
+  it("PR2-006: create ids are time-stamped (UUIDv7) and a retry older than a day is refused", async () => {
+    const [host] = await accountsOf(1);
+    const old = await createPublic(host!.cookie, uuid7(Date.now() - 25 * 60 * 60_000));
+    expect(old.status).toBe(410);
+    expect(await errorOf(old)).toBe("REQUEST_EXPIRED");
+    const v4 = await createPublic(host!.cookie, crypto.randomUUID());
+    expect(v4.status).toBe(400);
+    const future = await createPublic(host!.cookie, uuid7(Date.now() + 60 * 60_000));
+    expect(future.status).toBe(400);
+    expect((await createPublic(host!.cookie, uuid7(Date.now() - 60_000))).status).toBe(201);
+  });
+
+  it("PR2-007: a slow registry write never holds up seat confirmation", async () => {
+    const [host, guest] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    await until(async () => (await rowOf(room.instanceId))?.state, state => state === "WAITING");
+    const realDb = lobbyDb();
+    const slow = { prepare: (sql: string) => {
+      const statement = realDb.prepare(sql);
+      return { bind: (...args: unknown[]) => ({ run: async () => { await new Promise(resolve => setTimeout(resolve, 2500)); return statement.bind(...args).run(); } }) };
+    } } as unknown as D1Database;
+    await runInDurableObject(stubFor(room.roomId), instance => { (instance as unknown as SyncInternal).lobbyDb = () => slow; });
+    const seat = await joined(room, guest!.cookie); // queues a registry update
+    const alarm = runDurableObjectAlarm(stubFor(room.roomId)); // its write now takes 2.5 seconds
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const started = Date.now();
+    const socket = await connect(seat);
+    expect(socket.messages.some(message => message.type === "ROOM_JOINED")).toBe(true);
+    expect(Date.now() - started).toBeLessThan(1500);
+    await alarm;
+    await runInDurableObject(stubFor(room.roomId), instance => { delete (instance as unknown as Partial<SyncInternal>).lobbyDb; });
   });
 });

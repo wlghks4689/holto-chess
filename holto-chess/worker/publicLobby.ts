@@ -9,8 +9,12 @@ import { PUBLIC_LOBBY_TIMING } from "../src/game/publicRoom";
 export const PUBLIC_ROOMS_MAX = 100;
 /** A room that is not WAITING within this long after its slot was claimed is cancelled by Cron. */
 export const PROVISIONING_TIMEOUT_MS = 2 * 60_000;
-/** Closed rows stay this long so a late retry of a create still finds its answer instead of making a new room. */
-export const TERMINAL_RETENTION_MS = 24 * 60 * 60_000;
+/**
+ * Closed rows stay this long so a late retry of a create still finds its answer instead of making a new room. A create
+ * request id carries its own time and is refused after CREATE_REQUEST_MAX_AGE_MS (publicRoomKeys.ts), so no valid retry
+ * can outlive its row. Keep this longer than that age plus the allowed clock skew.
+ */
+export const TERMINAL_RETENTION_MS = 48 * 60 * 60_000;
 /** Derived room codes tried for one create request. */
 export const CODE_ATTEMPTS = 5;
 /** One network (IP) may create this many public rooms per NETWORK_CREATE_WINDOW_MS, whoever it says it is. */
@@ -110,15 +114,37 @@ export async function claimPublicSlot(db: D1Database, input: ClaimInput): Promis
   return holder ? { kind: "code_taken" } : { kind: "capacity" };
 }
 
-/** A DO created at another code than the claimed one (a private room held it): move the claim to the next candidate. */
-export async function moveClaimToCode(db: D1Database, instanceId: string, roomCode: string): Promise<"moved" | "code_taken" | "gone"> {
+/**
+ * A private room (not in the registry) holds the claimed code: move the claim to another candidate. Only from the code
+ * the caller saw, and only before any room was created for it (summary_seq 0), so two retries cannot move one claim
+ * apart and a created room can never be moved away from.
+ */
+export async function moveClaimToCode(db: D1Database, instanceId: string, fromCode: string, roomCode: string): Promise<"moved" | "code_taken" | "gone"> {
   try {
-    const result = await db.prepare("UPDATE public_rooms SET room_code = ? WHERE instance_id = ? AND state = 'PROVISIONING' AND slot_held = 1").bind(roomCode, instanceId).run();
+    const result = await db.prepare(
+      "UPDATE public_rooms SET room_code = ? WHERE instance_id = ? AND room_code = ? AND state = 'PROVISIONING' AND slot_held = 1 AND summary_seq = 0",
+    ).bind(roomCode, instanceId, fromCode).run();
     return result.meta.changes === 1 ? "moved" : "gone";
   } catch (error) {
     if (/UNIQUE constraint failed/i.test(error instanceof Error ? error.message : String(error))) return "code_taken";
     throw error;
   }
+}
+
+/**
+ * The one moment a public room may come into existence. The room calls this before it creates itself: it succeeds once,
+ * for a live claim still being provisioned at exactly this code, by moving summary_seq from 0 to 1 in one statement.
+ * Everything that could otherwise make a second room is refused here: a retry that lost the race, a claim that moved to
+ * another code ("moved"), a create Cron cancelled, or a room that existed and was deleted ("closed").
+ */
+export async function fenceRoomCreation(db: D1Database, instanceId: string, roomCode: string): Promise<"won" | "moved" | "closed"> {
+  const won = await db.prepare(
+    "UPDATE public_rooms SET summary_seq = 1 WHERE instance_id = ? AND room_code = ? AND state = 'PROVISIONING' AND slot_held = 1 AND summary_seq = 0",
+  ).bind(instanceId, roomCode).run();
+  if (won.meta.changes === 1) return "won";
+  const row = await db.prepare("SELECT room_code, state, slot_held, summary_seq FROM public_rooms WHERE instance_id = ?").bind(instanceId)
+    .first<{ room_code: string; state: string; slot_held: number; summary_seq: number }>();
+  return row && row.slot_held === 1 && row.state === "PROVISIONING" && row.summary_seq === 0 && row.room_code !== roomCode ? "moved" : "closed";
 }
 
 /** Ends a room's life in the registry and gives its slot back. Repeating it is harmless. */

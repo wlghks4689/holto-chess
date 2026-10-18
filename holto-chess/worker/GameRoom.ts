@@ -2,7 +2,9 @@ import { DurableObject } from "cloudflare:workers";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, startSolo, turnKey, type RoomSnapshot } from "../src/game/room";
 import { type PublicSeatIdentity, confirmPublicSeat, isPublicLobby, makePublicRoom, markPublicSeatDisconnected, PUBLIC_LOBBY_TIMING, publicLobbyClosesAt, publicLobbyDeadline, publicSeatsAwaitingPresence, releasedKey, reservePublicSeat, sweepPublicLobby } from "../src/game/publicRoom";
 import { PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicSeatToken, type PublicRoomEnv } from "./publicRoomKeys";
-import { applySummary, buildSummary, LEASE_RENEW_MS, summaryKey, summaryState, SYNC_TIMEOUT_MS, syncRetryDelay, withTimeout } from "./publicLobby";
+import { applySummary, buildSummary, fenceRoomCreation, LEASE_RENEW_MS, summaryKey, summaryState, SYNC_TIMEOUT_MS, syncRetryDelay, withTimeout, type PublicSummary } from "./publicLobby";
+/** A registry update decided inside the serialized section and sent outside it. */
+type PublicSummaryPlan = { summary: PublicSummary; renewal: boolean };
 import { collectRankObligations } from "../src/game/rankRoom";
 import { settleRankObligation } from "./rank";
 import { createPlayerView } from "../src/game/playerView";
@@ -109,9 +111,11 @@ export class GameRoom extends DurableObject<Env> {
     if (collectRankObligations(next)) { next.rankRetryAt ??= Math.max(Date.now(), next.presentation?.endsAt ?? 0) + 1000; next.rankAttempts ??= 0; }
     // A public room notes in the same save what the registry must learn, so a crash cannot drop the update.
     if (next.visibility === "PUBLIC" && this.lobbyDb() && !next.publicSync?.terminalSent) {
-      const key = summaryKey(next);
+      // Reaching the game result is final for the listing, even if a rematch starts before the registry hears of it.
+      const finished = !!next.publicSync?.finished || summaryState(next) === "FINISHED";
+      const key = finished ? "FINISHED" : summaryKey(next);
       if (key !== next.publicSync?.key) next.publicSync = { seq: (next.publicSync?.seq ?? 0) + 1, key, sentSeq: next.publicSync?.sentSeq ?? 0,
-        ...(next.publicSync?.sentAt !== undefined ? { sentAt: next.publicSync.sentAt } : {}), retryAt: Date.now(), attempts: 0 };
+        ...(next.publicSync?.sentAt !== undefined ? { sentAt: next.publicSync.sentAt } : {}), retryAt: Date.now(), attempts: 0, ...(finished ? { finished: true as const } : {}) };
     }
     // Publish only after durable storage succeeds. Failed commands never replace the snapshot.
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
@@ -148,40 +152,73 @@ export class GameRoom extends DurableObject<Env> {
     const closesAt = publicLobbyClosesAt(room);
     return Math.min(this.expiresAt ?? Number.MAX_SAFE_INTEGER, closesAt ?? Number.MAX_SAFE_INTEGER);
   }
+  /** How the registry must see the room: a result once reached stays the result until the registry has it. */
+  private publicSummaryState(room: RoomSnapshot): "WAITING" | "PLAYING" | "FINISHED" {
+    return room.publicSync?.finished || room.publicSync?.terminalSent ? "FINISHED" : summaryState(room);
+  }
   /**
-   * Sends the latest public summary to the registry: a queued change, or the 30-second lease renewal of a waiting room.
-   * Runs from the alarm with a short time limit. Failure keeps the duty and backs off; the game never waits on it.
+   * Inside the serialized section: decides whether a summary is due (a queued change, or the 30-second lease renewal of
+   * a waiting room) and fixes its sequence number. A renewal's number is saved now, so a change made while the write is
+   * in flight always gets a later one. Returns nothing when nothing is due.
    */
-  private async flushPublicSummary(now: number): Promise<void> {
-    const db = this.lobbyDb(), room = this.room, sync = room?.publicSync;
-    if (!db || !room || room.visibility !== "PUBLIC" || !sync || sync.terminalSent) return;
+  private async planPublicSummary(now: number): Promise<PublicSummaryPlan | undefined> {
+    const room = this.room, sync = room?.publicSync;
+    if (!this.lobbyDb() || !room || room.visibility !== "PUBLIC" || !sync || sync.terminalSent) return undefined;
     const queued = sync.retryAt !== undefined;
-    const leaseDue = summaryState(room) === "WAITING" && (sync.sentAt ?? 0) + LEASE_RENEW_MS <= now;
-    if (queued ? sync.retryAt! > now : !leaseDue) return;
-    const seq = queued ? sync.seq : sync.seq + 1; // A renewal is a new, later fact about the room.
-    const summary = buildSummary(room, seq, now, this.publicRoomExpiresAt(room));
+    const state = this.publicSummaryState(room);
+    if (queued ? sync.retryAt! > now : !(state === "WAITING" && (sync.sentAt ?? 0) + LEASE_RENEW_MS <= now)) return undefined;
+    const seq = queued ? sync.seq : sync.seq + 1;
+    if (!queued) {
+      const next = structuredClone(room);
+      next.publicSync = { ...sync, seq, sentAt: now };
+      await this.commit(next, false);
+    }
+    return { summary: buildSummary(room, seq, now, this.publicRoomExpiresAt(room), state), renewal: !queued };
+  }
+  /**
+   * Outside the serialized section: the registry write itself, so seats and the game never wait for the database. Then a
+   * short serialized acknowledgement that never overwrites a change queued meanwhile.
+   */
+  private async deliverPublicSummary(plan: PublicSummaryPlan): Promise<void> {
+    const db = this.lobbyDb();
+    if (!db) return;
     let delivered = false;
     try {
-      await withTimeout(applySummary(db, summary), SYNC_TIMEOUT_MS);
+      await withTimeout(applySummary(db, plan.summary), SYNC_TIMEOUT_MS);
       delivered = true;
     } catch (error) {
-      diag("lobby.syncError", { ...roomFields(room), seq, attempts: (sync.attempts ?? 0) + 1, message: error instanceof Error ? error.message : String(error) }, "error");
+      diag("lobby.syncError", { ...roomFields(this.room), seq: plan.summary.seq, message: error instanceof Error ? error.message : String(error) }, "error");
     }
-    const next = structuredClone(room);
-    next.publicSync = delivered
-      ? { seq, key: sync.key, sentSeq: seq, sentAt: now, ...(summary.state === "FINISHED" ? { terminalSent: true as const } : {}) }
-      : { ...sync, seq, attempts: (sync.attempts ?? 0) + 1, retryAt: now + syncRetryDelay((sync.attempts ?? 0) + 1) };
-    await this.commit(next, false);
+    if (delivered && plan.renewal) return; // Its sequence number and time were saved when it was planned.
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const room = this.room, sync = room?.publicSync;
+      if (!room || !sync) return;
+      const newer = sync.seq > plan.summary.seq;
+      if (!delivered && newer) return; // A later change is queued and goes out at once anyway.
+      const next = structuredClone(room);
+      if (!delivered) {
+        const attempts = (sync.attempts ?? 0) + 1;
+        next.publicSync = { ...sync, attempts, retryAt: Date.now() + syncRetryDelay(attempts) };
+      } else if (newer) {
+        next.publicSync = { ...sync, sentSeq: plan.summary.seq };
+      } else {
+        next.publicSync = { seq: sync.seq, key: sync.key, sentSeq: sync.seq, sentAt: plan.summary.observedAt,
+          ...(sync.finished ? { finished: true as const } : {}), ...(plan.summary.state === "FINISHED" ? { terminalSent: true as const } : {}) };
+      }
+      await this.commit(next, false);
+      await this.rescheduleAlarm();
+    });
   }
-  /** Last word before the room is deleted. Best effort: if it fails, Cron finds the room gone and closes the listing. */
-  private async closePublicListing(now: number): Promise<void> {
-    const db = this.lobbyDb(), room = this.room, sync = room?.publicSync;
-    if (!db || !room || room.visibility !== "PUBLIC" || sync?.terminalSent) return;
-    try {
-      await withTimeout(applySummary(db, buildSummary(room, (sync?.seq ?? 0) + 1, now, now, "CLOSED")), SYNC_TIMEOUT_MS);
-    } catch (error) {
-      diag("lobby.closeError", { ...roomFields(room), message: error instanceof Error ? error.message : String(error) }, "error");
-    }
+  /** The CLOSED summary to send once the room is deleted, or nothing when the registry already has the end. */
+  private publicFarewell(now: number): PublicSummary | undefined {
+    const room = this.room, sync = room?.publicSync;
+    if (!this.lobbyDb() || !room || room.visibility !== "PUBLIC" || sync?.terminalSent) return undefined;
+    return buildSummary(room, (sync?.seq ?? 0) + 1, now, now, "CLOSED");
+  }
+  /** Best effort, after deletion and outside the serialized section: if it fails, Cron finds the room gone. */
+  private async sendPublicFarewell(summary: PublicSummary): Promise<void> {
+    try { await withTimeout(applySummary(this.lobbyDb()!, summary), SYNC_TIMEOUT_MS); }
+    catch (error) { diag("lobby.closeError", { instanceId: summary.instanceId, message: error instanceof Error ? error.message : String(error) }, "error"); }
   }
   /**
    * Checked on every request, not only by the alarm: an alarm can run late, and a join that slipped in before it
@@ -404,7 +441,18 @@ export class GameRoom extends DurableObject<Env> {
           if (this.isExpired(now)) return refuse("ROOM_EXPIRED", 410);
           return this.joinPublic(roomId, identity, seatToken, now);
         }
+        // The registry lets this room come into existence once: only for a live claim still being provisioned, at this
+        // very code, and only if no other copy of the request got there first. A stale retry, a claim that moved, a
+        // create Cron already cancelled or a room that existed and was deleted can never make another room.
+        const db = this.lobbyDb();
+        if (!db) return refuse("LOBBY_UNAVAILABLE", 503);
+        let fence: "won" | "moved" | "closed";
+        try { fence = await fenceRoomCreation(db, instanceId, roomId); } catch { return refuse("LOBBY_UNAVAILABLE", 503); }
+        if (fence === "moved") return refuse("CLAIM_MOVED", 409);
+        if (fence === "closed") return refuse("ROOM_CLOSED", 410);
         const room = makePublicRoom(createRoom(roomId, randomSeed(), "secure", 2, true), instanceId, now);
+        // The fence used sequence number 1, so the room's first summary is 2 and the registry accepts it.
+        room.publicSync = { seq: 1, key: "", sentSeq: 1 };
         const seated = reservePublicSeat(room, await hash(seatToken), identity, now);
         if ("error" in seated) return refuse(seated.error, 409);
         await this.commit(seated.room);
@@ -424,10 +472,10 @@ export class GameRoom extends DurableObject<Env> {
         const now = Date.now(), sync = room.publicSync;
         const seq = (sync?.seq ?? 0) + 1; // Later than anything the room sent before, so the registry accepts it.
         const next = structuredClone(room);
-        next.publicSync = { ...(sync ?? { sentSeq: 0 }), seq, key: summaryKey(room) };
+        next.publicSync = { ...(sync ?? { sentSeq: 0 }), seq, key: sync?.finished ? "FINISHED" : summaryKey(room) };
         await this.commit(next, false);
         await this.rescheduleAlarm();
-        const summary = sync?.terminalSent ? buildSummary(next, seq, now, this.publicRoomExpiresAt(next), "FINISHED") : buildSummary(next, seq, now, this.publicRoomExpiresAt(next));
+        const summary = buildSummary(next, seq, now, this.publicRoomExpiresAt(next), this.publicSummaryState(next));
         return Response.json(summary, { headers: { "Cache-Control": "no-store" } });
       });
     }
@@ -476,8 +524,9 @@ export class GameRoom extends DurableObject<Env> {
         if (this.room!.visibility === "PUBLIC") {
           // An invite code of a public room follows the public seat rules: an account or a verified guest, reserved until connected.
           // A guest without a guest identity is sent to the public join endpoint, which issues one.
+          // The Worker reads the guest cookie and derives the network key only after this answer, so private joins never do.
           const identity = publicSeatIdentity(request.headers);
-          if (!identity) return refuse("IDENTITY_REQUIRED", 401);
+          if (!identity?.networkKey) return refuse("IDENTITY_REQUIRED", 401);
           return this.joinPublic(roomId, identity, token(), Date.now());
         }
         if (this.room!.status !== "LOBBY" || this.room!.sessions.length >= 8) return new Response("Room unavailable", { status: 409 });
@@ -634,11 +683,11 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
   async alarm(info?: AlarmInvocationInfo): Promise<void> {
+    const lobby: { plan?: PublicSummaryPlan; farewell?: PublicSummary } = {};
     await this.ctx.blockConcurrencyWhile(async () => {
       const now = Date.now();
       this.runningAlarmAt = Math.max(now, info?.scheduledTime ?? 0);
       await this.flushRank(now);
-      await this.flushPublicSummary(now);
       if (this.expiresAt && now >= this.expiresAt && this.room?.rankPending?.length) {
         // Expiry would erase a ranked outcome D1 has not confirmed yet: keep the room until it lands.
         this.expiresAt = now + RANK_EXPIRY_GRACE_MS;
@@ -647,7 +696,7 @@ export class GameRoom extends DurableObject<Env> {
       }
       if (this.isExpired(now)) {
         diag("room.expired", roomFields(this.room));
-        await this.closePublicListing(now);
+        lobby.farewell = this.publicFarewell(now);
         for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");
         await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY, TICKET_KEY]);
         this.tickets = {};
@@ -676,6 +725,7 @@ export class GameRoom extends DurableObject<Env> {
         const swept = sweepPublicLobby(this.room, now);
         if (swept) { await this.commit(swept, false); await this.dropReleasedSeats(); }
       }
+      lobby.plan = await this.planPublicSummary(now);
       let disclosedAt: number | undefined;
       const from = this.room && { phase: this.room.game.phase, revision: this.room.revision };
       let forced = false;
@@ -698,5 +748,8 @@ export class GameRoom extends DurableObject<Env> {
         retryCount: info?.retryCount ?? 0, forced, from: from?.phase, fromRevision: from?.revision, ms: Date.now() - now });
       this.runningAlarmAt = undefined;
     });
+    // Registry writes happen here, outside the serialized section: seats, deadlines and the game never wait for them.
+    if (lobby.farewell) await this.sendPublicFarewell(lobby.farewell);
+    if (lobby.plan) await this.deliverPublicSummary(lobby.plan);
   }
 }

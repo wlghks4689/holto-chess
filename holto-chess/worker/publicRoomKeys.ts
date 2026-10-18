@@ -55,3 +55,17 @@ export async function publicCreatorKey(secret: string, kind: "account" | "guest"
 export async function publicSeatToken(secret: string, instanceId: string, accountUserId: string, requestId: string): Promise<string> {
   return hex(await hmac(secret, `public-seat|${instanceId}|${accountUserId}|${requestId}`));
 }
+
+/** A create request id must be a UUIDv7, whose first 48 bits are its creation time in milliseconds. */
+const CREATE_REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+/** A create may be retried for this long. The registry keeps ended rows longer (TERMINAL_RETENTION_MS in publicLobby.ts). */
+export const CREATE_REQUEST_MAX_AGE_MS = 24 * 60 * 60_000;
+/** How far ahead a client clock may run. */
+export const CREATE_REQUEST_MAX_SKEW_MS = 10 * 60_000;
+/** Age of a create request in ms, or null when it is not a UUIDv7 or claims to come from the future. */
+export function createRequestAge(requestId: string, now: number): number | null {
+  if (!CREATE_REQUEST_ID.test(requestId)) return null;
+  const at = parseInt(requestId.slice(0, 8) + requestId.slice(9, 13), 16);
+  if (at - now > CREATE_REQUEST_MAX_SKEW_MS) return null;
+  return Math.max(0, now - at);
+}
