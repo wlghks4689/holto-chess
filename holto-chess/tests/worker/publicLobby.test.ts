@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  claimPublicSlot, countLiveRooms, findByRequest, moveClaimToCode, PUBLIC_ROOMS_MAX, releasePublicSlot, type ClaimInput,
+  applySummary, claimPublicSlot, countLiveRooms, findByInstance, findByRequest, moveClaimToCode, PUBLIC_ROOMS_MAX, releasePublicSlot, type ClaimInput,
 } from "../../worker/publicLobby";
 
 const db = (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
@@ -89,6 +89,23 @@ describe("public room registry (PUBLIC-ROOMS-002 2-A)", () => {
     expect((await claimPublicSlot(db, claim({ networkKey }))).kind).toBe("network_rate");
     expect((await claimPublicSlot(db, claim({ networkKey: "f".repeat(64) }))).kind).toBe("claimed");
     expect((await claimPublicSlot(db, claim({ networkKey, now: T0 + 10 * 60_000 + 1 }))).kind).toBe("claimed");
+  });
+
+  it("applies only newer summaries and never revives an ended room (2-D)", async () => {
+    const input = claim();
+    await claimPublicSlot(db, input);
+    const summary = (seq: number, state: "WAITING" | "PLAYING" | "FINISHED" | "CLOSED", confirmed = 1) => ({
+      instanceId: input.instanceId, state, confirmedCount: confirmed, reservedCount: 0, seq, observedAt: T0 + seq, leaseExpiresAt: T0 + seq + 90_000,
+      roomExpiresAt: T0 + 3600_000, repairDueAt: state === "FINISHED" || state === "CLOSED" ? null : T0 + 120_000 });
+    expect(await applySummary(db, summary(2, "WAITING", 3))).toBe("applied");
+    expect(await applySummary(db, summary(2, "WAITING", 5))).toBe("ignored"); // a repeat counts as delivered and changes nothing
+    expect(await applySummary(db, summary(1, "WAITING", 7))).toBe("ignored"); // an older one arriving late is dropped
+    expect((await findByInstance(db, input.instanceId))!.confirmedCount).toBe(3);
+    expect(await applySummary(db, summary(3, "PLAYING"))).toBe("applied");
+    expect((await findByInstance(db, input.instanceId))!.slotHeld).toBe(true); // a game in progress keeps its slot
+    expect(await applySummary(db, summary(4, "FINISHED"))).toBe("applied");
+    expect(await applySummary(db, summary(9, "WAITING"))).toBe("ignored"); // never back to recruiting
+    expect(await findByInstance(db, input.instanceId)).toMatchObject({ state: "FINISHED", slotHeld: false, summarySeq: 4, closedAt: T0 + 4 });
   });
 
   it("moves a provisioning claim to another code only while that code is free", async () => {

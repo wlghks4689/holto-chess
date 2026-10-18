@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { addSession, applyRoomAction, barrierDeadline, createRoom, forceBarrier, migrateRoomSnapshot, resumeSession, startSolo, turnKey, type RoomSnapshot } from "../src/game/room";
 import { type PublicSeatIdentity, confirmPublicSeat, isPublicLobby, makePublicRoom, markPublicSeatDisconnected, PUBLIC_LOBBY_TIMING, publicLobbyClosesAt, publicLobbyDeadline, publicSeatsAwaitingPresence, releasedKey, reservePublicSeat, sweepPublicLobby } from "../src/game/publicRoom";
 import { PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicSeatToken, type PublicRoomEnv } from "./publicRoomKeys";
+import { applySummary, buildSummary, LEASE_RENEW_MS, summaryKey, summaryState, SYNC_TIMEOUT_MS, syncRetryDelay, withTimeout } from "./publicLobby";
 import { collectRankObligations } from "../src/game/rankRoom";
 import { settleRankObligation } from "./rank";
 import { createPlayerView } from "../src/game/playerView";
@@ -106,6 +107,12 @@ export class GameRoom extends DurableObject<Env> {
     // A new duty is flushed at once, unless D1 is already failing: then it joins the running backoff.
     // Results stay hidden until the shared presentation ends, so settlement waits for it and never competes with reveals.
     if (collectRankObligations(next)) { next.rankRetryAt ??= Math.max(Date.now(), next.presentation?.endsAt ?? 0) + 1000; next.rankAttempts ??= 0; }
+    // A public room notes in the same save what the registry must learn, so a crash cannot drop the update.
+    if (next.visibility === "PUBLIC" && this.lobbyDb() && !next.publicSync?.terminalSent) {
+      const key = summaryKey(next);
+      if (key !== next.publicSync?.key) next.publicSync = { seq: (next.publicSync?.seq ?? 0) + 1, key, sentSeq: next.publicSync?.sentSeq ?? 0,
+        ...(next.publicSync?.sentAt !== undefined ? { sentAt: next.publicSync.sentAt } : {}), retryAt: Date.now(), attempts: 0 };
+    }
     // Publish only after durable storage succeeds. Failed commands never replace the snapshot.
     try { await this.ctx.storage.put(SNAPSHOT_KEY, next); }
     catch {
@@ -131,6 +138,50 @@ export class GameRoom extends DurableObject<Env> {
       await this.ctx.storage.put(EXPIRY_KEY, this.expiresAt);
     }
     this.room = next;
+  }
+  /** The public registry, when this deployment has one. A method so a test can make it fail. */
+  private lobbyDb(): D1Database | undefined {
+    return (this.env as PublicRoomEnv).PUBLIC_LOBBY_DB;
+  }
+  /** When the listing would stop being trusted: the room's own expiry, or an earlier public lobby close. */
+  private publicRoomExpiresAt(room: RoomSnapshot): number {
+    const closesAt = publicLobbyClosesAt(room);
+    return Math.min(this.expiresAt ?? Number.MAX_SAFE_INTEGER, closesAt ?? Number.MAX_SAFE_INTEGER);
+  }
+  /**
+   * Sends the latest public summary to the registry: a queued change, or the 30-second lease renewal of a waiting room.
+   * Runs from the alarm with a short time limit. Failure keeps the duty and backs off; the game never waits on it.
+   */
+  private async flushPublicSummary(now: number): Promise<void> {
+    const db = this.lobbyDb(), room = this.room, sync = room?.publicSync;
+    if (!db || !room || room.visibility !== "PUBLIC" || !sync || sync.terminalSent) return;
+    const queued = sync.retryAt !== undefined;
+    const leaseDue = summaryState(room) === "WAITING" && (sync.sentAt ?? 0) + LEASE_RENEW_MS <= now;
+    if (queued ? sync.retryAt! > now : !leaseDue) return;
+    const seq = queued ? sync.seq : sync.seq + 1; // A renewal is a new, later fact about the room.
+    const summary = buildSummary(room, seq, now, this.publicRoomExpiresAt(room));
+    let delivered = false;
+    try {
+      await withTimeout(applySummary(db, summary), SYNC_TIMEOUT_MS);
+      delivered = true;
+    } catch (error) {
+      diag("lobby.syncError", { ...roomFields(room), seq, attempts: (sync.attempts ?? 0) + 1, message: error instanceof Error ? error.message : String(error) }, "error");
+    }
+    const next = structuredClone(room);
+    next.publicSync = delivered
+      ? { seq, key: sync.key, sentSeq: seq, sentAt: now, ...(summary.state === "FINISHED" ? { terminalSent: true as const } : {}) }
+      : { ...sync, seq, attempts: (sync.attempts ?? 0) + 1, retryAt: now + syncRetryDelay((sync.attempts ?? 0) + 1) };
+    await this.commit(next, false);
+  }
+  /** Last word before the room is deleted. Best effort: if it fails, Cron finds the room gone and closes the listing. */
+  private async closePublicListing(now: number): Promise<void> {
+    const db = this.lobbyDb(), room = this.room, sync = room?.publicSync;
+    if (!db || !room || room.visibility !== "PUBLIC" || sync?.terminalSent) return;
+    try {
+      await withTimeout(applySummary(db, buildSummary(room, (sync?.seq ?? 0) + 1, now, now, "CLOSED")), SYNC_TIMEOUT_MS);
+    } catch (error) {
+      diag("lobby.closeError", { ...roomFields(room), message: error instanceof Error ? error.message : String(error) }, "error");
+    }
   }
   /**
    * Checked on every request, not only by the alarm: an alarm can run late, and a join that slipped in before it
@@ -220,6 +271,11 @@ export class GameRoom extends DurableObject<Env> {
     const lobby = this.room ? publicLobbyDeadline(this.room) : undefined;
     if (lobby !== undefined) deadlines.push({ at: lobby, reason: "public" });
     if (this.room && publicSeatsAwaitingPresence(this.room).length) deadlines.push({ at: this.presenceCheckedAt + PUBLIC_LOBBY_TIMING.PRESENCE_SWEEP_MS, reason: "presence" });
+    const sync = this.room?.visibility === "PUBLIC" && this.lobbyDb() ? this.room.publicSync : undefined;
+    if (sync && !sync.terminalSent) {
+      if (sync.retryAt !== undefined) deadlines.push({ at: sync.retryAt, reason: "lobby-sync" });
+      else if (summaryState(this.room!) === "WAITING") deadlines.push({ at: (sync.sentAt ?? Date.now()) + LEASE_RENEW_MS, reason: "lobby-lease" });
+    }
     // Serialization can cross a reveal boundary. Schedule from the state we
     // actually published, even if its next boundary is now overdue, so a final
     // prefix cannot wait for the later barrier or a client's clock probe.
@@ -566,6 +622,7 @@ export class GameRoom extends DurableObject<Env> {
       const now = Date.now();
       this.runningAlarmAt = Math.max(now, info?.scheduledTime ?? 0);
       await this.flushRank(now);
+      await this.flushPublicSummary(now);
       if (this.expiresAt && now >= this.expiresAt && this.room?.rankPending?.length) {
         // Expiry would erase a ranked outcome D1 has not confirmed yet: keep the room until it lands.
         this.expiresAt = now + RANK_EXPIRY_GRACE_MS;
@@ -574,6 +631,7 @@ export class GameRoom extends DurableObject<Env> {
       }
       if (this.isExpired(now)) {
         diag("room.expired", roomFields(this.room));
+        await this.closePublicListing(now);
         for (const ws of this.ctx.getWebSockets()) ws.close(1008, "Room expired");
         await this.ctx.storage.delete([SNAPSHOT_KEY, EXPIRY_KEY, TICKET_KEY]);
         this.tickets = {};

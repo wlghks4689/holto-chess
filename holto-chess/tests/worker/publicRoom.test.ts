@@ -267,7 +267,15 @@ describe("request-time expiry (PUB-11)", () => {
   it("answers an expired or over-age public lobby with ROOM_EXPIRED", async () => {
     const [host, guest] = await accountsOf(2);
     const room = await created(host!.cookie);
-    await edit(room.roomId, internal => { internal.room.publicLobby!.createdAt = Date.now() - 60 * 60_000; });
+    // Let the first alarm (the registry update right after creation) finish, then stop the next one: it would delete the
+    // room first. This shows the answer a request gets before cleanup runs.
+    await until(() => saved(room.roomId), snapshot => snapshot.publicSync?.sentAt !== undefined);
+    await runInDurableObject(stubFor(room.roomId), async (instance, state) => {
+      const internal = instance as unknown as Internal;
+      internal.room = structuredClone(internal.room);
+      internal.room.publicLobby!.createdAt = Date.now() - 60 * 60_000;
+      await state.storage.deleteAlarm();
+    });
     const late = await joinPublic(room, guest!.cookie);
     expect(late.status).toBe(410);
     expect(await errorOf(late)).toBe("ROOM_EXPIRED");
@@ -406,6 +414,104 @@ describe("registry-backed create (PUBLIC-ROOMS-002 2-C)", () => {
     const statuses: number[] = [];
     for (let i = 0; i < 6; i++) statuses.push((await guestPost("/api/public-rooms", { requestId: crypto.randomUUID(), nickname: `만든이${i}` }, "", ip)).status);
     expect(statuses).toEqual([201, 201, 201, 201, 201, 429]);
+  });
+});
+
+describe("room to registry updates (PUBLIC-ROOMS-002 2-D)", () => {
+  const lobbyDb = () => (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
+  type Row = { state: string; slot_held: number; confirmed_count: number; reserved_count: number; summary_seq: number; lease_expires_at: number; repair_due_at: number | null };
+  const row = (instanceId: string) => lobbyDb().prepare("SELECT state, slot_held, confirmed_count, reserved_count, summary_seq, lease_expires_at, repair_due_at FROM public_rooms WHERE instance_id = ?").bind(instanceId).first<Row>();
+  const rowUntil = (instanceId: string, done: (r: Row) => boolean) => until(async () => (await row(instanceId))!, done);
+  type SyncInternal = Internal & { commit: (next: RoomSnapshot, activity?: boolean) => Promise<void>; lobbyDb: () => D1Database | undefined };
+
+  it("lists a new room as WAITING, follows its seats and keeps the slot while the game runs", async () => {
+    const [host, guest] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    const waiting = await rowUntil(room.instanceId, r => r.state === "WAITING");
+    expect(waiting).toMatchObject({ slot_held: 1, confirmed_count: 0, reserved_count: 1 });
+    expect(waiting.lease_expires_at - Date.now()).toBeGreaterThan(60_000);
+    const one = await connect(room);
+    await rowUntil(room.instanceId, r => r.confirmed_count === 1 && r.reserved_count === 0);
+    const two = await connect(await joined(room, guest!.cookie));
+    await rowUntil(room.instanceId, r => r.confirmed_count === 2 && r.reserved_count === 0);
+    await one.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.filter(player => player.connected).length === 2);
+    await one.send({ type: "READY" });
+    await two.wait(message => message.type === "PLAYER_VIEW" && message.payload.players.some(player => player.ready));
+    await two.send({ type: "READY" });
+    const playing = await rowUntil(room.instanceId, r => r.state === "PLAYING");
+    expect(playing.slot_held).toBe(1);
+    expect(playing.repair_due_at! - Date.now()).toBeGreaterThan(25 * 60_000); // checked by Cron about every 30 minutes
+  });
+
+  it("gives the slot back when the game reaches its result, and a rematch does not list the room again", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    await rowUntil(room.instanceId, r => r.state === "WAITING");
+    await runInDurableObject(stubFor(room.roomId), async instance => {
+      const internal = instance as unknown as SyncInternal;
+      const next = structuredClone(internal.room);
+      next.status = "PLAYING"; next.game.phase = "GAME_RESULT";
+      await internal.commit(next, false);
+    });
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    expect(await row(room.instanceId)).toMatchObject({ state: "FINISHED", slot_held: 0, repair_due_at: null });
+    await runInDurableObject(stubFor(room.roomId), async instance => {
+      const internal = instance as unknown as SyncInternal;
+      const next = structuredClone(internal.room);
+      next.game.phase = "ABILITY_DEAL"; // a rematch
+      await internal.commit(next, false);
+      expect(internal.room.publicSync!.terminalSent).toBe(true);
+    });
+    expect((await row(room.instanceId))!.state).toBe("FINISHED");
+  });
+
+  it("keeps the game going while the registry fails, then delivers the update", async () => {
+    const [host, guest] = await accountsOf(2);
+    const room = await created(host!.cookie);
+    await rowUntil(room.instanceId, r => r.state === "WAITING");
+    const broken = { prepare() { throw new Error("D1 unavailable"); } } as unknown as D1Database;
+    await runInDurableObject(stubFor(room.roomId), instance => { (instance as unknown as SyncInternal).lobbyDb = () => broken; });
+    // Seats still work: the room decides on its own and only the listing waits.
+    const seat = await joined(room, guest!.cookie);
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    const failing = await saved(room.roomId);
+    expect(failing.publicSync!.attempts).toBeGreaterThanOrEqual(1);
+    expect(failing.publicSync!.retryAt).toBeGreaterThan(Date.now() - 1000);
+    expect(failing.sessions.some(session => session.playerId === seat.playerId)).toBe(true);
+    expect((await row(room.instanceId))!.reserved_count).toBe(1); // the registry still shows the old count
+    await runInDurableObject(stubFor(room.roomId), async instance => {
+      const internal = instance as unknown as SyncInternal;
+      delete (internal as Partial<SyncInternal>).lobbyDb; // back to the real database
+      internal.room = structuredClone(internal.room);
+      internal.room.publicSync!.retryAt = Date.now() - 1;
+    });
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    expect((await row(room.instanceId))!.reserved_count).toBe(2);
+    const delivered = (await saved(room.roomId)).publicSync!;
+    expect(delivered.retryAt).toBeUndefined();
+    expect(delivered.attempts).toBeUndefined();
+    expect(delivered.sentSeq).toBe(delivered.seq);
+  });
+
+  it("renews a waiting room's lease every 30 seconds with a newer sequence number", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    const before = await rowUntil(room.instanceId, r => r.state === "WAITING");
+    await edit(room.roomId, internal => { internal.room.publicSync!.sentAt = Date.now() - 31_000; });
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    const after = (await row(room.instanceId))!;
+    expect(after.summary_seq).toBeGreaterThan(before.summary_seq);
+    expect(after.lease_expires_at).toBeGreaterThanOrEqual(before.lease_expires_at);
+  });
+
+  it("closes the listing and frees the slot when the room is deleted", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    await rowUntil(room.instanceId, r => r.state === "WAITING");
+    await edit(room.roomId, internal => { internal.expiresAt = Date.now() - 1; });
+    await runDurableObjectAlarm(stubFor(room.roomId));
+    expect(await row(room.instanceId)).toMatchObject({ state: "CLOSED", slot_held: 0 });
+    expect(await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
   });
 });
 

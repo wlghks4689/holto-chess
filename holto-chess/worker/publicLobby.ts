@@ -128,3 +128,71 @@ export async function releasePublicSlot(db: D1Database, instanceId: string, stat
   ).bind(state, now, instanceId).run();
   return result.meta.changes === 1;
 }
+
+/** WAITING rooms renew their listing this often; the lease outlives three renewals. */
+export const LEASE_RENEW_MS = 30_000;
+/** Cron asks a waiting room about itself this long after its lease ran out without renewal. */
+export const REPAIR_GRACE_MS = 30_000;
+/** Cron asks a playing room about itself this often, so a stalled room cannot hold a slot for a whole day. */
+export const PLAYING_REPAIR_MS = 30 * 60_000;
+/** Bound on one registry write from inside a room; a slow database must not hold the game up for long. */
+export const SYNC_TIMEOUT_MS = 3_000;
+
+export type SummaryState = "WAITING" | "PLAYING" | "FINISHED" | "CLOSED";
+/** Everything the registry learns about a room. No card, ruling, name or identity. */
+export type PublicSummary = {
+  instanceId: string; state: SummaryState; confirmedCount: number; reservedCount: number; seq: number;
+  observedAt: number; leaseExpiresAt: number; roomExpiresAt: number; repairDueAt: number | null;
+};
+type SummarySource = {
+  status: "LOBBY" | "PLAYING"; game: { phase: string }; sessions: { reservedUntil?: number }[]; publicLobby?: { instanceId: string };
+};
+
+/** How the registry should see the room right now. A finished game no longer holds a public slot. */
+export function summaryState(room: SummarySource): Exclude<SummaryState, "CLOSED"> {
+  if (room.status === "LOBBY") return "WAITING";
+  return room.game.phase === "GAME_RESULT" ? "FINISHED" : "PLAYING";
+}
+/** The part of a summary whose change must reach the registry at once (not just at the next lease renewal). */
+export function summaryKey(room: SummarySource): string {
+  const reserved = room.sessions.filter(session => session.reservedUntil !== undefined).length;
+  return `${summaryState(room)}|${room.sessions.length - reserved}|${reserved}`;
+}
+export function buildSummary(room: SummarySource, seq: number, now: number, roomExpiresAt: number, state: SummaryState = summaryState(room)): PublicSummary {
+  const reserved = room.sessions.filter(session => session.reservedUntil !== undefined).length;
+  const terminal = state === "FINISHED" || state === "CLOSED";
+  return {
+    instanceId: room.publicLobby!.instanceId, state, confirmedCount: room.sessions.length - reserved, reservedCount: reserved, seq,
+    observedAt: now, leaseExpiresAt: now + LISTING_LEASE_MS, roomExpiresAt,
+    repairDueAt: terminal ? null : state === "WAITING" ? now + LISTING_LEASE_MS + REPAIR_GRACE_MS : now + PLAYING_REPAIR_MS,
+  };
+}
+
+/**
+ * Applies a room's summary only if it is newer than what the registry holds and the room has not ended there.
+ * A repeat of an applied summary changes nothing and counts as delivered; an ended room is never revived.
+ * FINISHED and CLOSED give the slot back.
+ */
+export async function applySummary(db: D1Database, s: PublicSummary): Promise<"applied" | "ignored"> {
+  const result = await db.prepare(
+    `UPDATE public_rooms SET state = ?2, confirmed_count = ?3, reserved_count = ?4, summary_seq = ?5, observed_at = ?6,
+       lease_expires_at = ?7, room_expires_at = ?8, repair_due_at = ?9,
+       slot_held = CASE WHEN ?2 IN ('FINISHED', 'CLOSED') THEN 0 ELSE slot_held END,
+       closed_at = CASE WHEN ?2 IN ('FINISHED', 'CLOSED') THEN ?6 ELSE closed_at END
+     WHERE instance_id = ?1 AND summary_seq < ?5 AND state NOT IN ('FINISHED', 'CLOSED', 'CANCELLED')`,
+  ).bind(s.instanceId, s.state, s.confirmedCount, s.reservedCount, s.seq, s.observedAt, s.leaseExpiresAt, s.roomExpiresAt, s.repairDueAt).run();
+  return result.meta.changes === 1 ? "applied" : "ignored";
+}
+
+/** Retry delay after a failed registry write: 1s doubling to 30s, plus a little jitter so rooms do not retry in step. */
+export function syncRetryDelay(attempts: number): number {
+  return Math.min(1000 * 2 ** Math.max(0, attempts - 1), 30_000) + Math.floor(Math.random() * 250);
+}
+
+/** Runs `work` with a time limit and clears the timer either way, so a finished write leaves nothing pending. */
+export async function withTimeout<T>(work: Promise<T>, ms: number, label = "registry timeout"): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([work, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(label)), ms); })]);
+  } finally { if (timer !== undefined) clearTimeout(timer); }
+}
