@@ -415,6 +415,22 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (!this.room || this.room.roomId !== roomId) return new Response("Room not found", { status: 404 });
     if (this.isExpired(Date.now())) return url.pathname.startsWith("/internal/public-") ? refuse("ROOM_EXPIRED", 410) : new Response("Room not found", { status: 404 });
+    if (url.pathname === "/internal/public-repair" && request.method === "POST") {
+      // Cron asks a room that stopped renewing its listing, or one due for a check. Answering also re-arms the alarm,
+      // so a room whose alarm stopped comes back to life here.
+      return this.ctx.blockConcurrencyWhile(async () => {
+        const room = this.room!;
+        if (room.visibility !== "PUBLIC" || room.publicLobby?.instanceId !== request.headers.get(PUBLIC_INSTANCE_HEADER)) return refuse("ROOM_NOT_FOUND", 404);
+        const now = Date.now(), sync = room.publicSync;
+        const seq = (sync?.seq ?? 0) + 1; // Later than anything the room sent before, so the registry accepts it.
+        const next = structuredClone(room);
+        next.publicSync = { ...(sync ?? { sentSeq: 0 }), seq, key: summaryKey(room) };
+        await this.commit(next, false);
+        await this.rescheduleAlarm();
+        const summary = sync?.terminalSent ? buildSummary(next, seq, now, this.publicRoomExpiresAt(next), "FINISHED") : buildSummary(next, seq, now, this.publicRoomExpiresAt(next));
+        return Response.json(summary, { headers: { "Cache-Control": "no-store" } });
+      });
+    }
     if (url.pathname === "/internal/public-join" && request.method === "POST") {
       return this.ctx.blockConcurrencyWhile(async () => {
         // A private room never answers the public endpoint, so its code cannot be probed through it.

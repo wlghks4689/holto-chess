@@ -11,6 +11,7 @@ import { runRetention } from "./retention";
 import { handleRankings } from "./rank";
 import { PUBLIC_INSTANCE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER } from "./GameRoom";
 import { handlePublicList } from "./publicList";
+import { PUBLIC_REPAIR_CRON, runPublicLobbyRepair } from "./publicRepair";
 import { claimPublicSlot, moveClaimToCode, PUBLIC_ROOMS_MAX, type RegistryRow } from "./publicLobby";
 import { PRESENTATION_VERSION } from "../src/shared/presentationTimeline";
 import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicCreatorKey, publicGuestKey, publicNetworkKey, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
@@ -200,7 +201,10 @@ export default {
     return new Response("Not found", { status: 404 });
   },
   // Daily Cron Trigger (wrangler.jsonc): feedback retention from the privacy policy.
-  async scheduled(_controller, env): Promise<void> {
+  async scheduled(controller, env): Promise<void> {
+    // The minute trigger only repairs the public room registry (added to wrangler.jsonc when public rooms ship);
+    // any other trigger runs the daily retention exactly as before.
+    if (controller.cron === PUBLIC_REPAIR_CRON) { await runPublicLobbyRepair(env as PublicRoomEnv); return; }
     await Promise.all([runRetention(env), purgeExpiredAuth(env.ACCOUNT_DB)]);
   },
 } satisfies ExportedHandler<Env>;

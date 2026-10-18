@@ -7,6 +7,8 @@ import type { RoomSnapshot } from "../../src/game/room";
 import type { GameAction, PlayerView, ServerMessage } from "../../src/shared/protocol";
 import { publicCreateCandidate } from "../../worker/publicRoomKeys";
 import { freshListing } from "../../worker/publicList";
+import { runPublicLobbyRepair } from "../../worker/publicRepair";
+import type { PublicRoomEnv } from "../../worker/publicRoomKeys";
 
 // Account seats need the configured auth origin (AUTH_ORIGIN in vitest.workers.config.ts).
 const origin = "https://porena.kr";
@@ -604,6 +606,74 @@ describe("public room list (PUBLIC-ROOMS-002 2-E)", () => {
     // ...and even a cached entry disappears once its own lease has passed.
     const stale = freshListing({ serverNow: 0, nextCursor: null, rooms: [{ ...(await get()).rooms.find(item => item.instanceId === room.instanceId)!, leaseExpiresAt: Date.now() - 1 } as never] }, Date.now());
     expect(stale.rooms).toHaveLength(0);
+  });
+});
+
+describe("minute Cron repair (PUBLIC-ROOMS-002 2-F)", () => {
+  const lobbyDb = () => (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
+  const rowOf = (instanceId: string) => lobbyDb().prepare("SELECT state, slot_held, summary_seq, lease_expires_at, repair_due_at FROM public_rooms WHERE instance_id = ?")
+    .bind(instanceId).first<{ state: string; slot_held: number; summary_seq: number; lease_expires_at: number; repair_due_at: number | null }>();
+  const fakeRow = (instanceId: string, code: string, state: string, extra: { closedAt?: number; slotHeld?: number } = {}) => lobbyDb().prepare(
+    `INSERT INTO public_rooms (instance_id, room_code, creator_key, request_id, state, slot_held, rules_version, protocol_version, created_at, observed_at, lease_expires_at, room_expires_at, repair_due_at, closed_at)
+     VALUES (?, ?, ?, ?, ?, ?, 2, 1, ?, ?, ?, ?, ?, ?)`).bind(instanceId, code, `fake-${instanceId}`, `fake-${instanceId}`, state, extra.slotHeld ?? 1,
+    Date.now() - 600_000, Date.now() - 600_000, Date.now() - 500_000, Date.now() + 3600_000, extra.slotHeld === 0 ? null : Date.now() - 1, extra.closedAt ?? null).run();
+  const repairNow = () => worker.scheduled({ cron: "* * * * *", scheduledTime: Date.now(), noRetry() {} } as ScheduledController, env, createExecutionContext());
+
+  it("cancels a create that never produced a room, and closes the listing of a room that is gone", async () => {
+    await fakeRow("1".repeat(32), "NEVER2", "PROVISIONING");
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    await until(async () => (await rowOf(room.instanceId))?.state, state => state === "WAITING");
+    // The room vanished without its goodbye reaching the registry.
+    await runInDurableObject(stubFor(room.roomId), async (instance, state) => {
+      (instance as unknown as { room?: RoomSnapshot }).room = undefined;
+      await state.storage.deleteAll();
+    });
+    await lobbyDb().prepare("UPDATE public_rooms SET repair_due_at = ? WHERE instance_id = ?").bind(Date.now() - 1, room.instanceId).run();
+    await repairNow();
+    expect(await rowOf("1".repeat(32))).toMatchObject({ state: "CANCELLED", slot_held: 0 });
+    expect(await rowOf(room.instanceId)).toMatchObject({ state: "CLOSED", slot_held: 0, repair_due_at: null });
+  });
+
+  it("refreshes a live room whose listing went stale and re-arms its stopped alarm", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    await connect(room);
+    const before = await until(async () => (await rowOf(room.instanceId))!, r => r.state === "WAITING");
+    await lobbyDb().prepare("UPDATE public_rooms SET lease_expires_at = ?, repair_due_at = ? WHERE instance_id = ?").bind(Date.now() - 1, Date.now() - 1, room.instanceId).run();
+    await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.deleteAlarm());
+    await repairNow();
+    const after = (await rowOf(room.instanceId))!;
+    expect(after.state).toBe("WAITING");
+    expect(after.summary_seq).toBeGreaterThan(before.summary_seq);
+    expect(after.lease_expires_at).toBeGreaterThan(Date.now());
+    expect(after.repair_due_at).toBeGreaterThan(Date.now());
+    expect(await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.getAlarm())).not.toBeNull();
+  });
+
+  it("deletes ended rows after a day, keeps recent ones, and does nothing while public rooms are off", async () => {
+    await fakeRow("2".repeat(32), "OLDOLD", "CLOSED", { slotHeld: 0, closedAt: Date.now() - 25 * 60 * 60_000 });
+    await fakeRow("3".repeat(32), "NEWNEW", "CLOSED", { slotHeld: 0, closedAt: Date.now() - 60_000 });
+    await fakeRow("4".repeat(32), "OFFOFF", "PROVISIONING");
+    expect(await runPublicLobbyRepair({ ...env, PUBLIC_ROOMS_ENABLED: undefined } as unknown as PublicRoomEnv)).toEqual({ checked: 0, closed: 0, refreshed: 0, unanswered: 0, purged: 0 });
+    expect((await rowOf("4".repeat(32)))!.state).toBe("PROVISIONING");
+    await repairNow();
+    expect(await rowOf("2".repeat(32))).toBeNull();
+    expect(await rowOf("3".repeat(32))).not.toBeNull();
+    expect((await rowOf("4".repeat(32)))!.state).toBe("CANCELLED");
+  });
+
+  it("leaves a row alone if its room reported in after the Cron read it", async () => {
+    await fakeRow("5".repeat(32), "RACE22", "PROVISIONING");
+    // The room answers "gone" for the code read, but the claim moved to another code meanwhile.
+    await lobbyDb().prepare("UPDATE public_rooms SET room_code = 'RACE33', summary_seq = 1 WHERE instance_id = ?").bind("5".repeat(32)).run();
+    const db = lobbyDb();
+    const stale = { prepare: (sql: string) => sql.startsWith("SELECT instance_id, room_code")
+      ? { bind: () => ({ all: async () => ({ results: [{ instance_id: "5".repeat(32), room_code: "RACE22", state: "PROVISIONING", summary_seq: 0 }] }) }) }
+      : db.prepare(sql) } as unknown as D1Database;
+    const report = await runPublicLobbyRepair({ ...env, PUBLIC_LOBBY_DB: stale } as unknown as PublicRoomEnv);
+    expect(report).toMatchObject({ checked: 1, closed: 0 });
+    expect((await rowOf("5".repeat(32)))!.state).toBe("PROVISIONING");
   });
 });
 
