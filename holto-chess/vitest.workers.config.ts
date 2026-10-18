@@ -13,6 +13,7 @@ export default defineConfig(async () => ({
       bindings: {
         TEST_MIGRATIONS: await readD1Migrations("./migrations"),
         TEST_ACCOUNT_MIGRATIONS: await readD1Migrations("./account-migrations"),
+        TEST_PUBLIC_LOBBY_MIGRATIONS: await readD1Migrations("./public-lobby-migrations"),
         AUTH_ORIGIN: "https://porena.kr",
         GOOGLE_CLIENT_ID: "test-google-client",
         GOOGLE_CLIENT_SECRET: "test-google-secret",
@@ -26,6 +27,9 @@ export default defineConfig(async () => ({
         PUBLIC_ROOMS_ENABLED: "1",
         PUBLIC_ROOM_SECRET: "test-public-room-secret",
       },
+      // The public lobby database is bound here only. wrangler.jsonc gets the binding when the production database
+      // is created at release, so merging this code changes nothing in production.
+      d1Databases: { PUBLIC_LOBBY_DB: "public-lobby-test" },
     },
   })],
   test: { include: ["tests/worker/**/*.test.ts"], setupFiles: ["./tests/worker/applyMigrations.ts"], testTimeout: 20000 },

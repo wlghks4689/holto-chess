@@ -8,6 +8,8 @@ export type PublicRoomEnv = Env & {
   PUBLIC_ROOMS_ENABLED?: string;
   /** Worker secret for the derivations below. Rotating it ends retry recovery for requests already in flight. */
   PUBLIC_ROOM_SECRET?: string;
+  /** Registry and search summaries (public-lobby-migrations). Bound only once the production database exists. */
+  PUBLIC_LOBBY_DB?: D1Database;
 };
 
 export const PUBLIC_REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -31,6 +33,11 @@ export async function publicCreateCandidate(secret: string, accountUserId: strin
   const code = await hmac(secret, `public-code|${accountUserId}|${requestId}|${attempt}`);
   const instance = await hmac(secret, `public-instance|${accountUserId}|${requestId}|${attempt}`);
   return { roomId: Array.from(code.slice(0, 6), n => alphabet[n % alphabet.length]).join(""), instanceId: hex(instance.slice(0, 16)) };
+}
+
+/** Registry key of a creator. Accounts and guests live in separate namespaces; the raw id never reaches the database. */
+export async function publicCreatorKey(secret: string, kind: "account" | "guest", id: string): Promise<string> {
+  return hex(await hmac(secret, `public-creator|${kind}|${id}`));
 }
 
 /** Seat token of one join request (create included); 64 hex characters like every other room token. */
