@@ -19,7 +19,8 @@ beforeEach(async () => { await db.prepare("DELETE FROM public_rooms").run(); });
 describe("public room registry (PUBLIC-ROOMS-002 2-A)", () => {
   it("creates the schema with the partial indexes the cap and the list rely on", async () => {
     const indexes = (await db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'public_rooms' AND sql IS NOT NULL").all<{ name: string; sql: string }>()).results;
-    expect(indexes.map(index => index.name).sort()).toEqual(["idx_public_rooms_list", "idx_public_rooms_live_code", "idx_public_rooms_repair", "idx_public_rooms_request"]);
+    expect(indexes.map(index => index.name).sort()).toEqual(["idx_public_rooms_creator", "idx_public_rooms_list", "idx_public_rooms_live_code",
+      "idx_public_rooms_network", "idx_public_rooms_repair", "idx_public_rooms_request"]);
     expect(indexes.find(index => index.name === "idx_public_rooms_live_code")!.sql).toMatch(/WHERE slot_held = 1/);
   });
 
@@ -72,6 +73,22 @@ describe("public room registry (PUBLIC-ROOMS-002 2-A)", () => {
     expect((await claimPublicSlot(db, claim({ roomCode: "ABC234" }))).kind).toBe("code_taken");
     await releasePublicSlot(db, holder.instanceId, "FINISHED", T0 + 1);
     expect((await claimPublicSlot(db, claim({ roomCode: "ABC234" }))).kind).toBe("claimed");
+  });
+
+  it("allows one live room per creator, and a new one after it ends (2-C)", async () => {
+    const first = claim({ creatorKey: "same-creator" });
+    expect((await claimPublicSlot(db, first)).kind).toBe("claimed");
+    expect((await claimPublicSlot(db, claim({ creatorKey: "same-creator" }))).kind).toBe("creator_busy");
+    await releasePublicSlot(db, first.instanceId, "FINISHED", T0 + 1);
+    expect((await claimPublicSlot(db, claim({ creatorKey: "same-creator" }))).kind).toBe("claimed");
+  });
+
+  it("lets one network create five rooms per ten minutes, then again once the window passes (2-C)", async () => {
+    const networkKey = "e".repeat(64);
+    for (let i = 0; i < 5; i++) expect((await claimPublicSlot(db, claim({ networkKey }))).kind).toBe("claimed");
+    expect((await claimPublicSlot(db, claim({ networkKey }))).kind).toBe("network_rate");
+    expect((await claimPublicSlot(db, claim({ networkKey: "f".repeat(64) }))).kind).toBe("claimed");
+    expect((await claimPublicSlot(db, claim({ networkKey, now: T0 + 10 * 60_000 + 1 }))).kind).toBe("claimed");
   });
 
   it("moves a provisioning claim to another code only while that code is free", async () => {

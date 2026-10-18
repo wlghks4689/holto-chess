@@ -19,9 +19,6 @@ export const PUBLIC_REQUEST_HEADER = "X-Internal-Porena-Request-Id";
 export const PUBLIC_INSTANCE_HEADER = "X-Internal-Porena-Instance-Id";
 /** Marks a create candidate whose code another room holds; the Worker then tries the next candidate. */
 export const ROOM_TAKEN_HEADER = "X-Porena-Room-Taken";
-/** Asks a create candidate only whether it is free or already this request's room; nothing is created. */
-export const PUBLIC_PROBE_HEADER = "X-Internal-Porena-Probe";
-export const ROOM_VACANT_HEADER = "X-Porena-Room-Vacant";
 const refuse = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
 const SNAPSHOT_KEY = "snapshot:v1";
 const EXPIRY_KEY = "expiresAt";
@@ -351,7 +348,6 @@ export class GameRoom extends DurableObject<Env> {
           if (this.isExpired(now)) return refuse("ROOM_EXPIRED", 410);
           return this.joinPublic(roomId, identity, seatToken, now);
         }
-        if (request.headers.get(PUBLIC_PROBE_HEADER) === "1") return new Response(null, { status: 404, headers: { [ROOM_VACANT_HEADER]: "1" } });
         const room = makePublicRoom(createRoom(roomId, randomSeed(), "secure", 2, true), instanceId, now);
         const seated = reservePublicSeat(room, await hash(seatToken), identity, now);
         if ("error" in seated) return refuse(seated.error, 409);

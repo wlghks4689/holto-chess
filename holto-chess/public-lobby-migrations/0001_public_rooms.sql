@@ -6,6 +6,7 @@ CREATE TABLE public_rooms (
   room_code        TEXT NOT NULL,
   creator_key      TEXT NOT NULL,                      -- HMAC of the creator identity. Internal: never in a response or log
   request_id       TEXT NOT NULL,                      -- the creator's idempotency key
+  network_key      TEXT,                               -- HMAC of the creating IP, for the per-network create limit. Internal
   state            TEXT NOT NULL CHECK (state IN ('PROVISIONING', 'WAITING', 'PLAYING', 'FINISHED', 'CLOSED', 'CANCELLED')),
   slot_held        INTEGER NOT NULL DEFAULT 1 CHECK (slot_held IN (0, 1)),  -- 1 counts against the live-room cap
   confirmed_count  INTEGER NOT NULL DEFAULT 0,
@@ -30,5 +31,8 @@ CREATE UNIQUE INDEX idx_public_rooms_request ON public_rooms (creator_key, reque
 CREATE UNIQUE INDEX idx_public_rooms_live_code ON public_rooms (room_code) WHERE slot_held = 1;
 -- The list reads only rooms that can still take a seat.
 CREATE INDEX idx_public_rooms_list ON public_rooms (created_at, instance_id) WHERE state = 'WAITING';
+-- One live room per creator, and the recent creations of one network.
+CREATE INDEX idx_public_rooms_creator ON public_rooms (creator_key) WHERE slot_held = 1;
+CREATE INDEX idx_public_rooms_network ON public_rooms (network_key, created_at);
 -- Cron repair reads only live rooms that are due.
 CREATE INDEX idx_public_rooms_repair ON public_rooms (repair_due_at) WHERE slot_held = 1;

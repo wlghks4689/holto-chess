@@ -9,8 +9,10 @@ import { submitFeedback } from "./feedback";
 import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
 import { handleRankings } from "./rank";
-import { PUBLIC_INSTANCE_HEADER, PUBLIC_PROBE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER, ROOM_VACANT_HEADER } from "./GameRoom";
-import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicGuestKey, publicNetworkKey, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
+import { PUBLIC_INSTANCE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER } from "./GameRoom";
+import { claimPublicSlot, moveClaimToCode, PUBLIC_ROOMS_MAX, type RegistryRow } from "./publicLobby";
+import { PRESENTATION_VERSION } from "../src/shared/presentationTimeline";
+import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicCreatorKey, publicGuestKey, publicNetworkKey, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
 export { GameRoom } from "./GameRoom";
 
 function code(): string {
@@ -116,7 +118,8 @@ export default {
         const found = await readPublicGuest(request, secret) ?? await issuePublicGuest(request, secret);
         guest = { ...found, key: await publicGuestKey(secret, found.id), displayName };
       }
-      const seat = publicSeatHeaders(guest, await publicNetworkKey(secret, request.headers.get("CF-Connecting-IP") ?? "local"));
+      const networkKey = await publicNetworkKey(secret, request.headers.get("CF-Connecting-IP") ?? "local");
+      const seat = publicSeatHeaders(guest, networkKey);
       const owner = identity ? identity.accountUserId : `guest:${guest!.key}`;
       // A newly issued guest cookie rides on whatever the room answers, so a retry after a lost reply is the same guest.
       const answer = (response: Response) => {
@@ -129,23 +132,39 @@ export default {
         if (!PUBLIC_INSTANCE_ID.test(instanceId)) return fail("INVALID_REQUEST", 400);
         return answer(await forward(publicJoin[1]!, "/internal/public-join", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: instanceId, ...seat }));
       }
-      // Codes derive from the request, so a retry walks the same candidates. Every candidate is asked first: an earlier
-      // code that was taken at creation may be free now, and creating there would split the creator from their room.
+      // The registry decides which room a create request means, keeps live public rooms under the cap and allows each
+      // creator one live room. Codes still derive from the request; the registry remembers the one that was used.
+      const db = (env as PublicRoomEnv).PUBLIC_LOBBY_DB;
+      if (!db) return answer(fail("LOBBY_UNAVAILABLE", 503));
+      const creatorKey = await publicCreatorKey(secret, identity ? "account" : "guest", identity ? identity.accountUserId : guest!.key);
       const candidates = await Promise.all(Array.from({ length: PUBLIC_CREATE_ATTEMPTS }, (_, attempt) => publicCreateCandidate(secret, owner, requestId, attempt)));
-      const createAt = (candidate: typeof candidates[number], probe: boolean) => forward(candidate.roomId, "/internal/public-create",
-        { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: candidate.instanceId, ...seat, ...(probe ? { [PUBLIC_PROBE_HEADER]: "1" } : {}) });
-      const vacant: typeof candidates = [];
+      const retryLater = (error: string, status: number, seconds: number) => {
+        const response = fail(error, status); response.headers.set("Retry-After", String(seconds)); return response;
+      };
+      let row: RegistryRow | undefined;
       for (const candidate of candidates) {
-        const response = await createAt(candidate, true);
-        if (response.headers.get(ROOM_VACANT_HEADER) === "1") vacant.push(candidate);
-        else if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return answer(response); // This request's room: its credential or expiry.
+        const claim = await claimPublicSlot(db, { instanceId: candidate.instanceId, roomCode: candidate.roomId, creatorKey, requestId, networkKey,
+          now: Date.now(), cap: PUBLIC_ROOMS_MAX, rulesVersion: 2, protocolVersion: PRESENTATION_VERSION });
+        if (claim.kind === "claimed" || claim.kind === "existing") { row = claim.row; break; }
+        if (claim.kind === "capacity") return answer(retryLater("PUBLIC_CAPACITY_REACHED", 503, 30));
+        if (claim.kind === "creator_busy") return answer(fail("CREATOR_HAS_ROOM", 409));
+        if (claim.kind === "network_rate") return answer(retryLater("RATE_LIMITED", 429, 600));
+        // code_taken: another live public room holds this code; try the next one.
       }
-      for (const candidate of vacant) {
-        // A concurrent copy of this request lands in the same room and gets the same credential.
-        const response = await createAt(candidate, false);
-        if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") return answer(response);
+      if (!row) return answer(fail("LOBBY_UNAVAILABLE", 503));
+      // A retry that arrives after its room ended never makes a new room.
+      if (!row.slotHeld) return answer(fail("ROOM_CLOSED", 410));
+      const createIn = (roomCode: string) => forward(roomCode, "/internal/public-create", { [PUBLIC_REQUEST_HEADER]: requestId, [PUBLIC_INSTANCE_HEADER]: row!.instanceId, ...seat });
+      let response = await createIn(row.roomCode);
+      // A private room (not in the registry) may hold the code: move the claim to the next free code and try there.
+      for (const candidate of candidates) {
+        if (response.headers.get(ROOM_TAKEN_HEADER) !== "1") break;
+        if (candidate.roomId === row.roomCode) continue;
+        const moved = await moveClaimToCode(db, row.instanceId, candidate.roomId);
+        if (moved === "gone") return answer(fail("LOBBY_UNAVAILABLE", 503));
+        if (moved === "moved") { row = { ...row, roomCode: candidate.roomId }; response = await createIn(candidate.roomId); }
       }
-      return answer(fail("LOBBY_UNAVAILABLE", 503));
+      return answer(response.headers.get(ROOM_TAKEN_HEADER) === "1" ? fail("LOBBY_UNAVAILABLE", 503) : response);
     }
     if (url.pathname === "/api/rooms" && request.method === "POST") {
       for (let attempt = 0; attempt < 5; attempt++) {

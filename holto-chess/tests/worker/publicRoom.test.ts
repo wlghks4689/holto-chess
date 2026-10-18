@@ -361,6 +361,54 @@ const guestCookieOf = (response: Response) => {
 const guestPost = (path: string, body: Record<string, unknown>, cookie = "", ip?: string) =>
   call(path, { method: "POST", headers: { Cookie: cookie, "Content-Type": "application/json", ...(ip ? { "CF-Connecting-IP": ip } : {}) }, body: JSON.stringify(body) });
 
+describe("registry-backed create (PUBLIC-ROOMS-002 2-C)", () => {
+  const lobbyDb = () => (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
+
+  it("records every public room in the registry and gives each creator one live room", async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    const row = await lobbyDb().prepare("SELECT room_code, state, slot_held FROM public_rooms WHERE instance_id = ?").bind(room.instanceId).first();
+    expect(row).toEqual({ room_code: room.roomId, state: "PROVISIONING", slot_held: 1 });
+    const second = await createPublic(host!.cookie);
+    expect(second.status).toBe(409);
+    expect(await errorOf(second)).toBe("CREATOR_HAS_ROOM");
+  });
+
+  it("answers a retry of an ended room with ROOM_CLOSED instead of making a new room", async () => {
+    const [host] = await accountsOf(1);
+    const requestId = crypto.randomUUID();
+    const room = await (await createPublic(host!.cookie, requestId)).json() as Credential;
+    await lobbyDb().prepare("UPDATE public_rooms SET state = 'CLOSED', slot_held = 0 WHERE instance_id = ?").bind(room.instanceId).run();
+    const retry = await createPublic(host!.cookie, requestId);
+    expect(retry.status).toBe(410);
+    expect(await errorOf(retry)).toBe("ROOM_CLOSED");
+    // The ended room no longer blocks the creator's next room.
+    expect((await createPublic(host!.cookie)).status).toBe(201);
+  });
+
+  it("refuses new rooms with Retry-After once 100 public rooms are live", async () => {
+    const [host] = await accountsOf(1);
+    const now = Date.now();
+    const fill = Array.from({ length: 100 }, (_, i) => lobbyDb().prepare(
+      `INSERT INTO public_rooms (instance_id, room_code, creator_key, request_id, state, rules_version, protocol_version, created_at, observed_at, lease_expires_at, room_expires_at)
+       VALUES (?, ?, ?, ?, 'PLAYING', 2, 1, ?, ?, ?, ?)`).bind(i.toString(16).padStart(32, "a"), `Z${i.toString(36).toUpperCase().padStart(5, "0")}`, `filler-${i}`, `filler-${i}`, now, now, now, now + 3600_000));
+    const live = (await lobbyDb().prepare("SELECT COUNT(*) AS n FROM public_rooms WHERE slot_held = 1").first<{ n: number }>())!.n;
+    await lobbyDb().batch(fill.slice(0, Math.max(0, 100 - live)));
+    const refused = await createPublic(host!.cookie);
+    expect(refused.status).toBe(503);
+    expect(refused.headers.get("Retry-After")).toBe("30");
+    expect(await errorOf(refused)).toBe("PUBLIC_CAPACITY_REACHED");
+    await lobbyDb().prepare("UPDATE public_rooms SET slot_held = 0, state = 'CLOSED' WHERE creator_key LIKE 'filler-%'").run();
+  });
+
+  it("limits one network to five new rooms per ten minutes", async () => {
+    const ip = "203.0.113.200";
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) statuses.push((await guestPost("/api/public-rooms", { requestId: crypto.randomUUID(), nickname: `만든이${i}` }, "", ip)).status);
+    expect(statuses).toEqual([201, 201, 201, 201, 201, 429]);
+  });
+});
+
 describe("guest seats in public rooms (PUBLIC-ROOMS-002 2-B)", () => {
   it("lets a guest create a public room, remembers the guest by cookie and returns the same seat on retry", async () => {
     const requestId = crypto.randomUUID();

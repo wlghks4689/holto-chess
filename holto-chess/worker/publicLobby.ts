@@ -13,6 +13,9 @@ export const PROVISIONING_TIMEOUT_MS = 2 * 60_000;
 export const TERMINAL_RETENTION_MS = 24 * 60 * 60_000;
 /** Derived room codes tried for one create request. */
 export const CODE_ATTEMPTS = 5;
+/** One network (IP) may create this many public rooms per NETWORK_CREATE_WINDOW_MS, whoever it says it is. */
+export const NETWORK_CREATES_PER_WINDOW = 5;
+export const NETWORK_CREATE_WINDOW_MS = 10 * 60_000;
 /** A summary is listable for this long after the room observed it; the room renews it every 30 seconds. */
 export const LISTING_LEASE_MS = 90_000;
 
@@ -43,12 +46,18 @@ const toRow = (r: RawRow): RegistryRow => ({
 export type ClaimInput = {
   instanceId: string; roomCode: string; creatorKey: string; requestId: string; now: number; cap: number;
   rulesVersion: number; protocolVersion: number; language?: string; regionHint?: string;
+  /** Derived key of the creating network; enables the per-network create limit. */
+  networkKey?: string;
 };
 export type ClaimResult =
   | { kind: "claimed"; row: RegistryRow }
   /** This creator already made a room with this request id. It may be closed: the caller must not create another. */
   | { kind: "existing"; row: RegistryRow }
   | { kind: "capacity" }
+  /** This creator already has a live public room (one at a time, accounts and guests alike). */
+  | { kind: "creator_busy" }
+  /** The creating network made too many rooms recently. */
+  | { kind: "network_rate" }
   /** Another live room holds the code; try the next derived code. */
   | { kind: "code_taken" };
 
@@ -74,14 +83,17 @@ export async function claimPublicSlot(db: D1Database, input: ClaimInput): Promis
   if (existing) return { kind: "existing", row: existing };
   try {
     const result = await db.prepare(
-      `INSERT INTO public_rooms (instance_id, room_code, creator_key, request_id, state, slot_held, rules_version, protocol_version, language, region_hint,
+      `INSERT INTO public_rooms (instance_id, room_code, creator_key, request_id, network_key, state, slot_held, rules_version, protocol_version, language, region_hint,
          created_at, observed_at, lease_expires_at, room_expires_at, repair_due_at)
-       SELECT ?1, ?2, ?3, ?4, 'PROVISIONING', 1, ?5, ?6, ?7, ?8, ?9, ?9, ?10, ?11, ?12
+       SELECT ?1, ?2, ?3, ?4, ?14, 'PROVISIONING', 1, ?5, ?6, ?7, ?8, ?9, ?9, ?10, ?11, ?12
        WHERE (SELECT COUNT(*) FROM public_rooms WHERE slot_held = 1) < ?13
          AND NOT EXISTS (SELECT 1 FROM public_rooms WHERE slot_held = 1 AND room_code = ?2)
-         AND NOT EXISTS (SELECT 1 FROM public_rooms WHERE creator_key = ?3 AND request_id = ?4)`,
+         AND NOT EXISTS (SELECT 1 FROM public_rooms WHERE creator_key = ?3 AND request_id = ?4)
+         AND NOT EXISTS (SELECT 1 FROM public_rooms WHERE slot_held = 1 AND creator_key = ?3)
+         AND (?14 IS NULL OR (SELECT COUNT(*) FROM public_rooms WHERE network_key = ?14 AND created_at > ?9 - ?15) < ?16)`,
     ).bind(input.instanceId, input.roomCode, input.creatorKey, input.requestId, input.rulesVersion, input.protocolVersion, input.language ?? null, input.regionHint ?? null,
-      now, now + LISTING_LEASE_MS, now + PUBLIC_LOBBY_TIMING.MAX_WAIT_MS, now + PROVISIONING_TIMEOUT_MS, input.cap).run();
+      now, now + LISTING_LEASE_MS, now + PUBLIC_LOBBY_TIMING.MAX_WAIT_MS, now + PROVISIONING_TIMEOUT_MS, input.cap,
+      input.networkKey ?? null, NETWORK_CREATE_WINDOW_MS, NETWORK_CREATES_PER_WINDOW).run();
     if (result.meta.changes === 1) return { kind: "claimed", row: (await findByInstance(db, input.instanceId))! };
   } catch (error) {
     // A concurrent claim won a unique index between the guards and the write. Classify it below like any refusal.
@@ -89,6 +101,11 @@ export async function claimPublicSlot(db: D1Database, input: ClaimInput): Promis
   }
   const raced = await findByRequest(db, input.creatorKey, input.requestId);
   if (raced) return { kind: "existing", row: raced };
+  if (await db.prepare("SELECT 1 AS live FROM public_rooms WHERE slot_held = 1 AND creator_key = ?").bind(input.creatorKey).first()) return { kind: "creator_busy" };
+  if (input.networkKey) {
+    const recent = (await db.prepare("SELECT COUNT(*) AS n FROM public_rooms WHERE network_key = ? AND created_at > ?").bind(input.networkKey, now - NETWORK_CREATE_WINDOW_MS).first<{ n: number }>())?.n ?? 0;
+    if (recent >= NETWORK_CREATES_PER_WINDOW) return { kind: "network_rate" };
+  }
   const holder = await db.prepare("SELECT 1 AS held FROM public_rooms WHERE slot_held = 1 AND room_code = ?").bind(input.roomCode).first();
   return holder ? { kind: "code_taken" } : { kind: "capacity" };
 }
