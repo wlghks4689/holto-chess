@@ -10,6 +10,7 @@ import { isAllowedOrigin } from "./origin";
 import { runRetention } from "./retention";
 import { handleRankings } from "./rank";
 import { PUBLIC_INSTANCE_HEADER, PUBLIC_REQUEST_HEADER, ROOM_TAKEN_HEADER } from "./GameRoom";
+import { handlePublicList } from "./publicList";
 import { claimPublicSlot, moveClaimToCode, PUBLIC_ROOMS_MAX, type RegistryRow } from "./publicLobby";
 import { PRESENTATION_VERSION } from "../src/shared/presentationTimeline";
 import { PUBLIC_CREATE_ATTEMPTS, PUBLIC_INSTANCE_ID, PUBLIC_REQUEST_ID, publicCreateCandidate, publicCreatorKey, publicGuestKey, publicNetworkKey, publicRoomsEnabled, type PublicRoomEnv } from "./publicRoomKeys";
@@ -56,6 +57,13 @@ export default {
     // Public rooms stay unreachable until PUBLIC_ROOMS_ENABLED is set; the private room API is unaffected either way.
     const publicRoute = url.pathname === "/api/public-rooms" || url.pathname.startsWith("/api/public-rooms/");
     if (publicRoute && !publicRoomsEnabled(env as PublicRoomEnv)) return new Response("Not found", { status: 404 });
+    // Public and read-only like the rankings: a same-origin GET carries no Origin header, so it is rate-limited instead.
+    // Its own limiter key keeps browsing from spending the budget a player needs to reconnect.
+    if (url.pathname === "/api/public-rooms" && request.method === "GET") {
+      const { success } = await env.ROOM_CONNECT_LIMITER.limit({ key: `public-browse:${request.headers.get("CF-Connecting-IP") ?? "local"}` });
+      if (!success) return new Response("요청이 너무 많습니다. 잠시 후 다시 시도하세요.", { status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" } });
+      return handlePublicList(request, env as PublicRoomEnv, url);
+    }
     // Read-only and public: a same-origin GET carries no Origin header, so it is rate-limited instead of origin-checked.
     // The JSON has no CORS headers, so another site can never read /me even with the visitor's cookie.
     if (url.pathname === "/api/rankings" || url.pathname === "/api/rankings/me") {

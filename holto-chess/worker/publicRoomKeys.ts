@@ -10,6 +10,8 @@ export type PublicRoomEnv = Env & {
   PUBLIC_ROOM_SECRET?: string;
   /** Registry and search summaries (public-lobby-migrations). Bound only once the production database exists. */
   PUBLIC_LOBBY_DB?: D1Database;
+  /** Seconds a public list page is cached per data center (default 5). "0" turns the cache off, as the test suite does. */
+  PUBLIC_LIST_CACHE_SECONDS?: string;
 };
 
 export const PUBLIC_REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;

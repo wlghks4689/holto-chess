@@ -26,6 +26,8 @@ export default defineConfig(async () => ({
         // Public rooms are off in production until they ship; the suite exercises them with a test-only secret.
         PUBLIC_ROOMS_ENABLED: "1",
         PUBLIC_ROOM_SECRET: "test-public-room-secret",
+        // Each test reads the list fresh; one test turns the 5-second cache back on to check it.
+        PUBLIC_LIST_CACHE_SECONDS: "0",
       },
       // The public lobby database is bound here only. wrangler.jsonc gets the binding when the production database
       // is created at release, so merging this code changes nothing in production.

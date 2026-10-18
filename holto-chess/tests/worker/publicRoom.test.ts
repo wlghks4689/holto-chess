@@ -6,6 +6,7 @@ import worker from "../../worker/index";
 import type { RoomSnapshot } from "../../src/game/room";
 import type { GameAction, PlayerView, ServerMessage } from "../../src/shared/protocol";
 import { publicCreateCandidate } from "../../worker/publicRoomKeys";
+import { freshListing } from "../../worker/publicList";
 
 // Account seats need the configured auth origin (AUTH_ORIGIN in vitest.workers.config.ts).
 const origin = "https://porena.kr";
@@ -512,6 +513,97 @@ describe("room to registry updates (PUBLIC-ROOMS-002 2-D)", () => {
     await runDurableObjectAlarm(stubFor(room.roomId));
     expect(await row(room.instanceId)).toMatchObject({ state: "CLOSED", slot_held: 0 });
     expect(await runInDurableObject(stubFor(room.roomId), (_instance, state) => state.storage.get("snapshot:v1"))).toBeUndefined();
+  });
+});
+
+describe("public room list (PUBLIC-ROOMS-002 2-E)", () => {
+  const lobbyDb = () => (env as unknown as { PUBLIC_LOBBY_DB: D1Database }).PUBLIC_LOBBY_DB;
+  type Page = { serverNow: number; rooms: { instanceId: string; roomCode: string; openSeats: number }[]; nextCursor: string | null };
+  // A same-origin browser GET carries no Origin header; the list must still answer it.
+  const list = (query = "") => exports.default.fetch(new Request(`${origin}/api/public-rooms${query}`, { headers: { "CF-Connecting-IP": crypto.randomUUID() } }));
+  const page = async (query = "") => { const response = await list(query); expect(response.status).toBe(200); return response.json() as Promise<Page>; };
+  const listed = async (instanceId: string) => (await page()).rooms.some(room => room.instanceId === instanceId);
+  const waitingWithSomeone = async () => {
+    const [host] = await accountsOf(1);
+    const room = await created(host!.cookie);
+    const socket = await connect(room);
+    await until(async () => (await lobbyDb().prepare("SELECT confirmed_count FROM public_rooms WHERE instance_id = ?").bind(room.instanceId).first<{ confirmed_count: number }>())?.confirmed_count, n => n === 1);
+    return { room, socket };
+  };
+
+  it("lists a recruiting room with only public fields", async () => {
+    const { room } = await waitingWithSomeone();
+    const response = await list();
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Set-Cookie")).toBeNull();
+    const body = await response.json() as Page;
+    expect(body.serverNow).toBeGreaterThan(0);
+    const entry = body.rooms.find(item => item.instanceId === room.instanceId)!;
+    expect(Object.keys(entry).sort()).toEqual(["capacity", "confirmed", "createdAt", "instanceId", "language", "leaseExpiresAt", "openSeats", "protocolVersion",
+      "regionHint", "reserved", "roomCode", "roomExpiresAt", "rulesVersion"]);
+    expect(entry).toMatchObject({ roomCode: room.roomId, openSeats: 7 });
+    // No creator, request, network, account, guest, token or snapshot data ever leaves the registry.
+    expect(JSON.stringify(body)).not.toMatch(/creator|request_id|network|accountUserId|guestKey|token|tokenHash|cards|snapshot/i);
+  });
+
+  it("hides rooms nobody holds a confirmed seat in, full rooms, games in progress, stale leases and private rooms", async () => {
+    const [host] = await accountsOf(1);
+    const reservedOnly = await created(host!.cookie); // creator never connected
+    await until(async () => (await lobbyDb().prepare("SELECT state FROM public_rooms WHERE instance_id = ?").bind(reservedOnly.instanceId).first<{ state: string }>())?.state, s => s === "WAITING");
+    expect(await listed(reservedOnly.instanceId)).toBe(false);
+
+    const { room: full } = await waitingWithSomeone();
+    await lobbyDb().prepare("UPDATE public_rooms SET confirmed_count = 6, reserved_count = 2 WHERE instance_id = ?").bind(full.instanceId).run();
+    expect(await listed(full.instanceId)).toBe(false);
+
+    const { room: playing } = await waitingWithSomeone();
+    await lobbyDb().prepare("UPDATE public_rooms SET state = 'PLAYING' WHERE instance_id = ?").bind(playing.instanceId).run();
+    expect(await listed(playing.instanceId)).toBe(false);
+
+    const { room: stale } = await waitingWithSomeone();
+    expect(await listed(stale.instanceId)).toBe(true);
+    await lobbyDb().prepare("UPDATE public_rooms SET lease_expires_at = ? WHERE instance_id = ?").bind(Date.now() - 1, stale.instanceId).run();
+    expect(await listed(stale.instanceId)).toBe(false);
+
+    const privateRoom = await (await call("/api/rooms", { method: "POST" })).json() as Credential;
+    expect((await page()).rooms.some(item => item.roomCode === privateRoom.roomId)).toBe(false);
+  });
+
+  it("pages 20 rooms at a time in a stable order, and refuses a made-up cursor", async () => {
+    await lobbyDb().prepare("UPDATE public_rooms SET state = 'CLOSED', slot_held = 0").run(); // start from a known list
+    const now = Date.now();
+    await lobbyDb().batch(Array.from({ length: 25 }, (_, i) => lobbyDb().prepare(
+      `INSERT INTO public_rooms (instance_id, room_code, creator_key, request_id, state, confirmed_count, rules_version, protocol_version, created_at, observed_at, lease_expires_at, room_expires_at)
+       VALUES (?, ?, ?, ?, 'WAITING', 1, 2, 1, ?, ?, ?, ?)`).bind(i.toString(16).padStart(32, "b"), `P${i.toString(36).toUpperCase().padStart(5, "0")}`, `pager-${i}`, `pager-${i}`,
+      now + Math.floor(i / 2), now, now + 90_000, now + 3600_000)));
+    const first = await page();
+    expect(first.rooms).toHaveLength(20);
+    expect(first.nextCursor).not.toBeNull();
+    const second = await page(`?cursor=${first.nextCursor}`);
+    expect(second.rooms).toHaveLength(5);
+    expect(second.nextCursor).toBeNull();
+    const ids = [...first.rooms, ...second.rooms].map(room => room.instanceId);
+    expect(new Set(ids).size).toBe(25);
+    // Ordered by creation time, ties broken by instance id.
+    const expected = Array.from({ length: 25 }, (_, i) => ({ id: i.toString(16).padStart(32, "b"), at: now + Math.floor(i / 2) }))
+      .sort((a, b) => a.at - b.at || a.id.localeCompare(b.id)).map(item => item.id);
+    expect(ids).toEqual(expected);
+    expect((await list("?cursor=not-a-cursor!")).status).toBe(400);
+    expect((await list(`?cursor=${btoa("1.zz")}`)).status).toBe(400);
+    await lobbyDb().prepare("UPDATE public_rooms SET state = 'CLOSED', slot_held = 0 WHERE creator_key LIKE 'pager-%'").run();
+  });
+
+  it("serves a cached page for a few seconds, still dropping rooms whose lease ran out", async () => {
+    const { room } = await waitingWithSomeone();
+    const cachedEnv = { ...env, PUBLIC_LIST_CACHE_SECONDS: "5" } as unknown as Env;
+    const get = async () => (await worker.fetch(new Request(`${origin}/api/public-rooms`, { headers: { "CF-Connecting-IP": crypto.randomUUID() } }), cachedEnv, createExecutionContext())).json() as Promise<Page>;
+    expect((await get()).rooms.some(item => item.instanceId === room.instanceId)).toBe(true);
+    // The registry changes, but the cached copy answers for a few seconds...
+    await lobbyDb().prepare("UPDATE public_rooms SET state = 'PLAYING' WHERE instance_id = ?").bind(room.instanceId).run();
+    expect((await get()).rooms.some(item => item.instanceId === room.instanceId)).toBe(true);
+    // ...and even a cached entry disappears once its own lease has passed.
+    const stale = freshListing({ serverNow: 0, nextCursor: null, rooms: [{ ...(await get()).rooms.find(item => item.instanceId === room.instanceId)!, leaseExpiresAt: Date.now() - 1 } as never] }, Date.now());
+    expect(stale.rooms).toHaveLength(0);
   });
 });
 
