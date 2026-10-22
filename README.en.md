@@ -150,16 +150,16 @@ When the game starts each player is dealt one of 12 at random, and all eight abi
 
 | Ability | Effect | When · notes |
 | --- | --- | --- |
-| **Royal Blood** | Get one free starting card from A·K·Q·J·T; buy that rank at 50% (rounded down) in shops and drafts | e.g. Q 15BB → 7BB |
+| **Royal Blood** | Get one free starting card from A·K·Q·J; A·K·Q·J cost 0BB in shops and drafts (and sell for nothing) | 10 and below: full price, 60% sell · not in the R3 auction or double-price buy |
 | **Target Sniper** | Get one random free card at the start of R1. Winning a regulation match outright with it in your BEST 5 pays +15BB | Any hand counts · no splits or post-split tiebreak wins · per run in R2 and R5 · off when you sell the card, back on if you buy it again |
-| **Underdog** | In the R6 final, a straight or better whose BEST 5 includes a 2 pays +20P | Win or lose · never triggers in R1–R5 |
+| **Underdog** | Trips or better with one of your own 2s in your BEST 5 pays +2P per match | Every match (per run in R2 and R5) · win or lose · a 2 on the board alone does not count |
 | **First Class** | Always picks first in the R2 and R4 open drafts and the R3 double-price buy | No advantage in R3 auction bidding |
 | **Golden Hand** | +1 personal shop card; selling refunds 100% of the base price | R2 and R3 have no personal shop |
-| **Trader** | Free personal-shop rerolls and locks, +1 reroll each shop phase | Not in R2 and R3 |
+| **Trader** | Free personal-shop rerolls and locks, +1 reroll and +1 purchase each shop phase | Not in R2 and R3 |
 | **Predator** | Each outright regulation win adds 1 to your streak; from a 2-win streak each win pays streak × 5BB (10 · 15 · 20 …) | The streak carries across rounds · resets on a split or loss · tiebreak wins excluded |
 | **Architect** | A regulation match whose final hand is exactly a full house pays +30BB | Win or lose · per run in R2 and R5 · quads or better excluded |
-| **Capitalism** | At the end of each round you survive, get 20% of your BB (rounded down) | Once per round · not in the round you are eliminated · also after R6 |
-| **QUAD CORE** | Quads in the R6 final double your final placement points | Quads from any cards count · only placement points double · quads in R1–R5 excluded |
+| **Capitalism** | At the end of each round you survive, get 25% of your BB (rounded down) | Once per round · not in the round you are eliminated · also after R6 |
+| **QUAD CORE** | Double the points you earn in a match where you make quads; in the R6 final, placement points double | Every match (per run in R2 and R5) · quads from any cards count · sweep bonuses not doubled · no effect without points earned |
 | **Front Runner** | Leading at the end of a round pays R1 +3 · R2 +4 · R3 +5 · R4 +6 · R5 +7 · R6 +8P | R1–R5: the single survivor-table leader (points → BB → seat) · R6: final 1st place, all tied firsts paid |
 | **Protector** | Losing an R1–R5 1:1 regulation match you were favored in (60%+) pays by tier: 60%+ +20 · 70%+ +30 · 80%+ +50BB | Uses the win chance shown before the match (rounded down) · per run in R2 and R5 · not splits, R6 or tiebreaks |
 
@@ -320,7 +320,7 @@ See [tools/balance-simulator/README.md](holto-chess/tools/balance-simulator/READ
 - [ ] Balance tuning
 - [ ] Better AI strategy
 - [ ] BGM
-- [ ] Rankings · accounts
+- [ ] Accounts (Google sign-in) · season rankings (multiplayer games only) — implemented, in pre-release verification
 - [ ] Steam (Windows) build
 
 ---
@@ -341,7 +341,7 @@ PORENA is not a copy of Texas Hold'em.
 - Value tuning based on balance simulations
 - Stronger AI strategy
 - More BGM and sound design
-- Accounts and rankings
+- Public accounts and season rankings
 - Steam build
 
 ---
