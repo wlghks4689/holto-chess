@@ -1,6 +1,7 @@
 import { searchFile, withSearchMetadata } from "./search";
 import { adminRoute, handleAdmin } from "./admin";
 import { configuredOrigin, handleAuth, purgeExpiredAuth, readPorenaSession } from "./auth";
+import { accountsEnabled, closedAccountResponse } from "./accountGate";
 import { roomForwardHeaders } from "./roomIdentity";
 import { normalizeNickname } from "../src/shared/nickname";
 import type { RoomAccountIdentity } from "../src/game/room";
@@ -47,7 +48,8 @@ export default {
     const admin = adminRoute(url);
     if (admin === "admin") return handleAdmin(request, env, url);
     if (admin === "hidden") return new Response("Not found", { status: 404 });
-    if (url.pathname.startsWith("/api/auth/") || url.pathname === "/api/profile") return handleAuth(request, env, url);
+    // Login and profiles are closed for now (worker/accountGate.ts); /me still answers "not signed in".
+    if (url.pathname.startsWith("/api/auth/") || url.pathname === "/api/profile") return accountsEnabled(env) ? handleAuth(request, env, url) : closedAccountResponse(request, url);
     if (url.pathname === "/api/health") return Response.json({ ok: true, runtime: "cloudflare-workers" });
     if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/ws/")) return withSearchMetadata(await serveApp(request, env, url), url);
     // Public rooms stay unreachable until PUBLIC_ROOMS_ENABLED is set; the private room API is unaffected either way.
@@ -56,6 +58,7 @@ export default {
     // Read-only and public: a same-origin GET carries no Origin header, so it is rate-limited instead of origin-checked.
     // The JSON has no CORS headers, so another site can never read /me even with the visitor's cookie.
     if (url.pathname === "/api/rankings" || url.pathname === "/api/rankings/me") {
+      if (!accountsEnabled(env)) return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
       const { success } = await env.ROOM_CONNECT_LIMITER.limit({ key: request.headers.get("CF-Connecting-IP") ?? "local" });
       if (!success) return new Response("요청이 너무 많습니다. 잠시 후 다시 시도하세요.", { status: 429, headers: { "Retry-After": "60", "Cache-Control": "no-store" } });
       return handleRankings(request, env, url);
@@ -80,7 +83,8 @@ export default {
     const fail = (error: string, status: number) => Response.json({ error }, { status, headers: { "Cache-Control": "no-store", "Vary": "Cookie" } });
     if (isNewSeat) {
       try {
-        const user = await readPorenaSession(request, env);
+        // While accounts are closed a leftover sign-in cookie is ignored: everyone takes a guest seat.
+        const user = accountsEnabled(env) ? await readPorenaSession(request, env) : null;
         if (!user && request.headers.get("X-Porena-Identity") === "account") return fail("ACCOUNT_REQUIRED", 401);
         // Ranked solo is server-authoritative and account-only; guests practise locally.
         if (!user && solo) return fail("ACCOUNT_REQUIRED", 401);

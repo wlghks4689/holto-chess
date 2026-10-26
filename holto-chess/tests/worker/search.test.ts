@@ -10,7 +10,7 @@ it('serves sitemap XML and discoverable robots on the public host', async () => 
   expect(response.headers.get('Content-Type')).toContain('application/xml');
   const xml = await response.text();
   expect(xml).toContain('<loc>https://porena.kr/</loc>');
-  expect(xml.match(/<loc>/g)).toHaveLength(5);
+  expect(xml.match(/<loc>/g)).toHaveLength(4);
   expect(xml).toContain('<loc>https://porena.kr/about</loc>');
   const robots = await exports.default.fetch('https://porena.kr/robots.txt');
   expect(await robots.text()).toContain('Sitemap: https://porena.kr/sitemap.xml');

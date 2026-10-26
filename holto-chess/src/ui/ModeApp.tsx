@@ -9,7 +9,7 @@ import { legalPageFor, navigate, usePathname } from "../legal/legalRoute";
 import { activeSession } from "./sessionStore";
 import { AccountProvider } from "./AccountProvider";
 import { useAccount } from "./useAccount";
-import { useEntryIntent } from "./entryIntent";
+import { RANKING_ENABLED } from "../shared/features";
 const loadLocalApp = () => import("./App");
 const FxPreview = lazy(() => import("./FxPreview").then((module) => ({ default: module.FxPreview })));
 const LocalApp = lazy(() => loadLocalApp().then((module) => ({ default: module.App })));
@@ -37,7 +37,6 @@ export function ModeApp() {
 function ModeContent() {
   const { t } = useTranslation();
   const account = useAccount();
-  const entryRequested = useEntryIntent();
   const pathname = usePathname();
   const legalPage = legalPageFor(pathname);
   useEffect(() => {
@@ -58,7 +57,10 @@ function ModeContent() {
     if (mode === "single") void loadLocalApp();
     if (mode === "multi") void loadOnlineApp();
   }, [mode]);
-  if (pathname.replace(/\/+$/, "").toLowerCase() === "/ranking") return <Suspense fallback={<main className="local-loading-screen"><div><span>RANKING</span><b>{t("common.loading")}</b></div></main>}><RankingPage onBack={() => { setMode(null); navigate("/"); }} /></Suspense>;
+  const rankingPath = pathname.replace(/\/+$/, "").toLowerCase() === "/ranking";
+  // The ranking is closed for now (shared/features.ts): an old link lands on the home page instead.
+  useEffect(() => { if (rankingPath && !RANKING_ENABLED) window.history.replaceState(window.history.state, "", "/"); }, [rankingPath]);
+  if (rankingPath && RANKING_ENABLED) return <Suspense fallback={<main className="local-loading-screen"><div><span>RANKING</span><b>{t("common.loading")}</b></div></main>}><RankingPage onBack={() => { setMode(null); navigate("/"); }} /></Suspense>;
   if (legalPage) return <Suspense fallback={<main className="local-loading-screen"><div><span>PORENA</span><b>{t("common.loading")}</b></div></main>}><LegalPage kind={legalPage} /></Suspense>;
   // Unlisted effect gallery. The SPA fallback serves it at /fx on any deploy, so
   // the same build can be checked without a local dev server.
@@ -76,6 +78,6 @@ function ModeContent() {
   if (PhasePreview && location.pathname === "/phase-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><PhasePreview /></Suspense>;
   if (ResponsivePreview && location.pathname === "/responsive-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><ResponsivePreview /></Suspense>;
   if (import.meta.env.DEV && location.pathname === "/draft-preview") return <Suspense fallback={<p>{t("common.loading")}</p>}><DraftPreview /></Suspense>;
-  if (!mode || (!(restoring && mode === "multi") && (!account.canEnter || entryRequested))) return <StartScreen onStart={(selectedMode) => { analytics.track("play_cta_click", { selected_mode: selectedMode }); setMode(selectedMode); }} />;
+  if (!mode || (!(restoring && mode === "multi") && !account.canEnter)) return <StartScreen onStart={(selectedMode) => { analytics.track("play_cta_click", { selected_mode: selectedMode }); setMode(selectedMode); }} />;
   return <>{import.meta.env.DEV && <div className="mode-switch"><button className={`secondary ${mode === "multi" ? "locked" : ""}`} onClick={() => setMode("multi")}>{t("mode.multiplayer")}</button><button className={`secondary ${mode === "single" ? "locked" : ""}`} onClick={() => setMode("single")}>{t("mode.single")}</button></div>}{mode === "single" && account.status === "authenticated" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("common.loading")}</b></div></main>}><OnlineApp solo onHome={() => setMode(null)} /></Suspense> : mode === "single" ? <Suspense fallback={<main className="local-loading-screen"><div><span>SINGLE PLAY</span><b>{t("home.singleDescription")}</b></div></main>}><LocalApp onHome={() => setMode(null)} /></Suspense> : <Suspense fallback={<main className="local-loading-screen"><div><span>MULTIPLAYER</span><b>{t("common.loading")}</b></div></main>}><OnlineApp onHome={() => setMode(null)} /></Suspense>}</>;
 }

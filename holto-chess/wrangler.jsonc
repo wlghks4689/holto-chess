@@ -29,6 +29,9 @@
     // Discord Activity: comma-separated Discord application ids whose https://<id>.discordsays.com origin may
     // call /api/* and /ws/* (exact match, worker/origin.ts). Empty = porena.kr only. Public ids, not secrets.
     "DISCORD_ACTIVITY_CLIENT_IDS": "1555427351829942353",
+    // Login, profiles and the season ranking are closed for now (worker/accountGate.ts, HOME-GATE-001). "1" reopens
+    // them, together with ACCOUNTS_ENABLED in src/shared/features.ts. Account data in ACCOUNT_DB is kept.
+    "ACCOUNTS_ENABLED": "0",
     "AUTH_ORIGIN": "https://porena.kr",
     "GOOGLE_CLIENT_ID": "906938978252-89ndfurt1plgpnd1eqdkgoo0l2bhbt7f.apps.googleusercontent.com"
   },

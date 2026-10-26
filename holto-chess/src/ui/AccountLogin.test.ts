@@ -14,22 +14,19 @@ const context = (state: AccountSnapshot, guestChosen = false): AccountContextVal
 });
 const render = (state: AccountSnapshot, guestChosen = false) => renderToStaticMarkup(createElement(AccountContext.Provider, { value: context(state, guestChosen) }, createElement(StartScreen, { onStart: () => {} })));
 
-it("shows login choices before any game, guide or settings menu", () => {
-  const html = renderToStaticMarkup(createElement(StartScreen, { onStart: () => {} }));
-  expect(html).toContain('role="status"');
-  expect(html).not.toContain("Google로 로그인");
-  expect(render(guest)).toContain("게스트로 플레이");
-  expect(html).not.toContain('class="start-menu"');
-  expect(html).not.toContain("시작하기");
-  expect(html).not.toContain("client_secret");
-});
-
-it("unlocks the home menu only after explicit guest choice or a complete account profile", () => {
-  expect(render(guest)).not.toContain('class="start-menu"');
-  expect(render(guest, true)).toContain('class="start-menu"');
-  expect(render(signedIn)).toContain('class="start-menu"');
-  expect(render(signedIn)).toContain("포레나");
-  expect(render(signedIn)).not.toContain("private-user-id");
+// Login is closed for now (HOME-GATE-001): the home page is the gate with four items, whatever the stored account state.
+it("shows the four gate items without asking for login, nickname or guest choice", () => {
+  for (const html of [renderToStaticMarkup(createElement(StartScreen, { onStart: () => {} })), render(guest), render(incomplete, true), render(signedIn)]) {
+    expect(html).toContain('class="start-screen start-gate-screen"');
+    const menu = html.slice(html.indexOf('class="start-menu"'));
+    expect(menu.match(/<button/g)?.length).toBeGreaterThanOrEqual(4);
+    for (const label of ["게임 시작", "게임 설명", "환경 설정", "피드백"]) expect(html).toContain(label);
+    expect(html).not.toContain("Google로 로그인");
+    expect(html).not.toContain("게스트로 플레이");
+    expect(html).not.toContain('id="account-nickname"');
+    expect(html).not.toContain("private-user-id");
+    expect(html).not.toContain("client_secret");
+  }
 });
 
 it("offers language buttons above login, nickname setup and the home menu", () => {
@@ -41,14 +38,6 @@ it("offers language buttons above login, nickname setup and the home menu", () =
     expect(html.indexOf('class="start-language"')).toBeLessThan(html.indexOf('class="start-main"'));
     expect(html).not.toContain('class="locale-setting"');
   }
-});
-
-it("requires a blank nickname form before the home menu for a first login", () => {
-  const html = render(incomplete, true);
-  expect(html).toContain('id="account-nickname"');
-  expect(html).toContain('value=""');
-  expect(html).not.toContain('class="start-menu"');
-  expect(html).not.toContain("private-user-id");
 });
 
 it("does not let expired, changed or unavailable account verification become a guest seat", () => {

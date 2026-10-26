@@ -1,11 +1,13 @@
 import { expect, it } from 'vitest';
 import { canonicalFor, PUBLIC_SEARCH_PATHS, robotsText, sitemapXml } from './searchPages';
 it('lists only implemented public pages with production canonical URLs', () => {
-  expect(sitemapXml().match(/<loc>/g)).toHaveLength(5);
+  expect(sitemapXml().match(/<loc>/g)).toHaveLength(4);
   for (const path of PUBLIC_SEARCH_PATHS) expect(sitemapXml()).toContain(`<loc>https://porena.kr${path}</loc>`);
   expect(sitemapXml()).not.toMatch(/guide|rules|api|ws|admin|room|lastmod/);
   expect(canonicalFor('/about/')).toBe('https://porena.kr/about');
-  expect(canonicalFor('/ranking/')).toBe('https://porena.kr/ranking');
+  // The ranking is closed for now (HOME-GATE-001): no canonical page, not in the sitemap.
+  expect(canonicalFor('/ranking/')).toBeNull();
+  expect(sitemapXml()).not.toContain('/ranking');
   expect(canonicalFor('/fx')).toBeNull();
 });
 it('lets crawlers discover the sitemap without exposing private API or previews', () => {

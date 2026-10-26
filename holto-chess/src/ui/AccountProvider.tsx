@@ -4,16 +4,18 @@ import { normalizeNickname } from "../shared/nickname";
 import { canEnterHome, fetchAccount, parseAccountSnapshot, readGuestChoice, resolveNewRoomIdentity, storeGuestChoice, type AccountSnapshot } from "./accountState";
 import { AccountContext } from "./useAccount";
 import { clearEntryIntent } from "./entryIntent";
+import { ACCOUNTS_ENABLED } from "../shared/features";
 
 export function AccountProvider({ children }: { children: ReactNode }) {
   const embedded = currentPlatform().kind !== "web" || (typeof window !== "undefined" && window.self !== window.top);
-  const [snapshot, setSnapshot] = useState<AccountSnapshot>({ status: embedded ? "anonymous" : "loading", user: null });
-  const [guestChosen, setGuestChosen] = useState(readGuestChoice);
+  // While accounts are closed (shared/features.ts) nobody is asked to choose: every visitor is a guest from the start.
+  const [snapshot, setSnapshot] = useState<AccountSnapshot>({ status: embedded || !ACCOUNTS_ENABLED ? "anonymous" : "loading", user: null });
+  const [guestChosen, setGuestChosen] = useState(() => !ACCOUNTS_ENABLED || readGuestChoice());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("auth") === "failed" ? "auth.failed" : "");
 
   useEffect(() => {
-    if (embedded) return;
+    if (embedded || !ACCOUNTS_ENABLED) return;
     const controller = new AbortController();
     const url = new URL(window.location.href);
     if (url.searchParams.get("auth") === "failed") clearEntryIntent();
@@ -43,7 +45,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     finally { setBusy(false); }
   }
   function chooseGuest() { storeGuestChoice(true); setGuestChosen(true); setError(""); }
-  function leaveGuest() { storeGuestChoice(false); setGuestChosen(false); setError(""); }
+  function leaveGuest() { if (!ACCOUNTS_ENABLED) return; storeGuestChoice(false); setGuestChosen(false); setError(""); }
   async function logout() {
     setBusy(true); setError("");
     try {
@@ -71,6 +73,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     finally { setBusy(false); }
   }
   async function verifyNewRoom() {
+    if (!ACCOUNTS_ENABLED) return { kind: "guest" as const };
     const identity = await resolveNewRoomIdentity(snapshot, guestChosen, embedded);
     if (identity.kind === "account") setSnapshot({ status: "authenticated", user: identity.user });
     return identity;

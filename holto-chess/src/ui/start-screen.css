@@ -1,7 +1,7 @@
 .start-screen { min-height:100svh; position:relative; isolation:isolate; overflow:hidden; background:#050c17 url('/assets/start/arena-desktop.webp') center center / cover no-repeat; color:#e7f6ff; }
-.start-auth-screen { background-image:url('/assets/start/gate-desktop.webp'); }
+.start-gate-screen { background-image:url('/assets/start/gate-desktop.webp'); }
 /* Match the existing portrait breakpoint for stills and entrance video. */
-@media (orientation:portrait) and (max-width:820px) { .start-screen { background-image:url('/assets/start/arena-mobile.webp'); } .start-auth-screen { background-image:url('/assets/start/gate-mobile.webp'); } }
+@media (orientation:portrait) and (max-width:820px) { .start-screen { background-image:url('/assets/start/arena-mobile.webp'); } .start-gate-screen { background-image:url('/assets/start/gate-mobile.webp'); } }
 .start-content { transition:opacity .2s ease; }
 .is-entering .start-content { opacity:0; pointer-events:none; }
 .entrance-layer { position:fixed; inset:0; z-index:20; background:#050c17 url('/assets/start/gate-desktop.webp') center / cover no-repeat; pointer-events:none; opacity:1; transition:opacity .22s ease; }
@@ -24,8 +24,12 @@
 .start-account a:focus-visible,.start-account button:focus-visible { outline:2px solid #6ce4eb; outline-offset:3px; }
 .start-account small { flex-basis:100%; max-width:320px; text-align:right; color:#ffc7b8; line-height:1.5; }
 .start-account-name { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#a9eff0; }
-.start-auth-screen .start-main { position:relative; inset:auto; transform:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(28px,6svh,64px); flex:1; width:min(100%,580px); padding:36px 0; }
-.start-auth-screen .start-title { position:static; transform:none; width:100%; }
+.start-gate-screen .start-main { position:relative; inset:auto; transform:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(28px,6svh,64px); flex:1; width:min(100%,580px); padding:36px 0; }
+.start-gate-screen .start-title { position:static; transform:none; width:100%; }
+/* On the gate the four menu plates follow the title in the centred column instead of sitting on the arena table. */
+.start-gate-screen .start-menu { position:static; transform:none; }
+/* Over the arena the play-mode box keeps the arena in view: a light veil instead of the near-opaque menu backdrop. */
+.start-arena-stage .start-mode-backdrop { background:rgba(1,6,15,.42); backdrop-filter:blur(2px); }
 .start-login-panel { width:min(100%,380px); padding:28px; border:1px solid #57808e; border-radius:14px; background:linear-gradient(155deg,#0c2432ed,#071421f5); box-shadow:0 18px 60px #0008,inset 0 1px #d2faff16; text-align:center; }
 .start-login-panel .account-eyebrow { color:#87dbe3; font:500 9px 'DM Mono',monospace; letter-spacing:.18em; margin:0 0 10px; }
 .start-login-panel h2 { margin:0 0 24px; font-size:23px; line-height:1.4; }
@@ -47,7 +51,7 @@
 .account-profile-form small { color:#9ab9c7; font-size:11px; line-height:1.6; }
 .account-profile-actions { display:flex; gap:8px; margin-top:12px; }
 .account-profile-actions>button { min-width:0; flex:1; min-height:46px; font-size:14px; }
-@media(max-width:600px) { .start-auth-screen .start-main { padding:36px 0; gap:36px; } .start-login-panel { padding:24px 20px; } .start-login-panel h2 { font-size:22px; } .start-account { gap:6px; } .start-account-name { max-width:120px; } }
+@media(max-width:600px) { .start-gate-screen .start-main { padding:36px 0; gap:36px; } .start-login-panel { padding:24px 20px; } .start-login-panel h2 { font-size:22px; } .start-account { gap:6px; } .start-account-name { max-width:120px; } }
 /* The 1672x941 backdrop is covered height-first at every aspect up to 16:9, so a
    vertical percentage lands on the same part of the artwork across viewports.
    Title sits over the sky; the table spans 55-85%, so the menu centres on 70%. */
@@ -130,13 +134,12 @@
   .game-guide-backdrop { padding:0; }
   .game-guide { height:100svh; max-height:none; border:0; border-radius:0; }
 }
-/* Keep the top controls, title, six menu buttons and legal links apart on short phones. */
+/* Keep the top controls, title, four menu plates and legal links apart on short phones. */
 @media(max-width:600px) and (max-height:780px) {
-  .start-screen:not(.start-auth-screen) .start-main { position:relative; inset:auto; transform:none; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; width:100%; gap:24px; padding:28px 0 24px; }
-  .start-screen:not(.start-auth-screen) .start-title { position:static; transform:none; width:100%; }
-  .start-screen:not(.start-auth-screen) .start-menu { position:static; transform:none; gap:6px; }
-  .start-screen:not(.start-auth-screen) .start-menu button { min-height:44px; padding:8px 16px; }
-  .start-screen:not(.start-auth-screen) .start-menu .start-menu-primary { min-height:46px; }
+  .start-gate-screen .start-main { gap:24px; padding:28px 0 24px; }
+  .start-gate-screen .start-menu { gap:6px; }
+  .start-gate-screen .start-menu button { min-height:44px; padding:8px 16px; }
+  .start-gate-screen .start-menu .start-menu-primary { min-height:46px; }
 }
 /* Five menu plates are taller than the gap between the tagline and the table on short landscape windows
    (e.g. a 1280x650 laptop browser), so the plates tighten there instead of overlapping the title. */
