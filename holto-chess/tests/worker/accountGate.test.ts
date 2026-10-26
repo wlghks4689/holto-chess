@@ -5,7 +5,7 @@ import { base64url } from "jose";
 import worker from "../../worker/index";
 import type { RoomSnapshot } from "../../src/game/room";
 
-// Production closes login and ranking (wrangler.jsonc ACCOUNTS_ENABLED="0", HOME-GATE-001). The suite runs with them
+// Production closes login, ranking and feedback reply emails (wrangler.jsonc ACCOUNTS_ENABLED="0", HOME-GATE-001). The suite runs with them
 // open, so these tests call the Worker with the production value.
 const origin = "https://porena.kr";
 const closedEnv = { ...env, ACCOUNTS_ENABLED: "0" } as unknown as Env;
@@ -47,6 +47,17 @@ describe("login and ranking closed (HOME-GATE-001)", () => {
     expect(joined.status).toBe(201);
     const snapshot = await runInDurableObject(env.GAME_ROOM.getByName(`room:${roomId}`), (_instance, state) => state.storage.get<RoomSnapshot>("snapshot:v1"));
     expect(snapshot!.sessions.every(session => session.accountUserId === undefined)).toBe(true);
+  });
+
+  it("refuses a feedback reply email instead of storing it, and still takes the message alone", async () => {
+    const message = `closed-email-${crypto.randomUUID()}`;
+    const post = (body: object) => call("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category: "feedback", message, ...body }) });
+    const withEmail = await post({ contactEmail: "player@example.com", consent: true });
+    expect(withEmail.status).toBe(400);
+    expect(await withEmail.json()).toEqual({ error: "email" });
+    expect((await post({})).status).toBe(201);
+    const rows = await env.FEEDBACK_DB.prepare("SELECT contact_email FROM feedback WHERE message = ?").bind(message).all<{ contact_email: string | null }>();
+    expect(rows.results).toEqual([{ contact_email: null }]);
   });
 
   it("keeps the account-only server solo closed", async () => {

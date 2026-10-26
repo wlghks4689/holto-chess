@@ -1,4 +1,5 @@
 import { validateFeedback } from "../src/shared/feedback";
+import { accountsEnabled } from "./accountGate";
 
 const MAX_BODY_BYTES = 4096;
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -17,6 +18,8 @@ export async function submitFeedback(request: Request, env: Env): Promise<Respon
   const result = validateFeedback(body);
   if (!result.ok) return json({ error: result.error }, 400);
   const { category, message, contactEmail, locale } = result.value;
+  // No contact details are collected while accounts are closed (HOME-GATE-001): an email is refused, never stored.
+  if (contactEmail && !accountsEnabled(env)) return json({ error: "email" }, 400);
   const now = Date.now();
   await env.FEEDBACK_DB.prepare(
     "INSERT INTO feedback (category, message, contact_email, locale, user_agent, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'unread', ?, ?)",

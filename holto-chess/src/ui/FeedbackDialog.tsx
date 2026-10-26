@@ -4,6 +4,7 @@ import { useTranslation, type TranslationKey } from "../i18n";
 import { endpoints } from "../network/endpoints";
 import { followInApp, LEGAL_PATHS } from "../legal/legalRoute";
 import { currentPlatform } from "../platform/runtime";
+import { FEEDBACK_EMAIL_ENABLED } from "../shared/features";
 import "./feedback.css";
 
 type SendError = "rateLimited" | "email" | "consent" | "generic";
@@ -19,7 +20,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
   const [website, setWebsite] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<SendError | null>(null);
-  const wantsReply = email.trim() !== "";
+  const wantsReply = FEEDBACK_EMAIL_ENABLED && email.trim() !== "";
   const ready = message.trim() !== "" && (!wantsReply || consent) && state === "idle";
 
   const submit = async (event: FormEvent) => {
@@ -58,14 +59,16 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
       <textarea id={`${id}-message`} value={message} maxLength={FEEDBACK_MAX_LENGTH} rows={7} required aria-describedby={`${id}-count ${id}-sensitive`}
         placeholder={t(`feedback.placeholder.${category}` as TranslationKey)} onChange={(event) => setMessage(event.target.value)} />
       <div className="feedback-meta"><span id={`${id}-sensitive`}>{t("feedback.sensitive")}</span><span id={`${id}-count`} aria-live="polite" data-full={message.length >= FEEDBACK_MAX_LENGTH || undefined}>{t("feedback.count", { count: message.length, max: FEEDBACK_MAX_LENGTH })}</span></div>
-      <label className="feedback-field" htmlFor={`${id}-email`}>{t("feedback.email")}</label>
-      <input id={`${id}-email`} type="email" autoComplete="email" inputMode="email" maxLength={FEEDBACK_EMAIL_MAX_LENGTH} value={email} aria-describedby={`${id}-email-help`} onChange={(event) => setEmail(event.target.value)} />
-      <p id={`${id}-email-help`} className="feedback-help">{t("feedback.emailHelp")}</p>
-      {wantsReply && <label className="feedback-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span>{t("feedback.consent")}</span></label>}
-      {/* A new tab keeps the draft. Inside Discord, popups are not reliable, so the page opens in place. */}
-      <p className="feedback-help feedback-privacy">{currentPlatform().kind === "discord"
-        ? <a href={LEGAL_PATHS.privacy} onClick={followInApp(LEGAL_PATHS.privacy)}>{t("feedback.privacyLink")}</a>
-        : <a href={LEGAL_PATHS.privacy} target="_blank" rel="noopener">{t("feedback.privacyLink")}</a>}</p>
+      {FEEDBACK_EMAIL_ENABLED && <>
+        <label className="feedback-field" htmlFor={`${id}-email`}>{t("feedback.email")}</label>
+        <input id={`${id}-email`} type="email" autoComplete="email" inputMode="email" maxLength={FEEDBACK_EMAIL_MAX_LENGTH} value={email} aria-describedby={`${id}-email-help`} onChange={(event) => setEmail(event.target.value)} />
+        <p id={`${id}-email-help`} className="feedback-help">{t("feedback.emailHelp")}</p>
+        {wantsReply && <label className="feedback-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span>{t("feedback.consent")}</span></label>}
+        {/* A new tab keeps the draft. Inside Discord, popups are not reliable, so the page opens in place. */}
+        <p className="feedback-help feedback-privacy">{currentPlatform().kind === "discord"
+          ? <a href={LEGAL_PATHS.privacy} onClick={followInApp(LEGAL_PATHS.privacy)}>{t("feedback.privacyLink")}</a>
+          : <a href={LEGAL_PATHS.privacy} target="_blank" rel="noopener">{t("feedback.privacyLink")}</a>}</p>
+      </>}
       {/* Honeypot: off-screen and skipped by keyboard and screen readers. People leave it empty. */}
       <input className="feedback-trap" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(event) => setWebsite(event.target.value)} />
       {error && <p className="feedback-error" role="alert">{t(`feedback.error.${error}` as TranslationKey)}</p>}

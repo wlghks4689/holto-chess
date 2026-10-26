@@ -99,6 +99,9 @@ body:has(.ability-draft-dialog[open]){overflow:hidden}
    flip hint take about 340px and the card (2:3) gets the rest, up to 340px wide. */
 @media(min-width:769px){.ability-deal-card{width:min(340px,100%,calc((100dvh - 340px) * 2 / 3))}.game-arena .page-shell:has(>.ability-selection.is-ability_deal){padding-bottom:12px}}
 @media(min-width:769px){.game-arena .ability-selection.is-ability_deal{margin-block:6px 12px;padding-block:6px 12px}}
+/* PC: the ability screens size their cards by the height, so the page's 52px top pad and 80px action-bar pad
+   (the reveal has its own Ready button) only pushed the Ready button below one screen, laptops most of all. */
+@media(min-width:769px){.game-arena .page-shell:has(>.ability-selection){padding-top:12px}.game-arena .page-shell:has(>.ability-selection.is-ability_reveal){padding-bottom:12px}}
 /* The card waits for its frame and icon, so the text never shows on an empty card; then it spins in three
    turns, front and back alternating, and slows to a stop face up. No filter or opacity in the spin: either would
    flatten the 3D faces and show a mirrored front instead of the back. */
