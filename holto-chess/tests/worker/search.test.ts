@@ -42,12 +42,35 @@ it('serves a readable public introduction without JavaScript, account cookies or
   expect(response.headers.get('Set-Cookie')).toBeNull();
   const html = await response.text();
   expect(html).toContain('<link rel="canonical" href="https://porena.kr/about">');
-  for (const text of ['포커 덱빌딩', '포커 오토배틀', '전략 포커', '여섯 라운드', 'href="/"']) expect(html).toContain(text);
-  expect(html).not.toMatch(/<script|utm_source|noindex/);
+  for (const text of ['포커 덱빌딩', '오토 배틀러', '전략 포커', '포커라이크', '발라트로 같은 게임', '여섯 라운드', 'href="/"']) expect(html).toContain(text);
+  const withoutData = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, '');
+  expect(withoutData).not.toMatch(/<script|utm_source|noindex/);
   for (const ua of ['Mozilla/5.0', 'Yeti/1.1', 'bingbot/2.0']) {
     const other = await exports.default.fetch('https://porena.kr/about', { headers: { 'User-Agent': ua } });
     expect(await other.text()).toBe(html);
   }
+});
+it('explains the actual game without obsolete rules or misleading Balatro claims', async () => {
+  const html = await (await exports.default.fetch('https://porena.kr/about')).text();
+  expect(html.match(/<h1>/g)).toHaveLength(1);
+  expect(html).toContain('같은 52장을 나눠 씁니다');
+  expect(html).toContain('내 카드 3장과 새 보드 5장');
+  expect(html).toContain('남은 3명이 결승');
+  expect(html).toContain('서로 별개의 게임');
+  expect(html).not.toMatch(/중심 카드|보조 카드|로그라이크 덱빌딩|공식 후속작|최고의 게임/);
+  const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
+  for (const anchor of html.matchAll(/href="#([^"]+)"/g)) expect(ids.has(anchor[1]!)).toBe(true);
+});
+it('describes PORENA consistently in metadata and structured data without invented endorsements', async () => {
+  const html = await (await exports.default.fetch('https://porena.kr/about')).text();
+  const json = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)![1]!);
+  expect(json).toMatchObject({ '@type': 'AboutPage', url: 'https://porena.kr/about', mainEntity: { '@type': 'VideoGame', name: '포레나 PORENA', url: 'https://porena.kr/' } });
+  expect(html).toContain(`<meta name="description" content="${json.description}">`);
+  expect(html).toContain(`<meta property="og:description" content="${json.description}">`);
+  expect(json.mainEntity).not.toHaveProperty('aggregateRating');
+  expect(json.mainEntity).not.toHaveProperty('offers');
+  expect(json.mainEntity).not.toHaveProperty('sameAs');
+  expect(json.name).not.toMatch(/발라트로|Balatro/);
 });
 it('keeps introduction routing, HEAD and write protection consistent', async () => {
   const head = await exports.default.fetch('https://porena.kr/about', { method: 'HEAD' });
